@@ -39,7 +39,7 @@ class Configuration(dict):
         },
         name: str = 'configuration'
     ) -> None:
-        """[summary]
+        """Set the default parameters dictionary for multiple experiment.
 
         Args:
             default (Optional[dict[any]], optional): [description]. Defaults to None.

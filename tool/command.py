@@ -4,7 +4,7 @@ import os
 def auto_cmd(
     cmd: str = ""
 ) -> None:
-    """[summary]
+    """Use command in anywhere, no matter it's in `.ipynb` or '.py'.
 
     Args:
         cmd (str, optional): Which execute command in any python or
