@@ -1,0 +1,15 @@
+
+self.requiredParaNum = 4
+self.defaultPara = [self.numQubits, 100, 0, -2]
+self.defaultParaKey = ['degree', 'times', 'purityMethod', 'useRandom']
+self.requiredParaNote = [
+    'degree: degree of freedom of subsystem A',
+    'times: number of test to count ensemble average at least 10, default 100',
+    'purityMethod: 0: ensemble Ave. 1: ',
+    (
+        'useRandom: using of random unitary on lattices: \n' +
+        '   -2: only qubits would measure operate random unitary.\n' +
+        '   -1: all qubits do random unitary operation.\n' +
+        '   larger than 0: do random unitary operation on given specific degree.'
+    ),
+]
