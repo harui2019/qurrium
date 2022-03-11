@@ -1748,7 +1748,6 @@ class EntropyMeasureV2:
             'entropyList.json'), mode='w+', jsonablize=True)
         gitignore.sync('*.multiJobs.json')
 
-
         gitignore.ignore('*.json')
         gitignore.sync('*.multiJobs.json')
         gitignore.sync('*.powerJobs.json')
