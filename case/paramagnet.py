@@ -109,7 +109,7 @@ class trivialParamagnet(Case):
     q6: ┤ H ├
         ├───┤
     q7: ┤ H ├
-        └───┘      
+        └───┘
     ```
 
     - Measureing entropy on `Aer.get_backend('aer_simulator')`.
