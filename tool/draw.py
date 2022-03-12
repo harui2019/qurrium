@@ -192,6 +192,56 @@ drawConfigDefault = Configuration(
 )
 
 
+# def drawParamsControl(f: callable) -> any:
+#     """Control arguments format for each drawing function.
+
+#     Args:
+#         f (callable): Drawing function.
+
+#     Returns:
+#         any: The result of drawing function.
+#     """
+    
+#     def wrapper(
+#         data: dict[str: list[Union[float, int]]],
+#         plotName: str,
+#         saveFolder: Optional[Path] = None,
+#         dataConfig: Union[Configuration, dict] = dataConfigDefault,
+#         drawConfig: Union[Configuration, dict] = drawConfigDefault,
+#         **kwargs: any
+#     ):
+#         paramsControlArgsDoc = f"""
+    
+#         data (_type_): _description_
+#         plotName (str): _description_
+#         beta (float, optional): _description_. Defaults to 0.
+#         saveFolder (Optional[Path], optional): _description_. Defaults to None.
+#         dataConfig (Union[Configuration, dict], optional): _description_. Defaults to dataConfigDefault.
+#         drawConfig (Union[Configuration, dict], optional): _description_. Defaults to drawConfigDefault.
+        
+#         """
+#         docs = f.__doc__
+#         if isinstance(docs, type(None)):
+#             docs = """
+#             Args:
+#                 {paramsControlArgsDoc}
+#             """.format(paramsControlArgsDoc=paramsControlArgsDoc)
+#         else:
+#             docs.format(paramsControlArgsDoc=paramsControlArgsDoc)
+#         docs.format(paramsControlArgsDoc=paramsControlArgsDoc)
+#         f.__doc__ = docs
+
+#         return f(
+#             data=data,
+#             plotName=plotName,
+#             saveFolder=saveFolder,
+#             dataConfig=dataConfig,
+#             drawConfig=drawConfig,
+#             **kwargs,
+#         )
+#     return wrapper
+
+
 def drawEntropyPlot(
     data: dict[str: list[Union[float, int]]],
     plotName: str,
