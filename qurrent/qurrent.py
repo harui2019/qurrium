@@ -303,12 +303,24 @@ class EntropyMeasureV2:
         runBy: Optional[str] = 'gate',
         backend: Optional[Backend] = Aer.get_backend('qasm_simulator'),
     ) -> Union[Gate, Operator]:
-        # TODO: Rewrite doc
         """Parse wave Circuit into `Instruction` as `Gate` or `Operator` on `QuantumCircuit`.
 
+        Args:
+            wave (Optional[any], optional): 
+                The key of wave in 'fict' `.waves`.
+                If `wave==None`, then chooses `.lastWave` automatically added by last calling of `.addWave`. 
+                Defaults to None.
+            runBy (Optional[str], optional): 
+                Export as `Gate` or `Operator`. 
+                Defaults to 'gate'.
+            backend (Optional[Backend], optional): 
+                Current backend which to check whether exports to `IBMQBacked`, 
+                if does, then no matter what option input at `runBy` will export `Gate`. 
+                Defaults to Aer.get_backend('qasm_simulator').
+
         Returns:
-            Union[Gate, Operator]: the result of the wave as `Gate` or `Operator`.
-        """
+            Union[Gate, Operator]: The result of the wave as `Gate` or `Operator`.
+        """    
 
         if wave == None:
             wave = self.lastWave
@@ -1760,27 +1772,7 @@ class EntropyMeasureV2:
 
         return dataPowerJobs, expPurityList, expEntropyList
 
-    """ Plot Drawing """
-
-    # TODO: 將drawResult完成後作為staticmethod使用
-    # def multiJobsDraw(
-    #     self,
-    #     configList: list[dict[str: any]],
-    #     saveLocation: Union[Path, str] = './',
-    #     expsName: Union[Path, str] = 'exps',
-    #     exceptItems: Optional[list[str]] = None,
-    # ):
-    #     (
-    #         fileList,
-    #         expIDList,
-    #         expPurityList,
-    #         expEntropyList
-    #     ) = self.multiOutputs(
-    #         configList=configList,
-    #         saveLocation=saveLocation,
-    #         expsName=expsName,
-    #         exceptItems=exceptItems,
-    #     )
+    """ Plot Drawing is moved to `xproc.tool.draw`"""
 
     """Other"""
 
