@@ -1,4 +1,5 @@
 from __future__ import annotations
+from re import S
 from pyrsistent import immutable
 
 from qiskit import (
@@ -144,6 +145,7 @@ class EntropyMeasureV2:
         ```
         self.measureConfig = {
             'name': 'EntropyMeasureV2.1',
+            'shortName': 'qurrentV2.1', # the short name will be used for some export file naming.
             'paramsNum': 1,
             'default': {
                 'degree': (half of the numbers of qubits of Wave Circuit.)
@@ -166,6 +168,7 @@ class EntropyMeasureV2:
 
         self.measureConfig: MeasureConfig = {
             'name': 'EntropyMeasureV2.1',
+            'shortName': 'qurrentV2.1',
             'paramsNum': 1,
             'default': {
                 'degree': (
@@ -217,13 +220,14 @@ class EntropyMeasureV2:
 
         # basic check
         measureConfig = self.initialize()
-        for k in ['name', 'paramsNum', 'default', 'hint']:
+        for k in ['name', 'shortName', 'paramsNum', 'default', 'hint']:
             if k not in measureConfig:
                 raise KeyError(
                     f"Configuration '{k}' is lost, please fix missing of this parameter," +
                     " otherwise some errors may occur when calculating.")
 
         self.__name__ = self.measureConfig['name']
+        self.shortName = self.measureConfig['shortName']
         self.paramsKey += measureBase.keys()
 
         if 'degree' not in measureConfig['default']:
@@ -320,7 +324,7 @@ class EntropyMeasureV2:
 
         Returns:
             Union[Gate, Operator]: The result of the wave as `Gate` or `Operator`.
-        """    
+        """
 
         if wave == None:
             wave = self.lastWave
@@ -475,7 +479,7 @@ class EntropyMeasureV2:
         dataRetrieve: dict[str: Union[list[str], str]] = None,
         provider: Optional[AccountProvider] = None,
         expsName: str = 'exps',
-        tag: Optional[Union[list[str], str]] = None,
+        tag: Optional[Union[tuple[str], str]] = None,
         IBMQJob: bool = False,
         **otherArgs: any
     ) -> tuple[str, argdict]:
@@ -521,8 +525,8 @@ class EntropyMeasureV2:
                 Name this experiment to recognize it when the jobs are pending to IBMQ Service.
                 This name is also used for creating a folder to store the exports.
                 Defaults to None.
-            tags (Optional[Union[list[any], any]], optional):
-                Given the experiment multiple tags to make a dictionary for recongnizing it.
+            tag (Optional[Union[list[any], any]], optional):
+                Given the experiment multiple tag to make a dictionary for recongnizing it.
             IBMQJob (bool, optional):
                 Whether to use `IBMQJobManager` to package the job.
 
@@ -621,7 +625,7 @@ class EntropyMeasureV2:
         else:
             runByFixer = runBy
 
-        # tags
+        # tag
         if tag in self.expsBelong:
             self.expsBelong[tag].append(self.IDNow)
         else:
@@ -853,7 +857,7 @@ class EntropyMeasureV2:
             saveLoc /= p
         saveLoc /= expName
 
-        filename = f'dim={self._quickName(aNum, paramsOther)}_Id={tgtID}.json'
+        filename = f'dim={self._quickName(aNum, paramsOther)}.Id={tgtID}.json'
         self.exps[tgtID]['filename'] = Path(filename).name
 
         exportItems = jsonablize(self.exps[tgtID])
@@ -952,6 +956,10 @@ class EntropyMeasureV2:
                 warnings.warn(f"Key Lost: {lost}")
         else:
             raise TypeError("The export file does not match the type 'dict'.")
+
+        if "tag" in dataRead:
+            dataRead["tag"] = tuple(dataRead["tag"]) if isinstance(
+                dataRead["tag"], list) else dataRead["tag"]
 
         return dataRead
 
@@ -1249,6 +1257,7 @@ class EntropyMeasureV2:
         expsName: str,
         saveLocation: Union[Path, str] = './',
         isRetrieve: bool = False,
+        shortName: Optional[str] = None,
     ) -> tuple[int, str, Path]:
         """_summary_
 
@@ -1267,12 +1276,14 @@ class EntropyMeasureV2:
             print(expExportLoc, 'retrieve', hashExpsName)
 
         else:
-            hashExpsName = f"{expsName}{str(indexRename).rjust(3,'0')}"
+            shortNameAdder = f'{expsName}.' + \
+                shortName if shortName != None else expsName
+            hashExpsName = f"{shortNameAdder}.{str(indexRename).rjust(3,'0')}"
             expExportLoc = Path(saveLocation) / hashExpsName
             while os.path.exists(expExportLoc):
                 print(f'{expExportLoc} is repeat name')
                 indexRename += 1
-                hashExpsName = f"{expsName}{str(indexRename).rjust(3,'0')}"
+                hashExpsName = f"{shortNameAdder}.{str(indexRename).rjust(3,'0')}"
                 expExportLoc = Path(saveLocation) / hashExpsName
             print(expExportLoc, 'hash', hashExpsName)
             os.makedirs(expExportLoc)
@@ -1296,6 +1307,8 @@ class EntropyMeasureV2:
         powerJobID: str = '',
         provider: Optional[AccountProvider] = None,
         dataPowerJobs: dict[any] = {},
+
+        addShortName: bool = True,
         **otherArgs,
     ) -> argdict:
         """_summary_
@@ -1314,7 +1327,11 @@ class EntropyMeasureV2:
         """
 
         indexRename, hashExpsName, expExportLoc, Naming = self._multiExportName(
-            expsName, saveLocation, isRetrieve)
+            expsName=expsName,
+            saveLocation=saveLocation,
+            isRetrieve=isRetrieve,
+            shortName=(self.shortName if addShortName else None),
+        )
 
         self.multiNow = argdict(
             params={
@@ -1389,12 +1406,14 @@ class EntropyMeasureV2:
             expIDList.append(IDNow)
             expPurityList.append(purity)
             expEntropyList.append(entropy)
-            if curLegacy['tag'] == None:
+            curLegacyTag = tuple(curLegacy['tag']) if isinstance(
+                curLegacy['tag'], list) else curLegacy['tag']
+            if curLegacyTag == None:
                 ...
-            elif curLegacy['tag'] in expsBelong:
-                expsBelong[curLegacy['tag']].append(IDNow)
+            elif curLegacyTag in expsBelong:
+                expsBelong[curLegacyTag].append(IDNow)
             else:
-                expsBelong[curLegacy['tag']] = [IDNow]
+                expsBelong[curLegacyTag] = [IDNow]
         gitignore.ignore('*.json')
 
         dataMultiJobs = {
@@ -1518,9 +1537,23 @@ class EntropyMeasureV2:
                 expEntropyList = dataDummyJobs['entropyList']
             if 'expsBelong' in dataDummyJobs:
                 expsBelong = dataDummyJobs['expsBelong']
+                expsBelongKeys = list(expsBelong.keys())
+                for k in expsBelongKeys:
+                    if isinstance(k, str):
+                        if k[0] == '(' and k[-1] == ')':
+                            try:
+                                kTuple = eval(k)
+                                expsBelong[kTuple] = expsBelong[k]
+                                del expsBelong[k]
+                            except:
+                                print(
+                                    f"'{k}' may be not a tuple, parsing cancelled.")
+                        else:
+                            print(f"'{k}' may be not a tuple, parsing unactive.")
                 self.expsBelong = {
                     **self.expsBelong, **expsBelong,
                 }
+                dataDummyJobs['expsBelong'] = expsBelong
 
         return None, powerJobID, dataDummyJobs, expPurityList, expEntropyList
 
@@ -1581,12 +1614,14 @@ class EntropyMeasureV2:
             fileList.append(curLegacy['filename'])
             expIDList.append(IDNow)
             powerExps[IDNow] = curLegacy
-            if curLegacy['tag'] == None:
+            curLegacyTag = tuple(curLegacy['tag']) if isinstance(
+                curLegacy['tag'], list) else curLegacy['tag']
+            if curLegacyTag == None:
                 ...
-            elif curLegacy['tag'] in expsBelong:
-                expsBelong[curLegacy['tag']].append(IDNow)
+            elif curLegacyTag in expsBelong:
+                expsBelong[curLegacyTag].append(IDNow)
             else:
-                expsBelong[curLegacy['tag']] = [IDNow]
+                expsBelong[curLegacyTag] = [IDNow]
         gitignore.ignore('*.json')
 
         for idKey in expIDList:
