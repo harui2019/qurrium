@@ -853,7 +853,7 @@ class EntropyMeasureV2:
             saveLoc /= p
         saveLoc /= expName
 
-        filename = f'dim={self._quickName(aNum, paramsOther)}_Id={tgtID}.json'
+        filename = f'dim={self._quickName(aNum, paramsOther)}.Id={tgtID}.json'
         self.exps[tgtID]['filename'] = Path(filename).name
 
         exportItems = jsonablize(self.exps[tgtID])
@@ -1267,12 +1267,12 @@ class EntropyMeasureV2:
             print(expExportLoc, 'retrieve', hashExpsName)
 
         else:
-            hashExpsName = f"{expsName}{str(indexRename).rjust(3,'0')}"
+            hashExpsName = f"{expsName}.{str(indexRename).rjust(3,'0')}"
             expExportLoc = Path(saveLocation) / hashExpsName
             while os.path.exists(expExportLoc):
                 print(f'{expExportLoc} is repeat name')
                 indexRename += 1
-                hashExpsName = f"{expsName}{str(indexRename).rjust(3,'0')}"
+                hashExpsName = f"{expsName}.{str(indexRename).rjust(3,'0')}"
                 expExportLoc = Path(saveLocation) / hashExpsName
             print(expExportLoc, 'hash', hashExpsName)
             os.makedirs(expExportLoc)
