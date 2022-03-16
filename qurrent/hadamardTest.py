@@ -28,6 +28,7 @@ class hadamardTest(EntropyMeasureV1):
         """
 
         self.measurementName = 'hadamardTest'
+        self.shortName = 'hadamard'
         self.requiredParaNum = 1
         self.defaultPara = [self.numQubits]
         self.defaultParaKey = ['degree']
@@ -201,6 +202,7 @@ class hadamardTestV2(EntropyMeasureV2):
 
         self.measureConfig = {
             'name': 'hadamardTest',
+            'shortName': 'hadamard',
             'paramsNum': 1,
             'default': {
                 'degree': (

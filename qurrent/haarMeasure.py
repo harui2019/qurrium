@@ -401,6 +401,7 @@ class haarMeasureV2(EntropyMeasureV2):
         ```
         self.measureConfig = {
             'name': 'haarMeasure',
+            'shortName': 'haar',
             'paramsNum': 3,
             'default': {
                 'degree': (
@@ -428,6 +429,7 @@ class haarMeasureV2(EntropyMeasureV2):
 
         self.measureConfig = {
             'name': 'haarMeasure',
+            'shortName': 'haar',
             'paramsNum': 3,
             'default': {
                 'degree': (
