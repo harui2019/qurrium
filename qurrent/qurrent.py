@@ -474,13 +474,13 @@ class EntropyMeasureV2:
         shots: int = 1024,
         backend: Backend = Aer.get_backend('qasm_simulator'),
         drawMethod: Optional[str] = 'text',
-        decompose: Optional[int] = 1,
+        decompose: Optional[int] = 2,
         resultKeep: bool = False,
         dataRetrieve: dict[str: Union[list[str], str]] = None,
         provider: Optional[AccountProvider] = None,
         expsName: str = 'exps',
         tag: Optional[Union[tuple[str], str]] = None,
-        IBMQJob: bool = False,
+        transpileArgs: dict = {},
         **otherArgs: any
     ) -> tuple[str, argdict]:
         """Handling all arguments.
@@ -511,7 +511,7 @@ class EntropyMeasureV2:
                 Defaults to 'text'.
             decompose (Optional[int], optional): 
                 Running `QuantumCircuit` which be decomposed given times.
-                Defaults to 1.
+                Defaults to 2.
             resultKeep (bool, optional): 
                 Whether to keep the results.
                 Defaults to False.
@@ -527,8 +527,6 @@ class EntropyMeasureV2:
                 Defaults to None.
             tag (Optional[Union[list[any], any]], optional):
                 Given the experiment multiple tag to make a dictionary for recongnizing it.
-            IBMQJob (bool, optional):
-                Whether to use `IBMQJobManager` to package the job.
 
         Raises:
             ValueError: When `waveFunction` is neither `int` nor ` QuantumCircuit`
@@ -650,7 +648,7 @@ class EntropyMeasureV2:
                 'provider': provider,
                 'expsName': expsName,
                 'tag': tag,
-                'IBMQJob': IBMQJob,
+                'transpileArgs': transpileArgs,
 
                 **otherArgs,
             },
@@ -693,6 +691,27 @@ class EntropyMeasureV2:
 
     """ Main Process: Circuit"""
 
+    @staticmethod
+    def qcDecomposer(
+        qc: QuantumCircuit,
+        decompose: int = 2,
+    ) -> QuantumCircuit:
+        """Decompose the circuit with giving times.
+
+        Args:
+            qc (QuantumCircuit): The circuit wanted to be decomposed.
+            decompose (int, optional):  Decide the times of decomposing the circuit.
+                Draw quantum circuit with composed circuit. Defaults to 2.
+
+        Returns:
+            QuantumCircuit: The decomposed circuit.
+        """
+
+        qcResult = qc
+        for t in range(decompose):
+            qcResult = qcResult.decompose()
+        return qcResult
+
     def drawCircuit(
         self,
         expID: Optional[str] = None,
@@ -705,8 +724,8 @@ class EntropyMeasureV2:
             expID (Optional[str]): The unique id of experiment, by uuid4.
             drawMethod (Optional[str], optional): Draw quantum circuit by
                 "text", "matplotlib", or "latex". Defaults to 'text'.
-            composeMethod (Optional[str], optional): Draw quantum circuit with
-                composed construction. Defaults to "none". Defaults to None.
+            decompose (Optional[int], optional): Decide the times of decomposing the circuit.
+                Draw quantum circuit with composed circuit. Defaults to 0.
 
         Raises:
             KeyError: When 'expID' is not given or not existed.
@@ -721,13 +740,11 @@ class EntropyMeasureV2:
         if isinstance(qcExp, list):
             fig = []
             for qc in qcExp:
-                for t in range(decompose):
-                    qc = qc.decompose()
+                qc = self.qcDecomposer(qc, decompose)
                 fig.append(qc.draw(drawMethod))
 
         elif isinstance(qcExp, QuantumCircuit):
-            for t in range(decompose):
-                qcExp = qcExp.decompose()
+            qcExp = self.qcDecomposer(qcExp, decompose)
             fig = qcExp.draw(drawMethod)
 
         return fig
@@ -990,8 +1007,12 @@ class EntropyMeasureV2:
         IDNow, argsNow = self.IDNow, self.now
 
         circs = qcExp if isinstance(qcExp, list) else [qcExp]
-        circs = [qc.decompose().decompose() for qc in circs]
-        circs = transpile(circs, backend=argsNow.backend)
+        circs = [self.qcDecomposer(qc, argsNow.decompose) for qc in circs]
+        circs = transpile(
+            circs,
+            backend=argsNow.backend,
+            **argsNow.transpileArgs,
+        )
 
         jobExecution = execute(
             circs,
@@ -1003,7 +1024,6 @@ class EntropyMeasureV2:
         self.exps[IDNow] = {
             **self.exps[IDNow],
             'jobID': jobID,
-            'IBMQJobManager': False,
         }
 
         return jobExecution, jobID
@@ -1098,26 +1118,27 @@ class EntropyMeasureV2:
                 warnings.warn("Job unknown.", e)
 
             except IBMQJobManagerInvalidStateError as e:
-                warnings.warn("Job faied.", e)
+                warnings.warn(
+                    "Job faied by 'IBMQJobManagerInvalidStateError'", e)
 
             except JobError as e:
-                warnings.warn("Job faied.", e)
+                warnings.warn("Job faied by 'JobError", e)
 
         self.exps[IDNow] = {
             **self.exps[IDNow],
 
             "jobID": jobLegend["jobID"],
-            "name": jobLegend["jobID"],  # TODO: return name
+            "name": jobLegend["jobID"],
 
-            'aNum': None,  # TODO: return 'aNum' from name
-            'paramsOther': None,  # TODO: return 'paramsOther' from name
+            'aNum': None,
+            'paramsOther': None,
 
-            'wave': None,  # TODO: return circuit
+            'wave': None,
             'expID': self.IDNow,
-            'params': None,  # TODO: return 'params' from name
+            'params': None,
             'runBy': None,
-            'shots':  None,  # TODO: return 'shots'
-            'backend':  None,  # TODO: return 'backend'
+            'shots':  None,
+            'backend':  None,
             'drawMethod':  None,
             'decompose':  None,
 
@@ -1309,6 +1330,7 @@ class EntropyMeasureV2:
         dataPowerJobs: dict[any] = {},
 
         addShortName: bool = True,
+        transpileArgs: dict[str] = {},
         **otherArgs,
     ) -> argdict:
         """_summary_
@@ -1348,6 +1370,7 @@ class EntropyMeasureV2:
                 'expExportLoc': expExportLoc,
                 'hashExpsName': hashExpsName,
                 'Naming': Naming,
+                'transpileArgs': transpileArgs,
                 **otherArgs,
             },
             paramsKey=[
@@ -1549,7 +1572,8 @@ class EntropyMeasureV2:
                                 print(
                                     f"'{k}' may be not a tuple, parsing cancelled.")
                         else:
-                            print(f"'{k}' may be not a tuple, parsing unactive.")
+                            print(
+                                f"'{k}' may be not a tuple, parsing unactive.")
                 self.expsBelong = {
                     **self.expsBelong, **expsBelong,
                 }
@@ -1637,7 +1661,11 @@ class EntropyMeasureV2:
                 ...
 
         circs = [qc.decompose().decompose() for qc in circs]
-        circs = transpile(circs, backend=argsMulti.backend)
+        circs = transpile(
+            circs,
+            backend=argsMulti.backend,
+            **argsMulti.transpileArgs,
+        )
 
         powerJob = IBMQJobManager().run(
             experiments=circs,
