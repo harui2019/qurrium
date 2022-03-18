@@ -133,8 +133,19 @@ expsItem = Annotated[
     """
 ]
 
+paramsUsingHint = """
+...,
+params={
+    'degree': (half of the numbers of qubits of Wave Circuit.)
+    # example: 8 -> 8/2 = 4,
+    # example: 9 -> ((9-1)/2)+1 = 5 
+}, 
+...
+"""
+
 dataTagAllow = Union[str, int, float, bool]
 dataTagsAllow = Union[tuple[dataTagAllow], dataTagAllow]
+
 
 class EntropyMeasureV2:
     """EntropyMeasureV2.1 of qurrent
@@ -195,7 +206,8 @@ class EntropyMeasureV2:
         """The initialization of EntropyMeasure.
 
         Args:
-            waves (Union[QuantumCircuit, list[QuantumCircuit]], optional): [description]. Defaults to defaultCircuit.
+            waves (Union[QuantumCircuit, list[QuantumCircuit]], optional): 
+            The wave functions or circuits want to measure. Defaults to defaultCircuit.
 
         Raises:
             ValueError: When input is a null list.
@@ -274,14 +286,16 @@ class EntropyMeasureV2:
         waveCircuit: QuantumCircuit,
         key: Optional[any] = None,
     ) -> Optional[any]:
-        """_summary_
+        """Add new wave function to measure.
 
         Args:
-            waveCircuit (QuantumCircuit): _description_
-            key (Optional[any], optional): _description_. Defaults to None.
+            waveCircuit (QuantumCircuit): The wave functions or circuits want to measure.
+            key (Optional[any], optional): Given a specific key to add to the wave function or circuit, 
+                if `key == None`, then generate a number as key. 
+                Defaults to None.
 
         Returns:
-            Optional[any]: _description_
+            Optional[any]: Key of given wave function in `.waves`.
         """
 
         genKey = len(self.waves)
@@ -345,6 +359,12 @@ class EntropyMeasureV2:
         # TODO: Rewrite doc
         """Export wave function as `Operator`.
 
+        Args:
+            wave (Optional[any], optional): 
+                The key of wave in 'fict' `.waves`.
+                If `wave==None`, then chooses `.lastWave` automatically added by last calling of `.addWave`. 
+                Defaults to None.
+
         Returns:
             Operator: The operator of wave function.
         """
@@ -360,6 +380,12 @@ class EntropyMeasureV2:
         # TODO: Rewrite doc
         """Export wave function as `Gate`.
 
+        Args:
+            wave (Optional[any], optional): 
+                The key of wave in 'fict' `.waves`.
+                If `wave==None`, then chooses `.lastWave` automatically added by last calling of `.addWave`. 
+                Defaults to None.
+
         Returns:
             Gate: The gate of wave function.
         """
@@ -374,11 +400,16 @@ class EntropyMeasureV2:
         # TODO: Rewrite doc
         """Draw the circuit of wave function.
 
+
         Args:
+            wave (Optional[any], optional): 
+                The key of wave in 'fict' `.waves`.
+                If `wave==None`, then chooses `.lastWave` automatically added by last calling of `.addWave`. 
+                Defaults to None.
             drawMethod (Optional[str], optional): Draw quantum circuit by 
                 "text", "matplotlib", or "latex". Defaults to 'text'.
             decompose (Optional[int], optional): Draw quantum circuit with 
-                `QuantumCircuit` be decomposed given times. Defaults to 0.
+                `QuantumCircuit` decomposed with given times. Defaults to 1.
 
         Returns:
             Union[str, Figure]: The figure of wave function.
@@ -402,7 +433,7 @@ class EntropyMeasureV2:
     """Help & Hint"""
 
     def help(self) -> None:
-        """Help.
+        """Help and Hints.
         """
 
         print(f" ## {self.measureConfig['name']}")
@@ -415,7 +446,7 @@ class EntropyMeasureV2:
     """Arguments and Parameters control"""
 
     @staticmethod
-    def _aChecker(
+    def degreeChecker(
         a: int,
         waveCircuit: QuantumCircuit,
     ) -> Exception:
@@ -440,20 +471,24 @@ class EntropyMeasureV2:
         else:
             ...
 
-    def _expIDDecider(
+    def _isthere(
         self,
         expID: Optional[str] = None,
     ) -> str:
-        """[summary]
+        """Check whether given `expID` is available, 
+        if does, then return it; if doesn't then raise KeyError.
+        Or given current `expID` when doesn't give any id.
+
+        USING `.find` INSTEAD OF `._isthere`, since this function is for internal running any may raise error.*
 
         Args:
-            expID (Optional[str], optional): [description]. Defaults to None.
+            expID (Optional[str], optional): The `expID` wants to check. Defaults to None.
 
         Raises:
-            KeyError: [description]
+            KeyError: When given `expID` is not available.
 
         Returns:
-            str: [description]
+            str: The available `expID`.
         """
 
         if expID != None:
@@ -466,6 +501,30 @@ class EntropyMeasureV2:
             tgtId = self.IDNow
 
         return tgtId
+
+    def find(
+        self,
+        expID: Optional[str] = None,
+    ) -> dict[any]:
+        """Check whether given `expID` is available, 
+        if does, then return its data; if doesn't then retrun null `dict`.
+        Or given last experiment data when doesn't give any id.
+
+        Args:
+            expID (Optional[str], optional): The `expID` wants to check. Defaults to None.
+
+        Returns:
+            dict[any]: The data of given id or current data or null `dict` when experiment doesn't exist.
+        """
+
+        if expID != None:
+            if expID in self.exps:
+                tgtId = expID
+                return self.exps[tgtId]
+            else:
+                return {}
+        else:
+            return self.exps[self.IDNow]
 
     def paramsControl(
         self,
@@ -485,7 +544,7 @@ class EntropyMeasureV2:
         transpileArgs: dict = {},
         **otherArgs: any
     ) -> tuple[str, argdict]:
-        """Handling all arguments.
+        """Handling all arguments and initializing a single experiment.
 
         Args:
             wave (Union[QuantumCircuit, int, None], optional): 
@@ -529,12 +588,16 @@ class EntropyMeasureV2:
                 Defaults to None.
             tag (Optional[Union[list[any], any]], optional):
                 Given the experiment multiple tag to make a dictionary for recongnizing it.
+            transpileArg (dict, optional):
+                The arguments will directly be passed to `transpile` of `qiskit`.
+                Defaults to {}.
+            otherArgs (any):
+                Other arguments.
 
         Raises:
-            ValueError: When `waveFunction` is neither `int` nor ` QuantumCircuit`
             KeyError: Given `expID` does not exist.
             TypeError: When parameters are not all to be `int`.
-            KeyError: CRITICAL ERROR OF MEASUREMENT.
+            KeyError: The given parameters lost degree of freedom.".
 
         Returns:
             tuple[str, dict[str: any]]: Current `expID` and arguments.
@@ -574,7 +637,7 @@ class EntropyMeasureV2:
         )
 
         if isinstance(params, int):
-            self._aChecker(params)
+            self.degreeChecker(params)
             aNum = params
             paramsOther = self.defaultOther
 
@@ -587,7 +650,7 @@ class EntropyMeasureV2:
                     )
 
             aNum = params[0]
-            self._aChecker(aNum)
+            self.degreeChecker(aNum)
             paramsOther = {k: v for k, v in zip(
                 self.measureConfig['default'], params[1:])}
 
@@ -599,8 +662,7 @@ class EntropyMeasureV2:
         elif isinstance(params, dict):
             if not 'degree' in params:
                 raise KeyError(
-                    "The given params lost degree of freedom/"
-                )
+                    "The given params lost degree of freedom, it will like.", paramsUsingHint)
             aNum = params['degree']
 
             if len(params) < self.measureConfig['paramsNum']:
@@ -620,8 +682,8 @@ class EntropyMeasureV2:
         # runBy
         if isinstance(backend, IBMQBackend):
             runByFixer = 'gate'
-            print(
-                "When use 'IBMQBackend' only allowed to use wave function as Gate instead of Operator.")
+            print("When use 'IBMQBackend' only allowed to " +
+                  "use wave function as `Gate` instead of `Operator`.")
         else:
             runByFixer = runBy
 
@@ -729,14 +791,11 @@ class EntropyMeasureV2:
             decompose (Optional[int], optional): Decide the times of decomposing the circuit.
                 Draw quantum circuit with composed circuit. Defaults to 0.
 
-        Raises:
-            KeyError: When 'expID' is not given or not existed.
-
         Returns:
             Union[str, Figure]: The figure of quantum circuit.
         """
 
-        tgtId = self._expIDDecider(expID=expID)
+        tgtId = self._isthere(expID=expID)
 
         qcExp = self.exps[tgtId]['circuit']
         if isinstance(qcExp, list):
@@ -755,6 +814,7 @@ class EntropyMeasureV2:
         self,
     ) -> Union[QuantumCircuit, list[QuantumCircuit]]:
         """The method to construct circuit.
+        Where should be overwritten by each construction of new measurement.
 
         Returns:
             Union[QuantumCircuit, list[QuantumCircuit]]: 
@@ -790,10 +850,6 @@ class EntropyMeasureV2:
             allArgs: all arguments will handle by `self.paramsControl()` and export as specific format.
             {paramsControlArgsDoc}
 
-        Raises:
-            IndexError: Raise when the degree of freedom is out of the number of qubits.
-            ValueError: Raise when the degree of freedom is not a nature number.
-
         Returns:
             QuantumCircuit: The quantum circuit of experiment.
         """
@@ -822,18 +878,18 @@ class EntropyMeasureV2:
     """ Main Process: Data Import and Export"""
 
     @staticmethod
-    def _quickName(
+    def _paramsAsName(
         aNum: int,
         other: dict[str: int] = {},
     ) -> str:
-        """Generate name for each experiment from `degree` and `paramsOther`.
+        """Generate name for each experiment from `.exps[(expID)]['aNum']` and `.exps[(expID)]['paramsOther']`.
 
         Args:
-            aNum (int): `degree`, the degree of the freedom.
-            other (dict[str: int]): `paramsOther`, other parameters required by measurement.
+            aNum (int): `.exps[(expID)]['aNum']`, the degree of the freedom.
+            other (dict[str: int]): `.exps[(expID)]['paramsOther']`, other parameters required by measurement.
 
         Returns:
-            str: the name of the experiment.
+            str: The name generated by parameters.
         """
 
         paramsStr = '-'.join([f'{v}' for k, v in other.items()])
@@ -844,9 +900,8 @@ class EntropyMeasureV2:
         saveLocation: Optional[Union[Path, str]] = None,
         expID: Optional[str] = None,
         exceptItems: Optional[list[str]] = None,
-        overWrite: bool = False,
     ) -> dict[str: any]:
-        """Export the experiment data.
+        """Export the experiment data, if there is a previous export, then will overwrite.
 
         Args:
             saveLocation (Optional[Union[Path, str]], optional):
@@ -858,13 +913,14 @@ class EntropyMeasureV2:
                 If `expID == None`, then export the experiment which id is`.IDNow`.
                 Defaults to None.
             exceptItems (Optional[list[str]], optional):
-                The keys will be excluded. Defaults to None.
+                The keys of the data in each experiment will be excluded.
+                Defaults to None.
 
         Returns:
             dict[str: any]: the export content.
         """
 
-        tgtID = self._expIDDecider(expID=expID)
+        tgtID = self._isthere(expID=expID)
         aNum = self.exps[tgtID]['aNum']
         paramsOther = self.exps[tgtID]['paramsOther']
 
@@ -876,7 +932,7 @@ class EntropyMeasureV2:
             saveLoc /= p
         saveLoc /= expName
 
-        filename = f'dim={self._quickName(aNum, paramsOther)}.Id={tgtID}.json'
+        filename = f'dim={self._paramsAsName(aNum, paramsOther)}.Id={tgtID}.json'
         self.exps[tgtID]['filename'] = Path(filename).name
 
         exportItems = jsonablize(self.exps[tgtID])
@@ -899,8 +955,7 @@ class EntropyMeasureV2:
             if not os.path.exists(saveLoc):
                 os.mkdir(saveLoc)
 
-            overWriteOuput = 'w+' if overWrite else 'w'
-            with open((saveLoc / filename), overWriteOuput, encoding='utf-8') as Legacy:
+            with open((saveLoc / filename), 'w+', encoding='utf-8') as Legacy:
                 json.dump(exportItems, Legacy, indent=2, ensure_ascii=False)
 
         else:
@@ -1059,7 +1114,7 @@ class EntropyMeasureV2:
             **self.exps[IDNow],
 
             "jobID": jobID,
-            "name": self._quickName(argsNow.aNum, argsNow.paramsOther),
+            "name": self._paramsAsName(argsNow.aNum, argsNow.paramsOther),
         }
         return result
 
@@ -1159,6 +1214,7 @@ class EntropyMeasureV2:
         resultIdxList: Optional[list[int]] = None,
     ) -> tuple[dict[str, float], float, float]:
         """Computing Purity and Entropy.
+        Where should be overwritten by each construction of new measurement.
 
         Returns:
             tuple[dict[str, float], float, float]: 
@@ -1180,7 +1236,7 @@ class EntropyMeasureV2:
         self,
         dataRetrieve: dict[str: Union[list[str], str]] = None,
         **allArgs: any,
-    ) -> tuple[Optional[float], Optional[float]]:
+    ) -> tuple[float, float]:
         """Export the result which completed calculating purity.
 
         Args:
@@ -1201,7 +1257,8 @@ class EntropyMeasureV2:
 
         print("# "+"-"*30)
         print(f"# Calculating {self.__name__}...")
-        print(f"# name: {self._quickName(argsNow.aNum, argsNow.paramsOther)}")
+        print(
+            f"# name: {self._paramsAsName(argsNow.aNum, argsNow.paramsOther)}")
         print(f"# id: {self.IDNow}")
 
         counts, purity, entropy = self.purityMethod(
@@ -1220,7 +1277,8 @@ class EntropyMeasureV2:
             del self.exps[IDNow]['result']
 
         print(f"# {self.__name__} completed")
-        print(f"# name: {self._quickName(argsNow.aNum, argsNow.paramsOther)}")
+        print(
+            f"# name: {self._paramsAsName(argsNow.aNum, argsNow.paramsOther)}")
         print(f"# id: {self.IDNow}")
         print("End..."+"\n"*2)
 
@@ -1242,8 +1300,8 @@ class EntropyMeasureV2:
         saveLocation: Union[Path, str, None] = None,
         exceptItems: Optional[list[str]] = None,
         **allArgs: any,
-    ) -> list[str]:
-        """[summary]
+    ) -> dict[str]:
+        """Make a single job output.
 
         Args:
             saveLocation (Optional[Union[Path, str]], optional):
@@ -1256,7 +1314,7 @@ class EntropyMeasureV2:
             {paramsControlArgsDoc}
 
         Returns:
-            dict: all result of experiment.
+            dict: All result of job.
         """
 
         self.purityOnly(**allArgs)
@@ -1281,15 +1339,15 @@ class EntropyMeasureV2:
         saveLocation: Union[Path, str] = './',
         isRetrieve: bool = False,
         shortName: Optional[str] = None,
-    ) -> tuple[int, str, Path]:
-        """_summary_
+    ) -> tuple[int, str, Path, Callable]:
+        """Generate an immutable name for the folder to save exported files.
 
         Args:
-            expsName (str): _description_
-            saveLocation (Union[Path, str], optional): _description_. Defaults to './'.
+            expsName (str): The name of the experiment.
+            saveLocation (Union[Path, str], optional): Saving location for folder. Defaults to './'.
 
         Returns:
-            tuple[int, str, Path]: _description_
+            tuple[int, str, Path, Callable]: Renaming times, immutable name, the path of saving location, naming function.
         """
         indexRename = 1
 
@@ -1328,26 +1386,64 @@ class EntropyMeasureV2:
 
         isRetrieve: bool = False,
         powerJobID: str = '',
-        provider: Optional[AccountProvider] = None,
+        provider: AccountProvider = None,
         dataPowerJobs: dict[any] = {},
 
         addShortName: bool = True,
         transpileArgs: dict[str] = {},
         **otherArgs,
     ) -> argdict:
-        """_summary_
+        """Handling all arguments and initializing multiple experiments.
 
         Args:
-            configList (_type_): _description_
-            backend (Backend): _description_
-            shots (int, optional): _description_. Defaults to 1024.
-            saveLocation (Union[Path, str], optional): _description_. Defaults to './'.
-            expsName (Union[Path, str], optional): _description_. Defaults to 'exps'.
-            exceptItems (Optional[list[str]], optional): _description_. Defaults to None.
-            independentExports (bool, optional): _description_. Defaults to False.
+            configList (_type_): 
+                The list of configuration for each experiment. 
+            backend (Backend): 
+                The quantum backend.
+                Defaults to Aer.get_backend('qasm_simulator').
+            shots (int, optional): 
+                Shots of the job.
+                Defaults to 1024.
+            saveLocation (Union[Path, str], optional): 
+                Saving location of entire experiments. 
+                Defaults to './'.
+            expsName (Union[Path, str], optional):
+                Name this experiment to recognize it when the jobs are pending to IBMQ Service.
+                This name is also used for creating a folder to store the exports.
+                Defaults to 'exps'.
+            exceptItems (Optional[list[str]], optional):
+                The keys of the data in each experiment will be excluded.
+                Defaults to None.
+            independentExports (bool, optional): 
+                Making independent output for some data will export in `multiJobs` or `powerJobs`. 
+                Defaults to False.
+
+            isRetrieve (bool, optional): 
+                Whether to collect results from IBMQ via `IBMQJobManager`. 
+                Defaults to False.
+            powerJobID (str, optional):
+                The id will use for data retrieved from IBMQ via `IBMQJobManager.
+                Defaults to ''.
+            provider (AccountProvider, optional):
+                The provider of the backend which runs the experiment will be retrieved.
+                Defaults to None.
+            dataPowerJobs (dict[any], optional):
+                The data of `powerJobs` will use for data retrieved from IBMQ via `IBMQJobManager.
+                But it's not necessary when `PowerJobID` is given.
+                Defaults to ''.
+
+            addShortName (bool, optional):
+                Whether adding the short name of measurement as one of suffix in file name.
+                Defaults to True,
+            transpileArg (dict, optional):
+                The arguments will directly be passed to `transpile` of `qiskit`.
+                Defaults to {}.
+
+            otherArgs (any):
+                Other arguments.
 
         Returns:
-            argdict: _description_
+            argdict: Arguments for execute the multiple jobs.
         """
 
         indexRename, hashExpsName, expExportLoc, Naming = self._multiExportName(
@@ -1393,10 +1489,14 @@ class EntropyMeasureV2:
         self,
         **allArgs: any,
     ) -> tuple[dict[any], dict[list[float]], dict[list[float]]]:
-        """_summary_
+        """Make multiple jobs output.
+
+        Args:
+            allArgs: all arguments will handle by `.paramsControlMulti()` and export as specific format.
+            {paramsControlArgsDoc}
 
         Returns:
-            tuple[ManagedJobSet, str, dict[any]]: _description_
+            tuple[ManagedJobSet, str, dict[any]]: All result of jobs.
         """
 
         argsMulti = self.paramsControlMulti(**allArgs)
@@ -1404,9 +1504,9 @@ class EntropyMeasureV2:
 
         fileList = []
         expIDList = []
-        expPurityList = { 'all': [], 'noTags': [] }
-        expEntropyList = { 'all': [], 'noTags': [] }
-        expTagsMapping = { 'noTags': [] }
+        expPurityList = {'all': [], 'noTags': []}
+        expEntropyList = {'all': [], 'noTags': []}
+        expTagsMapping = {'noTags': []}
         expsBelong = {}
         gitignore = syncControl()
 
@@ -1432,24 +1532,25 @@ class EntropyMeasureV2:
             expIDList.append(IDNow)
             expPurityList['all'].append(purity)
             expEntropyList['all'].append(entropy)
-            
+
             curLegacyTag = tuple(curLegacy['tag']) if isinstance(
                 curLegacy['tag'], list) else curLegacy['tag']
-            
+
             if curLegacyTag == 'all':
                 curLegacyTag == None
                 print("'all' is a reserved key for export data.")
             elif curLegacyTag == 'noTags':
                 curLegacyTag == None
                 print("'noTags' is a reserved key for export data.")
-            
+
             if curLegacyTag == None:
                 expTagsMapping['noTags'].append(len(expPurityList['all'])-1)
                 expPurityList['noTags'].append(purity)
                 expEntropyList['noTags'].append(entropy)
             elif curLegacyTag in expsBelong:
                 expsBelong[curLegacyTag].append(IDNow)
-                expTagsMapping[curLegacyTag].append(len(expPurityList['all'])-1)
+                expTagsMapping[curLegacyTag].append(
+                    len(expPurityList['all'])-1)
                 expPurityList[curLegacyTag].append(purity)
                 expEntropyList[curLegacyTag].append(entropy)
             else:
@@ -1457,7 +1558,7 @@ class EntropyMeasureV2:
                 expTagsMapping[curLegacyTag] = [len(expPurityList['all'])-1]
                 expPurityList[curLegacyTag] = [purity]
                 expEntropyList[curLegacyTag] = [entropy]
-            
+
         gitignore.ignore('*.json')
 
         dataMultiJobs = {
@@ -1466,12 +1567,12 @@ class EntropyMeasureV2:
             'name': argsMulti.hashExpsName,
             'hashExpsName': argsMulti.hashExpsName,
             'exportLocation': argsMulti.expExportLoc,
-            
+
             'expIDList': expIDList,
             'fileList': fileList,
             'purityList': expPurityList,
             'entropyList': expEntropyList,
-            
+
             'expsBelong': expsBelong,
             'expTagsMapping': expTagsMapping,
         }
@@ -1505,22 +1606,34 @@ class EntropyMeasureV2:
         powerJobID: str = '',
         provider: Optional[AccountProvider] = None,
         saveLocation: Union[Path, str] = './',
-        **otherArgs,
-    ) -> tuple[NoneType, str, dict[any], list[float], list[float]]:
+        **otherArgs: any,
+    ) -> tuple[NoneType, str, dict[any], dict[list[float]], dict[list[float]]]:
         """Require to read the file exported by `.powerJobsPending`.
 
         Args:
-            expsName (Optional[Union[Path, str]]): The folder name of the job wanted to import.
-            powerJobID (str, optional):Job Id. Defaults to ''.
-            provider (Optional[AccountProvider], optional): The provider of the backend used by job. Defaults to None.
-            saveLocation (Union[Path, str], optional): The location of the folder of the job wanted to import. Defaults to './'.
+            expsName (Optional[Union[Path, str]]):
+                The folder name of the job wanted to import.
+            isRetrieve (bool, optional): 
+                Whether to collect results from IBMQ via `IBMQJobManager`. 
+                Defaults to False.
+            powerJobID (str, optional):
+                Job Id. Defaults to ''.
+            provider (Optional[AccountProvider], optional): 
+                The provider of the backend used by job. 
+                Defaults to None.
+            saveLocation (Union[Path, str], optional): 
+                The location of the folder of the job wanted to import. 
+                Defaults to './'.
+
+            allArgs: all arguments will handle by `.paramsControlMulti()` and export as specific format.
+            {paramsControlArgsDoc}
 
         Raises:
             ValueError: When file is broken.
 
         Returns:
-            tuple[NoneType, str, dict[any], list[float], list[float]]: The result of `IBMQJobManager`,
-                its job id, and the data of entire job set.
+            tuple[NoneType, str, dict[any], dict[list[float]], dict[list[float]]]: 
+                None, `powerJobID`, `dataDummyJobs`, purity lists, entropy lists.
         """
 
         argsMulti = self.paramsControlMulti(
@@ -1597,6 +1710,10 @@ class EntropyMeasureV2:
         **allArgs: any,
     ) -> tuple[ManagedJobSet, str, dict[any]]:
         """Require to read the file exported by `.powerJobsPending`.
+
+        Args:
+            allArgs: all arguments will handle by `.paramsControlMulti()` and export as specific format.
+            {paramsControlArgsDoc}
 
         Returns:
             tuple[ManagedJobSet, str, dict[any]]: The result of `IBMQJobManager`,
@@ -1740,6 +1857,9 @@ class EntropyMeasureV2:
             provider (Optional[AccountProvider], optional): The provider of the backend used by job. Defaults to None.
             saveLocation (Optional[Union[Path, str]], optional): The location of the folder of the job wanted to import. Defaults to './'.
 
+            allArgs: all arguments will handle by `.paramsControlMulti()` and export as specific format.
+            {paramsControlArgsDoc}
+
         Raises:
             ValueError: When file is broken.
 
@@ -1768,15 +1888,20 @@ class EntropyMeasureV2:
         isRetrieve: bool = False,
         **allArgs: any,
     ) -> tuple[dict[any], dict[list[float]], dict[list[float]]]:
-        """_summary_
+        """The complex of `powerJobsRetreive` and `.powerJobsPending` to retrieve or pending the jobs,
+        then export the result of all jobs.
+
+        Args:
+            allArgs: all arguments will handle by `.paramsControlMulti()` and export as specific format.
+            {paramsControlArgsDoc}
 
         Returns:
-            list[str]: _description_
+            tuple[dict[any], dict[list[float]], dict[list[float]]]: The result of all jobs.
         """
 
-        expPurityList = { 'all': [], 'noTags': [] }
-        expEntropyList = { 'all': [], 'noTags': [] }
-        expTagsMapping = { 'noTags': [] }
+        expPurityList = {'all': [], 'noTags': []}
+        expEntropyList = {'all': [], 'noTags': []}
+        expTagsMapping = {'noTags': []}
         gitignore = syncControl()
 
         powerJob: ManagedJobSet
@@ -1813,11 +1938,10 @@ class EntropyMeasureV2:
                 saveLocation=argsMulti.saveLocation,
                 expID=expID,
                 exceptItems=argsMulti.exceptItems,
-                overWrite=True,
             )
             expPurityList['all'].append(purity)
             expEntropyList['all'].append(entropy)
-            
+
             curLegacyTag = tuple(curLegacy['tag']) if isinstance(
                 curLegacy['tag'], list) else curLegacy['tag']
 
@@ -1827,13 +1951,14 @@ class EntropyMeasureV2:
             elif curLegacyTag == 'noTags':
                 curLegacyTag == None
                 print("'noTags' is a reserved key for export data.")
-            
+
             if curLegacyTag == None:
                 expTagsMapping['noTags'].append(len(expPurityList['all'])-1)
                 expPurityList['noTags'].append(purity)
                 expEntropyList['noTags'].append(entropy)
             elif curLegacyTag in expTagsMapping:
-                expTagsMapping[curLegacyTag].append(len(expPurityList['all'])-1)
+                expTagsMapping[curLegacyTag].append(
+                    len(expPurityList['all'])-1)
                 expPurityList[curLegacyTag].append(purity)
                 expEntropyList[curLegacyTag].append(entropy)
             else:
@@ -1848,7 +1973,8 @@ class EntropyMeasureV2:
                 'purityList': expPurityList,
                 'entropyList': expEntropyList,
             }
-            json.dump(jsonablize(dataPowerJobs), theData, indent=2, ensure_ascii=False)
+            json.dump(jsonablize(dataPowerJobs), theData,
+                      indent=2, ensure_ascii=False)
         quickJSONExport(content=expPurityList, filename=Naming(
             'purityList.json'), mode='w+', jsonablize=True)
         gitignore.sync('*.multiJobs.json')
@@ -1869,27 +1995,35 @@ class EntropyMeasureV2:
         return dataPowerJobs, expPurityList, expEntropyList
 
     """Other"""
-    
-    def dataPacking(
-        self,
-        tags: Union[list[dataTagsAllow], dataTagsAllow],
-        items: list[str] = ['purity', 'entropy'],
-    ) -> dict:
-        ...
-        
-        if isinstance(tags, list):
-            tagsList = tags
-        else:
-            tagsList = [tags]
-        
-        for tag in list(tagsList):
-            if tag not in self.expsBelong:
-                tagsList.remove(tag)
-                print(f"'{tag}' does not exist in '.expsBelong'")
-            
-        dataPackage = {
-            tag: self.expsBelong[tag] for tag in tagsList
-        }
+
+    # def dataPacking(
+    #     self,
+    #     tags: Union[list[dataTagsAllow], dataTagsAllow],
+    #     items: list[str] = ['purity', 'entropy'],
+    # ) -> dict:
+    #     """Packing the data according which tags they belong to.
+
+    #     Args:
+    #         tags (Union[list[dataTagsAllow], dataTagsAllow]): The tags of required data.
+    #         items (list[str], optional): Include which keys. Defaults to ['purity', 'entropy'].
+
+    #     Returns:
+    #         dict: Data packed.
+    #     """
+
+    #     if isinstance(tags, list):
+    #         tagsList = tags
+    #     else:
+    #         tagsList = [tags]
+
+    #     for tag in list(tagsList):
+    #         if tag not in self.expsBelong:
+    #             tagsList.remove(tag)
+    #             print(f"'{tag}' does not exist in '.expsBelong'")
+
+    #     dataPackage = {
+    #         tag: self.expsBelong[tag] for tag in tagsList
+    #     }
 
     def reset(
         self,
