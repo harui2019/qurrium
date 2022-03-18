@@ -3,3 +3,5 @@
 
 # # wait for dev a haruiimDiscordBot pluggin
 # ./qaia
+
+__pycache__/
