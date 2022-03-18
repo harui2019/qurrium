@@ -17,26 +17,28 @@ def valueParse(v: any) -> any:
     except TypeError as e:
         return str(v)
 
+
 def keyParse(k: any) -> any:
     """_summary_
 
     str, int, float, bool or None
-    
+
     Args:
         o (any): _description_
 
     Returns:
         any: _description_
     """
-    
+
     if isinstance(k, (str, int, float, bool)):
         parsed = k
     elif k == None:
         parsed = k
     else:
         parsed = str(k)
-        
+
     return parsed
+
 
 def Parse(o: any) -> any:
     """[summary]
@@ -75,3 +77,31 @@ def quickJSONExport(
         else:
             json.dump(content, File, indent=indent, ensure_ascii=False)
         print(f"'{filename}' exported successfully.")
+
+
+def keyTupleLoads(o: dict) -> dict:
+    """_summary_
+
+    Args:
+        o (dict): _description_
+
+    Returns:
+        dict: _description_
+    """
+
+    if isinstance(o, dict):
+        ks = list(o.keys())
+        for k in ks:
+            if isinstance(k, str):
+                if k[0] == '(' and k[-1] == ')':
+                    try:
+                        kt = eval(k)
+                        o[kt] = o[k]
+                        del o[k]
+                    except:
+                        print(f"'{k}' may be not a tuple, parsing cancelled.")
+                else:
+                    print(f"'{k}' may be not a tuple, parsing unactive.")
+    else:
+        ...
+    return o

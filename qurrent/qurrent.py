@@ -35,7 +35,7 @@ from torch import NoneType
 
 from ..tool import (
     Configuration, argdict,
-    jsonablize, quickJSONExport,
+    jsonablize, quickJSONExport, keyTupleLoads,
     syncControl, overNested,
 )
 # EntropyMeasureV2.1
@@ -133,6 +133,8 @@ expsItem = Annotated[
     """
 ]
 
+dataTagAllow = Union[str, int, float, bool]
+dataTagsAllow = Union[tuple[dataTagAllow], dataTagAllow]
 
 class EntropyMeasureV2:
     """EntropyMeasureV2.1 of qurrent
@@ -1390,7 +1392,7 @@ class EntropyMeasureV2:
     def multiOutputs(
         self,
         **allArgs: any,
-    ) -> tuple[ManagedJobSet, str, dict[any]]:
+    ) -> tuple[dict[any], dict[list[float]], dict[list[float]]]:
         """_summary_
 
         Returns:
@@ -1402,8 +1404,9 @@ class EntropyMeasureV2:
 
         fileList = []
         expIDList = []
-        expPurityList = []
-        expEntropyList = []
+        expPurityList = { 'all': [], 'noTags': [] }
+        expEntropyList = { 'all': [], 'noTags': [] }
+        expTagsMapping = { 'noTags': [] }
         expsBelong = {}
         gitignore = syncControl()
 
@@ -1427,16 +1430,34 @@ class EntropyMeasureV2:
             )
             fileList.append(curLegacy['filename'])
             expIDList.append(IDNow)
-            expPurityList.append(purity)
-            expEntropyList.append(entropy)
+            expPurityList['all'].append(purity)
+            expEntropyList['all'].append(entropy)
+            
             curLegacyTag = tuple(curLegacy['tag']) if isinstance(
                 curLegacy['tag'], list) else curLegacy['tag']
+            
+            if curLegacyTag == 'all':
+                curLegacyTag == None
+                print("'all' is a reserved key for export data.")
+            elif curLegacyTag == 'noTags':
+                curLegacyTag == None
+                print("'noTags' is a reserved key for export data.")
+            
             if curLegacyTag == None:
-                ...
+                expTagsMapping['noTags'].append(len(expPurityList['all'])-1)
+                expPurityList['noTags'].append(purity)
+                expEntropyList['noTags'].append(entropy)
             elif curLegacyTag in expsBelong:
                 expsBelong[curLegacyTag].append(IDNow)
+                expTagsMapping[curLegacyTag].append(len(expPurityList['all'])-1)
+                expPurityList[curLegacyTag].append(purity)
+                expEntropyList[curLegacyTag].append(entropy)
             else:
                 expsBelong[curLegacyTag] = [IDNow]
+                expTagsMapping[curLegacyTag] = [len(expPurityList['all'])-1]
+                expPurityList[curLegacyTag] = [purity]
+                expEntropyList[curLegacyTag] = [entropy]
+            
         gitignore.ignore('*.json')
 
         dataMultiJobs = {
@@ -1445,12 +1466,14 @@ class EntropyMeasureV2:
             'name': argsMulti.hashExpsName,
             'hashExpsName': argsMulti.hashExpsName,
             'exportLocation': argsMulti.expExportLoc,
+            
             'expIDList': expIDList,
             'fileList': fileList,
-            'expsBelong': expsBelong,
-
             'purityList': expPurityList,
             'entropyList': expEntropyList,
+            
+            'expsBelong': expsBelong,
+            'expTagsMapping': expTagsMapping,
         }
 
         quickJSONExport(content=dataMultiJobs, filename=Naming(
@@ -1555,25 +1578,11 @@ class EntropyMeasureV2:
                 )
 
             if 'purityList' in dataDummyJobs:
-                expPurityList = dataDummyJobs['purityList']
+                expPurityList = keyTupleLoads(dataDummyJobs['purityList'])
             if 'entropyList' in dataDummyJobs:
-                expEntropyList = dataDummyJobs['entropyList']
+                expEntropyList = keyTupleLoads(dataDummyJobs['entropyList'])
             if 'expsBelong' in dataDummyJobs:
-                expsBelong = dataDummyJobs['expsBelong']
-                expsBelongKeys = list(expsBelong.keys())
-                for k in expsBelongKeys:
-                    if isinstance(k, str):
-                        if k[0] == '(' and k[-1] == ')':
-                            try:
-                                kTuple = eval(k)
-                                expsBelong[kTuple] = expsBelong[k]
-                                del expsBelong[k]
-                            except:
-                                print(
-                                    f"'{k}' may be not a tuple, parsing cancelled.")
-                        else:
-                            print(
-                                f"'{k}' may be not a tuple, parsing unactive.")
+                expsBelong = keyTupleLoads(dataDummyJobs['expsBelong'])
                 self.expsBelong = {
                     **self.expsBelong, **expsBelong,
                 }
@@ -1758,15 +1767,16 @@ class EntropyMeasureV2:
         self,
         isRetrieve: bool = False,
         **allArgs: any,
-    ) -> tuple[dict[any], list[float], list[float]]:
+    ) -> tuple[dict[any], dict[list[float]], dict[list[float]]]:
         """_summary_
 
         Returns:
             list[str]: _description_
         """
 
-        expPurityList = []
-        expEntropyList = []
+        expPurityList = { 'all': [], 'noTags': [] }
+        expEntropyList = { 'all': [], 'noTags': [] }
+        expTagsMapping = { 'noTags': [] }
         gitignore = syncControl()
 
         powerJob: ManagedJobSet
@@ -1805,8 +1815,31 @@ class EntropyMeasureV2:
                 exceptItems=argsMulti.exceptItems,
                 overWrite=True,
             )
-            expPurityList.append(purity)
-            expEntropyList.append(entropy)
+            expPurityList['all'].append(purity)
+            expEntropyList['all'].append(entropy)
+            
+            curLegacyTag = tuple(curLegacy['tag']) if isinstance(
+                curLegacy['tag'], list) else curLegacy['tag']
+
+            if curLegacyTag == 'all':
+                curLegacyTag == None
+                print("'all' is a reserved key for export data.")
+            elif curLegacyTag == 'noTags':
+                curLegacyTag == None
+                print("'noTags' is a reserved key for export data.")
+            
+            if curLegacyTag == None:
+                expTagsMapping['noTags'].append(len(expPurityList['all'])-1)
+                expPurityList['noTags'].append(purity)
+                expEntropyList['noTags'].append(entropy)
+            elif curLegacyTag in expTagsMapping:
+                expTagsMapping[curLegacyTag].append(len(expPurityList['all'])-1)
+                expPurityList[curLegacyTag].append(purity)
+                expEntropyList[curLegacyTag].append(entropy)
+            else:
+                expTagsMapping[curLegacyTag] = [len(expPurityList['all'])-1]
+                expPurityList[curLegacyTag] = [purity]
+                expEntropyList[curLegacyTag] = [entropy]
 
         dataPowerJobsName = Naming('powerJobs.json')
         with open(dataPowerJobsName, 'w', encoding='utf-8') as theData:
@@ -1815,7 +1848,7 @@ class EntropyMeasureV2:
                 'purityList': expPurityList,
                 'entropyList': expEntropyList,
             }
-            json.dump(dataPowerJobs, theData, indent=2, ensure_ascii=False)
+            json.dump(jsonablize(dataPowerJobs), theData, indent=2, ensure_ascii=False)
         quickJSONExport(content=expPurityList, filename=Naming(
             'purityList.json'), mode='w+', jsonablize=True)
         gitignore.sync('*.multiJobs.json')
@@ -1835,9 +1868,28 @@ class EntropyMeasureV2:
 
         return dataPowerJobs, expPurityList, expEntropyList
 
-    """ Plot Drawing is moved to `xproc.tool.draw`"""
-
     """Other"""
+    
+    def dataPacking(
+        self,
+        tags: Union[list[dataTagsAllow], dataTagsAllow],
+        items: list[str] = ['purity', 'entropy'],
+    ) -> dict:
+        ...
+        
+        if isinstance(tags, list):
+            tagsList = tags
+        else:
+            tagsList = [tags]
+        
+        for tag in list(tagsList):
+            if tag not in self.expsBelong:
+                tagsList.remove(tag)
+                print(f"'{tag}' does not exist in '.expsBelong'")
+            
+        dataPackage = {
+            tag: self.expsBelong[tag] for tag in tagsList
+        }
 
     def reset(
         self,
