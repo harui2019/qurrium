@@ -39,6 +39,13 @@ class EntropyMeasureV1:
         Args:
             waveCircuit (QuantumCircuit): The wave function will be measured.
         """
+        
+        warnings.warn(
+            "'EntropyMeasureV1' is an early development remain and "+
+            "the prototype of the more reliable 'EntropyMeasureV2' before alpha v0.101. "+
+            "Althought it still works but we suggest to use 'EntropyMeasureV2' by importting 'EntropyMeasure', "+
+            "because 'EntropyMeasure' has been abandoned and will be deprecated anytime.")
+    
 
         self.waveCircuit = waveCircuit
         self.numQubits = waveCircuit.num_qubits
