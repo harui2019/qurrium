@@ -356,7 +356,6 @@ class EntropyMeasureV2:
         self,
         wave: Optional[any] = None,
     ) -> Operator:
-        # TODO: Rewrite doc
         """Export wave function as `Operator`.
 
         Args:
@@ -377,7 +376,6 @@ class EntropyMeasureV2:
         self,
         wave: Optional[any] = None,
     ) -> Gate:
-        # TODO: Rewrite doc
         """Export wave function as `Gate`.
 
         Args:
@@ -397,9 +395,7 @@ class EntropyMeasureV2:
         drawMethod: Optional[str] = 'text',
         decompose: Optional[int] = 1,
     ) -> Union[str, Figure]:
-        # TODO: Rewrite doc
         """Draw the circuit of wave function.
-
 
         Args:
             wave (Optional[any], optional): 
@@ -1118,7 +1114,6 @@ class EntropyMeasureV2:
         }
         return result
 
-    # TODO: Required Remake
     @paramsControlDoc
     def retrieveOnly(
         self,
@@ -1482,8 +1477,6 @@ class EntropyMeasureV2:
         )
 
         return self.multiNow
-
-    # TODO: DocString of paramsControMulti decorator
 
     def multiOutputs(
         self,
