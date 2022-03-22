@@ -134,10 +134,10 @@ class trivialParamagnet(Case):
     """
 
     def _circuit(self) -> QuantumCircuit:
-        """_summary_
+        """Construct the example circuit.
 
         Returns:
-            QuantumCircuit: _description_
+            QuantumCircuit: The example circuit.
         """
         q = QuantumRegister(self.num_qubits, "q")
         qc = QuantumCircuit(q)
@@ -149,10 +149,10 @@ class trivialParamagnet(Case):
         self,
         numQubits: int,
     ) -> None:
-        """_summary_
+        """Initializing the case.
 
         Args:
-            numQubits (int): _description_
+            numQubits (int): The number of qubits for constructing the example circuit.
         """
 
         super().__init__(
@@ -222,10 +222,10 @@ class cat(Case):
     """
 
     def _circuit(self) -> QuantumCircuit:
-        """_summary_
+        """Construct the example circuit.
 
         Returns:
-            QuantumCircuit: _description_
+            QuantumCircuit: The example circuit.
         """
         q = QuantumRegister(self.num_qubits, "q")
         qc = QuantumCircuit(q)
@@ -238,10 +238,10 @@ class cat(Case):
         self,
         numQubits: int,
     ) -> None:
-        """_summary_
+        """Initializing the case.
 
         Args:
-            numQubits (int): _description_
+            numQubits (int): The number of qubits for constructing the example circuit.
         """
 
         super().__init__(
@@ -373,10 +373,10 @@ class topParamagnet(Case):
     """
 
     def _circuit(self) -> QuantumCircuit:
-        """_summary_
+        """Construct the example circuit.
 
         Returns:
-            QuantumCircuit: _description_
+            QuantumCircuit: The example circuit.
         """
 
         qPairNum = int(self.num_qubits/2)
@@ -397,11 +397,16 @@ class topParamagnet(Case):
         numQubits: int,
         boundaryCond: str = "period",
     ) -> None:
-        """_summary_
+        """Initializing the case.
 
         Args:
-            numQubits (int): _description_
-        """
+            numQubits (int): Number of qubits.
+            boundaryCond (str, optional): Boundary condition is `open` or `period`.
+                Defaults to "period".
+
+        Raises:
+            ValueError: When given number of qubits is not even.
+        """        
 
         if numQubits % 2 != 0:
             raise ValueError("Only lattices can construct using this gate.")

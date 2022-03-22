@@ -7,10 +7,10 @@ from typing import Union, Sequence, Optional
 
 class Case:
     def _circuit(self) -> QuantumCircuit:
-        """_summary_
+        """Construct the example circuit.
 
         Returns:
-            QuantumCircuit: _description_
+            QuantumCircuit: The example circuit.
         """
         q = QuantumCircuit(self.num_qubits, "q")
         qc = QuantumCircuit(q)
@@ -22,20 +22,27 @@ class Case:
         name: str,
         num_qubits: int,
         params: dict = {
-            'boundary': None,
+            'boundaryCond': None,
         },
         expected: dict = {
             'purity': None,
             'entropy': None,
         },
     ) -> None:
-        """_summary_
+        """Initializing the case.
 
         Args:
-            name (str): _description_
-            num_qubits (int): _description_
-            params (_type_, optional): _description_. Defaults to { 'boundary': None, }.
-            expected (_type_, optional): _description_. Defaults to { 'purity': None, 'entropy': None, }.
+            name (str): The name of this circuit.
+            num_qubits (int): The number of qubits for constructing the example circuit.
+            params (dict, optional): Other parameters for this example, like boundary condition. 
+                Defaults to { 'boundaryCond': None, }.
+            expected (dict, optional): 
+                Exact result of measure. 
+                
+                IF IT'S STILL UNKNOWN THEN DO NOT ENTER ANY VALUE.
+                TO PREVENT THE MISLEADING OTHER USERS.
+                
+                Defaults to { 'purity': None, 'entropy': None, }.
         """
         self.name = name
         self.num_qubits = num_qubits
@@ -45,10 +52,10 @@ class Case:
         self.circuit = self._circuit()
 
     def gate(self) -> Gate:
-        """_summary_
+        """Return the example circuit as `Gate`.
 
         Returns:
-            Gate: _description_
+            Gate: The example circuit.
         """
 
         gated = self.circuit.to_gate()
@@ -57,13 +64,18 @@ class Case:
         return gated
 
     def operator(self) -> Operator:
-        """_summary_
+        """Return the example circuit as `Operator`.
 
         Returns:
-            Operator: _description_
+            Operator: The example circuit.
         """
 
         return Operator(self.circuit)
 
     def wave(self) -> QuantumCircuit:
+        """Return a copy of the example circuit.
+
+        Returns:
+            QuantumCircuit: The example circuit.
+        """        
         return self.circuit.copy()
