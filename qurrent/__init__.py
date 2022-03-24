@@ -3,14 +3,8 @@ from .qurrent import (
     qurrentConfig
 )
 
-from .haarMeasure import (
-    haarMeasure as haarMeasureV1,
-    haarMeasureV2 as haarMeasure
-)
-from .hadamardTest import (
-    hadamardTest as hadamardTestV1,
-    hadamardTestV2 as hadamardTest
-)
+from .haarMeasure import haarMeasureV2 as haarMeasure
+from .hadamardTest import hadamardTestV2 as hadamardTest
 
 
 measurementList = [

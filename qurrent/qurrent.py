@@ -777,6 +777,7 @@ class EntropyMeasureV2:
         expID: Optional[str] = None,
         drawMethod: Optional[str] = 'text',
         decompose: Optional[int] = 0,
+        backend: Backend = Aer.get_backend('qasm_simulator'),
     ) -> Union[str, Figure]:
         """Drawing the circuit figure of the experiment
 
@@ -866,7 +867,10 @@ class EntropyMeasureV2:
         )
         self.exps[IDNow] = {
             **self.exps[IDNow],
-            'fig': fig,
+            'figRaw': self.drawCircuit(
+                drawMethod=argsNow.drawMethod,
+                decompose=argsNow.decompose,
+            ),
         }
 
         return qcExp
@@ -1060,7 +1064,6 @@ class EntropyMeasureV2:
         IDNow, argsNow = self.IDNow, self.now
 
         circs = qcExp if isinstance(qcExp, list) else [qcExp]
-        circs = [self.qcDecomposer(qc, argsNow.decompose) for qc in circs]
         circs = transpile(
             circs,
             backend=argsNow.backend,
@@ -1077,6 +1080,10 @@ class EntropyMeasureV2:
         self.exps[IDNow] = {
             **self.exps[IDNow],
             'jobID': jobID,
+        }
+        self.exps[IDNow] = {
+            **self.exps[IDNow],
+            'figTranspile': [ qc.draw(argsNow.drawMethod) for qc in circs],
         }
 
         return jobExecution, jobID
