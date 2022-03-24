@@ -1,4 +1,3 @@
-from .qurrentV1 import EntropyMeasureV1 as EntropyMeasureV1
 from .qurrent import (
     EntropyMeasureV2 as EntropyMeasure,
     qurrentConfig
