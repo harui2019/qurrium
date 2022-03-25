@@ -932,7 +932,8 @@ class EntropyMeasureV2:
             saveLoc /= p
         saveLoc /= expName
 
-        filename = f'dim={self._paramsAsName(aNum, paramsOther)}.Id={tgtID}.json'
+        filename = f"dim={self._paramsAsName(aNum, paramsOther)}."
+        filename += f"{str(list(self.exps).index(tgtID)+1).rjust(3, '0')}.Id={tgtID}.json"
         self.exps[tgtID]['filename'] = Path(filename).name
 
         exportItems = jsonablize(self.exps[tgtID])
@@ -1083,7 +1084,7 @@ class EntropyMeasureV2:
         }
         self.exps[IDNow] = {
             **self.exps[IDNow],
-            'figTranspile': [ qc.draw(argsNow.drawMethod) for qc in circs],
+            'figTranspile': [qc.draw(argsNow.drawMethod) for qc in circs],
         }
 
         return jobExecution, jobID
