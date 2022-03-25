@@ -609,7 +609,7 @@ def drawPurityErrorAnalysis(
     )
     axes01.set_title(f"Purity error analysis", size=drawConfig["fontSize"])
 
-    dataClone = {**data}
+    dataClone = data.copy()
     for wave in data:
         if 'expected' not in data[wave]:
             raise ValueError("Each wave must have a expected purity number.")
@@ -652,7 +652,7 @@ def drawPurityErrorAnalysis(
     axes01.grid(linestyle=drawConfig["lineStyle"])
 
     for wave in dataClone:
-        d = dataClone[wave]
+        d = dataClone[wave].copy()
         expected = d['expected']
         del d['expected']
         errorSet = [
@@ -743,7 +743,7 @@ def drawPurityErrorAnalysisV2(
     )
     axes01.set_title(f"Purity error analysis", size=drawConfig["fontSize"])
 
-    dataClone = {**data}
+    dataClone = data.copy()
     for wave in data:
         if 'expected' not in data[wave]:
             raise ValueError("Each wave must have a expected purity number.")
@@ -786,7 +786,7 @@ def drawPurityErrorAnalysisV2(
     axes01.grid(linestyle=drawConfig["lineStyle"])
 
     for wave in dataClone:
-        d = dataClone[wave]
+        d = dataClone[wave].copy()
         expected = d['expected']
         del d['expected']
         d = [d[vset] if isinstance(d[vset], list) else [d[vset]] for vset in d]
