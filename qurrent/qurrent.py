@@ -1,5 +1,4 @@
 from __future__ import annotations
-from re import S
 from pyrsistent import immutable
 
 from qiskit import (
@@ -65,7 +64,8 @@ measureBase = Configuration(
     name="measureBase",
     default={
         'circuit': None,
-        'fig': 'unexport',
+        'figRaw': 'unexport',
+        'figTranspile': 'unexport',
         'result': None,
         'counts': None,
         'purity': None,
@@ -1028,7 +1028,7 @@ class EntropyMeasureV2:
                 ...
             else:
                 lost = measureBase.check(dataRead)
-                warnings.warn(f"Key Lost: {lost}")
+                print(f"Key Lost: {lost}")
         else:
             raise TypeError("The export file does not match the type 'dict'.")
 

@@ -2,6 +2,10 @@
 
 This is a tool to measure the Renyi entropy of given wave function. Running on **IBM Qiskit** with the function from constructing experiment object to pending the jobs to IBMQ automatically.
 
+## Environments
+
+- Python 3.9.7 on Ubuntu 20.04 LTS
+
 ## `qurrent`
 
 The main function to measure the entropy.
