@@ -2,9 +2,23 @@
 
 This is a tool to measure the Renyi entropy of given wave function. Running on **IBM Qiskit** with the function from constructing experiment object to pending the jobs to IBMQ automatically.
 
-## Environments
+## Avaliable Environments
 
-- Python 3.9.7 on Ubuntu 20.04 LTS
+- **`Python 3.9.7+`** installed by Anaconda
+  - on
+    - **Ubuntu 20.04 LTS/18.04 LTS** on `x86_64` **(recommended)**
+    - **Windows 10/11** on `x86_64`
+      - We recommend to use Linux based system, due to the GPU acceleration of `Qiskit`, `qiskit-aer-gpu` only works with Nvidia CUDA on Linux.
+
+  - currently with issues on
+    - **MacOS 12 Monterey** on **`arm64 (Apple Silicon, M1 chips)`**
+    - **MacOS 12 Monterey** on **`x86_64 (Intel chips)`**
+      - Some python issues are not fixed.
+
+  - with required modules:
+    - `qiskit`
+    - `qiskit-aer-gpu`: when use Linux
+    - `torch`: when use Nvidia CUDA Checking on Linux.
 
 ## `qurrent`
 
