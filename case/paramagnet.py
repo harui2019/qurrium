@@ -1,14 +1,7 @@
 from qiskit import QuantumCircuit, QuantumRegister
-from qiskit.quantum_info import Operator
-from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumcircuit import Qubit
-from qiskit.circuit.library.standard_gates.z import ZGate
-
+from typing import Union, Sequence
 from .case import Case
-
-import numpy as np
-from typing import Union, Sequence, Optional
 
 # Qubit type annotations.
 QubitSpecifier = Union[
@@ -18,72 +11,6 @@ QubitSpecifier = Union[
     slice,
     Sequence[Union[Qubit, int]],
 ]
-
-
-class CZEntangledGate(ControlledGate):
-    r"""A specific gate is used in PhysRevLett.121.086808.
-
-    The Original CZGate of qiskit is
-    ```
-    q1_0:   ───────■───────
-            ┌───┐┌─┴─┐┌───┐
-    q1_1:   ┤ H ├┤ X ├┤ H ├
-            └───┘└───┘└───┘
-    ```
-    But in https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.121.086808
-    It's denoted by this figure.
-    ```
-            ┌───┐     ┌───┐
-    q1_0:   ┤ H ├──■──┤ H ├
-            ├───┤┌─┴─┐├───┤
-    q1_1:   ┤ H ├┤ X ├┤ H ├
-            └───┘└───┘└───┘
-    ```
-
-    - *base on the source code of `CZGate`*
-
-    """
-
-    def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
-        """Create new CZ gate."""
-        super().__init__(
-            "czEntangled", 2, [], label=label, num_ctrl_qubits=1, ctrl_state=ctrl_state, base_gate=ZGate()
-        )
-
-    def _define(self):
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from qiskit.circuit.library.standard_gates.h import HGate
-        from qiskit.circuit.library.standard_gates.x import CXGate
-
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (HGate(), [q[0]], []),
-            (HGate(), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (HGate(), [q[0]], []),
-            (HGate(), [q[1]], []),
-        ]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
-
-        self.definition = qc
-
-    def inverse(self):
-        """Return inverted CZ gate (itself)."""
-        return CZEntangledGate(ctrl_state=self.ctrl_state)  # self-inverse
-
-    # def __array__(self, dtype=None):
-    #     """Return a numpy.array for the CZ gate."""
-    #     if self.ctrl_state:
-    #         return np.array(
-    #             [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, -1]], dtype=dtype
-    #         )
-    #     else:
-    #         return np.array(
-    #             [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]], dtype=dtype
-    #         )
 
 
 class trivialParamagnet(Case):
@@ -406,7 +333,7 @@ class topParamagnet(Case):
 
         Raises:
             ValueError: When given number of qubits is not even.
-        """        
+        """
 
         if numQubits % 2 != 0:
             raise ValueError("Only lattices can construct using this gate.")

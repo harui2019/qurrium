@@ -1,8 +1,6 @@
-from qiskit import QuantumCircuit, QuantumRegister
+from qiskit import QuantumCircuit
 from qiskit.quantum_info import Operator
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumcircuit import Qubit
-from typing import Union, Sequence, Optional
 
 
 class Case:
