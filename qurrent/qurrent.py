@@ -1393,6 +1393,7 @@ class EntropyMeasureV2:
         dataPowerJobs: dict[any] = {},
 
         addShortName: bool = True,
+        jobManagerRunArgs: dict[str] = {},
         transpileArgs: dict[str] = {},
         **otherArgs,
     ) -> argdict:
@@ -1438,6 +1439,9 @@ class EntropyMeasureV2:
             addShortName (bool, optional):
                 Whether adding the short name of measurement as one of suffix in file name.
                 Defaults to True,
+            jobManagerRunArgs (dict, optional):
+                The arguments will directly be passed to `IBMQJobManager.run` of `qiskit`.
+                Defaults to {}.
             transpileArg (dict, optional):
                 The arguments will directly be passed to `transpile` of `qiskit`.
                 Defaults to {}.
@@ -1472,6 +1476,7 @@ class EntropyMeasureV2:
                 'hashExpsName': hashExpsName,
                 'Naming': Naming,
                 'transpileArgs': transpileArgs,
+                'jobManagerRunArgs': jobManagerRunArgs,
                 **otherArgs,
             },
             paramsKey=[
@@ -1485,6 +1490,34 @@ class EntropyMeasureV2:
         )
 
         return self.multiNow
+
+    def _multiInitData(
+        self,
+        **allArgs: any,
+    ) -> tuple[argdict, list[dict[any]], callable, list, list, dict]:
+        """Make multiple jobs output.
+
+        Args:
+            allArgs: all arguments will handle by `.paramsControlMulti()` and export as specific format.
+            {paramsControlArgsDoc}
+
+        Returns:
+            tuple[argdict, list[dict[any]], callable, list, list, dict]:
+            (argsMulti, initedConfigList, Naming, fileList, expIDList, expsBelong).
+        """
+
+        argsMulti = self.paramsControlMulti(**allArgs)
+        initedConfigList = [
+            qurrentConfig.make({
+                **config,
+                'expsName': argsMulti.hashExpsName,
+                'backend': argsMulti.backend,
+                'shots': argsMulti.shots,
+            })
+            for config in argsMulti.configList]
+        Naming = argsMulti.Naming
+
+        return argsMulti, initedConfigList, Naming, [], [], {}
 
     def multiOutputs(
         self,
@@ -1500,17 +1533,8 @@ class EntropyMeasureV2:
             tuple[ManagedJobSet, str, dict[any]]: All result of jobs.
         """
 
+        # self._multiInitData(**allArgs)
         argsMulti = self.paramsControlMulti(**allArgs)
-        Naming = argsMulti.Naming
-
-        fileList = []
-        expIDList = []
-        expPurityList = {'all': [], 'noTags': []}
-        expEntropyList = {'all': [], 'noTags': []}
-        expTagsMapping = {'noTags': []}
-        expsBelong = {}
-        gitignore = syncControl()
-
         initedConfigList = [
             qurrentConfig.make({
                 **config,
@@ -1519,11 +1543,25 @@ class EntropyMeasureV2:
                 'shots': argsMulti.shots,
             })
             for config in argsMulti.configList]
+        Naming = argsMulti.Naming
+
+        fileList = []
+        expIDList = []
+        expsBelong = {}
+
+        # self._gitignore()
+        gitignore = syncControl()
+
+        # self._initExportData()
+        expPurityList = {'all': [], 'noTags': []}
+        expEntropyList = {'all': [], 'noTags': []}
+        expTagsMapping = {'noTags': []}
 
         for config in initedConfigList:
             purity, entropy = self.purityOnly(**config)
             IDNow = self.IDNow
 
+            # self._legecyWriter(argsMulti, IDNow, fileList, expIDList)
             curLegacy = self.writeLegacy(
                 saveLocation=argsMulti.saveLocation,
                 expID=IDNow,
@@ -1531,12 +1569,21 @@ class EntropyMeasureV2:
             )
             fileList.append(curLegacy['filename'])
             expIDList.append(IDNow)
+
             expPurityList['all'].append(purity)
             expEntropyList['all'].append(entropy)
 
             curLegacyTag = tuple(curLegacy['tag']) if isinstance(
                 curLegacy['tag'], list) else curLegacy['tag']
 
+            if curLegacyTag == None:
+                ...
+            elif curLegacyTag in expsBelong:
+                expsBelong[curLegacyTag].append(IDNow)
+            else:
+                expsBelong[curLegacyTag] = [IDNow]
+
+            # self._packExportData
             if curLegacyTag == 'all':
                 curLegacyTag == None
                 print("'all' is a reserved key for export data.")
@@ -1548,14 +1595,13 @@ class EntropyMeasureV2:
                 expTagsMapping['noTags'].append(len(expPurityList['all'])-1)
                 expPurityList['noTags'].append(purity)
                 expEntropyList['noTags'].append(entropy)
-            elif curLegacyTag in expsBelong:
-                expsBelong[curLegacyTag].append(IDNow)
+
+            elif curLegacyTag in expTagsMapping:
                 expTagsMapping[curLegacyTag].append(
                     len(expPurityList['all'])-1)
                 expPurityList[curLegacyTag].append(purity)
                 expEntropyList[curLegacyTag].append(entropy)
             else:
-                expsBelong[curLegacyTag] = [IDNow]
                 expTagsMapping[curLegacyTag] = [len(expPurityList['all'])-1]
                 expPurityList[curLegacyTag] = [purity]
                 expEntropyList[curLegacyTag] = [entropy]
@@ -1578,23 +1624,23 @@ class EntropyMeasureV2:
             'expTagsMapping': expTagsMapping,
         }
 
-        quickJSONExport(content=dataMultiJobs, filename=Naming(
-            'multiJobs.json'), mode='w+', jsonablize=True)
-        gitignore.sync('*.multiJobs.json')
-        quickJSONExport(content=expPurityList, filename=Naming(
-            'purityList.json'), mode='w+', jsonablize=True)
-        gitignore.sync('*.multiJobs.json')
-        quickJSONExport(content=expEntropyList, filename=Naming(
-            'entropyList.json'), mode='w+', jsonablize=True)
-        gitignore.sync('*.multiJobs.json')
+        for n, data in [
+            ('multiJobs.json', dataMultiJobs),
+            ('purityList.json', expPurityList),
+            ('entropyList.json', expEntropyList),
+        ]:
+            gitignore.sync(f'*.{n}')
+            quickJSONExport(
+                content=data, filename=Naming(n), mode='w+', jsonablize=True)
 
         if argsMulti.independentExports:
-            quickJSONExport(content=expIDList, filename=Naming(
-                'expIDList.json'), mode='w+')
-            gitignore.sync('*.expIDList.json')
-            quickJSONExport(content=fileList, filename=Naming(
-                'fileList.json'), mode='w+')
-            gitignore.sync('*.fileList.json')
+            for n, data in [
+                ('expIDList.json', expIDList),
+                ('fileList.json', fileList),
+            ]:
+                gitignore.sync(f'*.{n}')
+                quickJSONExport(
+                    content=data, filename=Naming(n), mode='w+', jsonablize=True)
 
         gitignore.export(argsMulti.expExportLoc)
 
@@ -1662,9 +1708,19 @@ class EntropyMeasureV2:
                 with open(dataPowerJobsName, 'r', encoding='utf-8') as theData:
                     dataDummyJobs = json.load(theData)
 
-                for k in ['circsMapDict', 'powerJobID']:
-                    if not k in dataDummyJobs:
+                for k in ['powerJobID', ['circuitsMap', 'circsMapDict']]:
+                    if isinstance(k, list):
+                        for l in k+[None]:
+                            if l in dataDummyJobs:
+                                break
+                            elif l == None:
+                                raise ValueError("File broken.")
+                    elif not k in dataDummyJobs:
                         raise ValueError("File broken.")
+
+                if 'circsMapDict' in dataDummyJobs:
+                    dataDummyJobs['circuitsMap'] = dataDummyJobs['circsMapDict'].copy(
+                    )
 
             elif os.path.exists(dataMultiJobsName):
                 with open(dataMultiJobsName, 'r', encoding='utf-8') as theData:
@@ -1677,8 +1733,8 @@ class EntropyMeasureV2:
                 with open(Naming('expIDList.json'), 'r', encoding='utf-8') as File:
                     dataDummyJobs['expIDList'] = json.load(File)
 
-                with open(Naming('circsMapDict.json'), 'r', encoding='utf-8') as File:
-                    dataDummyJobs['circsMapDict'] = json.load(File)
+                with open(Naming('circuitsMap.json'), 'r', encoding='utf-8') as File:
+                    dataDummyJobs['circuitsMap'] = json.load(File)
 
                 if os.path.exists(Naming('powerJobID.csv')):
                     with open(Naming('powerJobID.csv'), 'r', encoding='utf-8') as File:
@@ -1721,18 +1777,8 @@ class EntropyMeasureV2:
                 its job id, and the data of entire job set.
         """
 
+        # self._multiInitData(**allArgs)
         argsMulti = self.paramsControlMulti(**allArgs)
-        Naming = argsMulti.Naming
-
-        fileList = []
-        expIDList = []
-        numCircDict = {}
-        circsMapDict = {}
-        circs = []
-        expsBelong = {}
-        powerExps = {}
-        gitignore = syncControl()
-
         initedConfigList = [
             qurrentConfig.make({
                 **config,
@@ -1741,6 +1787,22 @@ class EntropyMeasureV2:
                 'shots': argsMulti.shots,
             })
             for config in argsMulti.configList]
+        Naming = argsMulti.Naming
+
+        fileList = []
+        expIDList = []
+        expsBelong = {}
+
+        # self._gitignore()
+        gitignore = syncControl()
+
+        # self._initInnerData()
+        numCircDict = {}
+        circuitsMap = {}
+        circs = []
+        powerExps = {}
+
+        transpileArgs = {}
 
         for config in initedConfigList:
             qcExp = self.circuitOnly(**config)
@@ -1757,6 +1819,10 @@ class EntropyMeasureV2:
                     f"but '{type(qcExp)}'.")
             numCircDict[IDNow] = numCirc
 
+            if 'transpileArg' in config:
+                transpileArgs[IDNow] = config['transpileArg']
+
+            # self._legecyWriter(argsMulti, IDNow, fileList, expIDList)
             curLegacy = self.writeLegacy(
                 saveLocation=argsMulti.saveLocation,
                 expID=IDNow,
@@ -1764,41 +1830,54 @@ class EntropyMeasureV2:
             )
             fileList.append(curLegacy['filename'])
             expIDList.append(IDNow)
+
             powerExps[IDNow] = curLegacy
+
+            # self._tagToTuple(curLegacyTag)
             curLegacyTag = tuple(curLegacy['tag']) if isinstance(
                 curLegacy['tag'], list) else curLegacy['tag']
+
             if curLegacyTag == None:
                 ...
             elif curLegacyTag in expsBelong:
                 expsBelong[curLegacyTag].append(IDNow)
             else:
                 expsBelong[curLegacyTag] = [IDNow]
+
         gitignore.ignore('*.json')
 
         for idKey in expIDList:
-            circsMapDict[idKey] = []
+            circuitsMap[idKey] = []
             if numCircDict[idKey] > 1:
                 for c in range(numCircDict[idKey]):
-                    circsMapDict[idKey].append(len(circs))
-                    circs.append(self.exps[idKey]['circuit'][c])
+                    circuitsMap[idKey].append(len(circs))
+                    circs.append(transpile(
+                        self.exps[idKey]['circuit'][c],
+                        **transpileArgs[idKey],
+                        backend=argsMulti.backend,
+                    ))
             elif numCircDict[idKey] == 1:
-                circsMapDict[idKey].append(len(circs))
-                circs.append(self.exps[idKey]['circuit'])
+                circuitsMap[idKey].append(len(circs))
+                circs.append(transpile(
+                    self.exps[idKey]['circuit'],
+                    **transpileArgs[idKey],
+                    backend=argsMulti.backend,
+                ))
             else:
                 ...
 
-        circs = [qc.decompose().decompose() for qc in circs]
+        circs = [qc for qc in circs]
         circs = transpile(
             circs,
             backend=argsMulti.backend,
-            **argsMulti.transpileArgs,
         )
 
         powerJob = IBMQJobManager().run(
+            **argsMulti.jobManagerRunArgs,
             experiments=circs,
             backend=argsMulti.backend,
             shots=argsMulti.shots,
-            name=f'{argsMulti.hashExpsName}_w/_{len(circs)}_jobs'
+            name=f'{argsMulti.hashExpsName}_w/_{len(circs)}_jobs',
         )
         powerJobID = powerJob.job_set_id()
 
@@ -1813,27 +1892,28 @@ class EntropyMeasureV2:
             'expsBelong': expsBelong,
 
             'ibmq_job_name': f'{argsMulti.hashExpsName}_w/_{len(circs)}_jobs',
-            'circsMapDict': circsMapDict,
+            'circuitsMap': circuitsMap,
             'powerJobID': powerJobID,
         }
 
-        quickJSONExport(content=dataPowerJobs, filename=Naming(
-            'powerJobs.json'), mode='w+', jsonablize=True)
-        gitignore.sync('*.powerJobs.json')
+        for n, data in [
+            ('powerJobs.json', dataPowerJobs),
+        ]:
+            gitignore.sync(f'*.{n}')
+            quickJSONExport(
+                content=data, filename=Naming(n), mode='w+', jsonablize=True)
 
         if argsMulti.independentExports:
-            quickJSONExport(content=expIDList, filename=Naming(
-                'expIDList.json'), mode='w+')
-            gitignore.sync('*.expIDList.json')
-            quickJSONExport(content=dataPowerJobs['configList'], filename=Naming(
-                'configList.json'), mode='w+')
-            gitignore.sync('*.configList.json')
-            quickJSONExport(content=circsMapDict, filename=Naming(
-                'circsMapDict.json'), mode='w+')
-            gitignore.sync('*.circsMapDict.json')
-            quickJSONExport(content=fileList, filename=Naming(
-                'fileList.json'), mode='w+')
-            gitignore.sync('*.fileList.json')
+            for n, data in [
+                ('expIDList.json', expIDList),
+                ('fileList.json', fileList),
+                ('configList.json', dataPowerJobs['configList']),
+                ('circuitsMap.json', circuitsMap),
+            ]:
+                gitignore.sync(f'*.{n}')
+                quickJSONExport(
+                    content=data, filename=Naming(n), mode='w+', jsonablize=True)
+
             with open(Naming('powerJobID.csv'), 'w+', encoding='utf-8') as theFile:
                 print(f"{powerJobID}", file=theFile)
                 print(f"{Naming('powerJobID.csv')}' saved.")
@@ -1900,11 +1980,6 @@ class EntropyMeasureV2:
             tuple[dict[any], dict[list[float]], dict[list[float]]]: The result of all jobs.
         """
 
-        expPurityList = {'all': [], 'noTags': []}
-        expEntropyList = {'all': [], 'noTags': []}
-        expTagsMapping = {'noTags': []}
-        gitignore = syncControl()
-
         powerJob: ManagedJobSet
         powerJob, powerJobID, dataPowerJobs = (
             self.powerJobsRetreive if isRetrieve else self.powerJobsPending
@@ -1912,8 +1987,17 @@ class EntropyMeasureV2:
 
         argsMulti = self.multiNow
         Naming = argsMulti.Naming
+
+        # self._gitignore()
+        gitignore = syncControl()
+
+        # self._initExportData()
+        expPurityList = {'all': [], 'noTags': []}
+        expEntropyList = {'all': [], 'noTags': []}
+        expTagsMapping = {'noTags': []}
+
         expIDList = dataPowerJobs['expIDList']
-        circsMapDict = dataPowerJobs['circsMapDict']
+        circuitsMap = dataPowerJobs['circuitsMap']
 
         powerResultRaw: ManagedResults = powerJob.results()
         powerResult: Result = powerResultRaw.combine_results()
@@ -1929,7 +2013,7 @@ class EntropyMeasureV2:
                 paramsOther=self.exps[expID]['paramsOther'],
                 shots=self.exps[expID]['shots'],
                 result=powerResult,
-                resultIdxList=circsMapDict[expID],
+                resultIdxList=circuitsMap[expID],
             )
             self.exps[expID]['counts'] = counts
             self.exps[expID]['entropy'] = entropy
@@ -1940,12 +2024,15 @@ class EntropyMeasureV2:
                 expID=expID,
                 exceptItems=argsMulti.exceptItems,
             )
+
+            # self._legecyWriter(argsMulti, IDNow, _, _)
             expPurityList['all'].append(purity)
             expEntropyList['all'].append(entropy)
 
             curLegacyTag = tuple(curLegacy['tag']) if isinstance(
                 curLegacy['tag'], list) else curLegacy['tag']
 
+            # self._packExportData
             if curLegacyTag == 'all':
                 curLegacyTag == None
                 print("'all' is a reserved key for export data.")
@@ -1957,6 +2044,7 @@ class EntropyMeasureV2:
                 expTagsMapping['noTags'].append(len(expPurityList['all'])-1)
                 expPurityList['noTags'].append(purity)
                 expEntropyList['noTags'].append(entropy)
+
             elif curLegacyTag in expTagsMapping:
                 expTagsMapping[curLegacyTag].append(
                     len(expPurityList['all'])-1)
@@ -1967,64 +2055,33 @@ class EntropyMeasureV2:
                 expPurityList[curLegacyTag] = [purity]
                 expEntropyList[curLegacyTag] = [entropy]
 
-        dataPowerJobsName = Naming('powerJobs.json')
-        with open(dataPowerJobsName, 'w', encoding='utf-8') as theData:
-            dataPowerJobs = {
-                **dataPowerJobs,
-                'purityList': expPurityList,
-                'entropyList': expEntropyList,
-            }
-            json.dump(jsonablize(dataPowerJobs), theData,
-                      indent=2, ensure_ascii=False)
-        quickJSONExport(content=expPurityList, filename=Naming(
-            'purityList.json'), mode='w+', jsonablize=True)
-        gitignore.sync('*.multiJobs.json')
-        quickJSONExport(content=expEntropyList, filename=Naming(
-            'entropyList.json'), mode='w+', jsonablize=True)
-        gitignore.sync('*.multiJobs.json')
-
         gitignore.ignore('*.json')
-        gitignore.sync('*.multiJobs.json')
-        gitignore.sync('*.powerJobs.json')
-        gitignore.sync('*.expIDList.json')
-        gitignore.sync('*.configList.json')
-        gitignore.sync('*.circsMapDict.json')
-        gitignore.sync('*.fileList.json')
+
+        dataPowerJobs = {
+            **dataPowerJobs,
+            'purityList': expPurityList,
+            'entropyList': expEntropyList,
+        }
+
+        for n, data in [
+            ('powerJobs.json', dataPowerJobs),
+            ('purityList.json', expPurityList),
+            ('entropyList.json', expEntropyList),
+        ]:
+            gitignore.sync(f'*.{n}')
+            quickJSONExport(
+                content=data, filename=Naming(n), mode='w+', jsonablize=True)
+
+        if argsMulti.independentExports:
+            for n in ['expIDList.json', 'fileList.json', 'configList.json', 'circuitsMap.json']:
+                gitignore.sync(f'*.{n}')
+
         gitignore.export(argsMulti.expExportLoc)
-        print(f"The data of jobs saves in '{dataPowerJobsName}'.")
+        print(f"The data of jobs saves in '{Naming('powerJobs.json')}'.")
 
         return dataPowerJobs, expPurityList, expEntropyList
 
     """Other"""
-
-    # def dataPacking(
-    #     self,
-    #     tags: Union[list[dataTagsAllow], dataTagsAllow],
-    #     items: list[str] = ['purity', 'entropy'],
-    # ) -> dict:
-    #     """Packing the data according which tags they belong to.
-
-    #     Args:
-    #         tags (Union[list[dataTagsAllow], dataTagsAllow]): The tags of required data.
-    #         items (list[str], optional): Include which keys. Defaults to ['purity', 'entropy'].
-
-    #     Returns:
-    #         dict: Data packed.
-    #     """
-
-    #     if isinstance(tags, list):
-    #         tagsList = tags
-    #     else:
-    #         tagsList = [tags]
-
-    #     for tag in list(tagsList):
-    #         if tag not in self.expsBelong:
-    #             tagsList.remove(tag)
-    #             print(f"'{tag}' does not exist in '.expsBelong'")
-
-    #     dataPackage = {
-    #         tag: self.expsBelong[tag] for tag in tagsList
-    #     }
 
     def reset(
         self,

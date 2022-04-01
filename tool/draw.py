@@ -685,7 +685,7 @@ def drawPurityErrorAnalysis(
         return fig, None
 
 
-def drawPurityErrorAnalysisV2(
+def drawPurityErrorAnalysis(
     data: dict[str: list[Union[float, int]]],
     plotName: str,
     saveFolder: Optional[Path] = None,
@@ -821,9 +821,10 @@ def drawPurityErrorAnalysisV2(
         return fig, None
 
 
-def drawEntropyOvershootAnalysisV2(
+def drawEntropyOvershootAnalysis(
     data: dict[str: list[Union[float, int]]],
     plotName: str,
+    plotType: str,
     saveFolder: Optional[Path] = None,
     dataConfig: Union[Configuration, dict] = dataConfigDefault,
     drawConfig: Union[Configuration, dict] = drawConfigDefault,
@@ -872,12 +873,12 @@ def drawEntropyOvershootAnalysisV2(
     axes01: Union[SubplotBase, Axes] = axes
 
     figTitle = fig.suptitle(f"{plotName}", y=1, size=drawConfig["fontSize"]+2)
-    axes01.set_xlabel("$\\log_{2}{N_U}$", size=drawConfig["fontSize"])
+    axes01.set_xlabel("$\\log_{2}{N_q}$", size=drawConfig["fontSize"])
     axes01.set_ylabel(
         "$\\log_{2}{\\frac{1}{n} \\ \\sum_{t=0}^{n} | [{Tr}({\\rho_A}^2)]_e - [{Tr}({\\rho_A}^2)]_t | }$",
         size=drawConfig["fontSize"]+2,
     )
-    axes01.set_title(f"Purity error analysis", size=drawConfig["fontSize"])
+    axes01.set_title(f"{plotType} error analysis", size=drawConfig["fontSize"])
 
     dataClone = data.copy()
     for wave in data:
@@ -915,7 +916,144 @@ def drawEntropyOvershootAnalysisV2(
 
     secax_x = axes01.secondary_xaxis(
         -0.2, functions=(ReverseTOlog2, TOlog2))
-    secax_x.set_xlabel(r'$N_U$', size=drawConfig["fontSize"])
+    secax_x.set_xlabel(r'$N_Q$, Number of qubits', size=drawConfig["fontSize"])
+    secax_x.set_xticks(numUnitaryKeyNu)
+    secax_x.set_xticklabels(numUnitaryKeyNu)
+
+    axes01.grid(linestyle=drawConfig["lineStyle"])
+
+    for wave in dataClone:
+        d = dataClone[wave].copy()
+        expected = d['expected']
+        del d['expected']
+        d = [d[vset] if isinstance(d[vset], list) else [d[vset]] for vset in d]
+        errorSet = [
+            np.log2(np.mean(
+                [abs(v - expected) for v in vset]
+            )) for vset in d]
+        axes01.plot(
+            numUnitaryKey,
+            errorSet,
+            marker='.',
+            label="".join([f"{wave}"])
+        )
+
+    legendPlt = axes.legend(
+        bbox_to_anchor=(1.025, 1.0),
+        loc='upper left',
+        borderaxespad=0.
+    )
+
+    if isinstance(saveFolder, Path):
+        saveLoc = saveFolder / figName
+        fig = plt.savefig(
+            saveLoc,
+            format=drawConfig["format"],
+            dpi=drawConfig['dpi'],
+            bbox_extra_artists=(legendPlt, secax_x, figTitle, ),
+            bbox_inches='tight'
+        )
+        return fig, saveLoc
+    else:
+        return fig, None
+
+
+def drawEntropyOvershootAnalysisV2(
+    data: dict[str: list[Union[float, int]]],
+    plotName: str,
+    plotType: str,
+    saveFolder: Optional[Path] = None,
+    dataConfig: Union[Configuration, dict] = dataConfigDefault,
+    drawConfig: Union[Configuration, dict] = drawConfigDefault,
+) -> tuple[Figure, Optional[Path]]:
+    """Draw the figure for entropy measuring result. (The remake of `drawResultPlot`)
+
+    - Example:
+
+    ```
+    dummyData =  {str(i).rjust(2, '0'): {
+        10:[3,4], # the output of the entropy of experiment when random unitary is 10.
+        20:[4,7],
+        40:5,
+        80:[6,13],
+        'expected': 0,
+    } for i in range(6)}
+    ```
+
+    Args:
+        data (_type_): _description_
+        plotName (str): _description_
+        beta (float, optional): _description_. Defaults to 0.
+        saveFolder (Optional[Path], optional): _description_. Defaults to None.
+        dataConfig (Union[Configuration, dict], optional): _description_. Defaults to dataConfigDefault.
+        drawConfig (Union[Configuration, dict], optional): _description_. Defaults to drawConfigDefault.
+
+    Returns:
+        tuple[Figure, Optional[Path]]: _description_
+    """
+
+    dataConfig = dataConfigDefault.make({**dataConfig})
+    dataConfig = {
+        **dataConfig,
+    }
+
+    drawConfig = drawConfigDefault.make({
+        **drawConfig,
+        "format": ("png" if drawConfig["format"] not in [
+            "png", "jpg", "jpeg",
+        ] else drawConfig["format"]),
+    })
+    figName = f"{plotName}.{drawConfig['format']}"
+
+    fig, axes = plt.subplots()
+    fig: Figure
+    axes01: Union[SubplotBase, Axes] = axes
+
+    figTitle = fig.suptitle(f"{plotName}", y=1, size=drawConfig["fontSize"]+2)
+    axes01.set_xlabel("$\\log_{2}{N_q}$", size=drawConfig["fontSize"])
+    axes01.set_ylabel(
+        "$\\log_{2}{\\frac{1}{n} \\ \\sum_{t=0}^{n} | [{Tr}({\\rho_A}^2)]_e - [{Tr}({\\rho_A}^2)]_t | }$",
+        size=drawConfig["fontSize"]+2,
+    )
+    axes01.set_title(f"{plotType} error analysis", size=drawConfig["fontSize"])
+
+    dataClone = data.copy()
+    for wave in data:
+        if 'expected' not in data[wave]:
+            raise ValueError("Each wave must have a expected purity number.")
+        else:
+            if not isinstance(data[wave]['expected'], (int, float)):
+                raise TypeError("'expected' should be int or float.")
+
+        for numU in data[wave]:
+            if numU == 'expected':
+                pass
+            elif isinstance(numU, int):
+                pass
+            elif isinstance(numU, str):
+                if not numU.isdigit():
+                    raise ValueError(f"In '{wave}', '{numU}' is not a number.")
+            else:
+                raise ValueError(f"In '{wave}', '{numU}' is not a number.")
+
+    numUnitarySet = [sorted([
+        int(numU) for numU in dataClone[wave] if numU != 'expected'
+    ]) for wave in dataClone]
+    numUnitaryKey = {}
+    for nums in numUnitarySet:
+        numUnitaryKey = {
+            **numUnitaryKey,
+            **dict.fromkeys(nums, None),
+        }
+    numUnitaryKeyNu = sorted([k for k in numUnitaryKey])
+    numUnitaryKey = sorted([np.log2(int(k)) for k in numUnitaryKey])
+
+    def TOlog2(x): return np.log2(x)
+    def ReverseTOlog2(x): return 2**x
+
+    secax_x = axes01.secondary_xaxis(
+        -0.2, functions=(ReverseTOlog2, TOlog2))
+    secax_x.set_xlabel(r'$N_Q$, Number of qubits', size=drawConfig["fontSize"])
     secax_x.set_xticks(numUnitaryKeyNu)
     secax_x.set_xticklabels(numUnitaryKeyNu)
 
