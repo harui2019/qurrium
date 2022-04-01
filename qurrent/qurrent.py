@@ -1848,19 +1848,21 @@ class EntropyMeasureV2:
 
         for idKey in expIDList:
             circuitsMap[idKey] = []
+            if idKey in transpileArgs:
+                print(f"'{idKey}' will transpile with 'transpileArgs'.")
             if numCircDict[idKey] > 1:
                 for c in range(numCircDict[idKey]):
                     circuitsMap[idKey].append(len(circs))
                     circs.append(transpile(
                         self.exps[idKey]['circuit'][c],
-                        **transpileArgs[idKey],
+                        **(transpileArgs[idKey] if idKey in transpileArgs else {}),
                         backend=argsMulti.backend,
                     ))
             elif numCircDict[idKey] == 1:
                 circuitsMap[idKey].append(len(circs))
                 circs.append(transpile(
                     self.exps[idKey]['circuit'],
-                    **transpileArgs[idKey],
+                    **(transpileArgs[idKey] if idKey in transpileArgs else {}),
                     backend=argsMulti.backend,
                 ))
             else:
