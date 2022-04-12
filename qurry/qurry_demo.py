@@ -1,9 +1,9 @@
 from qiskit import (
-    Aer,
-    execute,
+    Aer, 
+    execute, 
     transpile,
-    QuantumRegister,
-    ClassicalRegister,
+    QuantumRegister, 
+    ClassicalRegister, 
     QuantumCircuit)
 from qiskit.tools import *
 from qiskit.visualization import *
@@ -15,10 +15,10 @@ from qiskit.result import Result
 from qiskit.providers import Backend, BaseJob, JobError
 from qiskit.providers.ibmq import IBMQBackend
 from qiskit.providers.ibmq.managed import (
-    IBMQJobManager,
-    ManagedJobSet,
+    IBMQJobManager, 
+    ManagedJobSet, 
     ManagedResults,
-    IBMQJobManagerInvalidStateError,
+    IBMQJobManagerInvalidStateError, 
     IBMQJobManagerUnknownJobSet)
 from qiskit.providers.ibmq.accountprovider import AccountProvider
 
@@ -35,10 +35,10 @@ from math import pi
 from uuid import uuid4
 from pathlib import Path
 from typing import (
-    Union,
-    Optional,
-    Annotated,
-    Callable
+    Union, 
+    Optional, 
+    Annotated, 
+    Callable,
 )
 
 from ..tool import (
@@ -48,8 +48,7 @@ from ..tool import (
     jsonablize,
     quickJSONExport,
     keyTupleLoads)
-# EntropyMeasureV0.2.1
-
+# QurryV0.1 - Quantum Curry
 
 defaultCircuit = QuantumCircuit(1)
 
@@ -59,7 +58,6 @@ qurrentConfig = Configuration(
         'wave': None,
         'expID': None,
 
-        'params': None,
         'shots': 1024,
 
         'runBy': "gate",
@@ -70,73 +68,15 @@ qurrentConfig = Configuration(
         'dataRetrieve': None,
     },
 )
+
 
 measureBase = Configuration(
     name="measureBase",
     default={
-        'circuit': None,
-        'figRaw': 'unexport',
-        'figTranspile': 'unexport',
-        'result': None,
-        'counts': None,
-        'purity': None,
-        'entropy': None,
-
-        'jobID': [],
-        'IBMQJobManager': False,
-        'name': 'unname',
-
-        'aNum': None,
-        'paramsOther': {},
-        'wave': None,
-        'expID': None,
-
-        'params': None,
-        'runBy': "gate",
-        'shots': 1024,
-        'backend': Aer.get_backend('qasm_simulator'),
-        'drawMethod': 'text',
-        'decompose': 1,
-        'resultKeep': False,
-        'dataRetrieve': None,
-        'expsName': 'exps',
     },
 )
 
-neccessaryKey = [
-    'filename',
-    'aNum',
-    'paramsOther',
-    'wave',
-    'expID',
-    'params',
-    'shots',
-    'backend',
-    'expsName',
-]
-
-MeasureConfig = Annotated[
-    dict,
-    """
-    ```
-    self.measureConfig = {
-        'name': 'EntropyMeasureV2.1
-        ',
-        'paramsNum': 1,
-        'default': {
-            'degree': (half of the numbers of qubits of Wave Circuit.)
-            # example: 8 -> 8/2 = 4,
-            # example: 9 -> ((9-1)/2)+1 = 5
-        },
-        'hint': {
-            'degree': 'degree of freedom of subsystem A.',
-            'unConfig': '(This class is not yet configured.)',
-        },
-        'otherHint': (you can use this hint for other description.)
-    }
-    ```
-    """
-]
+neccessaryKey = []
 
 expsItem = Annotated[
     dict,
@@ -144,81 +84,27 @@ expsItem = Annotated[
     """
 ]
 
-paramsUsingHint = """
-...,
-params={
-    'degree': (half of the numbers of qubits of Wave Circuit.)
-    # example: 8 -> 8/2 = 4,
-    # example: 9 -> ((9-1)/2)+1 = 5 
-}, 
-...
-"""
-
 dataTagAllow = Union[str, int, float, bool]
 dataTagsAllow = Union[tuple[dataTagAllow], dataTagAllow]
 
 
-class EntropyMeasureV2:
-    """EntropyMeasureV2.1 of qurrent
+class Qurry:
+    """QurryV0.0.1 of qurrent
     """
 
     # Initialize
     def initialize(self) -> dict[str: any]:
-        """Configuration to Initialize EntropyMeasure.
-        It requires the following parameters are setted:
-        ```
+
         self.measureConfig = {
-            'name': 'EntropyMeasureV2.1',
-            'shortName': 'qurrentV2.1', # the short name will be used for some export file naming.
-            'paramsNum': 1,
-            'default': {
-                'degree': (half of the numbers of qubits of Wave Circuit.)
-                # example: 8 -> 8/2 = 4,
-                # example: 9 -> ((9-1)/2)+1 = 5
-            },
+            'name': 'EchoCountingV0.1.0',
+            'shortName': 'qurrechV0.1.0',
             'hint': {
                 'degree': 'degree of freedom of subsystem A.',
                 'unConfig': '(This class is not yet configured.)',
             },
-            'otherHint': (you can use this hint for other description.)
-        }
-        ```
-
-        When you completed 'hint', then remove the key 'unConfig' to finish it.
-
-        Returns:
-            dict[str: any]: The basic configuration of `EntropyMeasureV2`.
-        """
-
-        self.measureConfig = {
-            'name': 'EntropyMeasureV2.1',
-            'shortName': 'qurrentV2.1',
-            'paramsNum': 1,
-            'default': {
-                'degree': (
-                    self.waves[self.lastWave].num_qubits/2 if (self.waves[self.lastWave].num_qubits % 2 == 0)
-                    else int((self.waves[self.lastWave].num_qubits-1)/2+1))
-            },
-            'hint': {
-                'degree': 'degree of freedom of subsyßstem A.',
-                'unConfig': '(This class is not yet configured.)',
-            },
             'otherHint': """ """,
         }
-
         self.paramsKey = []
-
-        self.neccessaryKey = [
-            'filename',
-            'aNum',
-            'paramsOther',
-            'wave',
-            'expID',
-            'params',
-            'shots',
-            'backend',
-            'expsName',
-        ]
         """Configuration paramsKey """
 
         return self.measureConfig
@@ -227,7 +113,7 @@ class EntropyMeasureV2:
         self,
         waves: Union[QuantumCircuit, list[QuantumCircuit]] = defaultCircuit,
     ) -> None:
-        """The initialization of EntropyMeasure.
+        """The initialization of Qurry.
 
         Args:
             waves (Union[QuantumCircuit, list[QuantumCircuit]], optional): 
@@ -267,16 +153,6 @@ class EntropyMeasureV2:
         self.__name__ = self.measureConfig['name']
         self.shortName = self.measureConfig['shortName']
         self.paramsKey += measureBase.keys()
-
-        if 'degree' not in measureConfig['default']:
-            raise KeyError(f"This is neccessary parameter for this class.")
-
-        # default create
-        self.defaultANum = self.measureConfig['default']['degree']
-
-        tmp = self.measureConfig['default'].copy()
-        tmp.pop('degree')
-        self.defaultOther = tmp
 
         # value create
         self.exps: dict[str: expsItem] = {}
@@ -465,32 +341,6 @@ class EntropyMeasureV2:
 
     """Arguments and Parameters control"""
 
-    @staticmethod
-    def degreeChecker(
-        a: int,
-        waveCircuit: QuantumCircuit,
-    ) -> Exception:
-        """Check whether the given degree of freedom is available.
-
-        Args:
-            a (int): The degree of freedom.
-
-        Raises:
-            IndexError: Raise when the degree of freedom is out of the number of qubits.
-            ValueError: Raise when the degree of freedom is not a nature number.
-
-        Returns:
-            Exception: The Error from the value of the degree of freedom.
-        """
-        if a > waveCircuit.num_qubits:
-            raise IndexError(
-                f"The subsystem A includes {a} qubits beyond {waveCircuit.num_qubits} which the wave function has.")
-        elif a < 0:
-            raise ValueError(
-                f"The number of qubits of subsystem A has to be natural number.")
-        else:
-            ...
-
     def _isthere(
         self,
         expID: Optional[str] = None,
@@ -650,55 +500,6 @@ class EntropyMeasureV2:
         else:
             raise KeyError(f"{expID} does not exist, '.IDNow' = {self.IDNow}.")
 
-        # params
-        autofilledHint = (
-            "Required '{}' but got {} params, " +
-            "autofilled by default params, for more info using '.help()'."
-        )
-
-        if isinstance(params, int):
-            self.degreeChecker(params)
-            aNum = params
-            paramsOther = self.defaultOther
-
-        elif isinstance(params, list):
-            for aItem in params:
-                if not isinstance(aItem, int):
-                    raise TypeError(
-                        f"The values of configuration has to be 'int'," +
-                        f" but we got '{type(aItem)}' at '{params.index(aItem)}'."
-                    )
-
-            aNum = params[0]
-            self.degreeChecker(aNum)
-            paramsOther = {k: v for k, v in zip(
-                self.measureConfig['default'], params[1:])}
-
-            if len(params) < self.measureConfig['paramsNum']:
-                print(autofilledHint.format(
-                    self.measureConfig['paramsNum'], len(params)))
-                paramsOther = {**paramsOther, **self.defaultOther}
-
-        elif isinstance(params, dict):
-            if not 'degree' in params:
-                raise KeyError(
-                    "The given params lost degree of freedom, it will like.", paramsUsingHint)
-            aNum = params['degree']
-
-            if len(params) < self.measureConfig['paramsNum']:
-                print(autofilledHint.format(
-                    self.measureConfig['paramsNum'], len(params)))
-
-            paramsOther = {
-                **self.defaultOther, **params
-            }
-
-        else:
-            warnings.warn("The format of the parameter is invalid.")
-            self.help()
-            aNum = self.defaultANum
-            paramsOther = self.defaultOther
-
         # runBy
         if isinstance(backend, IBMQBackend):
             runByFixer = 'gate'
@@ -716,8 +517,6 @@ class EntropyMeasureV2:
         # Export all arguments
         self.now = argdict(
             params={
-                'aNum': aNum,
-                'paramsOther': paramsOther,
 
                 'wave': wave,
                 'expID': self.IDNow,
@@ -901,24 +700,6 @@ class EntropyMeasureV2:
 
     """ Main Process: Data Import and Export"""
 
-    @staticmethod
-    def _paramsAsName(
-        aNum: int,
-        other: dict[str: int] = {},
-    ) -> str:
-        """Generate name for each experiment from `.exps[(expID)]['aNum']` and `.exps[(expID)]['paramsOther']`.
-
-        Args:
-            aNum (int): `.exps[(expID)]['aNum']`, the degree of the freedom.
-            other (dict[str: int]): `.exps[(expID)]['paramsOther']`, other parameters required by measurement.
-
-        Returns:
-            str: The name generated by parameters.
-        """
-
-        paramsStr = '-'.join([f'{v}' for k, v in other.items()])
-        return f'{aNum}_{paramsStr}'
-
     def writeLegacy(
         self,
         saveLocation: Optional[Union[Path, str]] = None,
@@ -945,8 +726,6 @@ class EntropyMeasureV2:
         """
 
         tgtID = self._isthere(expID=expID)
-        aNum = self.exps[tgtID]['aNum']
-        paramsOther = self.exps[tgtID]['paramsOther']
 
         expName = self.exps[tgtID]['expsName']
         saveLocParts = Path(saveLocation).parts
@@ -956,7 +735,7 @@ class EntropyMeasureV2:
             saveLoc /= p
         saveLoc /= expName
 
-        filename = f"dim={self._paramsAsName(aNum, paramsOther)}."
+        filename = f"qurry."
         filename += f"{str(list(self.exps).index(tgtID)+1).rjust(3, '0')}.Id={tgtID}.json"
         self.exps[tgtID]['filename'] = Path(filename).name
 
@@ -1214,8 +993,6 @@ class EntropyMeasureV2:
             "jobID": jobLegend["jobID"],
             "name": jobLegend["jobID"],
 
-            'aNum': None,
-            'paramsOther': None,
 
             'wave': None,
             'expID': self.IDNow,
@@ -1255,8 +1032,7 @@ class EntropyMeasureV2:
 
         counts = result.get_counts(resultIdxList[0])
         purity = -100
-        entropy = -100
-        return counts, purity, entropy
+        return counts, None, None
 
     @paramsControlDoc
     def purityOnly(
@@ -1312,8 +1088,7 @@ class EntropyMeasureV2:
         self.exps[IDNow] = {
             **self.exps[IDNow],
             'counts': counts,
-            'purity': purity,
-            'entropy': entropy,
+
         }
         gc.collect()
 

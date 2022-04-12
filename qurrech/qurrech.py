@@ -48,186 +48,57 @@ from ..tool import (
     jsonablize,
     quickJSONExport,
     keyTupleLoads)
-# EntropyMeasureV0.2.1
+from ..qurry import (
+    Qurry, 
+    defaultCircuit,
+    expsConfig,
+    expsBase,
+    expsItem, 
+    dataTagAllow,
+    dataTagsAllow,
+)
+# EchoCounting V0.3.1 - Quantum Loschmidt Echo - Qurrech
 
-
-defaultCircuit = QuantumCircuit(1)
-
-qurrentConfig = Configuration(
-    name="qurrentConfig",
-    default={
-        'wave': None,
-        'expID': None,
-
-        'params': None,
-        'shots': 1024,
-
-        'runBy': "gate",
-        'backend': Aer.get_backend('qasm_simulator'),
-        'drawMethod': 'text',
-        'decompose': 1,
-        'resultKeep': False,
-        'dataRetrieve': None,
+_expsConfig = expsConfig(
+    name="qurrechConfig",
+    defaultArg={
+        # Variants of experiment.
+        'wave1': None,
+        'wave2': None,
     },
 )
 
-measureBase = Configuration(
-    name="measureBase",
-    default={
-        'circuit': None,
-        'figRaw': 'unexport',
-        'figTranspile': 'unexport',
-        'result': None,
-        'counts': None,
-        'purity': None,
-        'entropy': None,
-
-        'jobID': [],
-        'IBMQJobManager': False,
-        'name': 'unname',
-
-        'aNum': None,
-        'paramsOther': {},
-        'wave': None,
-        'expID': None,
-
-        'params': None,
-        'runBy': "gate",
-        'shots': 1024,
-        'backend': Aer.get_backend('qasm_simulator'),
-        'drawMethod': 'text',
-        'decompose': 1,
-        'resultKeep': False,
-        'dataRetrieve': None,
-        'expsName': 'exps',
+_expsBase = expsBase(
+    name="qurrechExpsBase",
+    expsConfig = _expsConfig,
+    defaultArg = {
+        # Reault of experiment.
+        'echo': -100,
     },
 )
 
-neccessaryKey = [
-    'filename',
-    'aNum',
-    'paramsOther',
-    'wave',
-    'expID',
-    'params',
-    'shots',
-    'backend',
-    'expsName',
-]
-
-MeasureConfig = Annotated[
-    dict,
-    """
-    ```
-    self.measureConfig = {
-        'name': 'EntropyMeasureV2.1
-        ',
-        'paramsNum': 1,
-        'default': {
-            'degree': (half of the numbers of qubits of Wave Circuit.)
-            # example: 8 -> 8/2 = 4,
-            # example: 9 -> ((9-1)/2)+1 = 5
-        },
-        'hint': {
-            'degree': 'degree of freedom of subsystem A.',
-            'unConfig': '(This class is not yet configured.)',
-        },
-        'otherHint': (you can use this hint for other description.)
-    }
-    ```
-    """
-]
-
-expsItem = Annotated[
-    dict,
-    """The record of single experiment.
-    """
-]
-
-paramsUsingHint = """
-...,
-params={
-    'degree': (half of the numbers of qubits of Wave Circuit.)
-    # example: 8 -> 8/2 = 4,
-    # example: 9 -> ((9-1)/2)+1 = 5 
-}, 
-...
-"""
-
-dataTagAllow = Union[str, int, float, bool]
-dataTagsAllow = Union[tuple[dataTagAllow], dataTagAllow]
-
-
-class EntropyMeasureV2:
-    """EntropyMeasureV2.1 of qurrent
+class EchoCounting(Qurry):
+    """EchoCounting V0.3.1 of qurrech
     """
 
     # Initialize
     def initialize(self) -> dict[str: any]:
-        """Configuration to Initialize EntropyMeasure.
-        It requires the following parameters are setted:
-        ```
-        self.measureConfig = {
-            'name': 'EntropyMeasureV2.1',
-            'shortName': 'qurrentV2.1', # the short name will be used for some export file naming.
-            'paramsNum': 1,
-            'default': {
-                'degree': (half of the numbers of qubits of Wave Circuit.)
-                # example: 8 -> 8/2 = 4,
-                # example: 9 -> ((9-1)/2)+1 = 5
-            },
-            'hint': {
-                'degree': 'degree of freedom of subsystem A.',
-                'unConfig': '(This class is not yet configured.)',
-            },
-            'otherHint': (you can use this hint for other description.)
-        }
-        ```
-
-        When you completed 'hint', then remove the key 'unConfig' to finish it.
+        """Configuration to Initialize Qurry.
 
         Returns:
-            dict[str: any]: The basic configuration of `EntropyMeasureV2`.
+            dict[str: any]: The basic configuration of `Qurry`.
         """
-
-        self.measureConfig = {
-            'name': 'EntropyMeasureV2.1',
-            'shortName': 'qurrentV2.1',
-            'paramsNum': 1,
-            'default': {
-                'degree': (
-                    self.waves[self.lastWave].num_qubits/2 if (self.waves[self.lastWave].num_qubits % 2 == 0)
-                    else int((self.waves[self.lastWave].num_qubits-1)/2+1))
-            },
-            'hint': {
-                'degree': 'degree of freedom of subsyßstem A.',
-                'unConfig': '(This class is not yet configured.)',
-            },
-            'otherHint': """ """,
-        }
-
-        self.paramsKey = []
-
-        self.neccessaryKey = [
-            'filename',
-            'aNum',
-            'paramsOther',
-            'wave',
-            'expID',
-            'params',
-            'shots',
-            'backend',
-            'expsName',
-        ]
-        """Configuration paramsKey """
-
-        return self.measureConfig
+        
+        self._expsConfig = _expsConfig
+        self._expsBase = _expsBase
+        
+        return self._expsConfig, self._expsBase
 
     def __init__(
         self,
         waves: Union[QuantumCircuit, list[QuantumCircuit]] = defaultCircuit,
     ) -> None:
-        """The initialization of EntropyMeasure.
+        """The initialization of EchoCounting.
 
         Args:
             waves (Union[QuantumCircuit, list[QuantumCircuit]], optional): 
@@ -268,28 +139,12 @@ class EntropyMeasureV2:
         self.shortName = self.measureConfig['shortName']
         self.paramsKey += measureBase.keys()
 
-        if 'degree' not in measureConfig['default']:
-            raise KeyError(f"This is neccessary parameter for this class.")
-
-        # default create
-        self.defaultANum = self.measureConfig['default']['degree']
-
-        tmp = self.measureConfig['default'].copy()
-        tmp.pop('degree')
-        self.defaultOther = tmp
-
         # value create
         self.exps: dict[str: expsItem] = {}
         self.expsBelong = {}
 
         # reresh per calculation.
-        self.now = argdict(
-            params={
-                'aNum': self.defaultANum,
-                'paramsOther': self.defaultOther,
-            },
-            paramsKey=self.paramsKey,
-        )
+        self.now = argdict()
         self.IDNow = None
 
         self.multiNow = argdict(
@@ -303,254 +158,15 @@ class EntropyMeasureV2:
             ],
         )
 
-    """Wave Function"""
-
-    def addWave(
-        self,
-        waveCircuit: QuantumCircuit,
-        key: Optional[any] = None,
-    ) -> Optional[any]:
-        """Add new wave function to measure.
-
-        Args:
-            waveCircuit (QuantumCircuit): The wave functions or circuits want to measure.
-            key (Optional[any], optional): Given a specific key to add to the wave function or circuit, 
-                if `key == None`, then generate a number as key. 
-                Defaults to None.
-
-        Returns:
-            Optional[any]: Key of given wave function in `.waves`.
-        """
-
-        genKey = len(self.waves)
-        if key == None:
-            key = genKey
-
-        if key in self.waves:
-            while genKey in self.waves:
-                genKey += 1
-            key = genKey
-        else:
-            ...
-
-        self.lastWave = key
-        if isinstance(waveCircuit, QuantumCircuit):
-            self.waves[self.lastWave] = waveCircuit
-            return self.lastWave
-        else:
-            warnings.warn("The input is not a 'QuantumCircuit'.")
-            return None
-
-    def waveInstruction(
-        self,
-        wave: Optional[any] = None,
-        runBy: Optional[str] = 'gate',
-        backend: Optional[Backend] = Aer.get_backend('qasm_simulator'),
-    ) -> Union[Gate, Operator]:
-        """Parse wave Circuit into `Instruction` as `Gate` or `Operator` on `QuantumCircuit`.
-
-        Args:
-            wave (Optional[any], optional): 
-                The key of wave in 'fict' `.waves`.
-                If `wave==None`, then chooses `.lastWave` automatically added by last calling of `.addWave`. 
-                Defaults to None.
-            runBy (Optional[str], optional): 
-                Export as `Gate` or `Operator`. 
-                Defaults to 'gate'.
-            backend (Optional[Backend], optional): 
-                Current backend which to check whether exports to `IBMQBacked`, 
-                if does, then no matter what option input at `runBy` will export `Gate`. 
-                Defaults to Aer.get_backend('qasm_simulator').
-
-        Returns:
-            Union[Gate, Operator]: The result of the wave as `Gate` or `Operator`.
-        """
-
-        if wave == None:
-            wave = self.lastWave
-
-        if isinstance(backend, IBMQBackend):
-            return self.waves[wave].to_gate()
-        elif runBy == 'operator':
-            return Operator(self.waves[wave])
-        else:
-            return self.waves[wave].to_gate()
-
-    def waveOperator(
-        self,
-        wave: Optional[any] = None,
-    ) -> Operator:
-        """Export wave function as `Operator`.
-
-        Args:
-            wave (Optional[any], optional): 
-                The key of wave in 'fict' `.waves`.
-                If `wave==None`, then chooses `.lastWave` automatically added by last calling of `.addWave`. 
-                Defaults to None.
-
-        Returns:
-            Operator: The operator of wave function.
-        """
-        return self.waveInstruction(
-            wave=wave,
-            runBy='operator',
-        )
-
-    def waveGate(
-        self,
-        wave: Optional[any] = None,
-    ) -> Gate:
-        """Export wave function as `Gate`.
-
-        Args:
-            wave (Optional[any], optional): 
-                The key of wave in 'fict' `.waves`.
-                If `wave==None`, then chooses `.lastWave` automatically added by last calling of `.addWave`. 
-                Defaults to None.
-
-        Returns:
-            Gate: The gate of wave function.
-        """
-        return self.waveInstruction(wave=wave)
-
-    def drawWave(
-        self,
-        wave: Optional[any] = None,
-        drawMethod: Optional[str] = 'text',
-        decompose: Optional[int] = 1,
-    ) -> Union[str, Figure]:
-        """Draw the circuit of wave function.
-
-        Args:
-            wave (Optional[any], optional): 
-                The key of wave in 'fict' `.waves`.
-                If `wave==None`, then chooses `.lastWave` automatically added by last calling of `.addWave`. 
-                Defaults to None.
-            drawMethod (Optional[str], optional): Draw quantum circuit by 
-                "text", "matplotlib", or "latex". Defaults to 'text'.
-            decompose (Optional[int], optional): Draw quantum circuit with 
-                `QuantumCircuit` decomposed with given times. Defaults to 1.
-
-        Returns:
-            Union[str, Figure]: The figure of wave function.
-        """
-        if wave == None:
-            wave = self.lastWave
-
-        qDummy = QuantumRegister(self.waves[wave].num_qubits, 'q')
-        qcDummy = QuantumCircuit(qDummy)
-
-        qcDummy.append(self.waveGate(wave), [
-            qDummy[i] for i in range(self.waves[wave].num_qubits)])
-
-        for t in range(decompose):
-            qcDummy = qcDummy.decompose()
-
-        fig = qcDummy.draw(drawMethod)
-
-        return fig
-
-    """Help & Hint"""
-
-    def help(self) -> None:
-        """Help and Hints.
-        """
-
-        print(f" ## {self.measureConfig['name']}")
-        print(f"Required parameters number: {self.measureConfig['paramsNum']}")
-        print(f"Required parameters:")
-        for k, v in self.measureConfig['hint'].items():
-            print(f" - {k}: {v}")
-        print(f"otherHint: \n{self.measureConfig['otherHint']}")
-
     """Arguments and Parameters control"""
 
-    @staticmethod
-    def degreeChecker(
-        a: int,
-        waveCircuit: QuantumCircuit,
-    ) -> Exception:
-        """Check whether the given degree of freedom is available.
-
-        Args:
-            a (int): The degree of freedom.
-
-        Raises:
-            IndexError: Raise when the degree of freedom is out of the number of qubits.
-            ValueError: Raise when the degree of freedom is not a nature number.
-
-        Returns:
-            Exception: The Error from the value of the degree of freedom.
-        """
-        if a > waveCircuit.num_qubits:
-            raise IndexError(
-                f"The subsystem A includes {a} qubits beyond {waveCircuit.num_qubits} which the wave function has.")
-        elif a < 0:
-            raise ValueError(
-                f"The number of qubits of subsystem A has to be natural number.")
-        else:
-            ...
-
-    def _isthere(
-        self,
-        expID: Optional[str] = None,
-    ) -> str:
-        """Check whether given `expID` is available, 
-        if does, then return it; if doesn't then raise KeyError.
-        Or given current `expID` when doesn't give any id.
-
-        USING `.find` INSTEAD OF `._isthere`, since this function is for internal running any may raise error.*
-
-        Args:
-            expID (Optional[str], optional): The `expID` wants to check. Defaults to None.
-
-        Raises:
-            KeyError: When given `expID` is not available.
-
-        Returns:
-            str: The available `expID`.
-        """
-
-        if expID != None:
-            if expID in self.exps:
-                tgtId = expID
-            else:
-                raise KeyError(
-                    f"{expID} does not exist, '.IDNow' = {self.IDNow}.")
-        else:
-            tgtId = self.IDNow
-
-        return tgtId
-
-    def find(
-        self,
-        expID: Optional[str] = None,
-    ) -> dict[any]:
-        """Check whether given `expID` is available, 
-        if does, then return its data; if doesn't then retrun null `dict`.
-        Or given last experiment data when doesn't give any id.
-
-        Args:
-            expID (Optional[str], optional): The `expID` wants to check. Defaults to None.
-
-        Returns:
-            dict[any]: The data of given id or current data or null `dict` when experiment doesn't exist.
-        """
-
-        if expID != None:
-            if expID in self.exps:
-                tgtId = expID
-                return self.exps[tgtId]
-            else:
-                return {}
-        else:
-            return self.exps[self.IDNow]
+    
 
     def paramsControl(
         self,
-        wave: Union[QuantumCircuit, any, None] = None,
+        wave1: Union[QuantumCircuit, any, None] = None,
+        wave2: Union[QuantumCircuit, any, None] = None,
         expID: Optional[str] = None,
-        params: Union[list[int], dict[int], int, None] = None,
         runBy: str = "gate",
         shots: int = 1024,
         backend: Backend = Aer.get_backend('qasm_simulator'),
@@ -567,7 +183,7 @@ class EntropyMeasureV2:
         """Handling all arguments and initializing a single experiment.
 
         Args:
-            wave (Union[QuantumCircuit, int, None], optional): 
+            wave1, wave2 (Union[QuantumCircuit, int, None], optional): 
                 The index of the wave function in `self.waves` or add new one to calaculation. 
                 Defaults to None.
             expID (Optional[str], optional):
@@ -576,8 +192,6 @@ class EntropyMeasureV2:
                 `if self.current == None` will create new id automatically, then giving a key 
                 which exists in `self.exps` will switch to this experiment to operate it.
                 Default to False.
-            params (Union[list[int], dict[int], int, None], optional): 
-                Parameters of experiment. Defaults to None.
             runBy (str, optional): 
                 Construct wave function as initial state by `Operater` or `Gate`.
                 Defaults to "gate".
@@ -624,18 +238,31 @@ class EntropyMeasureV2:
         """
 
         # wave
-        if isinstance(wave, QuantumCircuit):
-            wave = self.addWave(wave)
-            print(f"Add new wave with key: {wave}")
-        elif wave == None:
-            wave = self.lastWave
+        if isinstance(wave1, QuantumCircuit):
+            wave1 = self.addWave(wave1)
+            print(f"Add new wave with key: {wave1}")
+        elif wave1 == None:
+            wave1 = self.lastWave
             print(f"Autofill will use '.lastWave' as key")
         else:
             try:
-                self.waves[wave]
+                self.waves[wave1]
             except KeyError as e:
                 warnings.warn(f"'{e}', use '.lastWave' as key")
-                wave = self.lastWave
+                wave1 = self.lastWave
+                
+        if isinstance(wave2, QuantumCircuit):
+            wave2 = self.addWave(wave2)
+            print(f"Add new wave with key: {wave2}")
+        elif wave2 == None:
+            wave2 = self.lastWave
+            print(f"Autofill will use '.lastWave' as key")
+        else:
+            try:
+                self.waves[wave2]
+            except KeyError as e:
+                warnings.warn(f"'{e}', use '.lastWave' as key")
+                wave2 = self.lastWave
 
         # expID
         if expID == None:
@@ -649,55 +276,6 @@ class EntropyMeasureV2:
             ...
         else:
             raise KeyError(f"{expID} does not exist, '.IDNow' = {self.IDNow}.")
-
-        # params
-        autofilledHint = (
-            "Required '{}' but got {} params, " +
-            "autofilled by default params, for more info using '.help()'."
-        )
-
-        if isinstance(params, int):
-            self.degreeChecker(params)
-            aNum = params
-            paramsOther = self.defaultOther
-
-        elif isinstance(params, list):
-            for aItem in params:
-                if not isinstance(aItem, int):
-                    raise TypeError(
-                        f"The values of configuration has to be 'int'," +
-                        f" but we got '{type(aItem)}' at '{params.index(aItem)}'."
-                    )
-
-            aNum = params[0]
-            self.degreeChecker(aNum)
-            paramsOther = {k: v for k, v in zip(
-                self.measureConfig['default'], params[1:])}
-
-            if len(params) < self.measureConfig['paramsNum']:
-                print(autofilledHint.format(
-                    self.measureConfig['paramsNum'], len(params)))
-                paramsOther = {**paramsOther, **self.defaultOther}
-
-        elif isinstance(params, dict):
-            if not 'degree' in params:
-                raise KeyError(
-                    "The given params lost degree of freedom, it will like.", paramsUsingHint)
-            aNum = params['degree']
-
-            if len(params) < self.measureConfig['paramsNum']:
-                print(autofilledHint.format(
-                    self.measureConfig['paramsNum'], len(params)))
-
-            paramsOther = {
-                **self.defaultOther, **params
-            }
-
-        else:
-            warnings.warn("The format of the parameter is invalid.")
-            self.help()
-            aNum = self.defaultANum
-            paramsOther = self.defaultOther
 
         # runBy
         if isinstance(backend, IBMQBackend):
@@ -716,12 +294,9 @@ class EntropyMeasureV2:
         # Export all arguments
         self.now = argdict(
             params={
-                'aNum': aNum,
-                'paramsOther': paramsOther,
-
-                'wave': wave,
+                'wave1': wave1,
+                'wave2': wave2,
                 'expID': self.IDNow,
-                'params': params,
                 'runBy': runByFixer,
                 'shots': shots,
                 'backend': backend,
@@ -741,37 +316,6 @@ class EntropyMeasureV2:
 
         return self.IDNow, self.now
 
-    def paramsControlDoc(f: Callable) -> Callable:
-        """Pass the additional doc of the arguments of `self.paramsControl`
-        to the function used it.
-
-        Args:
-            f (Callable): Function use `self.paramsControl`.
-
-        Returns:
-            Callable: Function use `self.paramsControl`.
-        """
-
-        def wrapper(self, *args, **kwargs):
-            paramsControlArgsDoc = f"""
-        
-            DocString of `paramsControl`:
-            {self.paramsControl.__doc__}
-        
-            """
-            docs = f.__doc__
-            if isinstance(docs, type(None)):
-                docs = """
-                Args:
-                    {paramsControlArgsDoc}
-                """.format(paramsControlArgsDoc=paramsControlArgsDoc)
-            else:
-                docs.format(paramsControlArgsDoc=paramsControlArgsDoc)
-            docs.format(paramsControlArgsDoc=paramsControlArgsDoc)
-            f.__doc__ = docs
-
-            return f(self, *args, **kwargs)
-        return wrapper
 
     """ Main Process: Circuit"""
 
@@ -796,40 +340,6 @@ class EntropyMeasureV2:
             qcResult = qcResult.decompose()
         return qcResult
 
-    def drawCircuit(
-        self,
-        expID: Optional[str] = None,
-        drawMethod: Optional[str] = 'text',
-        decompose: Optional[int] = 0,
-        backend: Backend = Aer.get_backend('qasm_simulator'),
-    ) -> Union[str, Figure]:
-        """Drawing the circuit figure of the experiment
-
-        Args:
-            expID (Optional[str]): The unique id of experiment, by uuid4.
-            drawMethod (Optional[str], optional): Draw quantum circuit by
-                "text", "matplotlib", or "latex". Defaults to 'text'.
-            decompose (Optional[int], optional): Decide the times of decomposing the circuit.
-                Draw quantum circuit with composed circuit. Defaults to 0.
-
-        Returns:
-            Union[str, Figure]: The figure of quantum circuit.
-        """
-
-        tgtId = self._isthere(expID=expID)
-
-        qcExp = self.exps[tgtId]['circuit']
-        if isinstance(qcExp, list):
-            fig = []
-            for qc in qcExp:
-                qc = self.qcDecomposer(qc, decompose)
-                fig.append(qc.draw(drawMethod))
-
-        elif isinstance(qcExp, QuantumCircuit):
-            qcExp = self.qcDecomposer(qcExp, decompose)
-            fig = qcExp.draw(drawMethod)
-
-        return fig
 
     def circuitMethod(
         self,
@@ -860,7 +370,7 @@ class EntropyMeasureV2:
 
         return qcExp
 
-    @paramsControlDoc
+    @super().paramsControlDoc
     def circuitOnly(
         self,
         **allArgs: any,
@@ -901,23 +411,6 @@ class EntropyMeasureV2:
 
     """ Main Process: Data Import and Export"""
 
-    @staticmethod
-    def _paramsAsName(
-        aNum: int,
-        other: dict[str: int] = {},
-    ) -> str:
-        """Generate name for each experiment from `.exps[(expID)]['aNum']` and `.exps[(expID)]['paramsOther']`.
-
-        Args:
-            aNum (int): `.exps[(expID)]['aNum']`, the degree of the freedom.
-            other (dict[str: int]): `.exps[(expID)]['paramsOther']`, other parameters required by measurement.
-
-        Returns:
-            str: The name generated by parameters.
-        """
-
-        paramsStr = '-'.join([f'{v}' for k, v in other.items()])
-        return f'{aNum}_{paramsStr}'
 
     def writeLegacy(
         self,
@@ -1214,8 +707,6 @@ class EntropyMeasureV2:
             "jobID": jobLegend["jobID"],
             "name": jobLegend["jobID"],
 
-            'aNum': None,
-            'paramsOther': None,
 
             'wave': None,
             'expID': self.IDNow,
@@ -1703,7 +1194,7 @@ class EntropyMeasureV2:
             ValueError: When file is broken.
 
         Returns:
-            tuple[None, str, dict[any], dict[list[float]], dict[list[float]]]: 
+            tuple[NoneType, str, dict[any], dict[list[float]], dict[list[float]]]: 
                 None, `powerJobID`, `dataDummyJobs`, purity lists, entropy lists.
         """
 

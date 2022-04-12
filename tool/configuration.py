@@ -5,38 +5,7 @@ from .jsonablize import Parse as jsonablize
 class Configuration(dict):
     def __init__(
         self,
-        default: Optional[dict[any]] = {
-            "measure": "None",
-            "experiment": "None",
-
-            "qPairNum": 1,
-            "qNum": 2,
-            "boundaryCond": 'period',
-            "alpha": 0,
-            "beta": 0,
-
-            "circuitRunBy": "operator",
-            "initSet": None,
-            "hamiltonianIndex": None,
-
-            "timeEvo": range(11),
-            "collectA": [[1]],
-
-            "waveFigType": 'text',
-            "waveComposeMethod": "decompose",
-
-            "goRunby": "gate",
-            "goFigType": 'text',
-            "goComposeMethod": None,
-            "shots": 1024,
-
-            'singleResultKeep': False,
-            'countPlotKeep': False,
-            'simpleResultKeep': False,
-
-            "expNum": None,
-            "demoNum": None,
-        },
+        default: dict = {},
         name: str = 'configuration'
     ) -> None:
         """Set the default parameters dictionary for multiple experiment.
@@ -53,38 +22,7 @@ class Configuration(dict):
     @classmethod
     def create(
         cls,
-        default: Optional[dict[any]] = {
-            "measure": "None",
-            "experiment": "None",
-
-            "qPairNum": 1,
-            "qNum": 2,
-            "boundaryCond": 'period',
-            "alpha": 0,
-            "beta": 0,
-
-            "circuitRunBy": "operator",
-            "initSet": None,
-            "hamiltonianIndex": None,
-
-            "timeEvo": range(11),
-            "collectA": [[1]],
-
-            "waveFigType": 'text',
-            "waveComposeMethod": "decompose",
-
-            "goRunby": "gate",
-            "goFigType": 'text',
-            "goComposeMethod": None,
-            "shots": 1024,
-
-            'singleResultKeep': False,
-            'countPlotKeep': False,
-            'simpleResultKeep': False,
-
-            "expNum": None,
-            "demoNum": None,
-        },
+        default: dict = {},
         name: str = 'configuration'
     ):
         
