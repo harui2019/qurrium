@@ -75,7 +75,7 @@ def expsConfig(
         **defaultArg,
 
         # Qiskit argument of experiment.
-        ## Multiple jobs shared 
+        ## Multiple jobs shared
         'shots': 1024,
         'backend': Aer.get_backend('qasm_simulator'),
         'runConfig': {}
@@ -93,11 +93,11 @@ def expsConfig(
     ```
 
     Args:
-        name (str, optional): 
-            Name of basic configuration for `Qurry`. 
+        name (str, optional):
+            Name of basic configuration for `Qurry`.
             Defaults to 'qurryConfig'.
-        defaultArg (dict[any], optional): 
-            Basic input for `.output`. 
+        defaultArg (dict[any], optional):
+            Basic input for `.output`.
             Defaults to { 'wave': None }.
 
     Returns:
@@ -116,6 +116,7 @@ def expsConfig(
             # Multiple jobs shared
             'shots': 1024,
             'backend': Aer.get_backend('qasm_simulator'),
+            'provider': None,
             'runConfig': {},
 
             # Single job dedicated
@@ -152,7 +153,7 @@ def expsBase(
         **defaultArg,
 
         # Qiskit argument of experiment.
-        ## Multiple jobs shared 
+        ## Multiple jobs shared
         'shots': 1024,
         'backend': Aer.get_backend('qasm_simulator'),
         'runConfig': {}
@@ -166,6 +167,8 @@ def expsBase(
         'drawMethod': 'text',
         'resultKeep': False,
         'dataRetrieve': None,
+        'expsName': expsName,
+        'tag': tag,
 
         # Reault of experiment.
         'echo': -100,
@@ -184,14 +187,14 @@ def expsBase(
     ```
 
     Args:
-        name (str, optional): 
-            Name of basic configuration for `Qurry`. 
+        name (str, optional):
+            Name of basic configuration for `Qurry`.
             Defaults to 'qurryConfig'.
-        expsConfig (dict, optional): 
-            `expsConfig`. 
+        expsConfig (dict, optional):
+            `expsConfig`.
             Defaults to {}.
-        defaultArg (dict, optional): 
-            Basic input for `.output`. 
+        defaultArg (dict, optional):
+            Basic input for `.output`.
             Defaults to {}.
 
     Returns:
@@ -232,7 +235,7 @@ def expsConfigMulti(
 
     ```
     {
-        'configList': [ ...expsConfigs ], 
+        'configList': [ ...expsConfigs ],
 
         # Configuration of `IBMQJobManager().run`
         'shots': 1024,
@@ -245,14 +248,14 @@ def expsConfigMulti(
     ```
 
     Args:
-        name (str, optional): 
-            Name of basic configuration for `Qurry`. 
+        name (str, optional):
+            Name of basic configuration for `Qurry`.
             Defaults to 'qurryConfig'.
-        expsConfig (dict, optional): 
-            `expsConfig`. 
+        expsConfig (dict, optional):
+            `expsConfig`.
             Defaults to {}.
-        defaultArg (dict, optional): 
-            Basic input for `.output`. 
+        defaultArg (dict, optional):
+            Basic input for `.output`.
             Defaults to {}.
 
     Returns:
@@ -276,7 +279,7 @@ def expsConfigMulti(
 
 
 def expsHint(
-    name: str = 'qurryExpsBase',
+    name: str = 'qurryBaseHint',
     expsConfig: dict = expsBase(),
     hintContext: dict = {
         "_basicHint": "This is a hint of qurry.",
@@ -290,6 +293,40 @@ def expsHint(
 dataTagAllow = Union[str, int, float, bool]
 dataTagsAllow = Union[tuple[dataTagAllow], dataTagAllow]
 
+"""
+
+_expsConfig = expsConfig(
+    name='dummyConfig',
+    defaultArg={
+        'wave': None,
+        'dummy': None,
+    },
+)
+_expsBase = expsBase(
+    name='dummyBase',
+    expsConfig= _expsConfig,
+    defaultArg={
+        'dummyResult1': None,
+        'dummyResult2': None,
+    },
+)
+_expsMultiConfig = expsConfigMulti(
+    name='dummyConfigMulti',
+    expsConfig= _expsConfig,
+    defaultArg={
+        'dummyMultiVariaint1': None,
+        'dummyMultiVariaint2': None,
+    },
+)
+_expsHint = expsHint(
+    name: str = 'qurryBaseHint',
+    expsConfig = _expsBase,
+    hintContext = {
+        'dummyResult1': 'This is dummyResult1.',
+        'dummyResult2': 'This is dummyResult2.',
+    },
+)
+"""
 
 _expsConfig = expsConfig()
 _expsBase = expsBase()
@@ -326,7 +363,7 @@ class Qurry:
         """The initialization of Qurry.
 
         Args:
-            waves (Union[QuantumCircuit, list[QuantumCircuit]], optional): 
+            waves (Union[QuantumCircuit, list[QuantumCircuit]], optional):
             The wave functions or circuits want to measure. Defaults to defaultCircuit.
 
         Raises:
@@ -366,16 +403,16 @@ class Qurry:
 
         # reresh per execution.
         self.now = argdict(
-            params=self._expsConfig,
+            params=self._expsConfig.make(),
         )
         self.IDNow = None
         self.multiNow = argdict(
-            params=self._expsMultiConfig,
+            params=self._expsMultiConfig.make(),
         )
 
     """Wave Function"""
     @staticmethod
-    def circuitDecomposer(
+    def decomposer(
         qc: QuantumCircuit,
         decompose: int = 2,
     ) -> QuantumCircuit:
@@ -404,8 +441,8 @@ class Qurry:
 
         Args:
             waveCircuit (QuantumCircuit): The wave functions or circuits want to measure.
-            key (Optional[any], optional): Given a specific key to add to the wave function or circuit, 
-                if `key == None`, then generate a number as key. 
+            key (Optional[any], optional): Given a specific key to add to the wave function or circuit,
+                if `key == None`, then generate a number as key.
                 Defaults to None.
 
         Returns:
@@ -440,16 +477,16 @@ class Qurry:
         """Parse wave Circuit into `Instruction` as `Gate` or `Operator` on `QuantumCircuit`.
 
         Args:
-            wave (Optional[any], optional): 
+            wave (Optional[any], optional):
                 The key of wave in 'fict' `.waves`.
-                If `wave==None`, then chooses `.lastWave` automatically added by last calling of `.addWave`. 
+                If `wave==None`, then chooses `.lastWave` automatically added by last calling of `.addWave`.
                 Defaults to None.
-            runBy (Optional[str], optional): 
-                Export as `Gate` or `Operator`. 
+            runBy (Optional[str], optional):
+                Export as `Gate` or `Operator`.
                 Defaults to 'gate'.
-            backend (Optional[Backend], optional): 
-                Current backend which to check whether exports to `IBMQBacked`, 
-                if does, then no matter what option input at `runBy` will export `Gate`. 
+            backend (Optional[Backend], optional):
+                Current backend which to check whether exports to `IBMQBacked`,
+                if does, then no matter what option input at `runBy` will export `Gate`.
                 Defaults to Aer.get_backend('qasm_simulator').
 
         Returns:
@@ -473,9 +510,9 @@ class Qurry:
         """Export wave function as `Operator`.
 
         Args:
-            wave (Optional[any], optional): 
+            wave (Optional[any], optional):
                 The key of wave in 'fict' `.waves`.
-                If `wave==None`, then chooses `.lastWave` automatically added by last calling of `.addWave`. 
+                If `wave==None`, then chooses `.lastWave` automatically added by last calling of `.addWave`.
                 Defaults to None.
 
         Returns:
@@ -493,9 +530,9 @@ class Qurry:
         """Export wave function as `Gate`.
 
         Args:
-            wave (Optional[any], optional): 
+            wave (Optional[any], optional):
                 The key of wave in 'fict' `.waves`.
-                If `wave==None`, then chooses `.lastWave` automatically added by last calling of `.addWave`. 
+                If `wave==None`, then chooses `.lastWave` automatically added by last calling of `.addWave`.
                 Defaults to None.
 
         Returns:
@@ -503,22 +540,50 @@ class Qurry:
         """
         return self.waveInstruction(wave=wave)
 
+    def find(
+        self,
+        expID: Optional[str] = None,
+    ) -> str:
+        """Check whether given `expID` is available,
+        If does, then return it, otherwise return `False`.
+        Or given current `expID` when doesn't give any id.
+
+        Args:
+            expID (Optional[str], optional): The `expID` wants to check. Defaults to None.
+
+        Raises:
+            KeyError: When given `expID` is not available.
+
+        Returns:
+            str: The available `expID`.
+        """
+
+        if expID != None:
+            if expID in self.exps:
+                tgtId = expID
+            else:
+                tgtId = False
+        else:
+            tgtId = self.IDNow
+
+        return tgtId
+
     def drawWave(
         self,
         wave: Optional[any] = None,
         drawMethod: Optional[str] = 'text',
         decompose: Optional[int] = 1,
-    ) -> Union[str, Figure]:
+    ) -> Figure:
         """Draw the circuit of wave function.
 
         Args:
-            wave (Optional[any], optional): 
+            wave (Optional[any], optional):
                 The key of wave in 'fict' `.waves`.
-                If `wave==None`, then chooses `.lastWave` automatically added by last calling of `.addWave`. 
+                If `wave==None`, then chooses `.lastWave` automatically added by last calling of `.addWave`.
                 Defaults to None.
-            drawMethod (Optional[str], optional): Draw quantum circuit by 
+            drawMethod (Optional[str], optional): Draw quantum circuit by
                 "text", "matplotlib", or "latex". Defaults to 'text'.
-            decompose (Optional[int], optional): Draw quantum circuit with 
+            decompose (Optional[int], optional): Draw quantum circuit with
                 `QuantumCircuit` decomposed with given times. Defaults to 1.
 
         Returns:
@@ -532,22 +597,20 @@ class Qurry:
 
         qcDummy.append(self.waveGate(wave), [
             qDummy[i] for i in range(self.waves[wave].num_qubits)])
+        qcDummy = self.decomposer(qcDummy, decompose)
 
-        qcDummy = self.circuitDecomposer(qcDummy, decompose)
-
-        fig = qcDummy.draw(drawMethod)
-
-        return fig
+        return qcDummy.draw(drawMethod)
 
     def paramsControlMain(
         self,
+        expsName: str = 'exps',
         wave: Union[QuantumCircuit, any, None] = None,
         **otherArgs: any
     ) -> dict:
         """Handling all arguments and initializing a single experiment.
 
         Args:
-            wave (Union[QuantumCircuit, int, None], optional): 
+            wave (Union[QuantumCircuit, int, None], optional):
                 The index of the wave function in `self.waves` or add new one to calaculation,
                 then choose one of waves as the experiment material.
                 If input is `QuantumCircuit`, then add and use it.
@@ -578,6 +641,7 @@ class Qurry:
 
         return {
             'wave': wave,
+            'expsName': f"{expsName}-dummy-{wave}.",
             **otherArgs,
         }
 
@@ -606,11 +670,55 @@ class Qurry:
     ) -> argdict:
         """Handling all arguments and initializing a single experiment.
 
+        - example of a value in `self.exps`
+
+        ```
+        {
+            # ID of experiment.
+            'expID': None,
+
+            # Variants of experiment.
+            **defaultArg,
+
+            # Qiskit argument of experiment.
+            ## Multiple jobs shared
+            'shots': 1024,
+            'backend': Aer.get_backend('qasm_simulator'),
+            'runConfig': {}
+
+            ## Single job dedicated
+            'runBy': "gate",
+            'decompose': 1,
+            'transpileArgs': {},
+
+            # Other arguments of experiment
+            'drawMethod': 'text',
+            'resultKeep': False,
+            'dataRetrieve': None,
+            'expsName': expsName,
+            'tag': tag,
+
+            # Reault of experiment.
+            'echo': -100,
+
+            # Measurement result
+            'circuit': None,
+            'figRaw': 'unexport',
+            'figTranspile': 'unexport',
+            'result': None,
+            'counts': None,
+
+            # Export data
+            'jobID': [],
+            'expsName': 'exps',
+        }
+        ```
+
         Args:
             # ID of experiment.
 
             expID (Optional[str], optional):
-                Decide whether generate new id to initializw new experiment or continue current experiment. 
+                Decide whether generate new id to initializw new experiment or continue current experiment.
                 `True` for create new id.
                 `False` for continuing current experiment.
                 `None` will create new id automatically.
@@ -620,16 +728,16 @@ class Qurry:
             # Qiskit argument of experiment.
             # Multiple jobs shared.
 
-            shots (int, optional): 
+            shots (int, optional):
                 Shots of the job.
                 Defaults to `1024`.
 
-            backend (Backend, optional): 
+            backend (Backend, optional):
                 The quantum backend.
                 Defaults to `Aer.get_backend('qasm_simulator')`.
 
-            provider (Optional[AccountProvider], optional): 
-                :cls:`AccountProvider` of current backend for running :cls:`IBMQJobManager`. 
+            provider (Optional[AccountProvider], optional):
+                :cls:`AccountProvider` of current backend for running :cls:`IBMQJobManager`.
                 Defaults to `None`.
 
             runConfig (dict, optional):
@@ -638,12 +746,12 @@ class Qurry:
 
             # Single job dedicated
 
-            runBy (str, optional): 
+            runBy (str, optional):
                 Construct wave function as initial state by :cls:`Operater` or :cls:`Gate`.
                 When use 'IBMQBackend' only allowed to use wave function as `Gate` instead of `Operator`.
                 Defaults to `"gate"`.
 
-            decompose (Optional[int], optional): 
+            decompose (Optional[int], optional):
                 Running `QuantumCircuit` which be decomposed given times.
                 Defaults to 2.
 
@@ -653,16 +761,16 @@ class Qurry:
 
             # Other arguments of experiment
 
-            drawMethod (Optional[str], optional): 
+            drawMethod (Optional[str], optional):
                 Draw quantum circuit by `txt`, `matplotlib`, or `LaTeX`.
                 Defaults to `'text'`.
 
-            resultKeep (bool, optional): 
+            resultKeep (bool, optional):
                 Whether to keep the results of qiskit job.
                 Defaults to `False`.
 
-            dataRetrieve (Optional[dict[Union[list[str], str]]], optional): 
-                Data to collect results from IBMQ via `IBMQJobManager`. 
+            dataRetrieve (Optional[dict[Union[list[str], str]]], optional):
+                Data to collect results from IBMQ via `IBMQJobManager`.
                 Defaults to `None`.
 
             expsName (str, optional):
@@ -706,18 +814,20 @@ class Qurry:
         parsedOther = self.paramsControlMain(**otherArgs)
         self.now = argdict(
             params={
-                **self._expsBase,
+                **self._expsConfig.make(),
+                # ID of experiment.
                 'expID': self.IDNow,
-
+                # Qiskit argument of experiment.
+                # Multiple jobs shared
                 'shots': shots,
                 'backend': backend,
                 'provider': provider,
                 'runConfig': runConfig,
-
+                # Single job dedicated
                 'runBy': 'gate' if isinstance(backend, IBMQBackend) else runBy,
                 'decompose': decompose,
                 'transpileArgs': transpileArgs,
-
+                # Other arguments of experiment
                 'drawMethod': drawMethod,
                 'resultKeep': resultKeep,
                 'dataRetrieve': dataRetrieve,
@@ -726,7 +836,569 @@ class Qurry:
 
                 **parsedOther,
             },
-            paramsKey=self._expsBase.keys(),
+            paramsKey=self._expsConfig.make().keys(),
         )
+        self.exps[self.IDNow] = {
+            **self._expsBase.make(),
+            **self.now,
+        }
 
         return self.now
+
+    def drawCircuit(
+        self,
+        expID: Optional[str] = None,
+        whichCircuit: Optional[int] = 0,
+        drawMethod: Optional[str] = 'text',
+        decompose: Optional[int] = 0,
+    ) -> Optional[Figure]:
+        """Draw the circuit of wave function.
+
+        Args:
+            wave (Optional[any], optional):
+                The key of wave in 'fict' `.waves`.
+                If `wave==None`, then chooses `.lastWave` automatically added by last calling of `.addWave`.
+                Defaults to None.
+            whichCircuit (Optional[int], optional):
+                If there is multiple circuits used in this experiment,
+                then used the given number as index of list to pick up the circuit.
+                and the first circuit which index is '0' as default export when not specified.
+            drawMethod (Optional[str], optional): Draw quantum circuit by
+                "text", "matplotlib", or "latex". Defaults to 'text'.
+            decompose (Optional[int], optional): Draw quantum circuit with
+                `QuantumCircuit` decomposed with given times. Defaults to 1.
+
+        Returns:
+            Union[str, Figure]: The figure of wave function.
+        """
+
+        tgtId = self.find(expID=expID)
+        if tgtId:
+            circuitSet = self.exps[tgtId]['circuit']
+            if isinstance(circuit, QuantumCircuit):
+                circuit = self.decomposer(circuitSet, decompose)
+                return circuit.draw(drawMethod)
+
+            elif isinstance(circuit, list):
+                circuit = self.decomposer(
+                    circuitSet[whichCircuit], decompose)
+                return circuit.draw(drawMethod)
+
+            else:
+                warnings.warn(
+                    f"'{expID}' is the type of '{type(circuitSet)}', which cannot export.")
+                return None
+        else:
+            warnings.warn(f"'{expID}' does not exist.")
+            return None
+
+    def circuitMethod(self) -> list[QuantumCircuit]:
+        """The method to construct circuit.
+        Where should be overwritten by each construction of new measurement.
+
+        Returns:
+            Union[QuantumCircuit, list[QuantumCircuit]]:
+                The quantum circuit of experiment.
+        """
+        numQubits = self.waves[self.now.wave].num_qubits
+
+        q1 = QuantumRegister(numQubits, 'q1')
+        c1 = ClassicalRegister(numQubits, 'c1')
+        circuit = QuantumCircuit(q1, c1)
+
+        circuit.append(
+            self.waveInstruction(
+                wave=self.now.wave,
+                runBy=self.now.runBy,
+                backend=self.now.backend,
+            ),
+            [circuit[i] for i in range(numQubits)],
+        )
+
+        print("It's default circuit, the quantum circuit is not yet configured.")
+
+        return [circuit]
+
+    def circuitBuild(
+        self,
+        **allArgs: any,
+    ) -> list[QuantumCircuit]:
+        """Construct the quantum circuit of experiment.
+
+        Args:
+            allArgs: all arguments will handle by `self.paramsControl()` and export as specific format.
+        Returns:
+            QuantumCircuit: The quantum circuit of experiment.
+        """
+        argsNow = self.paramsControlCore(**allArgs)
+
+        # circuit
+        circuitSet = self.circuitMethod()
+        self.exps[self.IDNow]['circuit'] = circuitSet
+
+        # draw
+        figRaw = None
+        if isinstance(circuitSet, QuantumCircuit):
+            figRaw = [self.drawCircuit(
+                expID=self.IDNow,
+                drawMethod=argsNow.drawMethod,
+                decompose=argsNow.decompose,
+            )]
+
+        elif isinstance(circuitSet, list):
+            circuitSetLength = len(circuitSet)
+            figRaw = [self.drawCircuit(
+                expID=self.IDNow,
+                whichCircuit=i,
+                drawMethod=argsNow.drawMethod,
+                decompose=argsNow.decompose,
+            ) for i in range(circuitSetLength)]
+
+        self.exps[self.IDNow]['figRaw'] = figRaw
+
+        return circuitSet
+
+    def writeLegacy(
+        self,
+        expID: Optional[str] = None,
+        name: str = 'export',
+        saveLocation: Optional[Union[Path, str]] = None,
+    ) -> dict[str: any]:
+        """Export the experiment data, if there is a previous export, then will overwrite.
+
+        - example of file.name:
+
+            `{name}.{self.exps[expID]['expsName']}.expId={expID}.json`
+
+        Args:
+            saveLocation (Optional[Union[Path, str]], optional):
+                Where to save the export content as `json` file.
+                If `saveLocation == None`, then cancelled the file to be exported.
+                Defaults to None.
+
+            name (str, optional):
+                The first name of the file.
+                Export as showing in example.
+
+            expID (Optional[str], optional):
+                The id of the experiment will be exported.
+                If `expID == None`, then export the experiment which id is`.IDNow`.
+                Defaults to None.
+
+        Returns:
+            dict[str: any]: the export content.
+        """
+
+        legacyId = self.find(expID)
+        if not legacyId:
+            return {}
+
+        filename = Path(
+            f"{name}.{self.exps[legacyId]['expsName']}.expId={legacyId}.json")
+
+        if isinstance(saveLocation, (Path, str)):
+            saveLocParts = Path(saveLocation).parts
+            saveLoc = Path(saveLocParts[0]) if len(
+                saveLocParts) > 0 else Path('./')
+            for p in saveLocParts[1:]:
+                saveLoc /= p
+            saveLoc /= filename
+
+            if not os.path.exists(saveLoc):
+                os.mkdir(saveLoc)
+
+            self.exps[legacyId]['saveLocation'] = saveLoc
+            legacyExport = jsonablize(self.exps[legacyId])
+            with open((saveLoc / filename), 'w+', encoding='utf-8') as Legacy:
+                json.dump(legacyExport, Legacy, indent=2, ensure_ascii=False)
+
+        elif saveLocation == None:
+            legacyExport = jsonablize(self.exps[legacyId])
+
+        else:
+            legacyExport = jsonablize(self.exps[legacyId])
+            warnings.warn(
+                "'saveLocation' is not the type of 'str' or 'Path', " +
+                "so export cancelled.")
+
+        return legacyExport
+
+    def readLegacy(
+        self,
+        filename: Optional[Union[Path, str]] = None,
+        saveLocation: Union[Path, str] = Path('./'),
+        expID: Optional[str] = None,
+    ) -> dict[str: any]:
+        """Read the experiment data.
+
+        Raises:
+            ValueError: 'saveLocation' needs to be the type of 'str' or 'Path'.
+            FileNotFoundError: When `saveLocation` is not available.
+            FileNotFoundError: When the export of `expId` does not exist.
+            TypeError: File content is not `dict`.
+
+        Returns:
+            dict[str: any]: The data.
+        """
+
+        if isinstance(saveLocation, (Path, str)):
+            saveLocation = Path(saveLocation)
+        else:
+            raise ValueError(
+                "'saveLocation' needs to be the type of 'str' or 'Path'.")
+
+        if not os.path.exists(saveLocation):
+            raise FileNotFoundError("Such location not found.")
+
+        legacyRead = {}
+        if expID != None:
+            lsfolder = glob.glob(str(saveLocation / f"*{expID}*.json"))
+            if len(lsfolder) == 0:
+                raise FileNotFoundError(f"The file 'expID={expID}' not found.")
+
+            for p in lsfolder:
+                with open(p, 'r', encoding='utf-8') as Legacy:
+                    legacyRead = json.load(Legacy)
+
+        elif isinstance(filename, (str, Path)):
+            if os.path.exists(saveLocation / filename):
+                with open(saveLocation / filename, 'r', encoding='utf-8') as Legacy:
+                    legacyRead = json.load(Legacy)
+
+            else:
+                print(f"'{(saveLocation / filename)}' does not exist.")
+
+        else:
+            raise FileNotFoundError(f"The file 'expID={expID}' not found.")
+
+        if isinstance(legacyRead, dict):
+            if "tag" in legacyRead:
+                legacyRead["tag"] = tuple(legacyRead["tag"]) if isinstance(
+                    legacyRead["tag"], list) else legacyRead["tag"]
+
+            self.exps[legacyRead["expID"]] = legacyRead
+
+            if not self._expsBase.ready(legacyRead):
+                lost = self._expsBase.check(legacyRead)
+                print(f"Key Lost: {lost}")
+        else:
+            raise TypeError("The export file does not match the type 'dict'.")
+
+        return legacyRead
+
+    def jobBuild(
+        self,
+        **allArgs: any,
+    ) -> BaseJob:
+        """Export the job of experiments.
+
+        https://github.com/Qiskit/qiskit-terra/issues/4778
+        According to this issue, `IBMQJobManager` will automatically splits off job to fit the backend limit 
+        and combines the result, so this version `jobOnly` will ignore the problem on the number of jobs
+        larger than backends limits.
+
+        Args:
+            allArgs: all arguments will handle by `self.paramsControl()` and export as specific format.
+            {paramsControlArgsDoc}
+
+        Returns:
+            tuple[list[Union[BaseJob, ManagedJobSet]], list[str]]:
+                Construnct the quantum computing job and return the job id.
+        """
+        circuitSet = self.circuitBuild(**allArgs)
+        argsNow = self.now
+
+        # transpile
+        circs = transpile(
+            circuitSet if isinstance(circuitSet, list) else [circuitSet],
+            backend=argsNow.backend,
+            **argsNow.transpileArgs,
+        )
+
+        figTranspile = None
+        if isinstance(circuitSet, QuantumCircuit):
+            figTranspile = [self.drawCircuit(
+                expID=self.IDNow,
+                drawMethod=argsNow.drawMethod,
+                decompose=argsNow.decompose,
+            )]
+
+        elif isinstance(circuitSet, list):
+            circuitSetLength = len(circuitSet)
+            figTranspile = [self.drawCircuit(
+                expID=self.IDNow,
+                whichCircuit=i,
+                drawMethod=argsNow.drawMethod,
+                decompose=argsNow.decompose,
+            ) for i in range(circuitSetLength)]
+
+        self.exps[self.IDNow]['figTranspile'] = figTranspile
+
+        execution = execute(
+            circs,
+            backend=argsNow.backend,
+            shots=argsNow.shots,
+        )
+        jobID = execution.job_id()
+        self.exps[self.IDNow]['jobID'] = jobID
+
+        return execution
+
+    def run(
+        self,
+        **allArgs: any,
+    ) -> Union[Result, ManagedResults]:
+        """Export the result after running the job.
+        - At same position with `self.retrieveOnly()` in the process.
+
+        Args:
+            allArgs: all arguments will handle by `self.paramsControl()` and export as specific format.
+
+        Returns:
+            Union[Result, ManagedResults]: The result of the job.
+        """
+        execution = self.jobBuild(**allArgs)
+
+        result = execution.result()
+        self.exps[self.IDNow]['result'] = result
+
+        return result
+
+    def retrieve(
+        self,
+        **allArgs: any,
+    ) -> Optional[list[dict]]:
+        """Retrieve the data from IBMQService which is already done, and add it into `self.exps`.
+
+        Args:
+            allArgs: all arguments will handle by `self.paramsControl()` and export as specific format.
+
+        Raises:
+            KeyError: The necessary keys in `self.now.dataRetrieve` are lost.
+                When the job record does not have `jobId`.
+            ValueError: `argsNow.dataRetrieve` is null.
+
+        Returns:
+            Optional[list[dict]]: The result of the job.
+        """
+
+        argsNow = self.paramsControlCore(**allArgs)
+        if not isinstance(argsNow.provider, AccountProvider):
+            raise ValueError("Provider required.")
+
+        retrievedBase = self._expsBase.make()
+
+        if isinstance(argsNow.dataRetrieve, dict):
+            lost = self._expsBase.check(argsNow.dataRetrieve)
+            for k in lost:
+                if k in ["jobID", "IBMQJobManager"]:
+                    raise KeyError(
+                        f"The giving data to retrieve jobs needs the key '{k}'")
+            retrievedBase = argsNow.dataRetrieve
+
+        elif isinstance(argsNow.dataRetrieve, str):
+            retrievedBase["jobID"] = [argsNow.dataRetrieve]
+
+        else:
+            raise ValueError(
+                "The giving data to retrieve jobs has to be 'str' of 'jobID' or 'dict' contained 'jobID'.")
+
+        result = None
+        for singleJobID in retrievedBase["jobID"]:
+            try:
+                retrieved = IBMQJobManager().retrieve_job_set(
+                    job_set_id=singleJobID,
+                    provider=argsNow.provider,
+                    refresh=True
+                )
+                result = retrieved.results().combine_results()
+
+            except IBMQJobManagerUnknownJobSet as e:
+                warnings.warn("Job unknown.", e)
+
+            except IBMQJobManagerInvalidStateError as e:
+                warnings.warn(
+                    "Job faied by 'IBMQJobManagerInvalidStateError'", e)
+
+            except JobError as e:
+                warnings.warn("Job faied by 'JobError", e)
+
+        self.exps[self.IDNow] = {
+            **self.exps[self.IDNow],
+            'expID': self.IDNow,
+            'result': result,
+            **retrievedBase,
+        }
+
+        return result
+
+    @staticmethod
+    def quantity(
+        shots: int,
+        result: Union[Result, ManagedResults],
+        resultIdxList: Optional[list[int]] = None,
+        **otherArgs,
+    ) -> tuple[dict[float], float]:
+        """Computing specific quantity.
+        Where should be overwritten by each construction of new measurement.
+
+        Returns:
+            tuple[dict[float], float]: 
+                Counts, purity, entropy of experiment.
+        """
+        if resultIdxList == None:
+            resultIdxList = [0]
+        else:
+            ...
+
+        warnings.warn(
+            "It's default '.quantity' which exports meaningless value.")
+        counts = result.get_counts(resultIdxList[0])
+
+        dummy = -100
+        quantity = {
+            '_dummy': dummy,
+            'echo': '_dummy_value',
+        }
+        return counts, quantity
+
+    def output(
+        self,
+        dataRetrieve: Optional[dict[Union[list[str], str]]] = None,
+        **allArgs: any,
+    ) -> dict[float]:
+        """Export the result which completed calculating purity.
+
+        Args:
+            allArgs: all arguments will handle by `self.paramsControl()` and export as specific format.
+
+        Returns:
+            dict[float]: The result.
+        """
+
+        result = (self.retrieve if dataRetrieve != None else self.run)(
+            dataRetrieve=dataRetrieve,
+            **allArgs,
+        )
+        argsNow = self.now
+        
+        print(
+            f"| Calculating {self.__name__}...\n"+
+            f"| name: {self.now.expsName}, id: {self.IDNow}\n"
+        )
+        
+        counts, quantity = self.quantity(
+            **argsNow,
+            result=result,
+        )
+        
+        if argsNow.resultKeep:
+            warnings.warn(
+                "Result will keep, but it may cause memory overallocated.")
+            self.exps[self.IDNow]['result'] = result
+
+        else:
+            print("Entropy and Purity are figured out, result will clear.")
+            del self.exps[self.IDNow]['result']
+            
+        self.exps[self.IDNow] = {
+            **self.exps[self.IDNow],
+            **quantity,
+            'counts': counts,
+
+        }
+        gc.collect()
+            
+        print(f"| End...\n"+f"+"+"-"*20)
+        
+        return quantity
+    
+    def paramsControlMulti(
+        self
+    ) -> argdict:
+                """Handling all arguments and initializing multiple experiments.
+
+        Args:
+            configList (_type_): 
+                The list of configuration for each experiment. 
+            backend (Backend): 
+                The quantum backend.
+                Defaults to Aer.get_backend('qasm_simulator').
+            shots (int, optional): 
+                Shots of the job.
+                Defaults to 1024.
+            saveLocation (Union[Path, str], optional): 
+                Saving location of entire experiments. 
+                Defaults to './'.
+            expsName (Union[Path, str], optional):
+                Name this experiment to recognize it when the jobs are pending to IBMQ Service.
+                This name is also used for creating a folder to store the exports.
+                Defaults to 'exps'.
+            exceptItems (Optional[list[str]], optional):
+                The keys of the data in each experiment will be excluded.
+                Defaults to None.
+            independentExports (bool, optional): 
+                Making independent output for some data will export in `multiJobs` or `powerJobs`. 
+                Defaults to False.
+
+            isRetrieve (bool, optional): 
+                Whether to collect results from IBMQ via `IBMQJobManager`. 
+                Defaults to False.
+            powerJobID (str, optional):
+                The id will use for data retrieved from IBMQ via `IBMQJobManager.
+                Defaults to ''.
+            provider (AccountProvider, optional):
+                The provider of the backend which runs the experiment will be retrieved.
+                Defaults to None.
+            dataPowerJobs (dict[any], optional):
+                The data of `powerJobs` will use for data retrieved from IBMQ via `IBMQJobManager.
+                But it's not necessary when `PowerJobID` is given.
+                Defaults to ''.
+
+            addShortName (bool, optional):
+                Whether adding the short name of measurement as one of suffix in file name.
+                Defaults to True,
+            jobManagerRunArgs (dict, optional):
+                The arguments will directly be passed to `IBMQJobManager.run` of `qiskit`.
+                Defaults to {}.
+            transpileArg (dict, optional):
+                The arguments will directly be passed to `transpile` of `qiskit`.
+                Defaults to {}.
+
+            otherArgs (any):
+                Other arguments.
+
+        Returns:
+            argdict: Arguments for execute the multiple jobs.
+        """
+        
+    
+    """Other"""
+
+    def reset(
+        self,
+        *args,
+        security: bool = False,
+    ) -> None:
+        """Reset the measurement and release memory.
+
+        Args:
+            security (bool, optional): Security for reset. Defaults to False.
+        """
+
+        if security and isinstance(security, bool):
+            self.__init__(self.waves)
+            gc.collect()
+            warnings.warn(
+                "The measurement has reset and release memory allocating.")
+        else:
+            warnings.warn(
+                "Reset does not execute to prevent reset accidentally, " +
+                "if you are sure to do it, then use '.reset(security=True)'."
+            )
+
+    def __repr__(self) -> str:
+        return f"{self.__name__}"
+
+    def to_dict(self) -> dict:
+        return self.__dict__

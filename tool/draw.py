@@ -908,17 +908,17 @@ def drawEntropyOvershootAnalysis(
             **numUnitaryKey,
             **dict.fromkeys(nums, None),
         }
-    numUnitaryKeyNu = sorted([k for k in numUnitaryKey])
-    numUnitaryKey = sorted([np.log2(int(k)) for k in numUnitaryKey])
+    numUnitaryKey = sorted([k for k in numUnitaryKey])
+    # numUnitaryKey = sorted([np.log2(int(k)) for k in numUnitaryKey])
 
-    def TOlog2(x): return np.log2(x)
-    def ReverseTOlog2(x): return 2**x
+    # def TOlog2(x): return np.log2(x)
+    # def ReverseTOlog2(x): return 2**x
 
-    secax_x = axes01.secondary_xaxis(
-        -0.2, functions=(ReverseTOlog2, TOlog2))
-    secax_x.set_xlabel(r'$N_Q$, Number of qubits', size=drawConfig["fontSize"])
-    secax_x.set_xticks(numUnitaryKeyNu)
-    secax_x.set_xticklabels(numUnitaryKeyNu)
+    # secax_x = axes01.secondary_xaxis(
+    #     -0.2, functions=(ReverseTOlog2, TOlog2))
+    # secax_x.set_xlabel(r'$N_Q$, Number of qubits', size=drawConfig["fontSize"])
+    # secax_x.set_xticks(numUnitaryKeyNu)
+    # secax_x.set_xticklabels(numUnitaryKeyNu)
 
     axes01.grid(linestyle=drawConfig["lineStyle"])
 
@@ -950,7 +950,7 @@ def drawEntropyOvershootAnalysis(
             saveLoc,
             format=drawConfig["format"],
             dpi=drawConfig['dpi'],
-            bbox_extra_artists=(legendPlt, secax_x, figTitle, ),
+            bbox_extra_artists=(legendPlt, figTitle, ),
             bbox_inches='tight'
         )
         return fig, saveLoc
