@@ -1034,7 +1034,7 @@ class EchoCounting(Qurry):
 
         return argsMulti, initedConfigList, Naming, [], [], {}
 
-    def multiOutputs(
+    def multiOutput(
         self,
         **allArgs: any,
     ) -> tuple[dict[any], dict[list[float]], dict[list[float]]]:
