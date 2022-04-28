@@ -1705,7 +1705,7 @@ class Qurry:
 
         print(f"| Export...")
         argsMulti['gitignore'].ignore('*.json')
-        argsMulti['state'] = 'completed'
+        argsMulti.state = 'completed'
         dataMultiJobs = argsMulti.jsonize()
 
         for n, data in [
@@ -1733,9 +1733,9 @@ class Qurry:
                 argsMulti['gitignore'].sync(f'*.{n}.json')
                 print(f"| Export {n}.json")
                 quickJSONExport(
-                    content=argsMulti,
+                    content=argsMulti[n],
                     filename=argsMulti.exportLocation /
-                    f"{argsMulti.expName}.{n}.json",
+                    f"{argsMulti.expsName}.{n}.json",
                     mode='w+',
                     jsonablize=True)
 
@@ -1834,14 +1834,14 @@ class Qurry:
             ]:
                 with open(
                         argsMulti.exportLocation /
-                    f"{argsMulti.expName}.{n}.json",
+                    f"{argsMulti.expsName}.{n}.json",
                         'r', encoding='utf-8') as File:
                     dataDummyJobs[n] = json.load(File)
 
             if os.path.exists(
-                    argsMulti.exportLocation / f"{argsMulti.expName}.powerJobID.csv"):
+                    argsMulti.exportLocation / f"{argsMulti.expsName}.powerJobID.csv"):
                 with open(
-                        argsMulti.exportLocation / f"{argsMulti.expName}.powerJobID.csv", 'r', encoding='utf-8') as File:
+                        argsMulti.exportLocation / f"{argsMulti.expsName}.powerJobID.csv", 'r', encoding='utf-8') as File:
                     content = File.readlines()
                     dataDummyJobs['powerJobID'] = content[0][:-1]
 
@@ -1972,7 +1972,6 @@ class Qurry:
             f"| Export ...")
 
         dataPowerJobs = argsMulti.jsonize()
-        argsMulti.state = 'waiting'
         quickJSONExport(
             content=dataPowerJobs,
             filename=argsMulti.exportLocation /
@@ -2002,7 +2001,7 @@ class Qurry:
                 quickJSONExport(
                     content=argsMulti,
                     filename=argsMulti.exportLocation /
-                    f"{argsMulti.expName}.{n}.json",
+                    f"{argsMulti.expsName}.{n}.json",
                     mode='w+',
                     jsonablize=True)
 
@@ -2049,8 +2048,8 @@ class Qurry:
 
         start_time = time.time()
         dataPowerJobs = self.multiRead(
+            exportName=exportName,
             saveLocation=saveLocation,
-            expsName=exportName,
             **allArgs,
         )
         argsMulti = self.multiNow
@@ -2063,7 +2062,7 @@ class Qurry:
                 f"+"+"-"*20)
             return dataPowerJobs
 
-        if dataPowerJobs['state'] == 'waiting':
+        if dataPowerJobs['state'] == 'pending':
             print(f"| Retrieve result...")
             powerJob = IBMQJobManager().retrieve_job_set(
                 job_set_id=dataPowerJobs['powerJobID'],
@@ -2084,7 +2083,7 @@ class Qurry:
                 f"+"+"-"*20)
             return dataPowerJobs
         
-        dataPowerJobs['gitignore'] = syncControl(dataPowerJobs['gitignore'])
+        argsMulti['gitignore'] = syncControl(dataPowerJobs['gitignore'])
         powerResultRaw: ManagedResults = powerJob.results()
         powerResult: Result = powerResultRaw.combine_results()
         
@@ -2093,14 +2092,14 @@ class Qurry:
             print(f"| index={idxNum} start...")
             self.exps[expIDKey] = self.readLegacy(
                 expID=expIDKey,
-                saveLocation=dataPowerJobs.exportLocation,
+                saveLocation=Path(dataPowerJobs['exportLocation']),
             )
             
-            counts, quantity = self.quantity(
+            counts, quantity = self.quantity(**{
                 **self.exps[expIDKey],
-                result=powerResult,
-                resultIdxList=dataPowerJobs['circuitsMap'][expIDKey],
-            )
+                'result': powerResult,
+                'resultIdxList': dataPowerJobs['circuitsMap'][expIDKey],
+            })
             self.exps[expIDKey] = {
                 **self.exps[expIDKey],
                 **quantity,
@@ -2109,9 +2108,9 @@ class Qurry:
             
             # legacy writer
             legacy = self.writeLegacy(
-                saveLocation=dataPowerJobs.exportLocation,
+                saveLocation=Path(dataPowerJobs['exportLocation']),
                 expID=expIDKey,
-                additionName=dataPowerJobs.additionName,
+                additionName=dataPowerJobs['additionName'],
             )
             legacyTag = tuple(legacy['tags']) if isinstance(
                 legacy['tags'], list) else legacy['tags']
@@ -2131,11 +2130,45 @@ class Qurry:
             print(f"| index={idxNum} end...\n"+f"+"+"-"*20)
             idxNum += 1
             
-        
+        print(f"| Export...")
+        argsMulti['gitignore'].ignore('*.json')
+        dataPowerJobs['state'] = 'completed'
+        dataPowerJobs = jsonablize(dataPowerJobs)
                 
-                
+        for n, data in [
+            ('powerJobs.json', dataPowerJobs),
+            ('tagMapQuantity.json', dataPowerJobs['tagMapQuantity']),
+        ]:
+            argsMulti['gitignore'].sync(f'*.{n}')
+            print(f"| Export {n}")
+            quickJSONExport(
+                content=data,
+                filename=Path(dataPowerJobs['exportLocation']) /
+                    f"{dataPowerJobs['expsName']}.{n}",
+                mode='w+',
+                jsonablize=True)
         
-        
+        if argsMulti.independentExports:
+            print(f"| independentExports...")
+            for n in [
+                'tagMapQuantity',
+                'tagMapIndex'
+            ]:
+                argsMulti['gitignore'].sync(f'*.{n}.json')
+                print(f"| Export {n}.json")
+                quickJSONExport(
+                    content=dataPowerJobs[n],
+                    filename=Path(dataPowerJobs['exportLocation']) /
+                    f"{dataPowerJobs['expsName']}.{n}.json",
+                    mode='w+',
+                    jsonablize=True)
+
+        argsMulti['gitignore'].export(Path(dataPowerJobs['exportLocation']))
+        gc.collect()
+        print(
+            f"| PowerOutput {self.__name__} End in {time.time() - start_time} sec ...\n"+f"+"+"-"*20)
+
+        return dataPowerJobs
 
     """Other"""
 
