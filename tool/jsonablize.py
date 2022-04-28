@@ -94,14 +94,12 @@ def keyTupleLoads(o: dict) -> dict:
         for k in ks:
             if isinstance(k, str):
                 if k[0] == '(' and k[-1] == ')':
-                    try:
-                        kt = eval(k)
-                        o[kt] = o[k]
-                        del o[k]
-                    except:
-                        print(f"'{k}' may be not a tuple, parsing cancelled.")
+                    kt = tuple([tr[1:-1] for tr in k[1:-1].split(", ")])
+                    o[kt] = o[k]
+                    del o[k]
                 else:
-                    print(f"'{k}' may be not a tuple, parsing unactive.")
+                    ...
+                    # print(f"'{k}' may be not a tuple, parsing unactive.")
     else:
         ...
     return o
