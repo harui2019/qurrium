@@ -1,16 +1,12 @@
-from .qurrent import (
-    EntropyMeasureV2 as EntropyMeasure,
-    qurrentConfig
-)
-
-from .haarMeasure import haarMeasureV2 as haarMeasure
-from .hadamardTest import hadamardTestV2 as hadamardTest
+from .qurrech import EchoCounting
+from .haarMeasure import haarMeasure
+# from .hadamardTest import hadamardTest
 
 
 measurementList = [
-    EntropyMeasure,
+    EchoCounting,
     haarMeasure,
-    hadamardTest,
+    # hadamardTest,
 ]
 measurement = {
     who().__name__: who
@@ -24,7 +20,7 @@ def checkMeasurement(
 
 def getMeasurement(
     name: str,
-) -> EntropyMeasure:
+) -> EchoCounting:
 
     if name in measurement:
         return measurement[name]

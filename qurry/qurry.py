@@ -666,6 +666,11 @@ class Qurry:
                 If input is `None` or something illegal, then use `.lastWave'.
                 Defaults to None.
 
+            expsName (str, optional):
+                Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
+                This name is also used for creating a folder to store the exports.
+                Defaults to `'exps'`.
+
             otherArgs (any):
                 Other arguments.
 
@@ -689,7 +694,7 @@ class Qurry:
 
         return {
             'wave': wave,
-            'expsName': f"{expsName}-dummy-{wave}",
+            'expsName': f"{expsName}-dummy.{wave}",
             **otherArgs,
         }
 
@@ -712,7 +717,7 @@ class Qurry:
         resultKeep: bool = False,
         dataRetrieve: Optional[dict[Union[list[str], str]]] = None,
         expsName: str = 'exps',
-        tags: Optional[Union[tuple[str], str]] = None,
+        tags: Optional[dataTagsAllow] = None,
 
         **otherArgs: any,
     ) -> argdict:
@@ -820,11 +825,6 @@ class Qurry:
                 Data to collect results from IBMQ via `IBMQJobManager`.
                 Defaults to `None`.
 
-            expsName (str, optional):
-                Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
-                This name is also used for creating a folder to store the exports.
-                Defaults to `'exps'`.
-
             tags (Optional[Union[list[any], any]], optional):
                 Given the experiment multiple tags to make a dictionary for recongnizing it.
                 Defaults to `None`.
@@ -878,7 +878,6 @@ class Qurry:
                 'drawMethod': drawMethod,
                 'resultKeep': resultKeep,
                 'dataRetrieve': dataRetrieve,
-                'expsName': expsName,
                 'tags': tags,
 
                 **parsedOther,
@@ -1302,18 +1301,19 @@ class Qurry:
 
         return result
 
-    @staticmethod
+    @classmethod
     def quantity(
+        cls,
         shots: int,
         result: Union[Result, ManagedResults],
         resultIdxList: Optional[list[int]] = None,
         **otherArgs,
-    ) -> tuple[dict[float], float]:
+    ) -> tuple[dict, dict]:
         """Computing specific quantity.
         Where should be overwritten by each construction of new measurement.
 
         Returns:
-            tuple[dict[float], float]:
+            tuple[dict, dict]:
                 Counts, purity, entropy of experiment.
         """
         if resultIdxList == None:

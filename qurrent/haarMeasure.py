@@ -265,18 +265,18 @@ class haarMeasureV2(EntropyMeasureV2):
             # print("after : ", allMeasUnderDegree)
             purityCell = 0
 
-            if paramsOther['purityMethod'] == 3:
+            # if paramsOther['purityMethod'] == 3:
 
-                for (sAi, sAiMeas), (sAj, sAjMeas) in list(
-                    combinations(allMeasUnderDegree.items(), 2)
-                ):
-                    purityCell += cls.ensembleCell(
-                        sAi, sAiMeas, sAj, sAjMeas, aNum, shots)
-                for sAi, sAiMeas in allMeasUnderDegree.items():
-                    purityCell += cls.ensembleCell(
-                        sAi, sAiMeas, sAi, sAiMeas, aNum, shots)
+                # for (sAi, sAiMeas), (sAj, sAjMeas) in list(
+                #     combinations(allMeasUnderDegree.items(), 2)
+                # ):
+                #     purityCell += cls.ensembleCell(
+                #         sAi, sAiMeas, sAj, sAjMeas, aNum, shots)
+                # for sAi, sAiMeas in allMeasUnderDegree.items():
+                #     purityCell += cls.ensembleCell(
+                #         sAi, sAiMeas, sAi, sAiMeas, aNum, shots)
 
-            elif paramsOther['purityMethod'] == 2:
+            if paramsOther['purityMethod'] == 2:
 
                 purityCell = 0
                 isZeroInclude = '0' in allMeas
