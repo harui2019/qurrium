@@ -20,7 +20,6 @@ from ..qurry import (
 )
 
 # EchoCounting V0.3.1 - Measuring Loschmidt Echo - Qurrech
-
 _expsConfig = expsConfig(
     name="qurrechConfig",
     defaultArg={
