@@ -57,7 +57,7 @@ _expsHint = expsHint(
 )
 
 
-class EchoCounting(Qurry):
+class EchoListening(Qurry):
     """EchoCounting V0.3.1 of qurrech
     """
 

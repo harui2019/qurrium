@@ -11,7 +11,7 @@ import warnings
 from typing import Union, Optional, Callable, List
 from qiskit.visualization.counts_visualization import hamming_distance
 
-from .qurrech import EchoCounting
+from .qurrech import EchoListening
 from ..qurry import (
     Qurry,
     expsConfig,
@@ -74,7 +74,7 @@ makeTwoBitStrOneLiner: Callable[[int, List[str]], List[str]] = (
     )(makeTwoBitStrOneLiner(num-1, bits)) if num > 0 else bits))
 
 
-class haarMeasure(EchoCounting):
+class haarMeasure(EchoListening):
     """haarMeasure V0.3.1 of qurrech
     """
 

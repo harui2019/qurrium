@@ -1,10 +1,10 @@
-from .qurrech import EchoCounting
+from .qurrech import EchoListening
 from .haarMeasure import haarMeasure
 # from .hadamardTest import hadamardTest
 
 
 measurementList = [
-    EchoCounting,
+    EchoListening,
     haarMeasure,
     # hadamardTest,
 ]
@@ -20,7 +20,7 @@ def checkMeasurement(
 
 def getMeasurement(
     name: str,
-) -> EchoCounting:
+) -> EchoListening:
 
     if name in measurement:
         return measurement[name]
