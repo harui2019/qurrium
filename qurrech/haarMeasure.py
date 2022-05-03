@@ -11,7 +11,7 @@ import warnings
 from typing import Union, Optional, Callable, List
 from qiskit.visualization.counts_visualization import hamming_distance
 
-from .qurrech import EchoListening
+from .qurrech import EchoListen
 from ..qurry import (
     Qurry,
     expsConfig,
@@ -19,7 +19,7 @@ from ..qurry import (
     expsConfigMulti,
     expsHint
 )
-# EchoCounting V0.3.1 - Measuring Loschmidt Echo - Qurrech
+# EchoListen V0.3.1 - Measuring Loschmidt Echo - Qurrech
 
 _expsConfig = expsConfig(
     name="qurrechConfig",
@@ -74,7 +74,7 @@ makeTwoBitStrOneLiner: Callable[[int, List[str]], List[str]] = (
     )(makeTwoBitStrOneLiner(num-1, bits)) if num > 0 else bits))
 
 
-class haarMeasure(EchoListening):
+class haarMeasure(EchoListen):
     """haarMeasure V0.3.1 of qurrech
     """
 
@@ -115,6 +115,10 @@ class haarMeasure(EchoListening):
                 If input is the key in `.waves`, then use it.
                 If input is `None` or something illegal, then use `.lastWave'.
                 Defaults to None.
+                
+            times (int, optional): 
+                The number of test to count ensemble average.
+                Defaults to `100`.
 
             expsName (str, optional):
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
@@ -171,7 +175,7 @@ class haarMeasure(EchoListening):
             'wave1': wave1,
             'wave2': wave2,
             'times': times,
-            'expsName': f"{expsName}.{wave1}X{wave2}at{times}.haar",
+            'expsName': f"{expsName}.{wave1}-{wave2}at{times}.haar",
             **otherArgs,
         }
 
@@ -194,7 +198,10 @@ class haarMeasure(EchoListening):
         numQubits = self.waves[argsNow.wave1].num_qubits
         
         qcList = []
-
+        unitaryList = [
+            [random_unitary(2) for _ in range(numQubits)] 
+        for i in range(argsNow.times)]
+        
         for i in range(argsNow.times):
             print(f"| Circuit build A {i}/{argsNow.times} ...")
             qFunc1 = QuantumRegister(numQubits, 'q1')
@@ -208,10 +215,10 @@ class haarMeasure(EchoListening):
             ), [qFunc1[i] for i in range(numQubits)])
             
             qcExp1.barrier()
-            for i in range(numQubits):
-                qcExp1.append(random_unitary(2), [i])
-            for i in range(numQubits):
-                qcExp1.measure(qFunc1[i], cMeas1[i])
+            for j in range(numQubits):
+                qcExp1.append(unitaryList[i][j], [j])
+            for j in range(numQubits):
+                qcExp1.measure(qFunc1[j], cMeas1[j])
                 
             qcList.append(qcExp1)
 
@@ -228,14 +235,12 @@ class haarMeasure(EchoListening):
             ), [qFunc2[i] for i in range(numQubits)])
             
             qcExp2.barrier()
-            for i in range(numQubits):
-                qcExp2.append(random_unitary(2), [i])
-            for i in range(numQubits):
-                qcExp2.measure(qFunc2[i], cMeas2[i])
+            for j in range(numQubits):
+                qcExp2.append(unitaryList[i][j], [j])
+            for j in range(numQubits):
+                qcExp2.measure(qFunc2[j], cMeas2[j])
                 
             qcList.append(qcExp2)
-            
-        print(len(qcList), 'line: 234')
 
         return qcList
 
@@ -352,15 +357,19 @@ class haarMeasure(EchoListening):
             echoCell = 0
             t1 = resultIdxList[i]
             t2 = resultIdxList[i+times]
+            print(i, t1, t2)
             allMeas1 = result.get_counts(t1)
             allMeas2 = result.get_counts(t2)
             aNum = len(list(allMeas1.keys())[0])
+            print(aNum)
             print(f"| calculating {t1} and {t2} for {i}/{times} ...")
             
             for sAi, sAiMeas in allMeas1.items():
                 for sAj, sAjMeas in allMeas2.items():
+                    print(sAi, sAiMeas, sAj, sAjMeas, aNum, shots)
                     echoCell += cls.ensembleCell(
                         sAi, sAiMeas, sAj, sAjMeas, aNum, shots)
+                    print(echoCell)
             
             echoCellList.append(echoCell)
 
@@ -371,3 +380,44 @@ class haarMeasure(EchoListening):
             'echo': echo,
         }
         return counts, quantity
+    
+
+    """ Main Process: Main Control"""
+    
+    def measure(
+        self,
+        wave1: Union[QuantumCircuit, any, None] = None,
+        wave2: Union[QuantumCircuit, any, None] = None,
+        times: int = 100,
+        expsName: str = 'exps',
+        **otherArgs: any
+    ) -> dict:
+        """
+        
+        Args:
+            wave (Union[QuantumCircuit, int, None], optional):
+                The index of the wave function in `self.waves` or add new one to calaculation,
+                then choose one of waves as the experiment material.
+                If input is `QuantumCircuit`, then add and use it.
+                If input is the key in `.waves`, then use it.
+                If input is `None` or something illegal, then use `.lastWave'.
+                Defaults to None.
+
+            expsName (str, optional):
+                Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
+                This name is also used for creating a folder to store the exports.
+                Defaults to `'exps'`.
+
+            otherArgs (any):
+                Other arguments.
+
+        Returns:
+            dict: The output.
+        """
+        return self.output(
+            wave1=wave1,
+            wave2=wave2,
+            expsName=expsName,
+            times=times,
+            **otherArgs,
+        )

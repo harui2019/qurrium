@@ -1381,6 +1381,40 @@ class Qurry:
         print(f"| End...\n"+f"+"+"-"*20)
 
         return quantity
+    
+    def measure(
+        self,
+        wave: Union[QuantumCircuit, any, None] = None,
+        expsName: str = 'exps',
+        **otherArgs: any
+    ) -> dict:
+        """
+        
+        Args:
+            wave (Union[QuantumCircuit, int, None], optional):
+                The index of the wave function in `self.waves` or add new one to calaculation,
+                then choose one of waves as the experiment material.
+                If input is `QuantumCircuit`, then add and use it.
+                If input is the key in `.waves`, then use it.
+                If input is `None` or something illegal, then use `.lastWave'.
+                Defaults to None.
+
+            expsName (str, optional):
+                Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
+                This name is also used for creating a folder to store the exports.
+                Defaults to `'exps'`.
+
+            otherArgs (any):
+                Other arguments.
+
+        Returns:
+            dict: The output.
+        """
+        return self.output(
+            wave=wave,
+            expsName=expsName,
+            **otherArgs,
+        )
 
     def paramsControlMulti(
         self,
@@ -1649,6 +1683,7 @@ class Qurry:
 
     def multiOutput(
         self,
+        configList: list = [],
         **allArgs: any,
     ) -> dict[any]:
         """Make multiple jobs output.
@@ -1660,7 +1695,10 @@ class Qurry:
             dict[any]: All result of jobs.
         """
         start_time = time.time()
-        argsMulti = self.paramsControlMulti(**allArgs)
+        argsMulti = self.paramsControlMulti(
+            configList=configList,
+            **allArgs
+        )
 
         print(f"| MultiOutput {self.__name__} Start...\n"+f"+"+"-"*20)
         for config in argsMulti.configList:
@@ -1861,6 +1899,7 @@ class Qurry:
 
     def powerPending(
         self,
+        configList: list = [],
         **allArgs: any,
     ) -> dict[any]:
         """Require to read the file exported by `.powerJobsPending`.
@@ -1877,7 +1916,11 @@ class Qurry:
             dict[any]: All result of jobs.
         """
         start_time = time.time()
-        argsMulti = self.paramsControlMulti(**allArgs, jobsType='powerJobs')
+        argsMulti = self.paramsControlMulti(
+            **allArgs,
+            jobsType='powerJobs',
+            configList=configList,
+        )
         pendingArray = []
         allTranspliedCircs = {}
 

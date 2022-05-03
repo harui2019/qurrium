@@ -56,7 +56,7 @@ _expsHint = expsHint(
 )
 
 
-class EchoListening(Qurry):
+class EchoListen(Qurry):
     """EchoCounting V0.3.1 of qurrech
     """
 
@@ -232,5 +232,40 @@ class EchoListening(Qurry):
         return counts, quantity
 
     """ Main Process: Main Control"""
+    
+    def measure(
+        self,
+        wave1: Union[QuantumCircuit, any, None] = None,
+        wave2: Union[QuantumCircuit, any, None] = None,
+        expsName: str = 'exps',
+        **otherArgs: any
+    ) -> dict:
+        """
+        
+        Args:
+            wave (Union[QuantumCircuit, int, None], optional):
+                The index of the wave function in `self.waves` or add new one to calaculation,
+                then choose one of waves as the experiment material.
+                If input is `QuantumCircuit`, then add and use it.
+                If input is the key in `.waves`, then use it.
+                If input is `None` or something illegal, then use `.lastWave'.
+                Defaults to None.
 
-    """ MultiJobs """
+            expsName (str, optional):
+                Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
+                This name is also used for creating a folder to store the exports.
+                Defaults to `'exps'`.
+
+            otherArgs (any):
+                Other arguments.
+
+        Returns:
+            dict: The output.
+        """
+        return self.output(
+            wave1=wave1,
+            wave2=wave2,
+            expsName=expsName,
+            **otherArgs,
+        )
+
