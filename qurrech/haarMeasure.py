@@ -115,7 +115,7 @@ class haarMeasure(EchoListen):
                 If input is the key in `.waves`, then use it.
                 If input is `None` or something illegal, then use `.lastWave'.
                 Defaults to None.
-                
+
             times (int, optional): 
                 The number of test to count ensemble average.
                 Defaults to `100`.
@@ -196,12 +196,12 @@ class haarMeasure(EchoListen):
             raise ValueError(
                 "Wave1 and Wave2 must be the same number of qubits.")
         numQubits = self.waves[argsNow.wave1].num_qubits
-        
+
         qcList = []
         unitaryList = [
-            [random_unitary(2) for _ in range(numQubits)] 
-        for i in range(argsNow.times)]
-        
+            [random_unitary(2) for _ in range(numQubits)]
+            for i in range(argsNow.times)]
+
         for i in range(argsNow.times):
             print(f"| Circuit build A {i}/{argsNow.times} ...")
             qFunc1 = QuantumRegister(numQubits, 'q1')
@@ -213,13 +213,13 @@ class haarMeasure(EchoListen):
                 runBy=argsNow.runBy,
                 backend=argsNow.backend,
             ), [qFunc1[i] for i in range(numQubits)])
-            
+
             qcExp1.barrier()
             for j in range(numQubits):
                 qcExp1.append(unitaryList[i][j], [j])
             for j in range(numQubits):
                 qcExp1.measure(qFunc1[j], cMeas1[j])
-                
+
             qcList.append(qcExp1)
 
         for i in range(argsNow.times):
@@ -233,13 +233,13 @@ class haarMeasure(EchoListen):
                 runBy=argsNow.runBy,
                 backend=argsNow.backend,
             ), [qFunc2[i] for i in range(numQubits)])
-            
+
             qcExp2.barrier()
             for j in range(numQubits):
                 qcExp2.append(unitaryList[i][j], [j])
             for j in range(numQubits):
                 qcExp2.measure(qFunc2[j], cMeas2[j])
-                
+
             qcList.append(qcExp2)
 
         return qcList
@@ -352,7 +352,7 @@ class haarMeasure(EchoListen):
         counts = [result.get_counts(i) for i in resultIdxList]
         echo = -100
         echoCellList = []
-        
+
         for i in range(times):
             echoCell = 0
             t1 = resultIdxList[i]
@@ -363,14 +363,14 @@ class haarMeasure(EchoListen):
             aNum = len(list(allMeas1.keys())[0])
             print(aNum)
             print(f"| calculating {t1} and {t2} for {i}/{times} ...")
-            
+
             for sAi, sAiMeas in allMeas1.items():
                 for sAj, sAjMeas in allMeas2.items():
                     print(sAi, sAiMeas, sAj, sAjMeas, aNum, shots)
                     echoCell += cls.ensembleCell(
                         sAi, sAiMeas, sAj, sAjMeas, aNum, shots)
                     print(echoCell)
-            
+
             echoCellList.append(echoCell)
 
         echo = np.mean(echoCellList)
@@ -380,10 +380,9 @@ class haarMeasure(EchoListen):
             'echo': echo,
         }
         return counts, quantity
-    
 
     """ Main Process: Main Control"""
-    
+
     def measure(
         self,
         wave1: Union[QuantumCircuit, any, None] = None,
@@ -393,7 +392,7 @@ class haarMeasure(EchoListen):
         **otherArgs: any
     ) -> dict:
         """
-        
+
         Args:
             wave (Union[QuantumCircuit, int, None], optional):
                 The index of the wave function in `self.waves` or add new one to calaculation,

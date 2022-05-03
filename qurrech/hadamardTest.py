@@ -196,28 +196,22 @@ class hadamardTest(EchoListen):
         return [qcExp1]
 
     @classmethod
-    def purityMethod(
+    def quantity(
         cls,
-        aNum: int,
-        paramsOther: dict[str: int],
         shots: int,
         result: Union[Result, ManagedResults],
         resultIdxList: Optional[list[int]] = None,
-    ) -> tuple[dict[str, float], float, float]:
-        """Computing Purity.
-
-        ```
-        paramsOther: {
-            'times': 100,
-            'purityMethod': 1,
-        }
-        ```
+        wave1: Union[QuantumCircuit, any, None] = None,
+        wave2: Union[QuantumCircuit, any, None] = None,
+        **otherArgs,
+    ) -> tuple[dict, dict]:
+        """Computing specific quantity.
+        Where should be overwritten by each construction of new measurement.
 
         Returns:
-            tuple[dict[str, float], float, float]: 
+            tuple[dict, dict]:
                 Counts, purity, entropy of experiment.
         """
-
         if resultIdxList == None:
             resultIdxList = [0]
         elif isinstance(resultIdxList, list):
@@ -231,21 +225,60 @@ class hadamardTest(EchoListen):
 
         counts = [result.get_counts(i) for i in resultIdxList]
         onlyCount = counts[0]
-        purity = -100
-        entropy = -100
+        echo = -100
 
         isZeroInclude = '0' in onlyCount
         isOneInclude = '1' in onlyCount
         if isZeroInclude and isOneInclude:
-            purity = (onlyCount['0'] - onlyCount['1'])/shots
+            echo = (onlyCount['0'] - onlyCount['1'])/shots
         elif isZeroInclude:
-            purity = onlyCount['0']/shots
+            echo = onlyCount['0']/shots
         elif isOneInclude:
-            purity = onlyCount['1']/shots
+            echo = onlyCount['1']/shots
         else:
-            purity = None
+            echo = None
             raise Warning("Expected '0' and '1', but there is no such keys")
 
-        entropy = -np.log2(purity)
+        quantity = {
+            'echo': echo,
+        }
+        return counts, quantity
 
-        return onlyCount, purity, entropy
+    """ Main Process: Main Control"""
+
+    def measure(
+        self,
+        wave1: Union[QuantumCircuit, any, None] = None,
+        wave2: Union[QuantumCircuit, any, None] = None,
+        expsName: str = 'exps',
+        **otherArgs: any
+    ) -> dict:
+        """
+
+        Args:
+            wave (Union[QuantumCircuit, int, None], optional):
+                The index of the wave function in `self.waves` or add new one to calaculation,
+                then choose one of waves as the experiment material.
+                If input is `QuantumCircuit`, then add and use it.
+                If input is the key in `.waves`, then use it.
+                If input is `None` or something illegal, then use `.lastWave'.
+                Defaults to None.
+
+            expsName (str, optional):
+                Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
+                This name is also used for creating a folder to store the exports.
+                Defaults to `'exps'`.
+
+            otherArgs (any):
+                Other arguments.
+
+        Returns:
+            dict: The output.
+        """
+        return self.output(
+            wave1=wave1,
+            wave2=wave2,
+            expsName=expsName,
+            **otherArgs,
+        )
+
