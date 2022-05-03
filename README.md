@@ -1,4 +1,4 @@
-# Qurrent - Entangled Entropy Measure Tool
+# Qurry 🍛 - Entangled Entropy Measure Tool
 
 This is a tool to measure the Renyi entropy of given wave function. Running on **IBM Qiskit** with the function from constructing experiment object to pending the jobs to IBMQ automatically.
 
