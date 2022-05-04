@@ -1,12 +1,12 @@
 from .qurrech import EchoListen
 from .haarMeasure import haarMeasure
-# from .hadamardTest import hadamardTest
+from .hadamardTest import hadamardTest
 
 
 measurementList = [
     EchoListen,
     haarMeasure,
-    # hadamardTest,
+    hadamardTest,
 ]
 measurement = {
     who().__name__: who

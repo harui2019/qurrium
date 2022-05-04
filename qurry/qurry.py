@@ -31,6 +31,7 @@ import json
 import gc
 import warnings
 import time
+from tqdm import trange, tqdm
 
 from math import pi
 from uuid import uuid4
@@ -48,8 +49,9 @@ from ..tool import (
     syncControl,
     jsonablize,
     quickJSONExport,
-    keyTupleLoads
+    keyTupleLoads,
 )
+
 # Qurry V0.3.1 - a Qiskit Macro
 
 
@@ -895,7 +897,7 @@ class Qurry:
         self,
         expID: Optional[str] = None,
         circuitSet: Optional[
-            Union[QuantumCircuit,list[QuantumCircuit]]] = None,
+            Union[QuantumCircuit, list[QuantumCircuit]]] = None,
         whichCircuit: Optional[int] = 0,
         drawMethod: Optional[str] = 'text',
         decompose: Optional[int] = 0,
@@ -1309,7 +1311,7 @@ class Qurry:
         resultIdxList: Optional[list[int]] = None,
         **otherArgs,
     ) -> tuple[dict, dict]:
-        """Computing specific quantity.
+        """Computing specific squantity.
         Where should be overwritten by each construction of new measurement.
 
         Returns:
@@ -1345,17 +1347,17 @@ class Qurry:
         Returns:
             dict[float]: The result.
         """
+        print(
+            f"+"+"-"*20+"\n" +
+            f"| Calculating {self.__name__}...\n"
+        )
 
         result = (self.retrieve if dataRetrieve != None else self.run)(
             dataRetrieve=dataRetrieve,
             **allArgs,
         )
         argsNow = self.now
-
-        print(
-            f"| Calculating {self.__name__}...\n" +
-            f"| name: {self.now.expsName}, id: {self.IDNow}"
-        )
+        print(f"| name: {self.now.expsName}, id: {self.IDNow}")
 
         counts, quantity = self.quantity(
             **argsNow,
@@ -1368,7 +1370,7 @@ class Qurry:
             self.exps[self.IDNow]['result'] = result
 
         else:
-            print("Entropy and Purity are figured out, result will clear.")
+            print("| Entropy and Purity are figured out, result will clear.")
             del self.exps[self.IDNow]['result']
 
         self.exps[self.IDNow] = {
@@ -1381,7 +1383,7 @@ class Qurry:
         print(f"| End...\n"+f"+"+"-"*20)
 
         return quantity
-    
+
     def measure(
         self,
         wave: Union[QuantumCircuit, any, None] = None,
@@ -1389,7 +1391,7 @@ class Qurry:
         **otherArgs: any
     ) -> dict:
         """
-        
+
         Args:
             wave (Union[QuantumCircuit, int, None], optional):
                 The index of the wave function in `self.waves` or add new one to calaculation,
@@ -1558,7 +1560,8 @@ class Qurry:
             )
 
         else:
-            rjustLen = 3 if int(np.log10(indexRename))+2 <= 3 else int(np.log10(indexRename))+2
+            rjustLen = 3 if int(np.log10(indexRename)) + \
+                2 <= 3 else int(np.log10(indexRename))+2
             immutableName = f"{expsName}.{str(indexRename).rjust(rjustLen, '0')}"
             exportLocation = Path(saveLocation) / immutableName
             while os.path.exists(exportLocation):
@@ -1701,8 +1704,9 @@ class Qurry:
         )
 
         print(f"| MultiOutput {self.__name__} Start...\n"+f"+"+"-"*20)
+        numConfig = len(argsMulti.configList)
         for config in argsMulti.configList:
-            print(f"| index={config['expIndex']} start...")
+            print(f"| index={config['expIndex']}/{numConfig} start ...")
             quantity = self.output(**config)
 
             # legacy writer
@@ -1739,7 +1743,8 @@ class Qurry:
             argsMulti.tagMapQuantity = self._legacyTagGuider(
                 argsMulti.tagMapQuantity, legacyTag, quantity
             )
-            print(f"| index={config['expIndex']} end...\n"+f"+"+"-"*20)
+            print(
+                f"| index={config['expIndex']}/{numConfig} end ...\n"+f"+"+"-"*20)
 
         print(f"| Export...")
         argsMulti['gitignore'].ignore('*.json')
@@ -2111,25 +2116,25 @@ class Qurry:
                 job_set_id=dataPowerJobs['powerJobID'],
                 provider=argsMulti.provider,
             )
-        
+
         elif overwrite and isinstance(overwrite, bool):
             print(f"| Overwrite activate and retrieve result...")
             powerJob = IBMQJobManager().retrieve_job_set(
                 job_set_id=dataPowerJobs['powerJobID'],
                 provider=argsMulti.provider,
             )
-            
+
         else:
             print(
                 f"| PowerOutput {self.__name__} End " +
                 "with loading completed powerJobs in {time.time() - start_time} sec ...\n" +
                 f"+"+"-"*20)
             return dataPowerJobs
-        
+
         argsMulti['gitignore'] = syncControl(dataPowerJobs['gitignore'])
         powerResultRaw: ManagedResults = powerJob.results()
         powerResult: Result = powerResultRaw.combine_results()
-        
+
         idxNum = 0
         for expIDKey in dataPowerJobs['listExpID']:
             print(f"| index={idxNum} start...")
@@ -2137,7 +2142,7 @@ class Qurry:
                 expID=expIDKey,
                 saveLocation=Path(dataPowerJobs['exportLocation']),
             )
-            
+
             counts, quantity = self.quantity(**{
                 **self.exps[expIDKey],
                 'result': powerResult,
@@ -2148,7 +2153,7 @@ class Qurry:
                 **quantity,
                 'counts': counts,
             }
-            
+
             # legacy writer
             legacy = self.writeLegacy(
                 saveLocation=Path(dataPowerJobs['exportLocation']),
@@ -2163,7 +2168,7 @@ class Qurry:
                     legacyTag == None
                     print(
                         f"| warning: '{k}' is a reserved key for export data.")
-                    
+
             dataPowerJobs['tagMapQuantity'] = self._legacyTagGuider(
                 dataPowerJobs['tagMapQuantity'], 'all', quantity
             )
@@ -2172,12 +2177,12 @@ class Qurry:
             )
             print(f"| index={idxNum} end...\n"+f"+"+"-"*20)
             idxNum += 1
-            
+
         print(f"| Export...")
         argsMulti['gitignore'].ignore('*.json')
         dataPowerJobs['state'] = 'completed'
         dataPowerJobs = jsonablize(dataPowerJobs)
-                
+
         for n, data in [
             ('powerJobs.json', dataPowerJobs),
             ('tagMapQuantity.json', dataPowerJobs['tagMapQuantity']),
@@ -2187,10 +2192,10 @@ class Qurry:
             quickJSONExport(
                 content=data,
                 filename=Path(dataPowerJobs['exportLocation']) /
-                    f"{dataPowerJobs['expsName']}.{n}",
+                f"{dataPowerJobs['expsName']}.{n}",
                 mode='w+',
                 jsonablize=True)
-        
+
         if argsMulti.independentExports:
             print(f"| independentExports...")
             for n in [

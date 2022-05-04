@@ -171,7 +171,7 @@ class hadamardTest(EchoListen):
         qAnc = QuantumRegister(1, 'ancilla')
         qFunc1 = QuantumRegister(numQubits, 'q1')
         qFunc2 = QuantumRegister(numQubits, 'q2')
-        cMeas1 = ClassicalRegister(numQubits, 'c1')
+        cMeas1 = ClassicalRegister(1, 'c1')
         qcExp1 = QuantumCircuit(qAnc, qFunc1, qFunc2, cMeas1)
         
         qcExp1.append(self.waveInstruction(
@@ -201,8 +201,6 @@ class hadamardTest(EchoListen):
         shots: int,
         result: Union[Result, ManagedResults],
         resultIdxList: Optional[list[int]] = None,
-        wave1: Union[QuantumCircuit, any, None] = None,
-        wave2: Union[QuantumCircuit, any, None] = None,
         **otherArgs,
     ) -> tuple[dict, dict]:
         """Computing specific quantity.
