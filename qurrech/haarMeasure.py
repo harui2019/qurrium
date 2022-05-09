@@ -1,4 +1,3 @@
-from turtle import position
 from qiskit import (
     QuantumRegister, ClassicalRegister, QuantumCircuit)
 from qiskit.providers.ibmq.managed import ManagedResults
@@ -16,13 +15,12 @@ from tqdm import trange, tqdm
 
 from .qurrech import EchoListen
 from ..qurry import (
-    Qurry,
     expsConfig,
     expsBase,
     expsConfigMulti,
     expsHint
 )
-# EchoListen V0.3.1 - Measuring Loschmidt Echo - Qurrech
+# EchoListen V0.3.0 - Measuring Loschmidt Echo - Qurrech
 
 _expsConfig = expsConfig(
     name="qurrechConfig",
@@ -78,7 +76,7 @@ makeTwoBitStrOneLiner: Callable[[int, List[str]], List[str]] = (
 
 
 class haarMeasure(EchoListen):
-    """haarMeasure V0.3.1 of qurrech
+    """haarMeasure V0.3.0 of qurrech
     """
 
     # Initialize
@@ -433,7 +431,7 @@ class haarMeasure(EchoListen):
         return self.output(
             wave1=wave1,
             wave2=wave2,
-            expsName=expsName,
             times=times,
+            expsName=expsName,
             **otherArgs,
         )

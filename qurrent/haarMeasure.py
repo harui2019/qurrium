@@ -1,26 +1,65 @@
 from qiskit import (
-    Aer, execute,
     QuantumRegister, ClassicalRegister, QuantumCircuit)
-from qiskit.tools import *
-from qiskit.visualization import *
-
-from qiskit.providers import Backend
-from qiskit.providers.ibmq import IBMQBackend
 from qiskit.providers.ibmq.managed import ManagedResults
+from qiskit.visualization import *
 
 from qiskit.quantum_info import random_unitary
 from qiskit.result import Result
 
-from matplotlib.figure import Figure
 import numpy as np
-import gc
 import warnings
 from typing import Union, Optional, Callable, List
-from itertools import combinations
 from qiskit.visualization.counts_visualization import hamming_distance
 
-from .qurrent import EntropyMeasureV2
-# haarMeasure
+from tqdm import trange, tqdm
+
+from .qurrent import EntropyMeasureV3
+from ..qurry import (
+    expsConfig,
+    expsBase,
+    expsConfigMulti,
+    expsHint
+)
+# EntropyMeasure V0.3.0 - Measuring Renyi Entropy - Qurrent
+
+_expsConfig = expsConfig(
+    name="qurrentConfig",
+    defaultArg={
+        # Variants of experiment.
+        'wave': None,
+        'degree': None,
+        'time': 100,
+    },
+)
+
+_expsBase = expsBase(
+    name="qurrentBase",
+    expsConfig=_expsConfig,
+    defaultArg={
+        # Reault of experiment.
+        'entropy': -100,
+        'purity': -100,
+    },
+)
+
+_expsMultiConfig = expsConfigMulti(
+    name="qurrentConfigMulti",
+    expsConfig=_expsConfig,
+    defaultArg={
+        # Reault of experiment.
+        'entropy': -100,
+        'purity': -100,
+    },
+)
+
+_expsHint = expsHint(
+    name='qurrechBaseHint',
+    expsConfig=_expsBase,
+    hintContext={
+        'entropy': 'The Renyi Entropy.',
+        'purity': '',
+    },
+)
 
 RXmatrix = np.array([[0, 1], [1, 0]])
 RYmatrix = np.array([[0, -1j], [1j, 0]])
@@ -39,109 +78,161 @@ makeTwoBitStrOneLiner: Callable[[int, List[str]], List[str]] = (
     )(makeTwoBitStrOneLiner(num-1, bits)) if num > 0 else bits))
 
 
-# haarMeasureV1
-# at Legacy branch `entropymeasurev1`
+class haarMeasure(EntropyMeasureV3):
+    """haarMeasure V0.3.0 of qurrech
+    """
 
-# haarMeasureV2
-
-class haarMeasureV2(EntropyMeasureV2):
+    # Initialize
     def initialize(self) -> dict[str: any]:
-        """Configuration to Initialize 'haarMeasure'.
-        - 
-        ```
-        self.measureConfig = {
-            'name': 'haarMeasure',
-            'shortName': 'haar',
-            'paramsNum': 3,
-            'default': {
-                'degree': (
-                    self.waves[-1].num_qubits/2 if (self.waves[-1].num_qubits % 2 == 0)
-                    else int((self.waves[-1].num_qubits-1)/2+1)),
-                'times': 100,
-                'purityMethod': 1,
-            },
-            'hint': {
-                'degree': 'degree of freedom of subsystem A.',
-                'times': 'number of test to count ensemble average at least 10, default 100.',
-                'purityMethod': [
-                    '1: ensemble Ave. (default)'
-                    '2: standard deviation',
-                    '3: no double count ensemble Ave.'],
-                'measure': 'number of the qubits which measure.',
-            },
-            'otherHint': """ """,
-        }
-        ```
+        """Configuration to Initialize haarMeasure.
 
         Returns:
             dict[str: any]: The basic configuration of `haarMeasure`.
         """
 
-        self.measureConfig = {
-            'name': 'haarMeasure',
-            'shortName': 'haar',
-            'paramsNum': 3,
-            'default': {
-                'degree': (
-                    self.waves[self.lastWave].num_qubits/2 if (self.waves[self.lastWave].num_qubits % 2 == 0)
-                    else int((self.waves[self.lastWave].num_qubits-1)/2+1)),
-                'times': 100,
-                'purityMethod': 1,
-            },
-            'hint': {
-                'degree': 'degree of freedom of subsystem A.',
-                'times': 'number of test to count ensemble average at least 10, default 100.',
-                'purityMethod': [
-                    '1: ensemble Ave. (default)'
-                    '2: standard deviation',
-                    '3: no double count ensemble Ave.'],
-                'measure': 'number of the qubits which measure.',
-            },
-            'otherHint': """ """,
+        self._expsConfig = _expsConfig
+        self._expsBase = _expsBase
+        self._expsHint = _expsHint
+        self._expsMultiConfig = _expsMultiConfig
+        self.shortName = 'qurrentV3.haar'
+        self.__name__ = 'qurrentV3.haar'
+
+        return self._expsConfig, self._expsBase
+
+    """Arguments and Parameters control"""
+
+    def paramsControlMain(
+        self,
+        expsName: str = 'exps',
+        wave: Union[QuantumCircuit, any, None] = None,
+        degree: Optional[int] = None,
+        times: int = 100,
+        **otherArgs: any
+    ) -> dict:
+        """Handling all arguments and initializing a single experiment.
+
+        Args:
+            wave (Union[QuantumCircuit, int, None], optional): 
+                The index of the wave function in `self.waves` or add new one to calaculation,
+                then choose one of waves as the experiment material.
+                If input is `QuantumCircuit`, then add and use it.
+                If input is the key in `.waves`, then use it.
+                If input is `None` or something illegal, then use `.lastWave'.
+                Defaults to None.
+
+            degree (Optional[int], optional): 
+                The degree of freedom.
+                If input is `None`, 
+                then use the number of half qubits for even number of qubits, 
+                or (the number of qubits + 1)/2 for odd number of qubits.
+                If input is illegal, then raise ValueError.
+                Defaults to None.
+
+            times (int, optional): 
+                The number of test to count ensemble average.
+                Defaults to `100`.
+
+            expsName (str, optional):
+                Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
+                This name is also used for creating a folder to store the exports.
+                Defaults to `'exps'`.
+
+            otherArgs (any):
+                Other arguments.
+
+        Raises:
+            KeyError: Given `expID` does not exist.
+            TypeError: When parameters are not all to be `int`.
+            KeyError: The given parameters lost degree of freedom.".
+
+        Returns:
+            tuple[str, dict[str: any]]: Current `expID` and arguments.
+        """
+
+        # wave
+        if isinstance(wave, QuantumCircuit):
+            wave = self.addWave(wave)
+            print(f"| Add new wave with key: {wave}")
+        elif wave == None:
+            wave = self.lastWave
+            print(f"| Autofill will use '.lastWave' as key")
+        else:
+            try:
+                self.waves[wave]
+            except KeyError as e:
+                warnings.warn(f"'{e}', use '.lastWave' as key")
+                wave = self.lastWave
+
+        # degree
+        numQubits = self.waves[wave].num_qubits
+        if degree > numQubits:
+            raise ValueError(
+                f"The subsystem A includes {degree} qubits beyond {numQubits} which the wave function has.")
+        elif degree < 0:
+            raise ValueError(
+                f"The number of qubits of subsystem A has to be natural number.")
+
+        # times
+        if not isinstance(times, int):
+            raise ValueError("'times' must be an 'int'.")
+        elif times <= 0:
+            raise ValueError("'times' must be larger than 0.")
+
+        return {
+            'wave': wave,
+            'degree': degree,
+            'times': times,
+            'numQubit': numQubits,
+            'expsName': f"{expsName}.{wave}-deg={degree}-at{times}.{self.__name__}",
+            **otherArgs,
         }
 
-        self.paramsKey = []
-
-        return self.measureConfig
+    """ Main Process: Circuit"""
 
     def circuitMethod(
         self,
     ) -> Union[QuantumCircuit, list[QuantumCircuit]]:
         """The method to construct circuit.
+        Where should be overwritten by each construction of new measurement.
 
         Returns:
             Union[QuantumCircuit, list[QuantumCircuit]]: 
                 The quantum circuit of experiment.
         """
-        args = self.now
-        numQubits = self.waves[args.wave].num_qubits
+        argsNow = self.now
+        numQubits = self.waves[argsNow.wave].num_qubits
 
-        qcExpList = []
-        for times in range(args.paramsOther['times']):
+        qcList = []
+        unitaryList = [
+            [random_unitary(2) for _ in range(numQubits)]
+            for i in range(argsNow.times)]
+
+        progressBarA = trange(
+            argsNow.times,
+            desc=f"| Build circuit '{argsNow.wave}'",
+        )
+        for i in progressBarA:
             qFunc1 = QuantumRegister(numQubits, 'q1')
-            cMeas = ClassicalRegister(numQubits, 'c1')
-            qcExp = QuantumCircuit(qFunc1, cMeas)
+            cMeas1 = ClassicalRegister(numQubits, 'c1')
+            qcExp1 = QuantumCircuit(qFunc1, cMeas1)
 
-            qcExp.append(self.waveInstruction(
-                wave=args.wave,
-                runBy=args.runBy,
-                backend=args.backend,
+            qcExp1.append(self.waveInstruction(
+                wave=argsNow.wave,
+                runBy=argsNow.runBy,
+                backend=argsNow.backend,
             ), [qFunc1[i] for i in range(numQubits)])
 
-            if not isinstance(args.backend, IBMQBackend):
-                qcExp.barrier()
+            qcExp1.barrier()
+            for j in range(numQubits):
+                qcExp1.append(unitaryList[i][j], [j])
+            for j in range(argsNow.degree):
+                qcExp1.measure(qFunc1[j], cMeas1[j])
 
-            [qcExp.append(random_unitary(2), [i])
-                for i in range(numQubits)]
+            qcList.append(qcExp1)
+            progressBarA.set_description(
+                f"| Build circuit '{argsNow.wave}'")
 
-            if not isinstance(args.backend, IBMQBackend):
-                qcExp.save_density_matrix()
-
-            [qcExp.measure(qFunc1[i], cMeas[i]) for i in range(numQubits)]
-
-            qcExpList.append(qcExp)
-
-        return qcExpList
+        return qcList
 
     @staticmethod
     def hamming_distance(str1, str2):
@@ -217,36 +308,33 @@ class haarMeasureV2(EntropyMeasureV2):
         return [ax, ay, az]
 
     @classmethod
-    def purityMethod(
+    def quantity(
         cls,
-        aNum: int,
-        paramsOther: dict[str: int],
         shots: int,
         result: Union[Result, ManagedResults],
         resultIdxList: Optional[list[int]] = None,
-    ) -> tuple[dict[str, float], float, float]:
-        """Computing Purity.
-
-        ```
-        paramsOther: {
-            'times': 100,
-            'purityMethod': 1,
-        }
-        ```
+        times: int = 0,
+        degree: int = None,
+        **otherArgs,
+    ) -> tuple[dict, dict]:
+        """Computing specific quantity.
+        Where should be overwritten by each construction of new measurement.
 
         Returns:
-            tuple[dict[str, float], float, float]: 
+            tuple[dict, dict]:
                 Counts, purity, entropy of experiment.
         """
-
         if resultIdxList == None:
-            resultIdxList = [i for i in range(paramsOther['times'])]
+            resultIdxList = [i for i in range(times)]
         elif isinstance(resultIdxList, list):
             if len(resultIdxList) > 1:
                 ...
+            elif len(resultIdxList) != times:
+                raise ValueError(
+                    f"The element number of 'resultIdxList': {len(resultIdxList)} is different with 'times': {times}.")
             else:
                 raise ValueError(
-                    "The element number of 'resultIdxList' needs to be more than 1 for 'haarMeasure'.")
+                    f"The element number of 'resultIdxList': {len(resultIdxList)} needs to be more than 1 for 'haarMeasure'.")
         else:
             raise ValueError("'resultIdxList' needs to be 'list'.")
 
@@ -255,64 +343,79 @@ class haarMeasureV2(EntropyMeasureV2):
         entropy = -100
         purityCellList = []
 
-        for t in resultIdxList:
-            allMeas = result.get_counts(t)
-            allMeasUnderDegree = dict.fromkeys(
-                [k[:aNum] for k in allMeas], 0)
-            for kMeas in list(allMeas):
-                allMeasUnderDegree[kMeas[:aNum]] += allMeas[kMeas]
-            # print("before: ", allMeas)
-            # print("after : ", allMeasUnderDegree)
+        progressBarOverlap = trange(
+            times,
+            desc=f"| Calculating overlap ...",
+        )
+        for i in progressBarOverlap:
             purityCell = 0
+            t1 = resultIdxList[i]
+            progressBarOverlap.set_description(
+                f"| Calculating overlap {t1} and {t1}")
+            allMeas1 = result.get_counts(t1)
 
-            # if paramsOther['purityMethod'] == 3:
+            allMeasUnderDegree = dict.fromkeys(
+                [k[:degree] for k in allMeas1], 0)
+            for kMeas in list(allMeas1):
+                allMeasUnderDegree[kMeas[:degree]] += allMeas1[kMeas]
+            numAllMeasUnderDegree = len(allMeasUnderDegree)
 
-                # for (sAi, sAiMeas), (sAj, sAjMeas) in list(
-                #     combinations(allMeasUnderDegree.items(), 2)
-                # ):
-                #     purityCell += cls.ensembleCell(
-                #         sAi, sAiMeas, sAj, sAjMeas, aNum, shots)
-                # for sAi, sAiMeas in allMeasUnderDegree.items():
-                #     purityCell += cls.ensembleCell(
-                #         sAi, sAiMeas, sAi, sAiMeas, aNum, shots)
+            progressBarOverlap.set_description(
+                f"| Calculating overlap {t1} and {t1} by summarize {numAllMeasUnderDegree**2} values.")
 
-            if paramsOther['purityMethod'] == 2:
-
-                purityCell = 0
-                isZeroInclude = '0' in allMeas
-                isOneInclude = '1' in allMeas
-                if isZeroInclude and isOneInclude:
-                    purityCell = (allMeas['0'] - allMeas['1'])/shots
-                elif isZeroInclude:
-                    purityCell = allMeas['0']/shots
-                elif isOneInclude:
-                    purityCell = allMeas['1']/shots
-                else:
-                    purity = 0
-                    raise Warning(
-                        "Expected '0' and '1', but there is no such keys")
-
-            else:
-                for sAi, sAiMeas in allMeasUnderDegree.items():
-                    for sAj, sAjMeas in allMeasUnderDegree.items():
-                        purityCell += cls.ensembleCell(
-                            sAi, sAiMeas, sAj, sAjMeas, aNum, shots)
+            for sAi, sAiMeas in allMeasUnderDegree.items():
+                for sAj, sAjMeas in allMeasUnderDegree.items():
+                    purityCell += cls.ensembleCell(
+                        sAi, sAiMeas, sAj, sAjMeas, degree, shots)
 
             purityCellList.append(purityCell)
+            progressBarOverlap.set_description(
+                f"| Calculating overlap end ...")
 
-        if paramsOther['purityMethod'] == 2:
-            tmp = np.sqrt(3)*np.std(purityCellList)
-            purity = (1+tmp**2)/2
-            print("method:", "standard deviation")
-
-        elif paramsOther['purityMethod'] == 3:
-            purity = np.mean(purityCellList)
-            print("method:", "no double count ensemble ave.")
-
-        else:
-            purity = np.mean(purityCellList)
-            print("method:", "double count ensemble ave.")
-
+        purity = np.mean(purityCellList)
         entropy = -np.log2(purity)
+        quantity = {
+            'purity': purity,
+            'entropy': entropy,
+        }
+        return counts, quantity
 
-        return counts, purity, entropy
+    """ Main Process: Main Control"""
+
+    def measure(
+        self,
+        wave: Union[QuantumCircuit, any, None] = None,
+        degree: Optional[int] = None,
+        times: int = 100,
+        expsName: str = 'exps',
+        **otherArgs: any
+    ) -> dict:
+        """
+
+        Args:
+            wave (Union[QuantumCircuit, int, None], optional):
+                The index of the wave function in `self.waves` or add new one to calaculation,
+                then choose one of waves as the experiment material.
+                If input is `QuantumCircuit`, then add and use it.
+                If input is the key in `.waves`, then use it.
+                If input is `None` or something illegal, then use `.lastWave'.
+                Defaults to None.
+
+            expsName (str, optional):
+                Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
+                This name is also used for creating a folder to store the exports.
+                Defaults to `'exps'`.
+
+            otherArgs (any):
+                Other arguments.
+
+        Returns:
+            dict: The output.
+        """
+        return self.output(
+            wave=wave,
+            degree=degree,
+            times=times,
+            expsName=expsName,
+            **otherArgs,
+        )

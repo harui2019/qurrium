@@ -3,7 +3,6 @@ from qiskit import (
 from qiskit.providers.ibmq.managed import ManagedResults
 from qiskit.visualization import *
 
-from qiskit.quantum_info import random_unitary
 from qiskit.result import Result
 
 import numpy as np
@@ -13,13 +12,12 @@ from qiskit.visualization.counts_visualization import hamming_distance
 
 from .qurrech import EchoListen
 from ..qurry import (
-    Qurry,
     expsConfig,
     expsBase,
     expsConfigMulti,
     expsHint
 )
-# EchoListen V0.3.1 - Measuring Loschmidt Echo - Qurrech
+# EchoListen V0.3.0 - Measuring Loschmidt Echo - Qurrech
 
 _expsConfig = expsConfig(
     name="qurrechConfig",
@@ -58,7 +56,7 @@ _expsHint = expsHint(
 
 
 class hadamardTest(EchoListen):
-    """hadamardTest V0.3.1 of qurrech
+    """hadamardTest V0.3.0 of qurrech
     """
 
     # Initialize

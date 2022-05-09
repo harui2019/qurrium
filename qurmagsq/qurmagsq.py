@@ -11,6 +11,9 @@ import warnings
 from math import pi
 from typing import Union, Optional
 
+from tqdm import trange, tqdm
+from itertools import permutations
+
 from ..qurry import (
     Qurry,
     expsConfig,
@@ -19,18 +22,17 @@ from ..qurry import (
     expsHint
 )
 
-# EchoCounting V0.3.0 - Measuring Loschmidt Echo - Qurrech
+# MagnetSquare V0.3.0 - Measuring Loschmidt Echo - Qurrech
 _expsConfig = expsConfig(
-    name="qurrechConfig",
+    name="qurmagsqConfig",
     defaultArg={
         # Variants of experiment.
-        'wave1': None,
-        'wave2': None,
+        'wave': None,
     },
 )
 
 _expsBase = expsBase(
-    name="qurrechBase",
+    name="qurmagsqBase",
     expsConfig=_expsConfig,
     defaultArg={
         # Reault of experiment.
@@ -39,7 +41,7 @@ _expsBase = expsBase(
 )
 
 _expsMultiConfig = expsConfigMulti(
-    name="qurrechConfigMulti",
+    name="qurmagsqConfigMulti",
     expsConfig=_expsConfig,
     defaultArg={
         # Reault of experiment.
@@ -48,7 +50,7 @@ _expsMultiConfig = expsConfigMulti(
 )
 
 _expsHint = expsHint(
-    name='qurrechBaseHint',
+    name='qurmagsqBaseHint',
     expsConfig=_expsBase,
     hintContext={
         'echo': 'The Loschmidt Echo.',
@@ -56,8 +58,8 @@ _expsHint = expsHint(
 )
 
 
-class EchoListen(Qurry):
-    """EchoCounting V0.3.0 of qurrech
+class MagnetSquare(Qurry):
+    """MagnetSquare V0.3.0 of qurmagsq
     """
 
     # Initialize
@@ -72,8 +74,8 @@ class EchoListen(Qurry):
         self._expsBase = _expsBase
         self._expsHint = _expsHint
         self._expsMultiConfig = _expsMultiConfig
-        self.shortName = 'qurrech'
-        self.__name__ = 'Qurrech'
+        self.shortName = 'qurmagsq'
+        self.__name__ = 'MagnetSquare'
 
         return self._expsConfig, self._expsBase
 
@@ -82,14 +84,13 @@ class EchoListen(Qurry):
     def paramsControlMain(
         self,
         expsName: str = 'exps',
-        wave1: Union[QuantumCircuit, any, None] = None,
-        wave2: Union[QuantumCircuit, any, None] = None,
+        wave: Union[QuantumCircuit, any, None] = None,
         **otherArgs: any
     ) -> dict:
         """Handling all arguments and initializing a single experiment.
 
         Args:
-            wave1, wave2 (Union[QuantumCircuit, int, None], optional): 
+            wave (Union[QuantumCircuit, int, None], optional): 
                 The index of the wave function in `self.waves` or add new one to calaculation,
                 then choose one of waves as the experiment material.
                 If input is `QuantumCircuit`, then add and use it.
@@ -114,38 +115,26 @@ class EchoListen(Qurry):
             tuple[str, dict[str: any]]: Current `expID` and arguments.
         """
 
-        # wave1
-        if isinstance(wave1, QuantumCircuit):
-            wave1 = self.addWave(wave1)
-            print(f"| Add new wave with key: {wave1}")
-        elif wave1 == None:
-            wave1 = self.lastWave
+        # wave
+        if isinstance(wave, QuantumCircuit):
+            wave = self.addWave(wave)
+            print(f"| Add new wave with key: {wave}")
+        elif wave == None:
+            wave = self.lastWave
             print(f"| Autofill will use '.lastWave' as key")
         else:
             try:
-                self.waves[wave1]
+                self.waves[wave]
             except KeyError as e:
                 warnings.warn(f"'{e}', use '.lastWave' as key")
-                wave1 = self.lastWave
-
-        # wave2
-        if isinstance(wave2, QuantumCircuit):
-            wave2 = self.addWave(wave2)
-            print(f"| Add new wave with key: {wave2}")
-        elif wave2 == None:
-            wave2 = self.lastWave
-            print(f"| Autofill will use '.lastWave' as key")
-        else:
-            try:
-                self.waves[wave2]
-            except KeyError as e:
-                warnings.warn(f"'{e}', use '.lastWave' as key")
-                wave2 = self.lastWave
+                wave = self.lastWave
+                
+        numQubits = self.waves[wave].num_qubits
 
         return {
-            'wave1': wave1,
-            'wave2': wave2,
-            'expsName': f"{expsName}.{wave1}X{wave2}",
+            'wave': wave,
+            'numQubit': numQubits,
+            'expsName': f"{expsName}.{wave}.magsq",
             **otherArgs,
         }
 
@@ -162,33 +151,31 @@ class EchoListen(Qurry):
                 The quantum circuit of experiment.
         """
         argsNow = self.now
-        if (self.waves[argsNow.wave1].num_qubits != self.waves[argsNow.wave2].num_qubits):
-            raise ValueError(
-                "Wave1 and Wave2 must be the same number of qubits.")
-        numQubits = self.waves[argsNow.wave1].num_qubits
+        numQubits = self.waves[argsNow.wave].num_qubits
 
-        qFunc1 = QuantumRegister(numQubits, 'q1')
-        qFunc2 = QuantumRegister(numQubits, 'q2')
-        cMeas = ClassicalRegister(numQubits, 'c1')
-        qcExp = QuantumCircuit(qFunc1, qFunc2, cMeas)
+        qcExpList = []
+        progressBarA = tqdm(
+            [b for b in permutations([a for a in range(numQubits)], 2)],
+            desc=f"| Build circuits '{argsNow.wave}'",
+        )
+        for i, j in progressBarA:
+            qFunc = QuantumRegister(numQubits, 'q1')
+            cMeas = ClassicalRegister(2, 'c1')
+            qcExp = QuantumCircuit(qFunc, cMeas)
+            
+            qcExp.append(self.waveInstruction(
+                wave=argsNow.wave,
+                runBy=argsNow.runBy,
+                backend=argsNow.backend,
+            ), [qFunc[i] for i in range(numQubits)])
 
-        qcExp.append(self.waveInstruction(
-            wave=argsNow.wave1,
-            runBy=argsNow.runBy,
-            backend=argsNow.backend,
-        ), [qFunc1[i] for i in range(numQubits)])
+            qcExp.barrier()
+            qcExp.measure(qFunc[i], cMeas[0])
+            qcExp.measure(qFunc[j], cMeas[1])
+            
+            qcExpList.append(qcExp)
 
-        qcExp.append(self.waveInstruction(
-            wave=argsNow.wave2,
-            runBy=argsNow.runBy,
-            backend=argsNow.backend,
-        ), [qFunc2[i] for i in range(numQubits)])
-
-        for i in range(argsNow.aNum):
-            qcExp.measure(qFunc1[i], cMeas[i])
-        print("It's default circuit, the quantum circuit is not yet configured.")
-
-        return qcExp
+        return qcExpList
 
     """ Main Process: Data Import and Export"""
 
@@ -204,8 +191,7 @@ class EchoListen(Qurry):
         shots: int,
         result: Union[Result, ManagedResults],
         resultIdxList: Optional[list[int]] = None,
-        wave1: Union[QuantumCircuit, any, None] = None,
-        wave2: Union[QuantumCircuit, any, None] = None,
+        numQubit: int = None,
         **otherArgs,
     ) -> tuple[dict, dict]:
         """Computing specific quantity.
@@ -215,19 +201,55 @@ class EchoListen(Qurry):
             tuple[dict, dict]:
                 Counts, purity, entropy of experiment.
         """
+        
         if resultIdxList == None:
-            resultIdxList = [0]
+            resultIdxList = [i for i in range(numQubit*(numQubit-1))]
+        elif isinstance(resultIdxList, list):
+            if len(resultIdxList) > 1:
+                ...
+            elif len(resultIdxList) != numQubit*(numQubit-1):
+                raise ValueError(
+                    f"The element number of 'resultIdxList': {len(resultIdxList)} is different with 'N(N-1)': {times*2}.")
+            else:
+                raise ValueError(
+                    f"The element number of 'resultIdxList': {len(resultIdxList)} needs to be more than 1 for 'MagnetSquare'.")
         else:
-            ...
+            raise ValueError("'resultIdxList' needs to be 'list'.")
 
-        warnings.warn(
-            "It's default '.quantity' which exports meaningless value.")
-        counts = result.get_counts(resultIdxList[0])
+        counts = [result.get_counts(i) for i in resultIdxList]
+        magnetsq = -100
+        magnetsqCellList = []
+        
+        progressBarMagnetSq = tqdm(
+            resultIdxList,
+            desc=f"| Calculating magnetsq ...",
+        )
+        for i in progressBarMagnetSq:
+            magnetsqCell = 0
+            checkSum = 0
+            progressBarMagnetSq.set_description(
+                f"| Calculating magnetsq on {i}")
+            allMeas = result.get_counts(i)
+            
+            for bits in allMeas:
+                checkSum += allMeas[bits]
+                if (bits == '00') or (bits == '11'):
+                    magnetsqCell += allMeas[bits]/shots
+                else:
+                    magnetsqCell -= allMeas[bits]/shots 
+            
+            if checkSum != shots:
+                raise ValueError(
+                    f"'{allMeas}' may not be contained by '00', '11', '01', '10'.")
+                
+            magnetsqCellList.append(magnetsqCell)
+            progressBarMagnetSq.set_description(
+                f"| Calculating magnetsq end ...")
+            
+        magnetsq = (sum(magnetsqCellList) + numQubit)/(numQubit**2)
 
-        dummy = -100
         quantity = {
-            '_dummy': dummy,
-            'echo': '_dummy_value',
+            'magnetsq': magnetsq,
         }
         return counts, quantity
 
@@ -235,8 +257,7 @@ class EchoListen(Qurry):
     
     def measure(
         self,
-        wave1: Union[QuantumCircuit, any, None] = None,
-        wave2: Union[QuantumCircuit, any, None] = None,
+        wave: Union[QuantumCircuit, any, None] = None,
         expsName: str = 'exps',
         **otherArgs: any
     ) -> dict:
@@ -263,8 +284,7 @@ class EchoListen(Qurry):
             dict: The output.
         """
         return self.output(
-            wave1=wave1,
-            wave2=wave2,
+            wave=wave,
             expsName=expsName,
             **otherArgs,
         )
