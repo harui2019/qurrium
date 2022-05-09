@@ -58,7 +58,7 @@ _expsHint = expsHint(
 )
 
 
-class hadamardTest(EntropyMeasureV3):
+class hadamardTestV3(EntropyMeasureV3):
     """hadamardTest V0.3.0 of qurrech
     """
 
@@ -225,6 +225,7 @@ class hadamardTest(EntropyMeasureV3):
 
         counts = [result.get_counts(i) for i in resultIdxList]
         onlyCount = counts[0]
+        print
         purity = -100
 
         isZeroInclude = '0' in onlyCount

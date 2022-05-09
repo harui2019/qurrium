@@ -78,7 +78,7 @@ makeTwoBitStrOneLiner: Callable[[int, List[str]], List[str]] = (
     )(makeTwoBitStrOneLiner(num-1, bits)) if num > 0 else bits))
 
 
-class haarMeasure(EntropyMeasureV3):
+class haarMeasureV3(EntropyMeasureV3):
     """haarMeasure V0.3.0 of qurrech
     """
 
@@ -225,7 +225,7 @@ class haarMeasure(EntropyMeasureV3):
             qcExp1.barrier()
             for j in range(numQubits):
                 qcExp1.append(unitaryList[i][j], [j])
-            for j in range(argsNow.degree):
+            for j in range(numQubits):
                 qcExp1.measure(qFunc1[j], cMeas1[j])
 
             qcList.append(qcExp1)

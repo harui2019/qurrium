@@ -41,7 +41,7 @@ from typing import (
     Callable
 )
 
-from ..tool import (
+from ...tool import (
     Configuration,
     argdict,
     syncControl,

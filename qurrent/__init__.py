@@ -1,8 +1,10 @@
+from .qurrent import EntropyMeasureV3
+from .haarMeasure import haarMeasureV3
+from .hadamardTest import hadamardTestV3
+
 from .qurrentV2.qurrentV2 import EntropyMeasureV2
 from .qurrentV2.haarMeasure import haarMeasureV2 as haarMeasure
 from .qurrentV2.hadamardTest import hadamardTestV2 as hadamardTest
-
-
 # measurementList = [
 #     EntropyMeasure,
 #     haarMeasure,
