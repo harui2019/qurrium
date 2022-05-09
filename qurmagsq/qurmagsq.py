@@ -245,6 +245,7 @@ class MagnetSquare(Qurry):
             magnetsqCellList.append(magnetsqCell)
             progressBarMagnetSq.set_description(
                 f"| Calculating magnetsq end ...")
+        print(sum(magnetsqCellList))
             
         magnetsq = (sum(magnetsqCellList) + numQubit)/(numQubit**2)
 
