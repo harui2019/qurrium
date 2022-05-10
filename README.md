@@ -1,10 +1,12 @@
-# Qurry 🍛 - Entangled Entropy Measure Tool
+# Qurry 🍛 - The Measuring Tool for Renyi Entropy, and Loschmidt Echo, The Library of Some Common Cases
 
 This is a tool to measure the Renyi entropy of given wave function. Running on **IBM Qiskit** with the function from constructing experiment object to pending the jobs to IBMQ automatically.
 
+---
+
 ## Avaliable Environments
 
-- **`Python 3.9.7+`** installed by Anaconda
+- **`Python 3.9.7+` installed by Anaconda**
   - on
     - **Ubuntu 20.04 LTS/18.04 LTS** on `x86_64` **(recommended)**
     - **Windows 10/11** on `x86_64`
@@ -19,6 +21,8 @@ This is a tool to measure the Renyi entropy of given wave function. Running on *
     - `qiskit`
     - `qiskit-aer-gpu`: when use Linux
     - `torch`: when use Nvidia CUDA Checking on Linux.
+
+---
 
 ## `qurrent`
 

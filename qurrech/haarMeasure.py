@@ -406,16 +406,21 @@ class haarMeasure(EchoListen):
         expsName: str = 'exps',
         **otherArgs: any
     ) -> dict:
-        """
+        """The measure function which is the customized version of `.output`.
 
         Args:
             wave (Union[QuantumCircuit, int, None], optional):
+            wave1, wave2 (Union[QuantumCircuit, int, None], optional): 
                 The index of the wave function in `self.waves` or add new one to calaculation,
                 then choose one of waves as the experiment material.
                 If input is `QuantumCircuit`, then add and use it.
                 If input is the key in `.waves`, then use it.
                 If input is `None` or something illegal, then use `.lastWave'.
                 Defaults to None.
+
+            times (int, optional): 
+                The number of test to count ensemble average.
+                Defaults to `100`.
 
             expsName (str, optional):
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.

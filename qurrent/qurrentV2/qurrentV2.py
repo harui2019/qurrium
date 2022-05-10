@@ -1843,8 +1843,8 @@ class EntropyMeasureV2:
                     f"but '{type(qcExp)}'.")
             numCircDict[IDNow] = numCirc
 
-            if 'transpileArg' in config:
-                transpileArgs[IDNow] = config['transpileArg']
+            if 'transpileArgs' in config:
+                transpileArgs[IDNow] = config['transpileArgs']
 
             # self._legecyWriter(argsMulti, IDNow, fileList, expIDList)
             curLegacy = self.writeLegacy(
@@ -1885,18 +1885,19 @@ class EntropyMeasureV2:
             elif numCircDict[idKey] == 1:
                 circuitsMap[idKey].append(len(circs))
                 circs.append(transpile(
-                    self.exps[idKey]['circuit'],
+                    self.exps[idKey]['circuit'][0],
                     **(transpileArgs[idKey] if idKey in transpileArgs else {}),
                     backend=argsMulti.backend,
                 ))
             else:
                 ...
 
-        circs = [qc for qc in circs]
-        circs = transpile(
-            circs,
-            backend=argsMulti.backend,
-        )
+        print(circs)
+        # circs = [qc for qc in circs]
+        # circs = transpile(
+        #     circs,
+        #     backend=argsMulti.backend,
+        # )
 
         powerJob = IBMQJobManager().run(
             **argsMulti.jobManagerRunArgs,
