@@ -1,8 +1,10 @@
-# Qurry 🍛 - Entangled Entropy Measure Tool
+# Qurry 🍛 - The Measuring Tool for Renyi Entropy, Loschmidt Echo, and Magnetization Squared and Some Common Cases.
 
-This is a tool to measure the Renyi entropy of given wave function. Running on **IBM Qiskit** with the function from constructing experiment object to pending the jobs to IBMQ automatically.
+This is a tool to measure the Renyi entropy, Loschmidt Echo, and Magnetization Squared of given wave function. Running on **IBM Qiskit** with the function from constructing experiment object to pending the jobs to IBMQ automatically.
 
-## Avaliable Environments
+---
+
+## Configurate Environment
 
 - **`Python 3.9.7+`** installed by Anaconda
   - on
@@ -13,14 +15,20 @@ This is a tool to measure the Renyi entropy of given wave function. Running on *
   - currently with issues on
     - **MacOS 12 Monterey** on **`arm64 (Apple Silicon, M1 chips)`**
     - **MacOS 12 Monterey** on **`x86_64 (Intel chips)`**
-      - Some python issues are not fixed.
+      - Some python issues are not fixed and waiting to fix.
 
   - with required modules:
     - `qiskit`
-    - `qiskit-aer-gpu`: when use Linux
-    - `torch`: when use Nvidia CUDA Checking on Linux.
 
-## `qurrent`
+  - with optional modules:
+    - `qiskit-aer-gpu`: when use Linux
+    - `torch`: when use Nvidia CUDA and checks availability on Linux.
+
+---
+
+## Measurement
+
+### `qurrent` - The Renyi Entropy Measurement
 
 The main function to measure the entropy.
 The following is the methods used to measure.
@@ -33,7 +41,28 @@ The following is the methods used to measure.
   - From:
     **Statistical correlations between locally randomized measurements: A toolbox for probing entanglement in many-body quantum states** - A. Elben, B. Vermersch, C. F. Roos, and P. Zoller, [PhysRevA.99.052323](https://doi.org/10.1103/PhysRevA.99.052323)
 
-## `case`
+### `qurrech` - The Loschmidt Echo Measurement
+
+It's similar to `qurrent`.
+
+- Hadamard Test
+  - Used in:
+    **Entanglement spectroscopy on a quantum computer** - Sonika Johri, Damian S. Steiger, and Matthias Troyer, [PhysRevB.96.195136](https://doi.org/10.1103/PhysRevB.96.195136)
+
+- Haar Randomized Measure
+  - From:
+    **Statistical correlations between locally randomized measurements: A toolbox for probing entanglement in many-body quantum states** - A. Elben, B. Vermersch, C. F. Roos, and P. Zoller, [PhysRevA.99.052323](https://doi.org/10.1103/PhysRevA.99.052323)
+
+### `qurmagsq` - The Magnetization Squared
+
+- Magnetization Squared
+
+---
+
+## The Library of Some Common Case & Other tools
+
+s
+### `case`
 
 Some examples for the experiments.
 
@@ -45,7 +74,7 @@ Some examples for the experiments.
 
 - More wait for adding...
 
-## `tool`
+### `tool`
 
 - `command`
   - `auto_cmd`: Use command in anywhere, no matter it's in `.ipynb` or '.py'.
