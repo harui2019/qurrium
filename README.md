@@ -1,4 +1,4 @@
-# Qurry 🍛 - The Measuring Tool for Renyi Entropy, Loschmidt Echo, and Magnetization Squared and Some Common Cases.
+# Qurry 🍛 - The Measuring Tool for Renyi Entropy, Loschmidt Echo, and Magnetization Squared, The Library of Some Common Cases.
 
 This is a tool to measure the Renyi entropy, Loschmidt Echo, and Magnetization Squared of given wave function. Running on **IBM Qiskit** with the function from constructing experiment object to pending the jobs to IBMQ automatically.
 
@@ -6,7 +6,7 @@ This is a tool to measure the Renyi entropy, Loschmidt Echo, and Magnetization S
 
 ## Configurate Environment
 
-- **`Python 3.9.7+`** installed by Anaconda
+- **`Python 3.9.7+` installed by Anaconda**
   - on
     - **Ubuntu 20.04 LTS/18.04 LTS** on `x86_64` **(recommended)**
     - **Windows 10/11** on `x86_64`
@@ -61,7 +61,6 @@ It's similar to `qurrent`.
 
 ## The Library of Some Common Case & Other tools
 
-s
 ### `case`
 
 Some examples for the experiments.

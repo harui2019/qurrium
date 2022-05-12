@@ -52,7 +52,7 @@ from ..tool import (
     keyTupleLoads,
 )
 
-# Qurry V0.3.1 - a Qiskit Macro
+# Qurry V0.3.0 - a Qiskit Macro
 
 
 def defaultCircuit(numQubit: int) -> QuantumCircuit:
@@ -1551,6 +1551,7 @@ class Qurry:
         print(f"| Naming...")
         indexRename = 1
         rjustLen = 3
+        expsName = f'{expsName}.{self.shortName}'
         if dataRetrieve:
             immutableName = expsName
             exportLocation = Path(saveLocation) / immutableName

@@ -3,7 +3,6 @@ from qiskit import (
 from qiskit.providers.ibmq.managed import ManagedResults
 from qiskit.visualization import *
 
-from qiskit.quantum_info import random_unitary
 from qiskit.result import Result
 
 import numpy as np
@@ -13,13 +12,12 @@ from qiskit.visualization.counts_visualization import hamming_distance
 
 from .qurrech import EchoListen
 from ..qurry import (
-    Qurry,
     expsConfig,
     expsBase,
     expsConfigMulti,
     expsHint
 )
-# EchoListen V0.3.1 - Measuring Loschmidt Echo - Qurrech
+# EchoListen V0.3.0 - Measuring Loschmidt Echo - Qurrech
 
 _expsConfig = expsConfig(
     name="qurrechConfig",
@@ -58,7 +56,7 @@ _expsHint = expsHint(
 
 
 class hadamardTest(EchoListen):
-    """hadamardTest V0.3.1 of qurrech
+    """hadamardTest V0.3.0 of qurrech
     """
 
     # Initialize
@@ -251,16 +249,20 @@ class hadamardTest(EchoListen):
         expsName: str = 'exps',
         **otherArgs: any
     ) -> dict:
-        """
+        """The measure function which is the customized version of `.output`.
 
         Args:
-            wave (Union[QuantumCircuit, int, None], optional):
+            wave1, wave2 (Union[QuantumCircuit, int, None], optional): 
                 The index of the wave function in `self.waves` or add new one to calaculation,
                 then choose one of waves as the experiment material.
                 If input is `QuantumCircuit`, then add and use it.
                 If input is the key in `.waves`, then use it.
                 If input is `None` or something illegal, then use `.lastWave'.
                 Defaults to None.
+
+            times (int, optional): 
+                The number of test to count ensemble average.
+                Defaults to `100`.
 
             expsName (str, optional):
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
