@@ -260,7 +260,7 @@ def expsConfigMulti(
 
         # Other arguments of experiment
         # Multiple jobs shared
-        'dataRetrieve': False,
+        'isRetrieve': False,
         'expsName': 'exps',
 
         # Multiple job dedicated
@@ -310,7 +310,7 @@ def expsConfigMulti(
 
             # Other arguments of experiment
             # Multiple jobs shared
-            'dataRetrieve': False,
+            'isRetrieve': False,
             'expsName': 'exps',
 
             # Multiple job dedicated
@@ -1035,6 +1035,19 @@ class Qurry:
                 If `expID == None`, then export the experiment which id is`.IDNow`.
                 Defaults to `None`.
 
+            additionName (Optional[str], optional):
+                Extend file name.
+
+                ```
+                filename = (
+                    Path(f"{additionName}.{self.exps[legacyId]['expsName']}.expId={legacyId}.json")
+                ) if additionName else (
+                    Path(f"{self.exps[legacyId]['expsName']}.expId={legacyId}.json")
+                )
+                self.exps[legacyId]['filename'] = filename
+                ```
+                Defaults to `None`.
+
             saveLocation (Optional[Union[Path, str]], optional):
                 Where to save the export content as `json` file.
                 If `saveLocation == None`, then cancelled the file to be exported.
@@ -1435,7 +1448,7 @@ class Qurry:
         # Other arguments of experiment
         # Multiple jobs shared
         jobsType: str = "multiJobs",
-        dataRetrieve: Optional[Union[dict[any], bool]] = None,
+        isRetrieve: bool = False,
         expsName: str = 'exps',
         independentExports: bool = False,
         # `writeLegacy`
@@ -1468,7 +1481,7 @@ class Qurry:
 
             # Other arguments of experiment
             # Multiple jobs shared
-            'dataRetrieve': False,
+            'isRetrieve': False,
             'expsName': 'exps',
 
             # Multiple job dedicated
@@ -1482,7 +1495,7 @@ class Qurry:
         ```
 
         Args:
-            # ID of experiment.
+            # List of experiments.
 
             configList (list):
                 The list of configuration of multiple experiment.
@@ -1514,9 +1527,13 @@ class Qurry:
                 }`.
 
             # Other arguments of experiment
-            dataRetrieve (Optional[Union[dict[any], bool]], optional):
-                Data to collect results from IBMQ via `IBMQJobManager`.
-                Defaults to `None`.
+            jobType (str, optional):
+                The type name of the jobs.
+                Defaults to `"multiJobs"`.
+
+            isRetrieve (bool, optional):
+                Whether to retrieve the experiment date.
+                Defaults to `False`.
 
             expsName (str, optional):
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
@@ -1527,14 +1544,23 @@ class Qurry:
                 Making independent output for some data will export in `multiJobs` or `powerJobs`.
                 Defaults to `False`.
 
+            additionName (Optional[str], optional):
+                Extend file name.
+
+                ```
+                filename = (
+                    Path(f"{additionName}.{self.exps[legacyId]['expsName']}.expId={legacyId}.json")
+                ) if additionName else (
+                    Path(f"{self.exps[legacyId]['expsName']}.expId={legacyId}.json")
+                )
+                self.exps[legacyId]['filename'] = filename
+                ```
+                Defaults to `None`.
+
             saveLocation (Optional[Union[Path, str]], optional):
                 Where to save the export content as `json` file.
                 If `saveLocation == None`, then cancelled the file to be exported.
                 Defaults to `None`.
-
-            name (str, optional):
-                The first name of the file.
-                Export as showing in example.
 
         - example of file.name:
 
@@ -1552,7 +1578,7 @@ class Qurry:
         indexRename = 1
         rjustLen = 3
         expsName = f'{expsName}.{self.shortName}'
-        if dataRetrieve:
+        if isRetrieve:
             immutableName = expsName
             exportLocation = Path(saveLocation) / immutableName
             print(
@@ -1597,9 +1623,9 @@ class Qurry:
 
         # dataRetrieve
         powerJobID = None
-        if isinstance(dataRetrieve, str):
-            powerJobID = dataRetrieve
-        elif isinstance(dataRetrieve, dict):
+        if isinstance(isRetrieve, str):
+            powerJobID = isRetrieve
+        elif isinstance(isRetrieve, dict):
             ...
 
         # gitignore
@@ -1625,7 +1651,7 @@ class Qurry:
 
                 # Other arguments of experiment
                 # Multiple jobs shared
-                'dataRetrieve': dataRetrieve,
+                'isRetrieve': isRetrieve,
                 'expsName': immutableName,
 
                 # Multiple job dedicated
@@ -1688,11 +1714,53 @@ class Qurry:
     def multiOutput(
         self,
         configList: list = [],
+        shots: int = 1024,
+        backend: Backend = Aer.get_backend('qasm_simulator'),
+
+        expsName: str = 'exps',
+        independentExports: bool = False,
+        additionName: Optional[str] = None,
+        saveLocation: Union[Path, str] = Path('./'),
+
         **allArgs: any,
     ) -> dict[any]:
         """Make multiple jobs output.
 
-        Args:
+        Args:        
+            configList (list):
+                The list of configuration of multiple experiment.
+
+            shots (int, optional):
+                Shots of the job.
+                Defaults to `1024`.
+
+            backend (Backend, optional):
+                The quantum backend.
+                Defaults to `Aer.get_backend('qasm_simulator')`.
+
+            # Other arguments of experiment
+            isRetrieve (bool, optional):
+                Whether to retrieve the experiment date.
+                Defaults to `False`.
+
+            expsName (str, optional):
+                Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
+                This name is also used for creating a folder to store the exports.
+                Defaults to `'exps'`.
+
+            independentExports (bool, optional):
+                Making independent output for some data will export in `multiJobs` or `powerJobs`.
+                Defaults to `False`.
+
+            saveLocation (Optional[Union[Path, str]], optional):
+                Where to save the export content as `json` file.
+                If `saveLocation == None`, then cancelled the file to be exported.
+                Defaults to `None`.
+
+            name (str, optional):
+                The first name of the file.
+                Export as showing in example.
+
             allArgs: all arguments will handle by `.paramsControlMulti()` and export as specific format.
 
         Returns:
@@ -1701,6 +1769,14 @@ class Qurry:
         start_time = time.time()
         argsMulti = self.paramsControlMulti(
             configList=configList,
+            shots=shots,
+            backend=backend,
+
+            expsName=expsName,
+            independentExports=independentExports,
+            additionName=additionName,
+            saveLocation=saveLocation,
+
             **allArgs
         )
 
@@ -1801,17 +1877,22 @@ class Qurry:
         Args:
             exportName (Union[Path, str]):
                 The folder name of the job wanted to import.
+
             isRetrieve (bool, optional):
-                Whether to collect results from IBMQ via `IBMQJobManager`.
-                Defaults to False.
+                Whether to retrieve the experiment date.
+                Defaults to `True`.
+
             powerJobID (str, optional):
                 Job Id. Defaults to ''.
+
             provider (Optional[AccountProvider], optional):
-                The provider of the backend used by job.
-                Defaults to None.
-            saveLocation (Union[Path, str], optional):
-                The location of the folder of the job wanted to import.
-                Defaults to './'.
+                :cls:`AccountProvider` of current backend for running :cls:`IBMQJobManager`.
+                Defaults to `None`.
+
+            saveLocation (Optional[Union[Path, str]], optional):
+                Where to save the export content as `json` file.
+                If `saveLocation == None`, then cancelled the file to be exported.
+                Defaults to `None`.
 
             allArgs: all arguments will handle by `.paramsControlMulti()` and export as specific format.
 
@@ -1825,7 +1906,7 @@ class Qurry:
         argsMulti = self.paramsControlMulti(
             saveLocation=saveLocation,
             expsName=exportName,
-            dataRetrieve=True,
+            isRetrieve=True,
             **allArgs,
         )
         dataDummyJobs: dict[any] = {}
