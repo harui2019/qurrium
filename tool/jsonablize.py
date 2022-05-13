@@ -2,13 +2,13 @@ import json
 
 
 def valueParse(v: any) -> any:
-    """[summary]
+    """Make value json-allowable. If a value is not allowed by json, them return its '__str__'.
 
     Args:
-        v (any): [description]
+        v (any): Value.
 
     Returns:
-        any: [description]
+        any: Json-allowable value.
     """
 
     try:
@@ -19,15 +19,15 @@ def valueParse(v: any) -> any:
 
 
 def keyParse(k: any) -> any:
-    """_summary_
+    """Make key json-allowable. If a value is not allowed by json, them return its '__str__'.
 
     str, int, float, bool or None
 
     Args:
-        o (any): _description_
+        o (any): Key.
 
     Returns:
-        any: _description_
+        any: Json-allowable key.
     """
 
     if isinstance(k, (str, int, float, bool)):
@@ -41,13 +41,13 @@ def keyParse(k: any) -> any:
 
 
 def Parse(o: any) -> any:
-    """[summary]
+    """Make a python object json-allowable.
 
     Args:
-        o (any): [description]
+        o (any): Python object.
 
     Returns:
-        any: [description]
+        any: Json-allowable python object.
     """
 
     if isinstance(o, list):
@@ -80,13 +80,13 @@ def quickJSONExport(
 
 
 def keyTupleLoads(o: dict) -> dict:
-    """_summary_
+    """If a dictionary with string keys which read from json may originally be a python tuple, then transplies as a tuple.
 
     Args:
-        o (dict): _description_
+        o (dict): A dictionary with string keys which read from json.
 
     Returns:
-        dict: _description_
+        dict: Result which turns every possible string keys returning to 'tuple'.
     """
 
     if isinstance(o, dict):

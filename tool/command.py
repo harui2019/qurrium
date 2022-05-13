@@ -1,6 +1,5 @@
 import os
 
-
 def auto_cmd(
     cmd: str = ""
 ) -> None:

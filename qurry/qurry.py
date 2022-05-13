@@ -323,7 +323,7 @@ def expsConfigMulti(
         },
     )
 
-
+# TODO: make hint available in qurry
 def expsHint(
     name: str = 'qurryBaseHint',
     expsConfig: dict = expsBase(),
@@ -1362,7 +1362,7 @@ class Qurry:
         """
         print(
             f"+"+"-"*20+"\n" +
-            f"| Calculating {self.__name__}...\n"
+            f"| Calculating {self.__name__}..."
         )
 
         result = (self.retrieve if dataRetrieve != None else self.run)(
@@ -1370,7 +1370,7 @@ class Qurry:
             **allArgs,
         )
         argsNow = self.now
-        print(f"| name: {self.now.expsName}, id: {self.IDNow}")
+        print(f"| name: {self.now.expsName}\n"+f"| id: {self.IDNow}")
 
         counts, quantity = self.quantity(
             **argsNow,
@@ -1783,7 +1783,7 @@ class Qurry:
         print(f"| MultiOutput {self.__name__} Start...\n"+f"+"+"-"*20)
         numConfig = len(argsMulti.configList)
         for config in argsMulti.configList:
-            print(f"| index={config['expIndex']}/{numConfig} start ...")
+            print(f"| index={config['expIndex']}/{numConfig}")
             quantity = self.output(**config)
 
             # legacy writer
@@ -1820,8 +1820,6 @@ class Qurry:
             argsMulti.tagMapQuantity = self._legacyTagGuider(
                 argsMulti.tagMapQuantity, legacyTag, quantity
             )
-            print(
-                f"| index={config['expIndex']}/{numConfig} end ...\n"+f"+"+"-"*20)
 
         print(f"| Export...")
         argsMulti['gitignore'].ignore('*.json')
@@ -2012,8 +2010,9 @@ class Qurry:
         allTranspliedCircs = {}
 
         print(f"| PowerPending {self.__name__} Start...\n"+f"+"+"-"*20)
+        numConfig = len(argsMulti.configList)
         for config in argsMulti.configList:
-            print(f"| index={config['expIndex']} start...")
+            print(f"| index={config['expIndex']}/{numConfig}")
             circuitSet = self.circuitTranspiler(**config)
             allTranspliedCircs[self.IDNow] = circuitSet
 
@@ -2056,7 +2055,6 @@ class Qurry:
             argsMulti.tagMapIndex = self._legacyTagGuider(
                 argsMulti.tagMapIndex, 'all', config['expIndex']
             )
-            print(f"| index={config['expIndex']} end...\n"+f"+"+"-"*20)
 
         print(f"| Preparing jobs pending ...")
         argsMulti['gitignore'].ignore('*.json')
@@ -2218,8 +2216,9 @@ class Qurry:
         powerResult: Result = powerResultRaw.combine_results()
 
         idxNum = 0
+        numConfig = len(dataPowerJobs['listExpID'])
         for expIDKey in dataPowerJobs['listExpID']:
-            print(f"| index={idxNum} start...")
+            print(f"| index={idxNum}/{numConfig}")
             self.exps[expIDKey] = self.readLegacy(
                 expID=expIDKey,
                 saveLocation=Path(dataPowerJobs['exportLocation']),
@@ -2310,7 +2309,7 @@ class Qurry:
         """Reset the measurement and release memory.
 
         Args:
-            security (bool, optional): Security for reset. Defaults to False.
+            security (bool, optional): Security for reset. Defaults to `False`.
         """
 
         if security and isinstance(security, bool):
@@ -2320,8 +2319,8 @@ class Qurry:
                 "The measurement has reset and release memory allocating.")
         else:
             warnings.warn(
-                "Reset does not execute to prevent reset accidentally, " +
-                "if you are sure to do it, then use '.reset(security=True)'."
+                "Reset does not execute to prevent executing accidentally, " +
+                "if you are sure to do this, then use '.reset(security=True)'."
             )
 
     def __repr__(self) -> str:
