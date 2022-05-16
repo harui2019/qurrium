@@ -1579,7 +1579,6 @@ class Qurry:
         print(f"| Naming...")
         indexRename = 1
         rjustLen = 3
-        expsName = f'{expsName}.{self.shortName}'
         if isRetrieve:
             immutableName = expsName
             exportLocation = Path(saveLocation) / immutableName
@@ -1589,6 +1588,7 @@ class Qurry:
             )
 
         else:
+            expsName = f'{expsName}.{self.shortName}'
             rjustLen = 3 if int(np.log10(indexRename)) + \
                 2 <= 3 else int(np.log10(indexRename))+2
             immutableName = f"{expsName}.{str(indexRename).rjust(rjustLen, '0')}"
