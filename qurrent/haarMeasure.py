@@ -2,16 +2,14 @@ from qiskit import (
     QuantumRegister, ClassicalRegister, QuantumCircuit)
 from qiskit.providers.ibmq.managed import ManagedResults
 from qiskit.visualization import *
-
+from qiskit.visualization.counts_visualization import hamming_distance
 from qiskit.quantum_info import random_unitary
 from qiskit.result import Result
 
 import numpy as np
 import warnings
 from typing import Union, Optional, Callable, List
-from qiskit.visualization.counts_visualization import hamming_distance
-
-from tqdm import trange, tqdm
+import time
 
 from .qurrent import EntropyMeasureV3
 from ..qurry import (
@@ -207,11 +205,9 @@ class haarMeasureV3(EntropyMeasureV3):
             [random_unitary(2) for _ in range(numQubits)]
             for i in range(argsNow.times)]
 
-        progressBarA = trange(
-            argsNow.times,
-            desc=f"| Build circuit '{argsNow.wave}'",
-        )
-        for i in progressBarA:
+        ABegin = time.time()
+        print(f"| Build circuit: {argsNow.wave}", end="\r")
+        for i in range(argsNow.times):
             qFunc1 = QuantumRegister(numQubits, 'q1')
             cMeas1 = ClassicalRegister(numQubits, 'c1')
             qcExp1 = QuantumCircuit(qFunc1, cMeas1)
@@ -229,8 +225,13 @@ class haarMeasureV3(EntropyMeasureV3):
                 qcExp1.measure(qFunc1[j], cMeas1[j])
 
             qcList.append(qcExp1)
-            progressBarA.set_description(
-                f"| Build circuit '{argsNow.wave}'")
+            print(
+                f"| Build circuit: {argsNow.wave}" +
+                f" - {i+1}/{argsNow.times} - {round(time.time() - ABegin, 3)}s.", end="\r")
+        print(
+            f"| Circuit completed: {argsNow.wave}" +
+            f" - {i+1}/{argsNow.times} - {round(time.time() - ABegin, 3)}s." +
+            " "*30)
 
         return qcList
 
@@ -343,15 +344,14 @@ class haarMeasureV3(EntropyMeasureV3):
         entropy = -100
         purityCellList = []
 
-        progressBarOverlap = trange(
-            times,
-            desc=f"| Calculating overlap ...",
-        )
-        for i in progressBarOverlap:
+        Begin = time.time()
+        print(f"| Calculating overlap ...", end="\r")
+        for i in range(times):
             purityCell = 0
             t1 = resultIdxList[i]
-            progressBarOverlap.set_description(
-                f"| Calculating overlap {t1} and {t1}")
+            print(
+                f"| Calculating overlap {t1} and {t1}" +
+                f" - {i+1}/{times} - {round(time.time() - Begin, 3)}s.", end="\r")
             allMeas1 = result.get_counts(t1)
 
             allMeasUnderDegree = dict.fromkeys(
@@ -360,17 +360,23 @@ class haarMeasureV3(EntropyMeasureV3):
                 allMeasUnderDegree[kMeas[:degree]] += allMeas1[kMeas]
             numAllMeasUnderDegree = len(allMeasUnderDegree)
 
-            progressBarOverlap.set_description(
-                f"| Calculating overlap {t1} and {t1} by summarize {numAllMeasUnderDegree**2} values.")
-
+            print(
+                f"| Calculating overlap {t1} and {t1} " +
+                f"by summarize {numAllMeasUnderDegree**2} values - {i+1}/{times}" +
+                f" - {round(time.time() - Begin, 3)}s.", end="\r")
             for sAi, sAiMeas in allMeasUnderDegree.items():
                 for sAj, sAjMeas in allMeasUnderDegree.items():
                     purityCell += cls.ensembleCell(
                         sAi, sAiMeas, sAj, sAjMeas, degree, shots)
 
             purityCellList.append(purityCell)
-            progressBarOverlap.set_description(
-                f"| Calculating overlap end ...")
+            print(
+                f"| Calculating overlap end - {i+1}/{times}" +
+                f" - {round(time.time() - Begin, 3)}s." +
+                " "*30, end="\r")
+        print(
+            f"| Calculating overlap end - {i+1}/{times}" +
+            f" - {round(time.time() - Begin, 3)}s.")
 
         purity = np.mean(purityCellList)
         entropy = -np.log2(purity)

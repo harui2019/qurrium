@@ -2,16 +2,14 @@ from qiskit import (
     QuantumRegister, ClassicalRegister, QuantumCircuit)
 from qiskit.providers.ibmq.managed import ManagedResults
 from qiskit.visualization import *
-
+from qiskit.visualization.counts_visualization import hamming_distance
 from qiskit.quantum_info import random_unitary
 from qiskit.result import Result
 
 import numpy as np
 import warnings
 from typing import Union, Optional, Callable, List
-from qiskit.visualization.counts_visualization import hamming_distance
-
-from tqdm import trange, tqdm
+import time
 
 from .qurrech import EchoListen
 from ..qurry import (
@@ -203,11 +201,9 @@ class haarMeasure(EchoListen):
             [random_unitary(2) for _ in range(numQubits)]
             for i in range(argsNow.times)]
 
-        progressBarA = trange(
-            argsNow.times,
-            desc=f"| Build circuit A '{argsNow.wave1}'",
-        )
-        for i in progressBarA:
+        ABegin = time.time()
+        print(f"| Build circuit A: {argsNow.wave1}", end="\r")
+        for i in range(argsNow.times):
             qFunc1 = QuantumRegister(numQubits, 'q1')
             cMeas1 = ClassicalRegister(numQubits, 'c1')
             qcExp1 = QuantumCircuit(qFunc1, cMeas1)
@@ -225,14 +221,17 @@ class haarMeasure(EchoListen):
                 qcExp1.measure(qFunc1[j], cMeas1[j])
 
             qcList.append(qcExp1)
-            progressBarA.set_description(
-                f"| Build circuit A '{argsNow.wave1}'")
+            print(
+                f"| Build circuit A: {argsNow.wave1}" +
+                f" - {i+1}/{argsNow.times} - {round(time.time() - ABegin, 3)}s.", end="\r")
+        print(
+            f"| Circuit completed A: {argsNow.wave1}" +
+            f" - {i+1}/{argsNow.times} - {round(time.time() - ABegin, 3)}s." +
+            " "*30)
 
-        progressBarB = trange(
-            argsNow.times,
-            desc=f"| Build circuit B '{argsNow.wave2}'",
-        )
-        for i in progressBarB:
+        BBegin = time.time()
+        print(f"| Build circuit B: {argsNow.wave2}", end="\r")
+        for i in range(argsNow.times):
             qFunc2 = QuantumRegister(numQubits, 'q1')
             cMeas2 = ClassicalRegister(numQubits, 'c1')
             qcExp2 = QuantumCircuit(qFunc2, cMeas2)
@@ -250,8 +249,13 @@ class haarMeasure(EchoListen):
                 qcExp2.measure(qFunc2[j], cMeas2[j])
 
             qcList.append(qcExp2)
-            progressBarB.set_description(
-                f"| Build circuit B '{argsNow.wave2}'")
+            print(
+                f"| Build circuit B: {argsNow.wave2}" +
+                f" - {i+1}/{argsNow.times} - {round(time.time() - BBegin, 3)}s.", end="\r")
+        print(
+            f"| Circuit completed B: {argsNow.wave2}" +
+            f" - {i+1}/{argsNow.times} - {round(time.time() - BBegin, 3)}s." +
+            " "*30)
 
         return qcList
 
@@ -362,32 +366,38 @@ class haarMeasure(EchoListen):
         echo = -100
         echoCellList = []
 
-        progressBarOverlap = trange(
-            times,
-            desc=f"| Calculating overlap ...",
-        )
-        for i in progressBarOverlap:
+        Begin = time.time()
+        print(f"| Calculating overlap ...", end="\r")
+        for i in range(times):
             echoCell = 0
             t1 = resultIdxList[i]
             t2 = resultIdxList[i+times]
-            progressBarOverlap.set_description(
-                f"| Calculating overlap {t1} and {t2}")
+            print(
+                f"| Calculating overlap {t1} and {t2}" +
+                f" - {i+1}/{times} - {round(time.time() - Begin, 3)}s.", end="\r")
             allMeas1 = result.get_counts(t1)
             allMeas2 = result.get_counts(t2)
             numAllMeas1 = len(allMeas1)
             numAllMeas2 = len(allMeas2)
             aNum = len(list(allMeas1.keys())[0])
 
-            progressBarOverlap.set_description(
-                f"| Calculating overlap {t1} and {t2} by summarize {numAllMeas1*numAllMeas2} values.")
+            print(
+                f"| Calculating overlap {t1} and {t2} " +
+                f"by summarize {numAllMeas1*numAllMeas2} values - {i+1}/{times}" +
+                f" - {round(time.time() - Begin, 3)}s.", end="\r")
             for sAi, sAiMeas in allMeas1.items():
                 for sAj, sAjMeas in allMeas2.items():
                     echoCell += cls.ensembleCell(
                         sAi, sAiMeas, sAj, sAjMeas, aNum, shots)
 
             echoCellList.append(echoCell)
-            progressBarOverlap.set_description(
-                f"| Calculating overlap end ...")
+            print(
+                f"| Calculating overlap end - {i+1}/{times}" +
+                f" - {round(time.time() - Begin, 3)}s." +
+                " "*30, end="\r")
+        print(
+            f"| Calculating overlap end - {i+1}/{times}" +
+            f" - {round(time.time() - Begin, 3)}s.")
 
         echo = np.mean(echoCellList)
 

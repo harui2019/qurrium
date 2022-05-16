@@ -324,6 +324,8 @@ def expsConfigMulti(
     )
 
 # TODO: make hint available in qurry
+
+
 def expsHint(
     name: str = 'qurryBaseHint',
     expsConfig: dict = expsBase(),
@@ -1783,7 +1785,7 @@ class Qurry:
         print(f"| MultiOutput {self.__name__} Start...\n"+f"+"+"-"*20)
         numConfig = len(argsMulti.configList)
         for config in argsMulti.configList:
-            print(f"| index={config['expIndex']}/{numConfig}")
+            print(f"| index={config['expIndex']}/{numConfig} - {round(time.time() - start_time, 2)}s")
             quantity = self.output(**config)
 
             # legacy writer
@@ -1860,7 +1862,8 @@ class Qurry:
         argsMulti['gitignore'].export(argsMulti.exportLocation)
         gc.collect()
         print(
-            f"| MultiOutput {self.__name__} End in {time.time() - start_time} sec ...\n"+f"+"+"-"*20)
+            f"| MultiOutput {self.__name__} End in {round(time.time() - start_time, 2)} sec ...\n" +
+            f"+"+"-"*20)
 
         return dataMultiJobs
 
@@ -2012,7 +2015,7 @@ class Qurry:
         print(f"| PowerPending {self.__name__} Start...\n"+f"+"+"-"*20)
         numConfig = len(argsMulti.configList)
         for config in argsMulti.configList:
-            print(f"| index={config['expIndex']}/{numConfig}")
+            print(f"| index={config['expIndex']}/{numConfig} - {round(time.time() - start_time, 2)}s")
             circuitSet = self.circuitTranspiler(**config)
             allTranspliedCircs[self.IDNow] = circuitSet
 
@@ -2136,7 +2139,8 @@ class Qurry:
         argsMulti['gitignore'].export(argsMulti.exportLocation)
         gc.collect()
         print(
-            f"| PowerPending {self.__name__} End in {time.time() - start_time} sec ...\n"+f"+"+"-"*20)
+            f"| PowerPending {self.__name__} End in {round(time.time() - start_time, 2)} sec ...\n"+
+            f"+"+"-"*20)
 
         return dataPowerJobs
 
@@ -2218,7 +2222,7 @@ class Qurry:
         idxNum = 0
         numConfig = len(dataPowerJobs['listExpID'])
         for expIDKey in dataPowerJobs['listExpID']:
-            print(f"| index={idxNum}/{numConfig}")
+            print(f"| index={idxNum}/{numConfig} - {round(time.time() - start_time, 2)}s")
             self.exps[expIDKey] = self.readLegacy(
                 expID=expIDKey,
                 saveLocation=Path(dataPowerJobs['exportLocation']),
@@ -2295,7 +2299,7 @@ class Qurry:
         argsMulti['gitignore'].export(Path(dataPowerJobs['exportLocation']))
         gc.collect()
         print(
-            f"| PowerOutput {self.__name__} End in {time.time() - start_time} sec ...\n"+f"+"+"-"*20)
+            f"| PowerOutput {self.__name__} End in {round(time.time() - start_time, 2)} sec ...\n"+f"+"+"-"*20)
 
         return dataPowerJobs
 

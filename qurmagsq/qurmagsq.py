@@ -1,18 +1,14 @@
 from qiskit import (
-    QuantumRegister,
-    ClassicalRegister,
-    QuantumCircuit
-)
+    QuantumRegister, ClassicalRegister, QuantumCircuit)
 from qiskit.result import Result
 from qiskit.providers.ibmq.managed import ManagedResults
 
 import numpy as np
 import warnings
 from math import pi
-from typing import Union, Optional
-
-from tqdm import trange, tqdm
 from itertools import permutations
+import time
+from typing import Union, Optional
 
 from ..qurry import (
     Qurry,
@@ -128,7 +124,7 @@ class MagnetSquare(Qurry):
             except KeyError as e:
                 warnings.warn(f"'{e}', use '.lastWave' as key")
                 wave = self.lastWave
-                
+
         numQubits = self.waves[wave].num_qubits
 
         return {
@@ -154,15 +150,16 @@ class MagnetSquare(Qurry):
         numQubits = self.waves[argsNow.wave].num_qubits
 
         qcExpList = []
-        progressBarA = tqdm(
-            [b for b in permutations([a for a in range(numQubits)], 2)],
-            desc=f"| Build circuits '{argsNow.wave}'",
-        )
-        for i, j in progressBarA:
+        permut = [b for b in permutations([a for a in range(numQubits)], 2)]
+        numPermut = len(permut)
+        idxPermut = 0
+        ABegin = time.time()
+        print(f"| Build circuit A: {argsNow.wave}", end="\r")
+        for i, j in permut:
             qFunc = QuantumRegister(numQubits, 'q1')
             cMeas = ClassicalRegister(2, 'c1')
             qcExp = QuantumCircuit(qFunc, cMeas)
-            
+
             qcExp.append(self.waveInstruction(
                 wave=argsNow.wave,
                 runBy=argsNow.runBy,
@@ -172,8 +169,16 @@ class MagnetSquare(Qurry):
             qcExp.barrier()
             qcExp.measure(qFunc[i], cMeas[0])
             qcExp.measure(qFunc[j], cMeas[1])
-            
+
             qcExpList.append(qcExp)
+            print(
+                f"| Build circuit: {i} x {j}" +
+                f" - {idxPermut}/{numPermut} - {round(time.time() - ABegin, 3)}s.", end="\r")
+            idxPermut += 1
+        print(
+            f"| Circuit completed: {argsNow.wave}" +
+            f" - {idxPermut}/{numPermut} - {round(time.time() - ABegin, 3)}s." +
+            " "*30)
 
         return qcExpList
 
@@ -201,7 +206,7 @@ class MagnetSquare(Qurry):
             tuple[dict, dict]:
                 Counts, purity, entropy of experiment.
         """
-        
+
         if resultIdxList == None:
             resultIdxList = [i for i in range(numQubit*(numQubit-1))]
         elif isinstance(resultIdxList, list):
@@ -219,34 +224,40 @@ class MagnetSquare(Qurry):
         counts = [result.get_counts(i) for i in resultIdxList]
         magnetsq = -100
         magnetsqCellList = []
-        
-        progressBarMagnetSq = tqdm(
-            resultIdxList,
-            desc=f"| Calculating magnetsq ...",
-        )
-        for i in progressBarMagnetSq:
+
+        length = len(resultIdxList)
+        idx = 0
+        Begin = time.time()
+        print(f"| Calculating magnetsq ...", end="\r")
+        for i in resultIdxList:
             magnetsqCell = 0
             checkSum = 0
-            progressBarMagnetSq.set_description(
-                f"| Calculating magnetsq on {i}")
+            print(
+                f"| Calculating magnetsq on {i}" +
+                f" - {idx}/{length} - {round(time.time() - Begin, 3)}s.", end="\r")
             allMeas = result.get_counts(i)
-            
+
             for bits in allMeas:
                 checkSum += allMeas[bits]
                 if (bits == '00') or (bits == '11'):
                     magnetsqCell += allMeas[bits]/shots
                 else:
-                    magnetsqCell -= allMeas[bits]/shots 
-            
+                    magnetsqCell -= allMeas[bits]/shots
+
             if checkSum != shots:
                 raise ValueError(
                     f"'{allMeas}' may not be contained by '00', '11', '01', '10'.")
-                
+
             magnetsqCellList.append(magnetsqCell)
-            progressBarMagnetSq.set_description(
-                f"| Calculating magnetsq end ...")
-        print(sum(magnetsqCellList))
-            
+            print(
+                f"| Calculating magnetsq end - {idx}/{length}" +
+                f" - {round(time.time() - Begin, 3)}s." +
+                " "*30, end="\r")
+            idx += 1
+        print(
+            f"| Calculating magnetsq end - {idx}/{length}" +
+            f" - {round(time.time() - Begin, 3)}s.")
+
         magnetsq = (sum(magnetsqCellList) + numQubit)/(numQubit**2)
 
         quantity = {
@@ -255,7 +266,7 @@ class MagnetSquare(Qurry):
         return counts, quantity
 
     """ Main Process: Main Control"""
-    
+
     def measure(
         self,
         wave: Union[QuantumCircuit, any, None] = None,
@@ -263,7 +274,7 @@ class MagnetSquare(Qurry):
         **otherArgs: any
     ) -> dict:
         """
-        
+
         Args:
             wave (Union[QuantumCircuit, int, None], optional):
                 The index of the wave function in `self.waves` or add new one to calaculation,
@@ -289,4 +300,3 @@ class MagnetSquare(Qurry):
             expsName=expsName,
             **otherArgs,
         )
-
