@@ -31,7 +31,7 @@ import json
 import gc
 import warnings
 import time
-from tqdm import trange, tqdm
+import threading
 
 from math import pi
 from uuid import uuid4
@@ -50,6 +50,7 @@ from ..tool import (
     jsonablize,
     quickJSONExport,
     keyTupleLoads,
+    Gajima,
 )
 
 # Qurry V0.3.0 - a Qiskit Macro
@@ -1077,29 +1078,35 @@ class Qurry:
         )
         self.exps[legacyId]['filename'] = filename
 
-        if isinstance(saveLocation, (Path, str)):
-            saveLocParts = Path(saveLocation).parts
-            saveLoc = Path(saveLocParts[0]) if len(
-                saveLocParts) > 0 else Path('./')
-            for p in saveLocParts[1:]:
-                saveLoc /= p
+        with Gajima(
+            carousel=[('dots', 15, 6), 'spinner'],
+            prefix="| ",
+            desc="Writing Legacy",
+        ) as gajima:
+            if isinstance(saveLocation, (Path, str)):
+                saveLocParts = Path(saveLocation).parts
+                saveLoc = Path(saveLocParts[0]) if len(
+                    saveLocParts) > 0 else Path('./')
+                for p in saveLocParts[1:]:
+                    saveLoc /= p
 
-            if not os.path.exists(saveLoc):
-                os.mkdir(saveLoc)
+                if not os.path.exists(saveLoc):
+                    os.mkdir(saveLoc)
 
-            self.exps[legacyId]['saveLocation'] = saveLoc
-            legacyExport = jsonablize(self.exps[legacyId])
-            with open((saveLoc / filename), 'w+', encoding='utf-8') as Legacy:
-                json.dump(legacyExport, Legacy, indent=2, ensure_ascii=False)
+                self.exps[legacyId]['saveLocation'] = saveLoc
+                legacyExport = jsonablize(self.exps[legacyId])
+                with open((saveLoc / filename), 'w+', encoding='utf-8') as Legacy:
+                    json.dump(legacyExport, Legacy,
+                              indent=2, ensure_ascii=False)
 
-        elif saveLocation == None:
-            legacyExport = jsonablize(self.exps[legacyId])
+            elif saveLocation == None:
+                legacyExport = jsonablize(self.exps[legacyId])
 
-        else:
-            legacyExport = jsonablize(self.exps[legacyId])
-            warnings.warn(
-                "'saveLocation' is not the type of 'str' or 'Path', " +
-                "so export cancelled.")
+            else:
+                legacyExport = jsonablize(self.exps[legacyId])
+                warnings.warn(
+                    "'saveLocation' is not the type of 'str' or 'Path', " +
+                    "so export cancelled.")
 
         return legacyExport
 
@@ -1200,23 +1207,28 @@ class Qurry:
         )
 
         figTranspile = None
-        if isinstance(circs, QuantumCircuit):
-            figTranspile = [self.drawCircuit(
-                expID=None,
-                circuitSet=circs,
-                drawMethod=argsNow.drawMethod,
-                decompose=argsNow.decompose,
-            )]
+        with Gajima(
+            carousel=[('dots', 15, 6), 'spinner'],
+            prefix="| ",
+            desc="Transpile circuits",
+        ) as gajima:
+            if isinstance(circs, QuantumCircuit):
+                figTranspile = [self.drawCircuit(
+                    expID=None,
+                    circuitSet=circs,
+                    drawMethod=argsNow.drawMethod,
+                    decompose=argsNow.decompose,
+                )]
 
-        elif isinstance(circs, list):
-            circuitSetLength = len(circs)
-            figTranspile = [self.drawCircuit(
-                expID=None,
-                circuitSet=circs,
-                whichCircuit=i,
-                drawMethod=argsNow.drawMethod,
-                decompose=argsNow.decompose,
-            ) for i in range(circuitSetLength)]
+            elif isinstance(circs, list):
+                circuitSetLength = len(circs)
+                figTranspile = [self.drawCircuit(
+                    expID=None,
+                    circuitSet=circs,
+                    whichCircuit=i,
+                    drawMethod=argsNow.drawMethod,
+                    decompose=argsNow.decompose,
+                ) for i in range(circuitSetLength)]
 
         self.exps[self.IDNow]['figTranspile'] = figTranspile
         return circs
@@ -1785,7 +1797,8 @@ class Qurry:
         print(f"| MultiOutput {self.__name__} Start...\n"+f"+"+"-"*20)
         numConfig = len(argsMulti.configList)
         for config in argsMulti.configList:
-            print(f"| index={config['expIndex']}/{numConfig} - {round(time.time() - start_time, 2)}s")
+            print(
+                f"| index={config['expIndex']}/{numConfig} - {round(time.time() - start_time, 2)}s")
             quantity = self.output(**config)
 
             # legacy writer
@@ -2015,7 +2028,8 @@ class Qurry:
         print(f"| PowerPending {self.__name__} Start...\n"+f"+"+"-"*20)
         numConfig = len(argsMulti.configList)
         for config in argsMulti.configList:
-            print(f"| index={config['expIndex']}/{numConfig} - {round(time.time() - start_time, 2)}s")
+            print(
+                f"| index={config['expIndex']}/{numConfig} - {round(time.time() - start_time, 2)}s")
             circuitSet = self.circuitTranspiler(**config)
             allTranspliedCircs[self.IDNow] = circuitSet
 
@@ -2088,14 +2102,19 @@ class Qurry:
             mode='w+',
             jsonablize=True)
 
-        print(f"| Pending Jobs ...")
-        powerJob = IBMQJobManager().run(
-            **argsMulti.managerRunArgs,
-            experiments=pendingArray,
-            backend=argsMulti.backend,
-            shots=argsMulti.shots,
-            name=f'{argsMulti.expsName}_w/_{len(pendingArray)}_jobs',
-        )
+        with Gajima(
+            carousel=[('dots', 15, 6), 'spinner'],
+            prefix="| ",
+            desc="Pending Jobs",
+        ) as gajima:
+            powerJob = IBMQJobManager().run(
+                **argsMulti.managerRunArgs,
+                experiments=pendingArray,
+                backend=argsMulti.backend,
+                shots=argsMulti.shots,
+                name=f'{argsMulti.expsName}_w/_{len(pendingArray)}_jobs',
+            )
+
         powerJobID = powerJob.job_set_id()
         argsMulti.powerJobID = powerJobID
         print(
@@ -2139,7 +2158,7 @@ class Qurry:
         argsMulti['gitignore'].export(argsMulti.exportLocation)
         gc.collect()
         print(
-            f"| PowerPending {self.__name__} End in {round(time.time() - start_time, 2)} sec ...\n"+
+            f"| PowerPending {self.__name__} End in {round(time.time() - start_time, 2)} sec ...\n" +
             f"+"+"-"*20)
 
         return dataPowerJobs
@@ -2222,7 +2241,8 @@ class Qurry:
         idxNum = 0
         numConfig = len(dataPowerJobs['listExpID'])
         for expIDKey in dataPowerJobs['listExpID']:
-            print(f"| index={idxNum}/{numConfig} - {round(time.time() - start_time, 2)}s")
+            print(
+                f"| index={idxNum}/{numConfig} - {round(time.time() - start_time, 2)}s")
             self.exps[expIDKey] = self.readLegacy(
                 expID=expIDKey,
                 saveLocation=Path(dataPowerJobs['exportLocation']),

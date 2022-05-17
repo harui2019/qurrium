@@ -1,0 +1,3 @@
+[submodule "tool/gajima"]
+	path = tool/gajima
+	url = https://github.com/harui2019/gajima.git
