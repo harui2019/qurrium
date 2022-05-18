@@ -1079,7 +1079,7 @@ class Qurry:
         self.exps[legacyId]['filename'] = filename
 
         with Gajima(
-            carousel=[('dots', 15, 6), 'spinner'],
+            carousel=[('dots', 20, 6), 'spinner'],
             prefix="| ",
             desc="Writing Legacy",
         ) as gajima:
@@ -1208,7 +1208,7 @@ class Qurry:
 
         figTranspile = None
         with Gajima(
-            carousel=[('dots', 15, 6), 'spinner'],
+            carousel=[('dots', 20, 6), 'spinner'],
             prefix="| ",
             desc="Transpile circuits",
         ) as gajima:
@@ -2103,7 +2103,7 @@ class Qurry:
             jsonablize=True)
 
         with Gajima(
-            carousel=[('dots', 15, 6), 'spinner'],
+            carousel=[('dots', 20, 6), 'spinner'],
             prefix="| ",
             desc="Pending Jobs",
         ) as gajima:

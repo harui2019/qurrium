@@ -92,10 +92,22 @@ def keyTupleLoads(o: dict) -> dict:
     if isinstance(o, dict):
         ks = list(o.keys())
         for k in ks:
-            if isinstance(k, str):
+            if isinstance(k, (str)):
                 if k[0] == '(' and k[-1] == ')':
-                    kt = tuple([tr[1:-1] for tr in k[1:-1].split(", ")])
-                    o[kt] = o[k]
+                    
+                    kt = [tr for tr in k[1:-1].split(", ")]
+                    kt2 = []
+                    for ktsub in kt:
+                        if ktsub[0] == '\'':
+                            kt2.append(ktsub[1:-1])
+                        elif ktsub[0] == '\"':
+                            kt2.append(ktsub[1:-1])
+                        elif k.isdigit():
+                            kt2.append(int(ktsub))
+                        else:
+                            kt2.append(ktsub)
+                    kt2 = tuple(kt2)
+                    o[kt2] = o[k]
                     del o[k]
                 else:
                     ...
