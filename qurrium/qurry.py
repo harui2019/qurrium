@@ -40,7 +40,8 @@ from typing import (
     Union,
     Optional,
     Annotated,
-    Callable
+    Callable,
+    NamedTuple,
 )
 
 from ..tool import (
@@ -58,285 +59,6 @@ from ..tool import (
 
 def defaultCircuit(numQubit: int) -> QuantumCircuit:
     return QuantumCircuit(numQubit)
-
-
-def expsConfig(
-    name: str = 'qurryConfig',
-    defaultArg: dict[any] = {
-        # Variants of experiment.
-        'wave': None,
-    },
-) -> Configuration:
-    """The default format and value for executing a single experiment.
-    - Example:
-
-    ```
-    {
-        # ID of experiment.
-        'expID': None,
-
-        # Variants of experiment.
-        **defaultArg,
-
-        # Qiskit argument of experiment.
-        # Multiple jobs shared
-        'shots': 1024,
-        'backend': Aer.get_backend('qasm_simulator'),
-        'runConfig': {}
-
-        # Single job dedicated
-        'runBy': "gate",
-        'decompose': 1,
-        'transpileArgs': {},
-
-        # Other arguments of experiment
-        'drawMethod': 'text',
-        'resultKeep': False,
-        'dataRetrieve': None,
-    }
-    ```
-
-    Args:
-        name (str, optional):
-            Name of basic configuration for `Qurry`.
-            Defaults to 'qurryConfig'.
-        defaultArg (dict[any], optional):
-            Basic input for `.output`.
-            Defaults to { 'wave': None }.
-
-    Returns:
-        Configuration: _description_
-    """
-    return Configuration(
-        name=name,
-        default={
-            # ID of experiment.
-            'expID': None,
-
-            # Variants of experiment.
-            **defaultArg,
-
-            # Qiskit argument of experiment.
-            # Multiple jobs shared
-            'shots': 1024,
-            'backend': Aer.get_backend('qasm_simulator'),
-            'provider': None,
-            'runConfig': {},
-
-            'expsName': None,
-
-            # Single job dedicated
-            'runBy': "gate",
-            'decompose': 1,
-            'transpileArgs': {},
-
-            # Other arguments of experiment
-            'drawMethod': 'text',
-            'resultKeep': False,
-            'dataRetrieve': None,
-            'tag': None,
-        },
-    )
-
-
-def expsBase(
-    name: str = 'qurryExpsBase',
-    expsConfig: dict = expsConfig(),
-    defaultArg: dict = {
-        # Reault of experiment.
-    },
-) -> Configuration:
-    """The default storage format and values of a single experiment.
-    - Example:
-
-    ```
-    {
-        # ID of experiment.
-        'expID': None,
-
-        # Variants of experiment.
-        **defaultArg,
-
-        # Qiskit argument of experiment.
-        # Multiple jobs shared
-        'shots': 1024,
-        'backend': Aer.get_backend('qasm_simulator'),
-        'provider': 'None',
-        'runConfig': {},
-
-        # Single job dedicated
-        'runBy': "gate",
-        'decompose': 1,
-        'transpileArgs': {},
-
-        # Other arguments of experiment
-        # Multiple jobs shared
-        'expsName': 'exps',
-
-        # Single job dedicated
-        'drawMethod': 'text',
-        'resultKeep': False,
-        'dataRetrieve': None,
-        'tag': tag,
-
-        # Reault of experiment.
-        'echo': -100,
-
-        # Measurement result
-        'circuit': None,
-        'figRaw': 'unexport',
-        'figTranspile': 'unexport',
-        'result': None,
-        'counts': None,
-
-        # Export data
-        'jobID': [],
-    }
-    ```
-
-    Args:
-        name (str, optional):
-            Name of basic configuration for `Qurry`.
-            Defaults to 'qurryConfig'.
-        expsConfig (dict, optional):
-            `expsConfig`.
-            Defaults to {}.
-        defaultArg (dict, optional):
-            Basic input for `.output`.
-            Defaults to {}.
-
-    Returns:
-        Configuration: _description_
-    """
-    return Configuration(
-        name=name,
-        default={
-            # inherit from `expsConfig`
-            **expsConfig,
-
-            # Reault of experiment.
-            **defaultArg,
-
-            # Measurement result
-            'circuit': None,
-            'figRaw': 'unexport',
-            'figTranspile': 'unexport',
-            'result': None,
-            'counts': None,
-
-            # Export data
-            'jobID': [],
-            'expsName': 'exps',
-        },
-    )
-
-
-def expsConfigMulti(
-    name: str = 'qurryConfigMulti',
-    expsConfig: dict = expsConfig(),
-    defaultArg: dict[any] = {
-        # Variants of experiment.
-    },
-) -> Configuration:
-    """The default format and value for executing mutiple experiments.
-    - Example:
-
-    ```
-    {
-        # configList
-        'configList': [],
-
-        # Configuration of `IBMQJobManager().run`
-        # Multiple jobs shared
-        'shots': 1024,
-        'backend': Aer.get_backend('qasm_simulator'),
-        'provider': 'None',
-        'runConfig': {},
-
-        # IBMQJobManager() dedicated
-        'powerJobID': None,
-        'managerRunArgs': {
-            'max_experiments_per_job': 200,
-        },
-
-        # Other arguments of experiment
-        # Multiple jobs shared
-        'isRetrieve': False,
-        'expsName': 'exps',
-
-        # Multiple job dedicated
-        'independentExports': False,
-
-        # `writeLegacy`
-        'additionName': 'export',
-        'saveLocation': None,
-        'exportLocation': None,
-    }
-    ```
-
-    Args:
-        expsName (str, optional):
-            Name of basic configuration for `Qurry`.
-            Defaults to 'qurryConfig'.
-        expsConfig (dict, optional):
-            `expsConfig`.
-            Defaults to {}.
-        defaultArg (dict, optional):
-            Basic input for `.output`.
-            Defaults to {}.
-
-    Returns:
-        Configuration: _description_
-    """
-
-    return Configuration(
-        name=name,
-        default={
-            # configList
-            'configList': [],
-
-            # Configuration of `IBMQJobManager().run`
-            # Multiple jobs shared
-            'shots': 1024,
-            'backend': Aer.get_backend('qasm_simulator'),
-            'provider': 'None',
-            'runConfig': {},
-
-            # IBMQJobManager() dedicated
-            'powerJobID': None,
-
-            'managerRunArgs': {
-                'max_experiments_per_job': 200,
-            },
-
-            # Other arguments of experiment
-            # Multiple jobs shared
-            'isRetrieve': False,
-            'expsName': 'exps',
-
-            # Multiple job dedicated
-            'independentExports': False,
-
-            # `writeLegacy`
-            'additionName': 'export',
-            'saveLocation': Path('./'),
-            'exportLocation': None,
-        },
-    )
-
-# TODO: make hint available in qurry
-
-
-def expsHint(
-    name: str = 'qurryBaseHint',
-    expsConfig: dict = expsBase(),
-    hintContext: dict = {
-        "_basicHint": "This is a hint of qurry.",
-    },
-) -> dict:
-    hintDefaults = {k: "" for k in expsConfig}
-    hintDefaults = {**hintDefaults, **hintContext}
-    return hintDefaults
 
 
 dataTagAllow = Union[str, int, float, bool]
@@ -377,16 +99,308 @@ _expsHint = expsHint(
 )
 """
 
-_expsConfig = expsConfig()
-_expsBase = expsBase()
-_expsMultiConfig = expsConfigMulti()
-_expsHint = expsHint()
-
-
 class Qurry:
     """Qurry V0.3.1
     The qiskit job tool
     """
+
+    """ Configuration """
+
+    class argdictCore(NamedTuple):
+        expsName: str = 'exps',
+        wave: Union[QuantumCircuit, any, None] = None,
+
+    class argdictNow(argdictCore):
+        # ID of experiment.
+        expID: Optional[str] = None,
+
+        # Qiskit argument of experiment.
+        # Multiple jobs shared
+        shots: int = 1024,
+        backend: Backend = Aer.get_backend('qasm_simulator'),
+        provider: Optional[AccountProvider] = None,
+        runConfig: dict = {},
+
+        # Single job dedicated
+        runBy: str = "gate",
+        decompose: Optional[int] = 2,
+        transpileArgs: dict = {},
+
+        # Other arguments of experiment
+        drawMethod: str = 'text',
+        resultKeep: bool = False,
+        dataRetrieve: Optional[dict[Union[list[str], str]]] = None,
+        expsName: str = 'exps',
+        tags: Optional[dataTagsAllow] = None,
+
+    def expsConfig(
+        self,
+        name: str = 'qurryConfig',
+        defaultArg: dict[any] = {
+            **argdictCore()._asdict()
+        },
+    ) -> Configuration:
+        """The default format and value for executing a single experiment.
+        - Example:
+
+        ```
+        {
+            # ID of experiment.
+            'expID': None,
+
+            # Variants of experiment.
+            **defaultArg,
+
+            # Qiskit argument of experiment.
+            # Multiple jobs shared
+            'shots': 1024,
+            'backend': Aer.get_backend('qasm_simulator'),
+            'runConfig': {}
+
+            # Single job dedicated
+            'runBy': "gate",
+            'decompose': 1,
+            'transpileArgs': {},
+
+            # Other arguments of experiment
+            'drawMethod': 'text',
+            'resultKeep': False,
+            'dataRetrieve': None,
+        }
+        ```
+
+        Args:
+            name (str, optional):
+                Name of basic configuration for `Qurry`.
+                Defaults to 'qurryConfig'.
+            defaultArg (dict[any], optional):
+                Basic input for `.output`.
+                Defaults to { 'wave': None }.
+
+        Returns:
+            Configuration: _description_
+        """
+        return Configuration(
+            name=name,
+            default={
+                **self.argdictNow()._asdict(),
+                # Variants of experiment.
+                **defaultArg,
+            },
+        )
+
+    def expsBase(
+        self,
+        name: str = 'qurryExpsBase',
+        defaultArg: dict = {
+            # Reault of experiment.
+        },
+    ) -> Configuration:
+        """The default storage format and values of a single experiment.
+        - Example:
+
+        ```
+        {
+            # ID of experiment.
+            'expID': None,
+
+            # Variants of experiment.
+            **defaultArg,
+
+            # Qiskit argument of experiment.
+            # Multiple jobs shared
+            'shots': 1024,
+            'backend': Aer.get_backend('qasm_simulator'),
+            'provider': 'None',
+            'runConfig': {},
+
+            # Single job dedicated
+            'runBy': "gate",
+            'decompose': 1,
+            'transpileArgs': {},
+
+            # Other arguments of experiment
+            # Multiple jobs shared
+            'expsName': 'exps',
+
+            # Single job dedicated
+            'drawMethod': 'text',
+            'resultKeep': False,
+            'dataRetrieve': None,
+            'tag': tag,
+
+            # Reault of experiment.
+            'echo': -100,
+
+            # Measurement result
+            'circuit': None,
+            'figRaw': 'unexport',
+            'figTranspile': 'unexport',
+            'result': None,
+            'counts': None,
+
+            # Export data
+            'jobID': [],
+        }
+        ```
+
+        Args:
+            name (str, optional):
+                Name of basic configuration for `Qurry`.
+                Defaults to 'qurryConfig'.
+            expsConfig (dict, optional):
+                `expsConfig`.
+                Defaults to {}.
+            defaultArg (dict, optional):
+                Basic input for `.output`.
+                Defaults to {}.
+
+        Returns:
+            Configuration: _description_
+        """
+        return Configuration(
+            name=name,
+            default={
+                # inherit from `expsConfig`
+                **self.expsConfig(),
+
+                # Reault of experiment.
+                **defaultArg,
+
+                # Measurement result
+                'circuit': None,
+                'figRaw': 'unexport',
+                'figTranspile': 'unexport',
+                'result': None,
+                'counts': None,
+
+                # Export data
+                'jobID': [],
+                'expsName': 'exps',
+            },
+        )
+
+    class argdictMultiNow(argdictCore):
+        # configList
+        configList: list = []
+
+        # Configuration of `IBMQJobManager().run`
+        # Multiple jobs shared
+        shots: int = 1024
+        backend: Backend = Aer.get_backend('qasm_simulator')
+        provider: AccountProvider = None
+        runConfig: dict = {}
+
+        # IBMQJobManager() dedicated
+        managerRunArgs: dict = {
+            'max_experiments_per_job': 200,
+        }
+
+        # Other arguments of experiment
+        # Multiple jobs shared
+        isRetrieve: bool = False
+        expsName: str = 'exps'
+        independentExports: bool = False
+
+        # `writeLegacy`
+        additionName: Optional[str] = None
+        saveLocation: Union[Path, str] = Path('./')
+        exportLocation: Path = Path('./')
+
+        gitignore: syncControl = syncControl()
+        listExpID: list = []
+        listFile: list = []
+
+        tagMapExpsID: dict[list] = {
+            'all': [], 'noTags': []}
+        tagMapQuantity: dict[list] = {
+            'all': [], 'noTags': []}
+        tagMapIndex: dict[list] = {
+            'all': [], 'noTags': []}
+
+        circuitsMap: dict = {}
+        circuitsNum: dict = {}
+
+        jobsType: str = "multiJobs"
+        state: str = "init"
+
+    def expsConfigMulti(
+        self,
+        name: str = 'qurryConfigMulti',
+        defaultArg: dict[any] = {
+            # Variants of experiment.
+        },
+    ) -> Configuration:
+        """The default format and value for executing mutiple experiments.
+        - Example:
+
+        ```
+        {
+            # configList
+            'configList': [],
+
+            # Configuration of `IBMQJobManager().run`
+            # Multiple jobs shared
+            'shots': 1024,
+            'backend': Aer.get_backend('qasm_simulator'),
+            'provider': 'None',
+            'runConfig': {},
+
+            # IBMQJobManager() dedicated
+            'powerJobID': None,
+            'managerRunArgs': {
+                'max_experiments_per_job': 200,
+            },
+
+            # Other arguments of experiment
+            # Multiple jobs shared
+            'isRetrieve': False,
+            'expsName': 'exps',
+
+            # Multiple job dedicated
+            'independentExports': False,
+
+            # `writeLegacy`
+            'additionName': 'export',
+            'saveLocation': None,
+            'exportLocation': None,
+        }
+        ```
+
+        Args:
+            expsName (str, optional):
+                Name of basic configuration for `Qurry`.
+                Defaults to 'qurryConfig'.
+            expsConfig (dict, optional):
+                `expsConfig`.
+                Defaults to {}.
+            defaultArg (dict, optional):
+                Basic input for `.output`.
+                Defaults to {}.
+
+        Returns:
+            Configuration: _description_
+        """
+
+        return Configuration(
+            name=name,
+            default={
+                **self.argdictMultiNow()._asdict(),
+            },
+        )
+
+    # TODO: make hint available in qurry
+
+    def expsHint(
+        self,
+        name: str = 'qurryBaseHint',
+        hintContext: dict = {
+            "_basicHint": "This is a hint of qurry.",
+        },
+    ) -> dict:
+        hintDefaults = {k: "" for k in self.expsConfig()}
+        hintDefaults = {**hintDefaults, **hintContext}
+        return hintDefaults
 
     """ Initialize """
 
@@ -397,10 +411,10 @@ class Qurry:
             dict[str: any]: The basic configuration of `Qurry`.
         """
 
-        self._expsConfig = _expsConfig
-        self._expsBase = _expsBase
-        self._expsHint = _expsHint
-        self._expsMultiConfig = _expsMultiConfig
+        self._expsConfig = self.expsConfig()
+        self._expsBase = self.expsBase()
+        self._expsHint = self.expsHint()
+        self._expsMultiConfig = self.expsConfigMulti()
         self.shortName = 'qurry'
         self.__name__ = 'Qurry'
 
@@ -725,7 +739,7 @@ class Qurry:
         tags: Optional[dataTagsAllow] = None,
 
         **otherArgs: any,
-    ) -> argdict:
+    ) -> argdictNow:
         """Handling all arguments and initializing a single experiment.
 
         - example of a value in `self.exps`
@@ -864,7 +878,7 @@ class Qurry:
 
         # Export all arguments
         parsedOther = self.paramsControlMain(**otherArgs)
-        self.now = argdict(
+        self.now: self.argdictNow = argdict(
             params={
                 **self._expsConfig.make(),
                 # ID of experiment.
@@ -1470,7 +1484,7 @@ class Qurry:
         saveLocation: Union[Path, str] = Path('./'),
 
         **otherArgs: any,
-    ) -> argdict:
+    ) -> argdictMultiNow:
         """Handling all arguments and initializing a single experiment.
 
         - example of a value in `self.exps`
@@ -1645,7 +1659,7 @@ class Qurry:
         # gitignore
         gitignore = syncControl()
 
-        self.multiNow = argdict(
+        self.multiNow: self.argdictMultiNow = argdict(
             params={
                 **self._expsMultiConfig.make(),
                 **otherArgs,

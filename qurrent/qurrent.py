@@ -9,72 +9,96 @@ from qiskit.providers.ibmq.managed import ManagedResults
 import numpy as np
 import warnings
 from math import pi
-from typing import Union, Optional
+from typing import Union, Optional, NamedTuple, overload
 
-from ..qurrium import (
-    Qurry,
-    expsConfig,
-    expsBase,
-    expsConfigMulti,
-    expsHint
-)
+from ..qurrium import Qurry
+from ..tool import Configuration
 
 # EntropyMeasure V0.3.0 - Measuring Renyi Entropy - Qurrent
-_expsConfig = expsConfig(
-    name="qurrentConfig",
-    defaultArg={
-        # Variants of experiment.
-        'wave': None,
-        'degree': None,
-    },
-)
-
-_expsBase = expsBase(
-    name="qurrentBase",
-    expsConfig=_expsConfig,
-    defaultArg={
-        # Reault of experiment.
-        'entropy': -100,
-        'purity': -100,
-    },
-)
-
-_expsMultiConfig = expsConfigMulti(
-    name="qurrentConfigMulti",
-    expsConfig=_expsConfig,
-    defaultArg={
-        # Reault of experiment.
-        'entropy': -100,
-        'purity': -100,
-    },
-)
-
-_expsHint = expsHint(
-    name='qurrechBaseHint',
-    expsConfig=_expsBase,
-    hintContext={
-        'entropy': 'The Renyi Entropy.',
-        'purity': '',
-    },
-)
 
 
 class EntropyMeasureV3(Qurry):
     """EntropyMeasure V0.3.0 of qurrech
     """
 
+    """ Configuration """
+
+    class argdictCore(NamedTuple):
+        expsName: str = 'exps',
+        wave: Union[QuantumCircuit, any, None] = None,
+        degree: Optional[int] = None,
+
+    # class argdictNow(argdictCore, Qurry().argdictNow):
+    #     ...    
+        
+    # class argdicMultiNow(argdictCore, Qurry().argdictMultiNow):
+    #     ...  
+        
+    # def expsConfig(
+    #     self,
+    #     name: str = 'qurryConfig',
+    #     defaultArg: dict[any] = {
+    #         **argdictCore()._asdict()
+    #     },
+    # ) -> Configuration:
+    #     return super().expsConfig(name, defaultArg)
+    
+    # def expsBase(
+    #     self,
+    #     name: str = 'qurryExpsBase',
+    #     defaultArg: dict = {
+    #         # Reault of experiment.
+    #     },
+    # ) -> Configuration:
+    #     return super().expsBase(name, defaultArg)
+    
+    # def expsConfigMulti(
+    #     self,
+    #     name: str = 'qurryConfigMulti',
+    #     defaultArg: dict[any] = {
+    #         # Variants of experiment.
+    #     },
+    # ) -> Configuration:
+    #     return super().expsConfigMulti(name, defaultArg)
+    
+    # def expsHint(
+    #     self,
+    #     name: str = 'qurryBaseHint',
+    #     hintContext: dict = {
+    #         "_basicHint": "This is a hint of qurry.",
+    #     },
+    # ) -> dict:
+    #     return super().expsHint(name, hintContext)
+        
     # Initialize
     def initialize(self) -> dict[str: any]:
-        """Configuration to Initialize Qurrech.
+        """Configuration to Initialize Hadamard.
 
         Returns:
             dict[str: any]: The basic configuration of `Qurrech`.
         """
 
-        self._expsConfig = _expsConfig
-        self._expsBase = _expsBase
-        self._expsHint = _expsHint
-        self._expsMultiConfig = _expsMultiConfig
+        self._expsConfig = self.expsConfig(
+            name="qurrentConfig",
+        )
+        self._expsBase = self.expsBase(
+            name="qurrentBase",
+            defaultArg={
+                # Reault of experiment.
+                'entropy': -100,
+                'purity': -100,
+            },
+        )
+        self._expsHint = self.expsHint(
+            name='qurrechBaseHint',
+            hintContext={
+                'entropy': 'The Renyi Entropy.',
+                'purity': '',
+            },
+        )
+        self._expsMultiConfig = self.expsConfigMulti(
+            name="qurrentConfigMulti",
+        )
         self.shortName = 'qurrentV3'
         self.__name__ = 'QurrentV3'
 

@@ -8,56 +8,12 @@ from qiskit.result import Result
 
 import numpy as np
 import warnings
-from typing import Union, Optional, Callable, List
+from typing import Union, Optional, Callable, List, NamedTuple
 import time
 
 from .qurrent import EntropyMeasureV3
-from ..qurrium import (
-    expsConfig,
-    expsBase,
-    expsConfigMulti,
-    expsHint
-)
+from ..tool import Configuration
 # EntropyMeasure V0.3.0 - Measuring Renyi Entropy - Qurrent
-
-_expsConfig = expsConfig(
-    name="qurrentConfig",
-    defaultArg={
-        # Variants of experiment.
-        'wave': None,
-        'degree': None,
-        'time': 100,
-    },
-)
-
-_expsBase = expsBase(
-    name="qurrentBase",
-    expsConfig=_expsConfig,
-    defaultArg={
-        # Reault of experiment.
-        'entropy': -100,
-        'purity': -100,
-    },
-)
-
-_expsMultiConfig = expsConfigMulti(
-    name="qurrentConfigMulti",
-    expsConfig=_expsConfig,
-    defaultArg={
-        # Reault of experiment.
-        'entropy': -100,
-        'purity': -100,
-    },
-)
-
-_expsHint = expsHint(
-    name='qurrechBaseHint',
-    expsConfig=_expsBase,
-    hintContext={
-        'entropy': 'The Renyi Entropy.',
-        'purity': '',
-    },
-)
 
 RXmatrix = np.array([[0, 1], [1, 0]])
 RYmatrix = np.array([[0, -1j], [1j, 0]])
@@ -80,6 +36,14 @@ class haarMeasureV3(EntropyMeasureV3):
     """haarMeasure V0.3.0 of qurrech
     """
 
+    """ Configuration """
+
+    class argdictCore(NamedTuple):
+        expsName: str = 'exps',
+        wave: Union[QuantumCircuit, any, None] = None,
+        degree: Optional[int] = None,
+        times: int = 100,
+
     # Initialize
     def initialize(self) -> dict[str: any]:
         """Configuration to Initialize haarMeasure.
@@ -88,10 +52,27 @@ class haarMeasureV3(EntropyMeasureV3):
             dict[str: any]: The basic configuration of `haarMeasure`.
         """
 
-        self._expsConfig = _expsConfig
-        self._expsBase = _expsBase
-        self._expsHint = _expsHint
-        self._expsMultiConfig = _expsMultiConfig
+        self._expsConfig = self.expsConfig(
+            name="qurrentConfig",
+        )
+        self._expsBase = self.expsBase(
+            name="qurrentBase",
+            defaultArg={
+                # Reault of experiment.
+                'entropy': -100,
+                'purity': -100,
+            },
+        )
+        self._expsHint = self.expsHint(
+            name='qurrechBaseHint',
+            hintContext={
+                'entropy': 'The Renyi Entropy.',
+                'purity': '',
+            },
+        )
+        self._expsMultiConfig = self.expsConfigMulti(
+            name="qurrentConfigMulti",
+        )
         self.shortName = 'qurrentV3.haar'
         self.__name__ = 'qurrentV3.haar'
 
@@ -197,7 +178,7 @@ class haarMeasureV3(EntropyMeasureV3):
             Union[QuantumCircuit, list[QuantumCircuit]]: 
                 The quantum circuit of experiment.
         """
-        argsNow = self.now
+        argsNow: super().argdictNow = self.now
         numQubits = self.waves[argsNow.wave].num_qubits
 
         qcList = []

@@ -7,60 +7,24 @@ from qiskit.result import Result
 
 import numpy as np
 import warnings
-from typing import Union, Optional, Callable, List
+from typing import Union, Optional, Callable, List, NamedTuple
 from qiskit.visualization.counts_visualization import hamming_distance
 
 from .qurrent import EntropyMeasureV3
-from ..qurrium import (
-    expsConfig,
-    expsBase,
-    expsConfigMulti,
-    expsHint
-)
-# EchoListen V0.3.0 - Measuring Loschmidt Echo - Qurrech
-
-_expsConfig = expsConfig(
-    name="qurrechConfig",
-    defaultArg={
-        # Variants of experiment.
-        'wave': None,
-        'degree': None,
-    },
-)
-
-_expsBase = expsBase(
-    name="qurrechBase",
-    expsConfig=_expsConfig,
-    defaultArg={
-        # Reault of experiment.
-        'entropy': -100,
-        'purity': -100,
-    },
-)
-
-_expsMultiConfig = expsConfigMulti(
-    name="qurrechConfigMulti",
-    expsConfig=_expsConfig,
-    defaultArg={
-        # Reault of experiment.
-        'entropy': -100,
-        'purity': -100,
-    },
-)
-
-_expsHint = expsHint(
-    name='qurrechBaseHint',
-    expsConfig=_expsBase,
-    hintContext={
-        'entropy': 'The Renyi Entropy.',
-        'purity': '',
-    },
-)
+from ..tool import Configuration
+# EntropyMeasure V0.3.0 - Measuring Renyi Entropy - Qurrech
 
 
 class hadamardTestV3(EntropyMeasureV3):
     """hadamardTest V0.3.0 of qurrech
     """
+
+    """ Configuration """
+
+    class argdictCore(NamedTuple):
+        expsName: str = 'exps',
+        wave: Union[QuantumCircuit, any, None] = None,
+        degree: Optional[int] = None,
 
     # Initialize
     def initialize(self) -> dict[str: any]:
@@ -70,10 +34,27 @@ class hadamardTestV3(EntropyMeasureV3):
             dict[str: any]: The basic configuration of `haarMeasure`.
         """
 
-        self._expsConfig = _expsConfig
-        self._expsBase = _expsBase
-        self._expsHint = _expsHint
-        self._expsMultiConfig = _expsMultiConfig
+        self._expsConfig = self.expsConfig(
+            name="qurrentConfig",
+        )
+        self._expsBase = self.expsBase(
+            name="qurrentBase",
+            defaultArg={
+                # Reault of experiment.
+                'entropy': -100,
+                'purity': -100,
+            },
+        )
+        self._expsHint = self.expsHint(
+            name='qurrechBaseHint',
+            hintContext={
+                'entropy': 'The Renyi Entropy.',
+                'purity': '',
+            },
+        )
+        self._expsMultiConfig = self.expsConfigMulti(
+            name="qurrentConfigMulti",
+        )
         self.shortName = 'qurrentV3.hadamard'
         self.__name__ = 'qurrentV3.hadamard'
 
@@ -167,7 +148,7 @@ class hadamardTestV3(EntropyMeasureV3):
             Union[QuantumCircuit, list[QuantumCircuit]]: 
                 The quantum circuit of experiment.
         """
-        argsNow = self.now
+        argsNow: super().argdictNow = self.now
         numQubits = self.waves[argsNow.wave].num_qubits
 
         qAnc = QuantumRegister(1, 'ancilla')
@@ -175,18 +156,18 @@ class hadamardTestV3(EntropyMeasureV3):
         qFunc2 = QuantumRegister(numQubits, 'q2')
         cMeas1 = ClassicalRegister(1, 'c1')
         qcExp1 = QuantumCircuit(qAnc, qFunc1, qFunc2, cMeas1)
-        
+
         qcExp1.append(self.waveInstruction(
             wave=argsNow.wave,
             runBy=argsNow.runBy,
             backend=argsNow.backend,
         ), [qFunc1[i] for i in range(numQubits)])
-            
+
         qcExp1.append(self.waveInstruction(
             wave=argsNow.wave,
             runBy=argsNow.runBy,
             backend=argsNow.backend,
-        ), [qFunc2[i] for i in range(numQubits)])    
+        ), [qFunc2[i] for i in range(numQubits)])
 
         qcExp1.barrier()
         qcExp1.h(qAnc)
@@ -284,4 +265,3 @@ class hadamardTestV3(EntropyMeasureV3):
             expsName=expsName,
             **otherArgs,
         )
-

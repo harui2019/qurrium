@@ -8,53 +8,12 @@ from qiskit.result import Result
 
 import numpy as np
 import warnings
-from typing import Union, Optional, Callable, List
+from typing import Union, Optional, Callable, List, NamedTuple
 import time
 
 from .qurrech import EchoListen
-from ..qurrium import (
-    expsConfig,
-    expsBase,
-    expsConfigMulti,
-    expsHint
-)
+from ..tool import Configuration
 # EchoListen V0.3.0 - Measuring Loschmidt Echo - Qurrech
-
-_expsConfig = expsConfig(
-    name="qurrechConfig",
-    defaultArg={
-        # Variants of experiment.
-        'wave1': None,
-        'wave2': None,
-        'times': 100,
-    },
-)
-
-_expsBase = expsBase(
-    name="qurrechBase",
-    expsConfig=_expsConfig,
-    defaultArg={
-        # Reault of experiment.
-        'echo': -100,
-    },
-)
-
-_expsMultiConfig = expsConfigMulti(
-    name="qurrechConfigMulti",
-    expsConfig=_expsConfig,
-    defaultArg={
-        # Reault of experiment.
-        'echo': -100,
-    },
-)
-
-_expsHint = expsHint(
-    name='qurrechBaseHint',
-    expsConfig=_expsBase,
-    hintContext={
-        'echo': 'The Loschmidt Echo.',
-    },
-)
 
 RXmatrix = np.array([[0, 1], [1, 0]])
 RYmatrix = np.array([[0, -1j], [1j, 0]])
@@ -77,6 +36,12 @@ class haarMeasure(EchoListen):
     """haarMeasure V0.3.0 of qurrech
     """
 
+    class argdictCore(NamedTuple):
+        expsName: str = 'exps',
+        wave1: Union[QuantumCircuit, any, None] = None,
+        wave2: Union[QuantumCircuit, any, None] = None,
+        times: int = 100,
+
     # Initialize
     def initialize(self) -> dict[str: any]:
         """Configuration to Initialize haarMeasure.
@@ -85,10 +50,25 @@ class haarMeasure(EchoListen):
             dict[str: any]: The basic configuration of `haarMeasure`.
         """
 
-        self._expsConfig = _expsConfig
-        self._expsBase = _expsBase
-        self._expsHint = _expsHint
-        self._expsMultiConfig = _expsMultiConfig
+        self._expsConfig = self.expsConfig(
+            name="qurrechConfig",
+        )
+        self._expsBase = self.expsBase(
+            name="qurrechBase",
+            defaultArg={
+                # Reault of experiment.
+                'echo': -100,
+            },
+        )
+        self._expsHint = self.expsHint(
+            name='qurrechBaseHint',
+            hintContext={
+                'echo': 'The Loschmidt Echo.',
+            },
+        )
+        self._expsMultiConfig = self.expsConfigMulti(
+            name="qurrentConfigMulti",
+        )
         self.shortName = 'haarMeasure'
         self.__name__ = 'haarMeasure'
 

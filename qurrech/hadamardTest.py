@@ -7,70 +7,50 @@ from qiskit.result import Result
 
 import numpy as np
 import warnings
-from typing import Union, Optional, Callable, List
+from typing import Union, Optional, Callable, List, NamedTuple
 from qiskit.visualization.counts_visualization import hamming_distance
 
 from .qurrech import EchoListen
-from ..qurrium import (
-    expsConfig,
-    expsBase,
-    expsConfigMulti,
-    expsHint
-)
+from ..tool import Configuration
 # EchoListen V0.3.0 - Measuring Loschmidt Echo - Qurrech
-
-_expsConfig = expsConfig(
-    name="qurrechConfig",
-    defaultArg={
-        # Variants of experiment.
-        'wave1': None,
-        'wave2': None,
-    },
-)
-
-_expsBase = expsBase(
-    name="qurrechBase",
-    expsConfig=_expsConfig,
-    defaultArg={
-        # Reault of experiment.
-        'echo': -100,
-    },
-)
-
-_expsMultiConfig = expsConfigMulti(
-    name="qurrechConfigMulti",
-    expsConfig=_expsConfig,
-    defaultArg={
-        # Reault of experiment.
-        'echo': -100,
-    },
-)
-
-_expsHint = expsHint(
-    name='qurrechBaseHint',
-    expsConfig=_expsBase,
-    hintContext={
-        'echo': 'The Loschmidt Echo.',
-    },
-)
 
 
 class hadamardTest(EchoListen):
     """hadamardTest V0.3.0 of qurrech
     """
 
+    class argdictCore(NamedTuple):
+        expsName: str = 'exps',
+        wave1: Union[QuantumCircuit, any, None] = None,
+        wave2: Union[QuantumCircuit, any, None] = None,
+
     # Initialize
     def initialize(self) -> dict[str: any]:
-        """Configuration to Initialize haarMeasure.
+        """Configuration to Initialize Qurrech.
 
         Returns:
-            dict[str: any]: The basic configuration of `haarMeasure`.
+            dict[str: any]: The basic configuration of `Qurrech`.
         """
 
-        self._expsConfig = _expsConfig
-        self._expsBase = _expsBase
-        self._expsHint = _expsHint
-        self._expsMultiConfig = _expsMultiConfig
+        self._expsConfig = self.expsConfig(
+            name="qurrechConfig",
+        )
+        self._expsBase = self.expsBase(
+            name="qurrechBase",
+            defaultArg={
+                # Reault of experiment.
+                'echo': -100,
+            },
+        )
+        self._expsHint = self.expsHint(
+            name='qurrechBaseHint',
+            hintContext={
+                'echo': 'The Loschmidt Echo.',
+            },
+        )
+        self._expsMultiConfig = self.expsConfigMulti(
+            name="qurrentConfigMulti",
+        )
         self.shortName = 'hadamardTest'
         self.__name__ = 'hadamardTest'
 
@@ -171,18 +151,18 @@ class hadamardTest(EchoListen):
         qFunc2 = QuantumRegister(numQubits, 'q2')
         cMeas1 = ClassicalRegister(1, 'c1')
         qcExp1 = QuantumCircuit(qAnc, qFunc1, qFunc2, cMeas1)
-        
+
         qcExp1.append(self.waveInstruction(
             wave=argsNow.wave1,
             runBy=argsNow.runBy,
             backend=argsNow.backend,
         ), [qFunc1[i] for i in range(numQubits)])
-            
+
         qcExp1.append(self.waveInstruction(
             wave=argsNow.wave2,
             runBy=argsNow.runBy,
             backend=argsNow.backend,
-        ), [qFunc2[i] for i in range(numQubits)])    
+        ), [qFunc2[i] for i in range(numQubits)])
 
         qcExp1.barrier()
         qcExp1.h(qAnc)
@@ -281,4 +261,3 @@ class hadamardTest(EchoListen):
             expsName=expsName,
             **otherArgs,
         )
-

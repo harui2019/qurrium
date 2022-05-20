@@ -8,55 +8,21 @@ import warnings
 from math import pi
 from itertools import permutations
 import time
-from typing import Union, Optional
+from typing import Union, Optional, NamedTuple
 
-from ..qurrium import (
-    Qurry,
-    expsConfig,
-    expsBase,
-    expsConfigMulti,
-    expsHint
-)
+from ..qurrium import Qurry
+from ..tool import Configuration
 
 # MagnetSquare V0.3.0 - Measuring Loschmidt Echo - Qurrech
-_expsConfig = expsConfig(
-    name="qurmagsqConfig",
-    defaultArg={
-        # Variants of experiment.
-        'wave': None,
-    },
-)
-
-_expsBase = expsBase(
-    name="qurmagsqBase",
-    expsConfig=_expsConfig,
-    defaultArg={
-        # Reault of experiment.
-        'echo': -100,
-    },
-)
-
-_expsMultiConfig = expsConfigMulti(
-    name="qurmagsqConfigMulti",
-    expsConfig=_expsConfig,
-    defaultArg={
-        # Reault of experiment.
-        'echo': -100,
-    },
-)
-
-_expsHint = expsHint(
-    name='qurmagsqBaseHint',
-    expsConfig=_expsBase,
-    hintContext={
-        'echo': 'The Loschmidt Echo.',
-    },
-)
 
 
 class MagnetSquare(Qurry):
     """MagnetSquare V0.3.0 of qurmagsq
     """
+
+    class argdictCore(NamedTuple):
+        expsName: str = 'exps',
+        wave: Union[QuantumCircuit, any, None] = None,
 
     # Initialize
     def initialize(self) -> dict[str: any]:
@@ -66,10 +32,25 @@ class MagnetSquare(Qurry):
             dict[str: any]: The basic configuration of `Qurrech`.
         """
 
-        self._expsConfig = _expsConfig
-        self._expsBase = _expsBase
-        self._expsHint = _expsHint
-        self._expsMultiConfig = _expsMultiConfig
+        self._expsConfig = self.expsConfig(
+            name="qurmagsqConfig",
+        )
+        self._expsBase = self.expsBase(
+            name="qurmagsqBase",
+            defaultArg={
+                # Reault of experiment.
+                'magnetsq': -100,
+            },
+        )
+        self._expsHint = self.expsHint(
+            name='qurmagsqBaseHint',
+            hintContext={
+                'magnetsq': 'The Magnet Square.',
+            },
+        )
+        self._expsMultiConfig = self.expsConfigMulti(
+            name="qurmagsqConfigMulti",
+        )
         self.shortName = 'qurmagsq'
         self.__name__ = 'MagnetSquare'
 
