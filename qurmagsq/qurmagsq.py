@@ -10,7 +10,7 @@ from itertools import permutations
 import time
 from typing import Union, Optional
 
-from ..qurry import (
+from ..qurrium import (
     Qurry,
     expsConfig,
     expsBase,

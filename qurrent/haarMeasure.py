@@ -12,7 +12,7 @@ from typing import Union, Optional, Callable, List
 import time
 
 from .qurrent import EntropyMeasureV3
-from ..qurry import (
+from ..qurrium import (
     expsConfig,
     expsBase,
     expsConfigMulti,

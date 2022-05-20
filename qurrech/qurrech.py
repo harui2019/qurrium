@@ -11,7 +11,7 @@ import warnings
 from math import pi
 from typing import Union, Optional
 
-from ..qurry import (
+from ..qurrium import (
     Qurry,
     expsConfig,
     expsBase,

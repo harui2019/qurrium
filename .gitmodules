@@ -1,3 +1,6 @@
 [submodule "tool/gajima"]
 	path = tool/gajima
 	url = https://github.com/harui2019/gajima.git
+[submodule "tool/mori"]
+	path = tool/mori
+	url = https://github.com/harui2019/mori.git

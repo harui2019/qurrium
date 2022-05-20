@@ -14,7 +14,7 @@ from ..tool import argdict
 from .widget import *
 
 
-class argdict_QurryPlot(NamedTuple):
+class argdictQurryPlot(NamedTuple):
     yLim: Union[callable, tuple[float, int]]
     fontSize: int
     lineStyle: str
@@ -51,7 +51,7 @@ class QurryplotV1:
         saveFolder: Union[Path, str] = './',
 
         **otherArgs: any,
-    ) -> argdict_QurryPlot:
+    ) -> argdictQurryPlot:
         """_summary_
 
         Args:

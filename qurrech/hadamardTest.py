@@ -11,7 +11,7 @@ from typing import Union, Optional, Callable, List
 from qiskit.visualization.counts_visualization import hamming_distance
 
 from .qurrech import EchoListen
-from ..qurry import (
+from ..qurrium import (
     expsConfig,
     expsBase,
     expsConfigMulti,

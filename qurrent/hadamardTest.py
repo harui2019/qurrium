@@ -11,7 +11,7 @@ from typing import Union, Optional, Callable, List
 from qiskit.visualization.counts_visualization import hamming_distance
 
 from .qurrent import EntropyMeasureV3
-from ..qurry import (
+from ..qurrium import (
     expsConfig,
     expsBase,
     expsConfigMulti,
