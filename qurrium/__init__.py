@@ -1,1 +1,1 @@
-from .qurrium import *
+from .qurry import *
