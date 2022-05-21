@@ -9,8 +9,9 @@ This is a tool to measure the Renyi entropy, Loschmidt Echo, and Magnetization S
 - **`Python 3.9.7+` installed by Anaconda**
   - on
     - **Ubuntu 20.04 LTS/18.04 LTS** on `x86_64` **(recommended)**
-    - **Windows 10/11** on `x86_64`
+    - **Ubuntu 20.04 LTS/18.04 LTS on Windows 10/11 WSL2** on `x86_64` **(recommended)**
       - We recommend to use Linux based system, due to the GPU acceleration of `Qiskit`, `qiskit-aer-gpu` only works with Nvidia CUDA on Linux.
+    - **Windows 10/11** on `x86_64`
 
   - currently with issues on
     - **MacOS 12 Monterey** on **`arm64 (Apple Silicon, M1 chips)`**
