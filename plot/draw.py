@@ -8,26 +8,11 @@ import warnings
 import os
 from pathlib import Path
 from math import pi
-from typing import Callable, Optional, Union, Annotated, NamedTuple
+from typing import Callable, Optional, Union, NamedTuple, overload
+from itertools import permutations
 
 from ..tool import argdict
 from .widget import *
-
-
-class argdictQurryPlot(NamedTuple):
-    yLim: Union[callable, tuple[float, int]]
-    fontSize: int
-    lineStyle: str
-    foramt: str
-    dpi: int
-
-    quantity: str
-
-    plotType: str
-    plotName: str
-    filename: Path
-    saveFolder: Union[Path, str]
-
 
 class QurryplotV1:
     """QurryplotV1 will be pointed to migrate old code and function in draw.py
@@ -35,17 +20,86 @@ class QurryplotV1:
     Returns:
         _type_: _description_
     """
+    class argdictQurryPlot(NamedTuple):
+        yLim: Union[callable, tuple[float, int]] = yLimDecider,
+        fontSize: int = 12
+        lineStyle: str = '--'
+        format: str = 'png'
+        dpi: int = 300
 
-    @staticmethod
+        quantity: str = 'entropy'
+
+        plotType: str = '_dummy'
+        plotName: str = 'Qurryplot'
+        filename: Path = Path('./')
+        saveFolder: Union[Path, str] = './'
+        
+    
+    QuantityType = Union[float, dict[float]]
+    DataUnit = dict[list[QuantityType]]
+    InputType = Union[DataUnit, list[DataUnit], dict[DataUnit]]
+
+    def expsConfig(
+        self,
+        name: str = 'qurryConfig',
+        defaultArg: dict[any] = {
+            **argdictQurryPlot()._asdict()
+        },
+    ) -> Configuration:
+        """The default format and value for executing a single experiment.
+        - Example:
+
+        ```
+        {
+            # Variants of experiment.
+            **defaultArg,
+            
+            yLim: yLimDecider,
+            fontSize: 12,
+            lineStyle: '--',
+            foramt: 'png',
+            dpi: 300,
+
+            quantity: 'entropy',
+
+            plotType: '_dummy',
+            plotName: 'Qurryplot',
+            filename: Path('./'),
+            saveFolder: './',
+        }
+        ```
+
+        Args:
+            name (str, optional):
+                Name of basic configuration for `Qurry`.
+                Defaults to 'qurryConfig'.
+            defaultArg (dict[any], optional):
+                Basic input for `.output`.
+                Defaults to { 'wave': None }.
+
+        Returns:
+            Configuration: _description_
+        """
+        return Configuration(
+            name=name,
+            default={
+                **self.argdictNow()._asdict(),
+                # Variants of experiment.
+                **defaultArg,
+            },
+        )
+
     def drawConfigControls(
+        self,
+        # matplotlib configuration
         yLim: Union[callable, tuple[float, int]] = yLimDecider,
         fontSize: int = 12,
         lineStyle: str = '--',
         format: str = 'png',
         dpi: int = 300,
-
+        # quantity name
         quantity: str = 'entropy',
-
+        # exportation configureation
         plotType: str = '_dummy',
         plotName: str = 'Qurryplot',
         saveFolder: Union[Path, str] = './',
@@ -109,7 +163,7 @@ class QurryplotV1:
 
     def __init__(
         self,
-        data: dict[list[Union[float, int]]],
+        data: InputType,
         plotName: str = 'Qurryplot',
         saveFolder: Union[Path, str] = './',
         **otherArgs: any,
@@ -121,17 +175,22 @@ class QurryplotV1:
 
             - data input format
 
-            >>> {
-            >>>     'trivialPM_4': [...],
-            >>>     'cat_4': [...],
-            >>>     'topPMPeriod_4': [...],
-            >>>     'topPMOpen_4': [...],
-            >>>     ...
-            >>> }
+            ```
+            
+            {
+                'trivialPM_4': [...],
+                'cat_4': [...],
+                'topPMPeriod_4': [...],
+                'topPMOpen_4': [...],
+                ...
+            }
+            ```
 
-
-            plotName (str, optional): _description_. Defaults to 'Qurryplot'.
-            saveFolder (Optional[Path], optional): _description_. Defaults to None.
+            plotName (str, optional): _description_. 
+                Defaults to 'Qurryplot'.
+            saveFolder (Optional[Path], optional): _description_. 
+                Defaults to None.
+            
         """
         self.fulldata = data
         self.data = {
@@ -141,7 +200,176 @@ class QurryplotV1:
         self.plotName = plotName
         self.saveFolder = saveFolder
 
+
+    def demoUnit(
+        self,
+        plt: plt,
+        grid: tuple[int,int],
+        position: tuple[int, int],
+        
+        **otherArgs: any,
+    ) -> plt:
+        ax: Axes = plt.subplot2grid(grid, position, colspan=1, rowspan=1)
+
+        for i in range(10):
+            ax.plot(t, s+i*1, marker='.', label=f"i={i}")
+
+        ax.grid(linestyle='--')
+        ax.set_xlabel(r'\textbf{time (s)}')
+        ax.set_ylabel(
+            "$\\log_{2}{\\frac{1}{n} \\ \\sum_{t=0}^{n} | [{Tr}({\\rho_A}^2)]_e - [{Tr}({\\rho_A}^2)]_t | }$", fontsize=16)
+        ax.set_title(
+            r'\TeX\ is Number $\sum_{n=1}^\infty\frac{-e^{i\pi}}{2^n}$!', fontsize=16)
+
+        legendPlt = ax.legend(
+            bbox_to_anchor=(1.025, 1.0),
+            loc='upper left',
+            borderaxespad=0.)
+    
+        return plt
+
+    def errorBarUnit(
+        self,
+        plt: plt,
+        grid: tuple[int,int],
+        position: tuple[int, int],
+        
+        data: DataUnit,
+        dataTag: str,
+        quantity: str = 'entropy',
+        
+        **otherArgs: any,
+    ) -> plt:
+        """_summary_
+
+        Returns:
+            tuple[Figure, Optional[Path]]: _description_
+        """
+        args = self.drawConfigControls(
+            plotType='errorBar',
+            plotName=self.plotName,
+            saveFolder=self.saveFolder,
+            quantity=quantity,
+            **otherArgs
+        )
+        ax: Axes = plt.subplot2grid(grid, position, colspan=1, rowspan=1)
+        ax.set_ylabel(
+            f"ErrorBar of Experiments", size=args.fontSize)
+        ax.set_xlabel(f"{args.plotName}", size=args.fontSize)
+        
+        ax.xlim((0, 2*(len(data)+1)))
+        length = len(data)
+    
+        # label
+        ax.set_xlabel(
+            f"ErrorBar of Experiments", size=args.fontSize)
+        ax.set_ylabel(f"{args.plotName}", size=args.fontSize)
+        ax.set_title(dataTag, size=args.fontSize)
+        
+        # xstick
+        ax.set_xticks([2*i for i in range(length+2)])
+        ax.set_xticklabels(
+            [None]+[k for k in data]+[None],
+            rotation=90,
+        )
+        ax.grid(linestyle=args.lineStyle)
+        
+        # draw
+        dataKeys = list(data.keys())
+        for i in range(length):
+            k = dataKeys[i]
+            dataAtK = [
+                quantityContainer[args.quantity]
+                for quantityContainer in data[k]
+                if args.quantity in quantityContainer]
+            ax.errorbar(
+                [2*(i+1)],
+                [np.mean(dataAtK)],
+                [np.std(dataAtK)],
+                capsize=10,
+                linewidth=2,
+                elinewidth=2,
+                marker='.',
+                label="".join([f"{k}"])
+            )
+            ax.scatter(
+                [2*(i+1) for v in dataAtK],
+                dataAtK,
+                marker='x',
+                label="".join([f"{k}"])
+            )
+
+        # legend
+        h, l = ax.get_legend_handles_labels()
+        legendPlt = ax.legend(
+            handles=zip(h[:length], h[length:]),
+            handler_map={tuple: matplotlib.legend_handler.HandlerTuple(None)},
+            labels=l[:length],
+            bbox_to_anchor=(1.025, 1.0),
+            loc='upper left',
+            borderaxespad=0.,
+        )
+        
+        return plt
+    
     def errorBar(
+        self,
+        quantity: str = 'entropy',
+        **otherArgs: any,
+    ) -> tuple[Figure, Optional[Path]]:
+        """_summary_
+
+        Returns:
+            tuple[Figure, Optional[Path]]: _description_
+        """
+        args = self.drawConfigControls(
+            plotType='errorBar',
+            plotName=self.plotName,
+            saveFolder=self.saveFolder,
+            quantity=quantity,
+            **otherArgs
+        )
+        
+        plt.figure()
+        plt.suptitle(f'{self.plotName}.errorBar', fontsize=args.fontSize)
+        
+        dataObj: dict[self.DataUnit]
+        if isinstance(self.data, list):
+            dataObj = {k: self.data[k] for k in range(len(self.data))}
+        elif isinstance(self.data, dict):
+            ...
+        else:
+            warnings.warn("Unavailable input type.")
+        
+        length = len(dataObj)
+        gridSize = int(np.sqrt(length))
+        dataKeysArray = list(dataObj.keys())
+        positionArray = permutations(range(gridSize), 2)
+        
+        for k in dataObj:
+            self.errorBarUnit(
+                plt=plt,
+                grid=(gridSize, gridSize),
+                position=positionArray[dataKeysArray.index(k)],
+                dataTag = k,
+                data = dataObj[k]
+            )
+            
+        
+        if isinstance(args.saveFolder, Path):
+            saveLoc = args.saveFolder / args.fileName
+            PlotFig = plt.savefig(
+                saveLoc,
+                format=args.format,
+                dpi=args.dpi,
+                bbox_inches='tight',
+            )
+            return PlotFig, saveLoc
+        else:
+            print("To export figure, use type 'Path' in 'saveFolder'.")
+            return PlotFig, None
+
+    def errorBar_old(
         self,
         quantity: str = 'entropy',
         **otherArgs: any,
