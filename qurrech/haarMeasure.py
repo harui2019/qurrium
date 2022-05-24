@@ -1,6 +1,6 @@
 from qiskit import (
     QuantumRegister, ClassicalRegister, QuantumCircuit)
-from qiskit.providers.ibmq.managed import ManagedResults
+from qiskit.providers.ibmq.managed import ManagedResults, IBMQJobManagerError
 from qiskit.visualization import *
 from qiskit.visualization.counts_visualization import hamming_distance
 from qiskit.quantum_info import random_unitary
@@ -355,8 +355,14 @@ class haarMeasure(EchoListen):
             print(
                 f"| Calculating overlap {t1} and {t2}" +
                 f" - {i+1}/{times} - {round(time.time() - Begin, 3)}s.", end="\r")
-            allMeas1 = result.get_counts(t1)
-            allMeas2 = result.get_counts(t2)
+        
+            try:
+                allMeas1 = result.get_counts(t1)
+                allMeas2 = result.get_counts(t2)
+            except IBMQJobManagerError as err:
+                print("| Failed Job result skip, index:", t1, err)
+                continue
+
             numAllMeas1 = len(allMeas1)
             numAllMeas2 = len(allMeas2)
             aNum = len(list(allMeas1.keys())[0])

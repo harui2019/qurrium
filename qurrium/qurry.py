@@ -32,6 +32,7 @@ import gc
 import warnings
 import time
 import threading
+import copy
 
 from math import pi
 from uuid import uuid4
@@ -2217,7 +2218,7 @@ class Qurry:
             saveLocation=saveLocation,
             **allArgs,
         )
-        argsMulti = self.multiNow
+        argsMulti: self.argdictMultiNow = self.multiNow
 
         print(f"| PowerOutput {self.__name__} Start...\n"+f"+"+"-"*20)
         if dataPowerJobs['type'] == 'multiJobs':
@@ -2249,8 +2250,12 @@ class Qurry:
             return dataPowerJobs
 
         argsMulti['gitignore'] = syncControl(dataPowerJobs['gitignore'])
-        powerResultRaw: ManagedResults = powerJob.results()
-        powerResult: Result = powerResultRaw.combine_results()
+        with Gajima(
+            carousel=[('dots', 20, 6), 'spinner'],
+            prefix="| ",
+            desc="Dealing results",
+        ) as gajima:
+            powerResult: ManagedResults = powerJob.results()
 
         idxNum = 0
         numConfig = len(dataPowerJobs['listExpID'])

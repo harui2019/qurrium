@@ -272,8 +272,7 @@ class QurryplotV1:
         # xstick
         ax.set_xticks([2*i for i in range(length+2)])
         ax.set_xticklabels(
-            [None]+[None for k in data]+[None],
-            rotation=90,
+            [None]+[self.stickLabelGiver(k) for k in data]+[None]
         )
         ax.grid(linestyle=args.lineStyle)
 
@@ -283,7 +282,8 @@ class QurryplotV1:
             k = dataKeys[i]
             dataAtK = [
                 self.valueGetter(quantityContainer, args.quantity)
-                for quantityContainer in data[k]]
+                for quantityContainer in data[k]
+                if self.valueGetter(quantityContainer, args.quantity) != None]
             ax.errorbar(
                 [2*(i+1)],
                 [np.mean(dataAtK)],
@@ -381,15 +381,27 @@ class QurryplotV1:
     def valueGetter(v: dict[float], quantity) -> float: ...
     @overload
     def valueGetter(v: float, quantity) -> float: ...
-
     @staticmethod
-    def valueGetter(v: float, quantity) -> float:
+    def valueGetter(v: float, quantity) -> Optional[float]:
         if isinstance(v, dict):
-            return v[quantity] if quantity in v else np.Nan
+            return v[quantity] if quantity in v else None
         elif isinstance(v, float):
             return v
         else:
             raise ValueError(f"Unavailable type '{type(v)}'")
+        
+    @overload
+    def stickLabelGiver(l: int) -> int: ...
+    @overload
+    def stickLabelGiver(l: str) -> Optional[str]: ...
+    @staticmethod
+    def stickLabelGiver(l):
+        if isinstance(l, int):
+            return l
+        elif isinstance(l, str):
+            return l if len(l) < 4 else None
+        else:
+            raise ValueError(f"Unavailable type '{type(l)}'")
 
     def errorBar_old(
         self,
@@ -443,7 +455,8 @@ class QurryplotV1:
             k = dataKeys[i]
             dataAtK = [
                 self.valueGetter(quantityContainer, args.quantity)
-                for quantityContainer in self.data[k]]
+                for quantityContainer in self.data[k]
+                if self.valueGetter(quantityContainer, args.quantity) != None]
             errorBarAx.errorbar(
                 [2*(i+1)],
                 [np.mean(dataAtK)],

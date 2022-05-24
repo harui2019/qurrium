@@ -206,7 +206,6 @@ class hadamardTestV3(EntropyMeasureV3):
 
         counts = [result.get_counts(i) for i in resultIdxList]
         onlyCount = counts[0]
-        print
         purity = -100
 
         isZeroInclude = '0' in onlyCount
