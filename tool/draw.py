@@ -873,7 +873,7 @@ def drawEntropyOvershootAnalysis(
     axes01: Union[SubplotBase, Axes] = axes
 
     figTitle = fig.suptitle(f"{plotName}", y=1, size=drawConfig["fontSize"]+2)
-    axes01.set_xlabel("$\\log_{2}{N_q}$", size=drawConfig["fontSize"])
+    axes01.set_xlabel("${N_q}$", size=drawConfig["fontSize"])
     axes01.set_ylabel(
         "$\\log_{2}{\\frac{1}{n} \\ \\sum_{t=0}^{n} | [{Tr}({\\rho_A}^2)]_e - [{Tr}({\\rho_A}^2)]_t | }$",
         size=drawConfig["fontSize"]+2,

@@ -9,10 +9,10 @@ import os
 from pathlib import Path
 from math import pi
 from typing import Callable, Optional, Union, NamedTuple, overload
-from itertools import permutations
 
 from ..tool import argdict
 from .widget import *
+
 
 class QurryplotV1:
     """QurryplotV1 will be pointed to migrate old code and function in draw.py
@@ -21,7 +21,7 @@ class QurryplotV1:
         _type_: _description_
     """
     class argdictQurryPlot(NamedTuple):
-        yLim: Union[callable, tuple[float, int]] = yLimDecider,
+        yLim: Union[callable, tuple[float, int], None] = None
         fontSize: int = 12
         lineStyle: str = '--'
         format: str = 'png'
@@ -33,8 +33,7 @@ class QurryplotV1:
         plotName: str = 'Qurryplot'
         filename: Path = Path('./')
         saveFolder: Union[Path, str] = './'
-        
-    
+
     QuantityType = Union[float, dict[float]]
     DataUnit = dict[list[QuantityType]]
     InputType = Union[DataUnit, list[DataUnit], dict[DataUnit]]
@@ -53,7 +52,7 @@ class QurryplotV1:
         {
             # Variants of experiment.
             **defaultArg,
-            
+
             yLim: yLimDecider,
             fontSize: 12,
             lineStyle: '--',
@@ -92,7 +91,7 @@ class QurryplotV1:
     def drawConfigControls(
         self,
         # matplotlib configuration
-        yLim: Union[callable, tuple[float, int]] = yLimDecider,
+        yLim: Union[callable, tuple[float, int], None] = None,
         fontSize: int = 12,
         lineStyle: str = '--',
         format: str = 'png',
@@ -176,7 +175,7 @@ class QurryplotV1:
             - data input format
 
             ```
-            
+
             {
                 'trivialPM_4': [...],
                 'cat_4': [...],
@@ -190,7 +189,7 @@ class QurryplotV1:
                 Defaults to 'Qurryplot'.
             saveFolder (Optional[Path], optional): _description_. 
                 Defaults to None.
-            
+
         """
         self.fulldata = data
         self.data = {
@@ -200,17 +199,18 @@ class QurryplotV1:
         self.plotName = plotName
         self.saveFolder = saveFolder
 
-
     def demoUnit(
         self,
         plt: plt,
-        grid: tuple[int,int],
+        grid: tuple[int, int],
         position: tuple[int, int],
-        
+
         **otherArgs: any,
     ) -> plt:
         ax: Axes = plt.subplot2grid(grid, position, colspan=1, rowspan=1)
 
+        t = np.linspace(0.0, 1.0, 50)
+        s = np.cos(4 * np.pi * t) + 2
         for i in range(10):
             ax.plot(t, s+i*1, marker='.', label=f"i={i}")
 
@@ -225,19 +225,19 @@ class QurryplotV1:
             bbox_to_anchor=(1.025, 1.0),
             loc='upper left',
             borderaxespad=0.)
-    
+
         return plt
 
     def errorBarUnit(
         self,
         plt: plt,
-        grid: tuple[int,int],
+        grid: tuple[int, int],
         position: tuple[int, int],
-        
+
         data: DataUnit,
         dataTag: str,
         quantity: str = 'entropy',
-        
+
         **otherArgs: any,
     ) -> plt:
         """_summary_
@@ -253,35 +253,37 @@ class QurryplotV1:
             **otherArgs
         )
         ax: Axes = plt.subplot2grid(grid, position, colspan=1, rowspan=1)
+
         ax.set_ylabel(
             f"ErrorBar of Experiments", size=args.fontSize)
-        ax.set_xlabel(f"{args.plotName}", size=args.fontSize)
-        
-        ax.xlim((0, 2*(len(data)+1)))
+        ax.set_xlabel(f"ErrorBar of {dataTag}", size=args.fontSize)
+
+        ax.set_xlim(0, 2*(len(data)+1))
+        if args.yLim:
+            ax.set_ylim(args.yLim)
         length = len(data)
-    
+
         # label
-        ax.set_xlabel(
-            f"ErrorBar of Experiments", size=args.fontSize)
-        ax.set_ylabel(f"{args.plotName}", size=args.fontSize)
+        # ax.set_xlabel(
+        #     f"ErrorBar of Experiments", size=args.fontSize)
+        # ax.set_ylabel(f"{args.plotName}", size=args.fontSize)
         ax.set_title(dataTag, size=args.fontSize)
-        
+
         # xstick
         ax.set_xticks([2*i for i in range(length+2)])
         ax.set_xticklabels(
-            [None]+[k for k in data]+[None],
+            [None]+[None for k in data]+[None],
             rotation=90,
         )
         ax.grid(linestyle=args.lineStyle)
-        
+
         # draw
         dataKeys = list(data.keys())
         for i in range(length):
             k = dataKeys[i]
             dataAtK = [
-                quantityContainer[args.quantity]
-                for quantityContainer in data[k]
-                if args.quantity in quantityContainer]
+                self.valueGetter(quantityContainer, args.quantity)
+                for quantityContainer in data[k]]
             ax.errorbar(
                 [2*(i+1)],
                 [np.mean(dataAtK)],
@@ -309,9 +311,9 @@ class QurryplotV1:
             loc='upper left',
             borderaxespad=0.,
         )
-        
+
         return plt
-    
+
     def errorBar(
         self,
         quantity: str = 'entropy',
@@ -323,39 +325,45 @@ class QurryplotV1:
             tuple[Figure, Optional[Path]]: _description_
         """
         args = self.drawConfigControls(
-            plotType='errorBar',
+            plotType='multi.errorBar',
             plotName=self.plotName,
             saveFolder=self.saveFolder,
             quantity=quantity,
             **otherArgs
         )
-        
-        plt.figure()
-        plt.suptitle(f'{self.plotName}.errorBar', fontsize=args.fontSize)
-        
-        dataObj: dict[self.DataUnit]
+
+        dataObj: dict[self.DataUnit] = {}
         if isinstance(self.data, list):
             dataObj = {k: self.data[k] for k in range(len(self.data))}
         elif isinstance(self.data, dict):
-            ...
+            dataObj = self.data
         else:
             warnings.warn("Unavailable input type.")
-        
+
         length = len(dataObj)
         gridSize = int(np.sqrt(length))
+        gridShape = (gridSize, gridSize)
+
+        plt.figure(figsize=(gridShape[0]*6, gridShape[1]*3))
+        plt.suptitle(f'{self.plotName}.errorBar', fontsize=args.fontSize)
+
         dataKeysArray = list(dataObj.keys())
-        positionArray = permutations(range(gridSize), 2)
-        
+        positionArray = [
+            (i, j)
+            for i in range(gridSize)
+            for j in range(gridSize)]
+
         for k in dataObj:
             self.errorBarUnit(
                 plt=plt,
-                grid=(gridSize, gridSize),
+                grid=gridShape,
                 position=positionArray[dataKeysArray.index(k)],
-                dataTag = k,
-                data = dataObj[k]
+                dataTag=k,
+                data=dataObj[k],
+                quantity=quantity,
             )
-            
-        
+        plt.tight_layout()
+
         if isinstance(args.saveFolder, Path):
             saveLoc = args.saveFolder / args.fileName
             PlotFig = plt.savefig(
@@ -368,6 +376,20 @@ class QurryplotV1:
         else:
             print("To export figure, use type 'Path' in 'saveFolder'.")
             return PlotFig, None
+
+    @overload
+    def valueGetter(v: dict[float], quantity) -> float: ...
+    @overload
+    def valueGetter(v: float, quantity) -> float: ...
+
+    @staticmethod
+    def valueGetter(v: float, quantity) -> float:
+        if isinstance(v, dict):
+            return v[quantity] if quantity in v else np.Nan
+        elif isinstance(v, float):
+            return v
+        else:
+            raise ValueError(f"Unavailable type '{type(v)}'")
 
     def errorBar_old(
         self,
@@ -420,9 +442,8 @@ class QurryplotV1:
         for i in range(length):
             k = dataKeys[i]
             dataAtK = [
-                quantityContainer[args.quantity]
-                for quantityContainer in self.data[k]
-                if args.quantity in quantityContainer]
+                self.valueGetter(quantityContainer, args.quantity)
+                for quantityContainer in self.data[k]]
             errorBarAx.errorbar(
                 [2*(i+1)],
                 [np.mean(dataAtK)],
