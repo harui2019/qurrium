@@ -1,6 +1,6 @@
 from qiskit import (
     QuantumRegister, ClassicalRegister, QuantumCircuit)
-from qiskit.providers.ibmq.managed import ManagedResults, IBMQJobManagerError
+from qiskit.providers.ibmq.managed import ManagedResults, IBMQManagedResultDataNotAvailable
 from qiskit.visualization import *
 from qiskit.visualization.counts_visualization import hamming_distance
 from qiskit.quantum_info import random_unitary
@@ -342,7 +342,8 @@ class haarMeasure(EchoListen):
         else:
             raise ValueError("'resultIdxList' needs to be 'list'.")
 
-        counts = [result.get_counts(i) for i in resultIdxList]
+        counts = []
+        counts01, counts02 = [], []
         echo = -100
         echoCellList = []
 
@@ -355,11 +356,15 @@ class haarMeasure(EchoListen):
             print(
                 f"| Calculating overlap {t1} and {t2}" +
                 f" - {i+1}/{times} - {round(time.time() - Begin, 3)}s.", end="\r")
-        
+
             try:
                 allMeas1 = result.get_counts(t1)
                 allMeas2 = result.get_counts(t2)
-            except IBMQJobManagerError as err:
+                counts01.append(allMeas1)
+                counts02.append(allMeas2)
+            except IBMQManagedResultDataNotAvailable as err:
+                counts01.append(None)
+                counts02.append(None)
                 print("| Failed Job result skip, index:", t1, err)
                 continue
 
@@ -386,6 +391,7 @@ class haarMeasure(EchoListen):
             f" - {round(time.time() - Begin, 3)}s.")
 
         echo = np.mean(echoCellList)
+        counts = counts01 + counts02
 
         quantity = {
             'echo': echo,

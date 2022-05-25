@@ -1,7 +1,7 @@
 from qiskit import (
     QuantumRegister, ClassicalRegister, QuantumCircuit)
 from qiskit.result import Result
-from qiskit.providers.ibmq.managed import ManagedResults
+from qiskit.providers.ibmq.managed import ManagedResults, IBMQManagedResultDataNotAvailable
 
 import numpy as np
 import warnings
@@ -202,7 +202,7 @@ class MagnetSquare(Qurry):
         else:
             raise ValueError("'resultIdxList' needs to be 'list'.")
 
-        counts = [result.get_counts(i) for i in resultIdxList]
+        counts = []
         magnetsq = -100
         magnetsqCellList = []
 
@@ -216,7 +216,14 @@ class MagnetSquare(Qurry):
             print(
                 f"| Calculating magnetsq on {i}" +
                 f" - {idx}/{length} - {round(time.time() - Begin, 3)}s.", end="\r")
-            allMeas = result.get_counts(i)
+
+            try:
+                allMeas = result.get_counts(i)
+                counts.append(allMeas)
+            except IBMQManagedResultDataNotAvailable as err:
+                counts.append(None)
+                print("| Failed Job result skip, index:", i, err)
+                continue
 
             for bits in allMeas:
                 checkSum += allMeas[bits]

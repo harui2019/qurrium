@@ -1,6 +1,6 @@
 from qiskit import (
     QuantumRegister, ClassicalRegister, QuantumCircuit)
-from qiskit.providers.ibmq.managed import ManagedResults, IBMQJobManagerError
+from qiskit.providers.ibmq.managed import ManagedResults, IBMQManagedResultDataNotAvailable
 from qiskit.visualization import *
 from qiskit.visualization.counts_visualization import hamming_distance
 from qiskit.quantum_info import random_unitary
@@ -320,7 +320,7 @@ class haarMeasureV3(EntropyMeasureV3):
         else:
             raise ValueError("'resultIdxList' needs to be 'list'.")
 
-        counts = [result.get_counts(i) for i in resultIdxList]
+        counts = []
         purity = -100
         entropy = -100
         purityCellList = []
@@ -336,8 +336,10 @@ class haarMeasureV3(EntropyMeasureV3):
             
             try:
                 allMeas1 = result.get_counts(t1)
-            except IBMQJobManagerError as err:
-                print("| Failed Job result skip, index:", t1, err)
+                counts.append(allMeas1)
+            except IBMQManagedResultDataNotAvailable as err:
+                counts.append(None)
+                print("| Failed Job result skip, index:", i, err)
                 continue
 
             allMeasUnderDegree = dict.fromkeys(
