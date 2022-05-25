@@ -237,6 +237,10 @@ class QurryplotV1:
         data: DataUnit,
         dataTag: str,
         quantity: str = 'entropy',
+        
+        xlabel: Optional[str] = None,
+        ylabel: Optional[str] = None,
+        xsticklabel: Optional[list[any]] = None,
 
         **otherArgs: any,
     ) -> plt:
@@ -255,8 +259,13 @@ class QurryplotV1:
         ax: Axes = plt.subplot2grid(grid, position, colspan=1, rowspan=1)
 
         ax.set_ylabel(
-            f"ErrorBar of Experiments", size=args.fontSize)
-        ax.set_xlabel(f"ErrorBar of {dataTag}", size=args.fontSize)
+            f"ErrorBar of Experiments" if ylabel is None else ylabel,
+            size=args.fontSize
+        )
+        ax.set_xlabel(
+            f"ErrorBar of {dataTag}" if xlabel is None else xlabel,
+            size=args.fontSize
+        )
 
         ax.set_xlim(0, 2*(len(data)+1))
         if args.yLim:
@@ -271,9 +280,14 @@ class QurryplotV1:
 
         # xstick
         ax.set_xticks([2*i for i in range(length+2)])
-        ax.set_xticklabels(
-            [None]+[self.stickLabelGiver(k) for k in data]+[None]
-        )
+        if xsticklabel is None:
+            ax.set_xticklabels(
+                [None]+[self.stickLabelGiver(k) for k in data]+[None])
+        else:
+            tmp = [self.stickLabelGiver(k) for k in data]
+            for i in range(len(xsticklabel)):
+                tmp[i] = xsticklabel[i]
+            ax.set_xticklabels([None]+tmp+[None])
         ax.grid(linestyle=args.lineStyle)
 
         # draw
@@ -317,6 +331,9 @@ class QurryplotV1:
     def errorBar(
         self,
         quantity: str = 'entropy',
+        xlabel: Optional[str] = None,
+        ylabel: Optional[str] = None,
+        xsticklabel: Optional[list[any]] = None,
         **otherArgs: any,
     ) -> tuple[Figure, Optional[Path]]:
         """_summary_
@@ -361,6 +378,10 @@ class QurryplotV1:
                 dataTag=k,
                 data=dataObj[k],
                 quantity=quantity,
+                
+                xlabel=xlabel,
+                ylabel=ylabel,
+                xsticklabel=xsticklabel,
             )
         plt.tight_layout()
 
