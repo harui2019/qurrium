@@ -8,7 +8,7 @@ from typing import (
 )
 
 
-class Gajima():
+class GajimaBackup():
     """Anotehr after another loading bar in Python, 
     are there any other Squidwards(X) python progressbar(O) ?
 
