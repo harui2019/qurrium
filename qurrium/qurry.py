@@ -100,6 +100,7 @@ _expsHint = expsHint(
 )
 """
 
+
 class Qurry:
     """Qurry V0.3.1
     The qiskit job tool
@@ -278,6 +279,9 @@ class Qurry:
                 # Export data
                 'jobID': [],
                 'expsName': 'exps',
+
+                # side product
+                'sideProduct': {},
             },
         )
 
@@ -916,9 +920,9 @@ class Qurry:
         expID: Optional[str] = None,
         circuitSet: Optional[
             Union[QuantumCircuit, list[QuantumCircuit]]] = None,
-        whichCircuit: Optional[int] = 0,
-        drawMethod: Optional[str] = 'text',
-        decompose: Optional[int] = 0,
+        whichCircuit: int = 0,
+        drawMethod: str = 'text',
+        decompose: int = 0,
     ) -> Optional[Figure]:
         """Draw the circuit of wave function.
 
@@ -1040,6 +1044,7 @@ class Qurry:
         expID: Optional[str] = None,
         additionName: Optional[str] = None,
         saveLocation: Optional[Union[Path, str]] = None,
+        excepts: list = [],
     ) -> dict[str: any]:
         """Export the experiment data, if there is a previous export, then will overwrite.
 
@@ -1085,13 +1090,22 @@ class Qurry:
                 f"No such expID '{expID}', waiting for legacy be written.")
             return {}
 
+        # filename
         filename = (
-            Path(
-                f"{additionName}.{self.exps[legacyId]['expsName']}.expId={legacyId}.json")
+            f"{additionName}.{self.exps[legacyId]['expsName']}.expId={legacyId}"
         ) if additionName else (
-            Path(f"{self.exps[legacyId]['expsName']}.expId={legacyId}.json")
+            f"{self.exps[legacyId]['expsName']}.expId={legacyId}"
         )
         self.exps[legacyId]['filename'] = filename
+
+        # filter
+        if not isinstance(excepts, list):
+            excepts = []
+            warnings.warn(
+                f"Type of 'excepts' is not 'list' instead of '{type(excepts)}', ignore exception.")
+        exports = {
+            k: self.exps[legacyId][k] for k in self.exps[legacyId] if k not in ['sideProduct']+excepts
+        }
 
         with Gajima(
             carousel=[('dots', 20, 6), 'spinner'],
@@ -1109,19 +1123,37 @@ class Qurry:
                     os.mkdir(saveLoc)
 
                 self.exps[legacyId]['saveLocation'] = saveLoc
-                legacyExport = jsonablize(self.exps[legacyId])
-                with open((saveLoc / filename), 'w+', encoding='utf-8') as Legacy:
-                    json.dump(legacyExport, Legacy,
-                              indent=2, ensure_ascii=False)
+                legacyExport = jsonablize(exports)
+                with open((saveLoc / (filename+'.json')), 'w+', encoding='utf-8') as Legacy:
+                    json.dump(
+                        legacyExport, Legacy, indent=2, ensure_ascii=False)
 
             elif saveLocation == None:
-                legacyExport = jsonablize(self.exps[legacyId])
+                legacyExport = jsonablize(exports)
 
             else:
-                legacyExport = jsonablize(self.exps[legacyId])
+                legacyExport = jsonablize(exports)
                 warnings.warn(
                     "'saveLocation' is not the type of 'str' or 'Path', " +
                     "so export cancelled.")
+
+        tales = self.exps[legacyId]['sideProduct']
+        if len(tales) > 0:
+            with Gajima(
+                carousel=[('dots', 20, 6), 'spinner'],
+                prefix="| ",
+                desc="Writing Tales",  # TODO: make progress bar
+                leave=False,
+            ) as gajima:
+                talesLib = saveLoc / 'tales'
+                if not os.path.exists(talesLib):
+                    os.mkdir(talesLib)
+
+                for k in tales:
+                    talesExport = jsonablize(tales[k])
+                    with open((talesLib / (filename+f'.{k}.json')), 'w+', encoding='utf-8') as Tales:
+                        json.dump(
+                            talesExport, Tales, indent=2, ensure_ascii=False)
 
         return legacyExport
 
@@ -1324,7 +1356,7 @@ class Qurry:
                     provider=argsNow.provider,
                     refresh=True
                 )
-                result = retrieved.results().combine_results()
+                result = retrieved.results()
 
             except IBMQJobManagerUnknownJobSet as e:
                 warnings.warn("Job unknown.", e)
@@ -1415,11 +1447,14 @@ class Qurry:
             print("| Entropy and Purity are figured out, result will clear.")
             del self.exps[self.IDNow]['result']
 
+        for k in quantity:
+            if k[0] == '_' and k != '_dummy':
+                self.exps[self.IDNow]['sideProduct'][k[1:]] = quantity[k]
+
         self.exps[self.IDNow] = {
             **self.exps[self.IDNow],
-            **quantity,
+            **{k: quantity[k] for k in quantity if k[0] != '_'},
             'counts': counts,
-
         }
         gc.collect()
         print(f"| End...\n"+f"+"+"-"*20)

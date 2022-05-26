@@ -237,7 +237,7 @@ class QurryplotV1:
         data: DataUnit,
         dataTag: str,
         quantity: str = 'entropy',
-        
+
         xlabel: Optional[str] = None,
         ylabel: Optional[str] = None,
         xsticklabel: Optional[list[any]] = None,
@@ -314,13 +314,34 @@ class QurryplotV1:
                 marker='x',
                 label="".join([f"{k}"])
             )
+            
+        if quantity == 'magnetsq' and all([isinstance(k, int) for k in dataKeys]):
+            if dataTag == 'cat':
+                ax.plot(
+                    [2*(i+1) for i in range(length)],
+                    [1 for v in dataKeys],
+                    label="$1$",
+                )
+            else:
+                ax.plot(
+                    [2*(i+1) for i in range(length)],
+                    [1/v for v in dataKeys],
+                    label="$1/N$",
+                    marker='.',
+                )
 
         # legend
         h, l = ax.get_legend_handles_labels()
+        if quantity == 'magnetsq' and all([isinstance(k, int) for k in dataKeys]):
+            handlesZip = [h[0]]+list(zip(h[1:length+1], h[length+1:]))
+            labels = l[:length+1]
+        else:
+            handlesZip = zip(h[:length], h[length:])
+            labels = l[:length]
         legendPlt = ax.legend(
-            handles=zip(h[:length], h[length:]),
+            handles=handlesZip,
             handler_map={tuple: matplotlib.legend_handler.HandlerTuple(None)},
-            labels=l[:length],
+            labels=labels,
             bbox_to_anchor=(1.025, 1.0),
             loc='upper left',
             borderaxespad=0.,
@@ -361,7 +382,10 @@ class QurryplotV1:
         gridSize = int(np.sqrt(length))
         gridShape = (gridSize, gridSize)
 
-        plt.figure(figsize=(gridShape[0]*6, gridShape[1]*3))
+        dataUnitSize = max([len(dataObj[k]) for k in dataObj])
+
+        plt.figure(
+            figsize=(gridShape[0]*(dataUnitSize*0.4 + 2.8), gridShape[1]*3))
         plt.suptitle(f'{self.plotName}.errorBar', fontsize=args.fontSize)
 
         dataKeysArray = list(dataObj.keys())
@@ -378,7 +402,7 @@ class QurryplotV1:
                 dataTag=k,
                 data=dataObj[k],
                 quantity=quantity,
-                
+
                 xlabel=xlabel,
                 ylabel=ylabel,
                 xsticklabel=xsticklabel,
@@ -402,6 +426,7 @@ class QurryplotV1:
     def valueGetter(v: dict[float], quantity) -> float: ...
     @overload
     def valueGetter(v: float, quantity) -> float: ...
+
     @staticmethod
     def valueGetter(v: float, quantity) -> Optional[float]:
         if isinstance(v, dict):
@@ -410,11 +435,12 @@ class QurryplotV1:
             return v
         else:
             raise ValueError(f"Unavailable type '{type(v)}'")
-        
+
     @overload
     def stickLabelGiver(l: int) -> int: ...
     @overload
     def stickLabelGiver(l: str) -> Optional[str]: ...
+
     @staticmethod
     def stickLabelGiver(l):
         if isinstance(l, int):
