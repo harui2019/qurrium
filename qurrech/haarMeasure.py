@@ -12,12 +12,8 @@ from typing import Union, Optional, Callable, List, NamedTuple
 import time
 
 from .qurrech import EchoListen
-from ..tool import Configuration
+from ..qurrium import haarBase
 # EchoListen V0.3.0 - Measuring Loschmidt Echo - Qurrech
-
-RXmatrix = np.array([[0, 1], [1, 0]])
-RYmatrix = np.array([[0, -1j], [1j, 0]])
-RZmatrix = np.array([[1, 0], [0, -1]])
 
 
 def makeTwoBitStr(num: int, bits: List[str] = ['']) -> List[str]:
@@ -32,10 +28,11 @@ makeTwoBitStrOneLiner: Callable[[int, List[str]], List[str]] = (
     )(makeTwoBitStrOneLiner(num-1, bits)) if num > 0 else bits))
 
 
-class haarMeasure(EchoListen):
+class haarMeasure(EchoListen, haarBase):
     """haarMeasure V0.3.0 of qurrech
     """
 
+    """ Configuration """
     class argdictCore(NamedTuple):
         expsName: str = 'exps',
         wave1: Union[QuantumCircuit, any, None] = None,
@@ -237,80 +234,12 @@ class haarMeasure(EchoListen):
             f" - {i+1}/{argsNow.times} - {round(time.time() - BBegin, 3)}s." +
             " "*30)
 
+        self.exps[self.IDNow]['sideProduct']['randomized'] = {
+            i: [self.qubitOpToPauliCoeff(unitaryList[i][j])
+                for j in range(numQubits)]
+            for i in range(argsNow.times)}
+
         return qcList
-
-    @staticmethod
-    def hamming_distance(str1, str2):
-        """Calculate the Hamming distance between two bit strings
-
-        From `qiskit.visualization.count_visualization`.
-
-        Args:
-            str1 (str): First string.
-            str2 (str): Second string.
-        Returns:    
-            int: Distance between strings.
-        Raises:
-            VisualizationError: Strings not same length
-        """
-        if len(str1) != len(str2):
-            raise VisualizationError("Strings not same length.")
-        return sum(s1 != s2 for s1, s2 in zip(str1, str2))
-
-    @staticmethod
-    def ensembleCell(
-        sAi: str,
-        sAiMeas: int,
-        sAj: str,
-        sAjMeas: int,
-        aNum: int,
-        shots: int,
-    ) -> float:
-        """Calculate the value of two counts from qubits in ensemble average.
-
-        - about `diff = hamming_distance(sAi, sAj)`:
-
-            It is `hamming_distance` from `qiskit.visualization.count_visualization`.
-            Due to frequently update of Qiskit and it's a simple function,
-            I decide not to use source code instead of calling from `qiskit`.
-
-        Args:
-            sAi (str): First count's qubits arrange.
-            sAiMeas (int): First count.
-            sAj (str): Second count's qubits arrange.
-            sAjMeas (int): Second count.
-            aNum (int): Degree of freedom.
-            shots (int): Shots of executation.
-
-        Returns:
-            float: the value of two counts from qubits in ensemble average.
-
-        """
-        diff = sum(s1 != s2 for s1, s2 in zip(sAi, sAj))
-        tmp = (
-            np.float_power(2, aNum)*np.float_power(-2, -diff)
-        )*(
-            (sAiMeas/shots)*(sAjMeas/shots)
-        )
-        return tmp
-
-    @staticmethod
-    def densityToBloch(
-        rho: np.array
-    ) -> List[float]:
-        """Convert a density matrix to a Bloch vector.
-
-        Args:
-            rho (np.array): The density matrix.
-
-        Returns:
-            List[float]: The bloch vector.
-        """
-
-        ax = np.trace(np.dot(rho, RXmatrix)).real
-        ay = np.trace(np.dot(rho, RYmatrix)).real
-        az = np.trace(np.dot(rho, RZmatrix)).real
-        return [ax, ay, az]
 
     @classmethod
     def quantity(
@@ -395,6 +324,7 @@ class haarMeasure(EchoListen):
 
         quantity = {
             'echo': echo,
+            '_echoCellList': echoCellList,
         }
         return counts, quantity
 

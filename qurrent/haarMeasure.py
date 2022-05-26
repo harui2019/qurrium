@@ -13,8 +13,8 @@ import time
 
 from .qurrent import EntropyMeasureV3
 from ..qurrium import haarBase
-from ..tool import Configuration
 # EntropyMeasure V0.3.0 - Measuring Renyi Entropy - Qurrent
+
 
 def makeTwoBitStr(num: int, bits: list[str] = ['']) -> list[str]:
     return ((lambda bits: [
@@ -29,7 +29,7 @@ makeTwoBitStrOneLiner: Callable[[int, list[str]], list[str]] = (
 
 
 class haarMeasureV3(EntropyMeasureV3, haarBase):
-    """haarMeasure V0.3.0 of qurrech
+    """haarMeasure V0.3.0 of qurrent
     """
 
     """ Configuration """
@@ -205,15 +205,16 @@ class haarMeasureV3(EntropyMeasureV3, haarBase):
             print(
                 f"| Build circuit: {argsNow.wave}" +
                 f" - {i+1}/{argsNow.times} - {round(time.time() - ABegin, 3)}s.", end="\r")
-        
+
         print(
             f"| Circuit completed: {argsNow.wave}" +
             f" - {i+1}/{argsNow.times} - {round(time.time() - ABegin, 3)}s." +
             " "*30)
-        
+
         self.exps[self.IDNow]['sideProduct']['randomized'] = {
-            i: [self.qubitOpToPauliCoeff(unitaryList[i][j]) for j in range(numQubits)]
-        for i in range(argsNow.times) }
+            i: [self.qubitOpToPauliCoeff(unitaryList[i][j])
+                for j in range(numQubits)]
+            for i in range(argsNow.times)}
 
         return qcList
 
@@ -261,7 +262,7 @@ class haarMeasureV3(EntropyMeasureV3, haarBase):
             print(
                 f"| Calculating overlap {t1} and {t1}" +
                 f" - {i+1}/{times} - {round(time.time() - Begin, 3)}s.", end="\r")
-            
+
             try:
                 allMeas1 = result.get_counts(t1)
                 counts.append(allMeas1)
