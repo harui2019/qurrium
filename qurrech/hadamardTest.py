@@ -1,6 +1,6 @@
 from qiskit import (
     QuantumRegister, ClassicalRegister, QuantumCircuit)
-from qiskit.providers.ibmq.managed import ManagedResults
+from qiskit.providers.ibmq.managed import ManagedResults, IBMQManagedResultDataNotAvailable
 from qiskit.visualization import *
 
 from qiskit.result import Result
@@ -199,9 +199,16 @@ class hadamardTest(EchoListen):
         else:
             raise ValueError("'resultIdxList' needs to be 'list'.")
 
-        counts = [result.get_counts(i) for i in resultIdxList]
-        onlyCount = counts[0]
-        echo = -100
+        counts = []
+        onlyCount = None
+        purity = -100
+
+        try:
+            counts = [result.get_counts(i) for i in resultIdxList]
+            onlyCount = counts[0]
+        except IBMQManagedResultDataNotAvailable as err:
+            print("| Failed Job result skip, index:", resultIdxList, err)
+            return {}
 
         isZeroInclude = '0' in onlyCount
         isOneInclude = '1' in onlyCount
