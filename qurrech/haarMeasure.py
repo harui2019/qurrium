@@ -151,7 +151,7 @@ class haarMeasure(EchoListen, haarBase):
             'wave1': wave1,
             'wave2': wave2,
             'times': times,
-            'expsName': f"w1={wave1}-w2={wave2}-at{times}.{self.shortName}",
+            'expsName': f"w1={wave1}-w2={wave2}-at={times}.{self.shortName}",
             **otherArgs,
         }
 

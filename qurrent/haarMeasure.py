@@ -158,7 +158,7 @@ class haarMeasureV3(EntropyMeasureV3, haarBase):
             'degree': degree,
             'times': times,
             'numQubit': numQubits,
-            'expsName': f"w={wave}-deg{degree}-at{times}.{self.shortName}",
+            'expsName': f"w={wave}-deg={degree}-at={times}.{self.shortName}",
             **otherArgs,
         }
 
