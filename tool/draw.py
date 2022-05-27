@@ -9,7 +9,7 @@ from pathlib import Path
 from math import pi
 from typing import Callable, Optional, Union
 
-from .configuration import Configuration
+from .backup.configuration import Configuration
 
 
 def yLimDetector(
