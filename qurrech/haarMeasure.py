@@ -67,7 +67,7 @@ class haarMeasure(EchoListen, haarBase):
             name="qurrentConfigMulti",
         )
         self.shortName = 'qurrech.haar'
-        self.__name__ = 'qurrech.haar'
+        self.__name__ = 'qurrech.haarMeasure'
 
         return self._expsConfig, self._expsBase
 
@@ -151,7 +151,7 @@ class haarMeasure(EchoListen, haarBase):
             'wave1': wave1,
             'wave2': wave2,
             'times': times,
-            'expsName': f"{expsName}.{wave1}-{wave2}at{times}.haar",
+            'expsName': f"w1={wave1}-w2={wave2}-at{times}.{self.shortName}",
             **otherArgs,
         }
 

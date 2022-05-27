@@ -52,7 +52,7 @@ class hadamardTest(EchoListen):
             name="qurrentConfigMulti",
         )
         self.shortName = 'qurrech.hadamard'
-        self.__name__ = 'qurrech.hadamard'
+        self.__name__ = 'qurrech.hadamardTest'
 
         return self._expsConfig, self._expsBase
 
@@ -124,7 +124,7 @@ class hadamardTest(EchoListen):
         return {
             'wave1': wave1,
             'wave2': wave2,
-            'expsName': f"{expsName}.{wave1}-{wave2}.hadamard",
+            'expsName': f"w1={wave1}-w2={wave2}.{self.shortName}",
             **otherArgs,
         }
 

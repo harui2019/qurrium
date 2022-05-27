@@ -111,7 +111,7 @@ class MagnetSquare(Qurry):
         return {
             'wave': wave,
             'numQubit': numQubits,
-            'expsName': f"{expsName}.{wave}.magsq",
+            'expsName': f"w={wave}-Nq={numQubits}.{self.shortName}",
             **otherArgs,
         }
 

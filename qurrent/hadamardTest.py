@@ -132,7 +132,7 @@ class hadamardTestV3(EntropyMeasureV3):
             'wave': wave,
             'degree': degree,
             'numQubit': numQubits,
-            'expsName': f"{expsName}.{wave}-deg={degree}.{self.__name__}",
+            'expsName': f"w={wave}-deg={degree}.{self.shortName}",
             **otherArgs,
         }
 

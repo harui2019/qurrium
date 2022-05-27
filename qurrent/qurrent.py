@@ -175,7 +175,7 @@ class EntropyMeasureV3(Qurry):
             'wave': wave,
             'degree': degree,
             'numQubit': numQubits,
-            'expsName': f"{expsName}.{wave}-deg={degree}.{self.__name__}",
+            'expsName': f"w={wave}-deg={degree}-meaningless.{self.__name__}",
             **otherArgs,
         }
 

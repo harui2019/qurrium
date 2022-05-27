@@ -126,7 +126,7 @@ class EchoListen(Qurry):
         return {
             'wave1': wave1,
             'wave2': wave2,
-            'expsName': f"{expsName}.{wave1}X{wave2}",
+            'expsName': f"w1={wave1}-w2={wave2}-meaningless.{self.shortName}",
             **otherArgs,
         }
 
