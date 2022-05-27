@@ -161,12 +161,6 @@ dataTagsAllow = Union[tuple[dataTagAllow], dataTagAllow]
 class EntropyMeasureV2:
     """EntropyMeasureV2.1 of qurrent
     """
-    warnings.warn(
-        "'EntropyMeasureV2.1' is a deprecated version of EntropyMeasure in Qurry, "+
-        "it keeps in module currently but no longer maintains and update, "+
-        "it will be lacked for many new feature and less availability as the update of Qurry, "+
-        "please use 'EntropyMeasureV3' as imported as 'EntropyMeasure' instead, "+
-        "except you want to handle the experiment data exported by 'EntropyMeasureV2.1'.")
 
     # Initialize
     def initialize(self) -> dict[str: any]:
@@ -245,6 +239,13 @@ class EntropyMeasureV2:
             KeyError: Configuration lost.
             KeyError: `self.measureConfig['hint']` is not completed.
         """
+        
+        warnings.warn(
+            "'EntropyMeasureV2.1' is a deprecated version of EntropyMeasure in Qurry, "+
+            "it keeps in module currently but no longer maintains and update, "+
+            "it will be lacked for many new feature and less availability as the update of Qurry, "+
+            "please use 'EntropyMeasureV3' as imported as 'EntropyMeasure' instead, "+
+            "except you want to handle the experiment data exported by 'EntropyMeasureV2.1'.")
 
         if isinstance(waves, list):
             waveNums = len(waves)
