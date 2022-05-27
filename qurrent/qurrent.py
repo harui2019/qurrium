@@ -99,8 +99,8 @@ class EntropyMeasureV3(Qurry):
         self._expsMultiConfig = self.expsConfigMulti(
             name="qurrentConfigMulti",
         )
-        self.shortName = 'qurrentV3'
-        self.__name__ = 'QurrentV3'
+        self.shortName = 'qurrent'
+        self.__name__ = 'EntropyMeasureV3'
 
         return self._expsConfig, self._expsBase
 

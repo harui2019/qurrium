@@ -69,8 +69,8 @@ class haarMeasureV3(EntropyMeasureV3, haarBase):
         self._expsMultiConfig = self.expsConfigMulti(
             name="qurrentConfigMulti",
         )
-        self.shortName = 'qurrentV3.haar'
-        self.__name__ = 'qurrentV3.haar'
+        self.shortName = 'qurrent.haar'
+        self.__name__ = 'qurrent.haarMeasure'
 
         return self._expsConfig, self._expsBase
 

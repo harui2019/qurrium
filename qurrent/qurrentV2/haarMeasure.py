@@ -78,8 +78,8 @@ class haarMeasureV2(EntropyMeasureV2):
         """
 
         self.measureConfig = {
-            'name': 'haarMeasure',
-            'shortName': 'haar',
+            'name': 'qurrentV2.haarMeasure',
+            'shortName': 'qurrent.v2.haar',
             'paramsNum': 3,
             'default': {
                 'degree': (

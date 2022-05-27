@@ -66,8 +66,8 @@ class haarMeasure(EchoListen, haarBase):
         self._expsMultiConfig = self.expsConfigMulti(
             name="qurrentConfigMulti",
         )
-        self.shortName = 'haarMeasure'
-        self.__name__ = 'haarMeasure'
+        self.shortName = 'qurrech.haar'
+        self.__name__ = 'qurrech.haar'
 
         return self._expsConfig, self._expsBase
 

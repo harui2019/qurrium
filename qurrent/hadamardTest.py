@@ -55,8 +55,8 @@ class hadamardTestV3(EntropyMeasureV3):
         self._expsMultiConfig = self.expsConfigMulti(
             name="qurrentConfigMulti",
         )
-        self.shortName = 'qurrentV3.hadamard'
-        self.__name__ = 'qurrentV3.hadamard'
+        self.shortName = 'qurrent.hadamard'
+        self.__name__ = 'qurrent.hadamardTest'
 
         return self._expsConfig, self._expsBase
 

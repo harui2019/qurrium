@@ -51,8 +51,8 @@ class hadamardTest(EchoListen):
         self._expsMultiConfig = self.expsConfigMulti(
             name="qurrentConfigMulti",
         )
-        self.shortName = 'hadamardTest'
-        self.__name__ = 'hadamardTest'
+        self.shortName = 'qurrech.hadamard'
+        self.__name__ = 'qurrech.hadamard'
 
         return self._expsConfig, self._expsBase
 

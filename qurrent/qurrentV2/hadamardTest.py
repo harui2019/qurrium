@@ -33,8 +33,8 @@ class hadamardTestV2(EntropyMeasureV2):
         """
 
         self.measureConfig = {
-            'name': 'hadamardTest',
-            'shortName': 'hadamard',
+            'name': 'qurrentV2.hadamardTest',
+            'shortName': 'qurrent.v2.hadamard',
             'paramsNum': 1,
             'default': {
                 'degree': (
