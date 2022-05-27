@@ -1451,11 +1451,13 @@ class Qurry:
             if k[0] == '_' and k != '_dummy':
                 self.exps[self.IDNow]['sideProduct'][k[1:]] = quantity[k]
 
+        quantity = {k: quantity[k] for k in quantity if k[0] != '_'}
         self.exps[self.IDNow] = {
             **self.exps[self.IDNow],
-            **{k: quantity[k] for k in quantity if k[0] != '_'},
+            **quantity,
             'counts': counts,
         }
+        
         gc.collect()
         print(f"| End...\n"+f"+"+"-"*20)
 
