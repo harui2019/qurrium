@@ -9,7 +9,7 @@ from qiskit.providers.ibmq.managed import ManagedResults
 import numpy as np
 import warnings
 from math import pi
-from typing import Union, Optional, NamedTuple, overload
+from typing import Union, Optional, NamedTuple
 
 from ..qurrium import Qurry
 from ..tool import Configuration

@@ -58,6 +58,12 @@ It's similar to `qurrent`.
 
 - Magnetization Squared
 
+### `qurstrop` - The String Operators
+
+- String Operators
+  - Used in:
+    **Crossing a topological phase transition with a quantum computer** - Smith, Adam and Jobst, Bernhard and Green, Andrew G. and Pollmann, Frank, [PhysRevResearch.4.L022020](https://link.aps.org/doi/10.1103/PhysRevResearch.4.L022020)
+
 ---
 
 ## The Library of Some Common Case & Other tools

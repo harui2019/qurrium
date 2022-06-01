@@ -1,15 +1,9 @@
-from qiskit import (
-    QuantumRegister, ClassicalRegister, QuantumCircuit)
-from qiskit.providers.ibmq.managed import ManagedResults, IBMQManagedResultDataNotAvailable
-from qiskit.visualization import *
-from qiskit.visualization.counts_visualization import hamming_distance
+from qiskit.visualization.counts_visualization import hamming_distance, VisualizationError
 from qiskit.quantum_info import random_unitary
 from qiskit.result import Result
 
 import numpy as np
-import warnings
 from typing import Union, Optional, Callable, NamedTuple
-import time
 
 from ..tool import Configuration
 # Haar Randomized Parts V0.3.0 - Qurrium
@@ -34,6 +28,29 @@ makeTwoBitStrOneLiner: Callable[[int, list[str]], list[str]] = (
 class haarBase:
     """Basic function of Haar randomized measure
 
+    - Reference:
+        - Used in:
+            Entanglement spectroscopy on a quantum computer - Sonika Johri, Damian S. Steiger, and Matthias Troyer, [PhysRevB.96.195136](https://doi.org/10.1103/PhysRevB.96.195136)
+
+        - `bibtex`:
+
+```bibtex
+@article{PhysRevB.96.195136,
+    title = {Entanglement spectroscopy on a quantum computer},
+    author = {Johri, Sonika and Steiger, Damian S. and Troyer, Matthias},
+    journal = {Phys. Rev. B},
+    volume = {96},
+    issue = {19},
+    pages = {195136},
+    numpages = {7},
+    year = {2017},
+    month = {Nov},
+    publisher = {American Physical Society},
+    doi = {10.1103/PhysRevB.96.195136},
+    url = {https://link.aps.org/doi/10.1103/PhysRevB.96.195136}
+}
+
+```
     Raises:
         VisualizationError: :func:`.hamming_distance` rasie when strings not same length
 

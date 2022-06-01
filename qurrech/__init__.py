@@ -8,9 +8,7 @@ measurementList = [
     haarMeasure,
     hadamardTest,
 ]
-measurement = {
-    who().__name__: who
-    for who in measurementList}
+measurement = {who().__name__: who for who in measurementList}
 
 
 def checkMeasurement(

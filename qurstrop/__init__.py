@@ -1,8 +1,8 @@
-from .qurmagsq import MagnetSquare
+from .qurstrop import StringOperator
 
 
 measurementList = [
-    MagnetSquare,
+    StringOperator,
 ]
 measurement = { who().__name__: who for who in measurementList }
 
@@ -14,7 +14,7 @@ def checkMeasurement(
 
 def getMeasurement(
     name: str,
-) -> MagnetSquare:
+) -> StringOperator:
 
     if name in measurement:
         return measurement[name]

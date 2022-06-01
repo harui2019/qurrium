@@ -7,21 +7,79 @@ import warnings
 from math import pi
 from itertools import permutations
 import time
-from typing import Union, Optional, NamedTuple
+from typing import Union, Optional, NamedTuple, Literal
 
 from ..qurrium import Qurry
 from ..tool import Configuration
 
-# MagnetSquare V0.3.0 - Measuring Magnetization Squared - Qurmagsq
+# StringOperator V0.3.0 - Measuring Topological Phase - Qurstrop
 
+stringOperatorLib = {
+    'i': {
+        'bound': {
+            0: [''],
+        },
+        'filling': ['']
+    },
+    'zy': {
+        'bound': {
+            0: [],
+            1: ['ry', -np.pi/2],
+        },
+        'filling': ['rx', np.pi/2]
+    },
+}
 
-class MagnetSquare(Qurry):
-    """MagnetSquare V0.3.0 of qurmagsq
+class StringOperator(Qurry):
+    """StringOperator V0.3.0 of qurstrop
+
+    - Reference:
+        - Used in:
+            Crossing a topological phase transition with a quantum computer - Smith, Adam and Jobst, Bernhard and Green, Andrew G. and Pollmann, Frank, [PhysRevResearch.4.L022020](https://link.aps.org/doi/10.1103/PhysRevResearch.4.L022020)
+
+        - `bibtex`:
+
+```bibtex
+@article{PhysRevResearch.4.L022020,
+    title = {Crossing a topological phase transition with a quantum computer},
+    author = {Smith, Adam and Jobst, Bernhard and Green, Andrew G. and Pollmann, Frank},
+    journal = {Phys. Rev. Research},
+    volume = {4},
+    issue = {2},
+    pages = {L022020},
+    numpages = {8},
+    year = {2022},
+    month = {Apr},
+    publisher = {American Physical Society},
+    doi = {10.1103/PhysRevResearch.4.L022020},
+    url = {https://link.aps.org/doi/10.1103/PhysRevResearch.4.L022020}
+}
+```
     """
+    
+    stringOperatorLib = {
+        'i': {
+            'bound': {
+                0: [''],
+            },
+            'filling': ['']
+        },
+        'zy': {
+            'bound': {
+                0: [],
+                1: ['ry', -np.pi/2],
+            },
+            'filling': ['rx', np.pi/2]
+        },
+    }
 
     class argdictCore(NamedTuple):
-        expsName: str = 'exps',
+        expsName: str = 'exps'
         wave: Union[QuantumCircuit, any, None] = None,
+        string: Literal['i', 'zy'] = 'i',
+        # string: Literal[tuple(stringOperatorLib)] = 'i',
+        i: Optional[int] = 1,
+        k: Optional[int] = None,
 
     # Initialize
     def initialize(self) -> dict[str: any]:
@@ -32,26 +90,26 @@ class MagnetSquare(Qurry):
         """
 
         self._expsConfig = self.expsConfig(
-            name="qurmagsqConfig",
+            name="qurstropConfig",
         )
         self._expsBase = self.expsBase(
-            name="qurmagsqBase",
+            name="qurstropBase",
             defaultArg={
                 # Reault of experiment.
-                'magnetsq': -100,
+                'order': -100,
             },
         )
         self._expsHint = self.expsHint(
-            name='qurmagsqBaseHint',
+            name='qurstropBaseHint',
             hintContext={
-                'magnetsq': 'The Magnet Square.',
+                'order': 'The String Order Parameters.',
             },
         )
         self._expsMultiConfig = self.expsConfigMulti(
-            name="qurmagsqConfigMulti",
+            name="qurstropConfigMulti",
         )
-        self.shortName = 'qurmagsq'
-        self.__name__ = 'MagnetSquare'
+        self.shortName = 'qurstrop'
+        self.__name__ = 'StringOperator'
 
         return self._expsConfig, self._expsBase
 
@@ -61,6 +119,9 @@ class MagnetSquare(Qurry):
         self,
         expsName: str = 'exps',
         wave: Union[QuantumCircuit, any, None] = None,
+        string: str = '1',
+        i: Optional[int] = 0,
+        k: Optional[int] = None,
         **otherArgs: any
     ) -> dict:
         """Handling all arguments and initializing a single experiment.
@@ -106,11 +167,21 @@ class MagnetSquare(Qurry):
                 wave = self.lastWave
 
         numQubits = self.waves[wave].num_qubits
-
+        # string order
+        
+        
+        # i, k
+        if i >= k:
+            raise KeyError(f"'i ({i}) >= k ({k})' which is not allowed")
+        # if 
+        
         return {
             'wave': wave,
             'numQubit': numQubits,
-            'expsName': f"w={wave}-Nq={numQubits}.{self.shortName}",
+            'string': string,
+            'i': i,
+            'k': k,
+            'expsName': f"w={wave}-str={string}-i={i}-k={k}.{self.shortName}",
             **otherArgs,
         }
 
@@ -129,38 +200,21 @@ class MagnetSquare(Qurry):
         argsNow = self.now
         numQubits = self.waves[argsNow.wave].num_qubits
 
-        qcExpList = []
-        permut = [b for b in permutations([a for a in range(numQubits)], 2)]
-        numPermut = len(permut)
-        idxPermut = 0
-        ABegin = time.time()
-        print(f"| Build circuit A: {argsNow.wave}", end="\r")
-        for i, j in permut:
-            qFunc = QuantumRegister(numQubits, 'q1')
-            cMeas = ClassicalRegister(2, 'c1')
-            qcExp = QuantumCircuit(qFunc, cMeas)
+        qFunc = QuantumRegister(numQubits, 'q1')
+        cMeas = ClassicalRegister(2, 'c1')
+        qcExp = QuantumCircuit(qFunc, cMeas)
 
-            qcExp.append(self.waveInstruction(
-                wave=argsNow.wave,
-                runBy=argsNow.runBy,
-                backend=argsNow.backend,
-            ), [qFunc[i] for i in range(numQubits)])
+        qcExp.append(self.waveInstruction(
+            wave=argsNow.wave,
+            runBy=argsNow.runBy,
+            backend=argsNow.backend,
+        ), [qFunc[i] for i in range(numQubits)])
 
-            qcExp.barrier()
-            qcExp.measure(qFunc[i], cMeas[0])
-            qcExp.measure(qFunc[j], cMeas[1])
+        qcExp.barrier()
+        qcExp.measure(qFunc[i], cMeas[0])
+        qcExp.measure(qFunc[j], cMeas[1])
 
-            qcExpList.append(qcExp)
-            print(
-                f"| Build circuit: {i} x {j}" +
-                f" - {idxPermut}/{numPermut} - {round(time.time() - ABegin, 3)}s.", end="\r")
-            idxPermut += 1
-        print(
-            f"| Circuit completed: {argsNow.wave}" +
-            f" - {idxPermut}/{numPermut} - {round(time.time() - ABegin, 3)}s." +
-            " "*30)
-
-        return qcExpList
+        return [qcExp]
 
     """ Main Process: Data Import and Export"""
 
@@ -197,7 +251,7 @@ class MagnetSquare(Qurry):
                     f"The element number of 'resultIdxList': {len(resultIdxList)} is different with 'N(N-1)': {times*2}.")
             else:
                 raise ValueError(
-                    f"The element number of 'resultIdxList': {len(resultIdxList)} needs to be more than 1 for 'MagnetSquare'.")
+                    f"The element number of 'resultIdxList': {len(resultIdxList)} needs to be more than 1 for 'StringOperator'.")
         else:
             raise ValueError("'resultIdxList' needs to be 'list'.")
 

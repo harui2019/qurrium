@@ -1,17 +1,11 @@
 from qiskit import (
-    Aer,
-    execute,
-    transpile,
-    QuantumRegister,
-    ClassicalRegister,
-    QuantumCircuit)
-from qiskit.tools import *
-from qiskit.visualization import *
+    Aer, execute, transpile,
+    QuantumRegister, ClassicalRegister, QuantumCircuit
+)
 
 from qiskit.quantum_info import Operator
 from qiskit.circuit.gate import Gate
 from qiskit.result import Result
-
 from qiskit.providers import Backend, BaseJob, JobError
 from qiskit.providers.ibmq import IBMQBackend
 from qiskit.providers.ibmq.managed import (
@@ -31,19 +25,11 @@ import json
 import gc
 import warnings
 import time
-import threading
-import copy
-
+import os
 from math import pi
 from uuid import uuid4
 from pathlib import Path
-from typing import (
-    Union,
-    Optional,
-    Annotated,
-    Callable,
-    NamedTuple,
-)
+from typing import Union, Optional, NamedTuple
 
 from ..tool import (
     Configuration,

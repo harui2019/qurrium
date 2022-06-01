@@ -1,14 +1,11 @@
-from qiskit import (
-    QuantumRegister, ClassicalRegister, QuantumCircuit)
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.providers.ibmq.managed import ManagedResults, IBMQManagedResultDataNotAvailable
-from qiskit.visualization import *
-from qiskit.visualization.counts_visualization import hamming_distance
 from qiskit.quantum_info import random_unitary
 from qiskit.result import Result
 
 import numpy as np
 import warnings
-from typing import Union, Optional, Callable, List, NamedTuple
+from typing import Union, Optional, NamedTuple
 import time
 
 from .qurrech import EchoListen
@@ -16,20 +13,31 @@ from ..qurrium import haarBase
 # EchoListen V0.3.0 - Measuring Loschmidt Echo - Qurrech
 
 
-def makeTwoBitStr(num: int, bits: List[str] = ['']) -> List[str]:
-    return ((lambda bits: [
-        *['0'+item for item in bits], *['1'+item for item in bits]
-    ])(makeTwoBitStr(num-1, bits)) if num > 0 else bits)
-
-
-makeTwoBitStrOneLiner: Callable[[int, List[str]], List[str]] = (
-    lambda num, bits=['']: ((lambda bits: [
-        *['0'+item for item in bits], *['1'+item for item in bits]]
-    )(makeTwoBitStrOneLiner(num-1, bits)) if num > 0 else bits))
-
-
 class haarMeasure(EchoListen, haarBase):
     """haarMeasure V0.3.0 of qurrech
+
+    - Reference:
+        - Used in:
+            Statistical correlations between locally randomized measurements: A toolbox for probing entanglement in many-body quantum states - A. Elben, B. Vermersch, C. F. Roos, and P. Zoller, [PhysRevA.99.052323](https://doi.org/10.1103/PhysRevA.99.052323)
+
+        - `bibtex`:
+
+```bibtex
+@article{PhysRevA.99.052323,
+    title = {Statistical correlations between locally randomized measurements: A toolbox for probing entanglement in many-body quantum states},
+    author = {Elben, A. and Vermersch, B. and Roos, C. F. and Zoller, P.},
+    journal = {Phys. Rev. A},
+    volume = {99},
+    issue = {5},
+    pages = {052323},
+    numpages = {12},
+    year = {2019},
+    month = {May},
+    publisher = {American Physical Society},
+    doi = {10.1103/PhysRevA.99.052323},
+    url = {https://link.aps.org/doi/10.1103/PhysRevA.99.052323}
+}
+```
     """
 
     """ Configuration """

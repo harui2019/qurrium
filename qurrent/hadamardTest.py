@@ -17,6 +17,30 @@ from ..tool import Configuration
 
 class hadamardTestV3(EntropyMeasureV3):
     """hadamardTest V0.3.0 of qurrech
+
+    - Reference:
+        - Used in:
+            Entanglement spectroscopy on a quantum computer - Sonika Johri, Damian S. Steiger, and Matthias Troyer, [PhysRevB.96.195136](https://doi.org/10.1103/PhysRevB.96.195136)
+
+        - `bibtex`:
+
+```bibtex
+@article{PhysRevB.96.195136,
+    title = {Entanglement spectroscopy on a quantum computer},
+    author = {Johri, Sonika and Steiger, Damian S. and Troyer, Matthias},
+    journal = {Phys. Rev. B},
+    volume = {96},
+    issue = {19},
+    pages = {195136},
+    numpages = {7},
+    year = {2017},
+    month = {Nov},
+    publisher = {American Physical Society},
+    doi = {10.1103/PhysRevB.96.195136},
+    url = {https://link.aps.org/doi/10.1103/PhysRevB.96.195136}
+}
+
+```
     """
 
     """ Configuration """
