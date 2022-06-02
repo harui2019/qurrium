@@ -1094,9 +1094,10 @@ class Qurry:
         }
 
         with Gajima(
-            carousel=[('dots', 20, 6), 'spinner'],
+            carousel=[('dots', 20, 6), 'basic'],
             prefix="| ",
             desc="Writing Legacy",
+            finish_desc="Legacy write out.",
         ) as gajima:
             if isinstance(saveLocation, (Path, str)):
                 saveLocParts = Path(saveLocation).parts
@@ -1126,10 +1127,11 @@ class Qurry:
         tales = self.exps[legacyId]['sideProduct']
         if len(tales) > 0:
             with Gajima(
-                carousel=[('dots', 20, 6), 'spinner'],
+                carousel=[('dots', 20, 6), 'basic'],
                 prefix="| ",
-                desc="Writing Tales",  # TODO: make progress bar
+                desc="Writing Tales",
                 leave=False,
+                finish_desc="Tales write out.",
             ) as gajima:
                 talesLib = saveLoc / 'tales'
                 if not os.path.exists(talesLib):
@@ -1241,9 +1243,10 @@ class Qurry:
 
         figTranspile = None
         with Gajima(
-            carousel=[('dots', 20, 6), 'spinner'],
+            carousel=[('dots', 20, 6), 'basic'],
             prefix="| ",
             desc="Transpile circuits",
+            finish_desc="Transpile finished",
         ) as gajima:
             if isinstance(circs, QuantumCircuit):
                 figTranspile = [self.drawCircuit(
@@ -1430,7 +1433,7 @@ class Qurry:
             self.exps[self.IDNow]['result'] = result
 
         else:
-            print("| Entropy and Purity are figured out, result will clear.")
+            # print("| Quantity are figured out, result will clear.")
             del self.exps[self.IDNow]['result']
 
         for k in quantity:
@@ -2141,9 +2144,10 @@ class Qurry:
             jsonablize=True)
 
         with Gajima(
-            carousel=[('dots', 20, 6), 'spinner'],
+            carousel=[('dots', 20, 6), 'basic'],
             prefix="| ",
             desc="Pending Jobs",
+            finish_desc="Pending Completed",
         ) as gajima:
             powerJob = IBMQJobManager().run(
                 **argsMulti.managerRunArgs,
@@ -2274,7 +2278,7 @@ class Qurry:
 
         argsMulti['gitignore'] = syncControl(dataPowerJobs['gitignore'])
         with Gajima(
-            carousel=[('dots', 20, 6), 'spinner'],
+            carousel=[('dots', 20, 6), 'basic'],
             prefix="| ",
             desc="Dealing results",
         ) as gajima:

@@ -1,6 +1,6 @@
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.quantumcircuit import Qubit
-from typing import Union, Sequence
+from typing import Union, Sequence, Literal
 from .case import Case
 
 # Qubit type annotations.
@@ -322,7 +322,7 @@ class topParamagnet(Case):
     def __init__(
         self,
         numQubits: int,
-        boundaryCond: str = "period",
+        boundaryCond: Literal['period', 'open'] = "period",
     ) -> None:
         """Initializing the case.
 

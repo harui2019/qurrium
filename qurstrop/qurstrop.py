@@ -47,14 +47,14 @@ class StringOperator(Qurry):
     strOpLib: dict[strOp] = {
         'i': {
             0: (),
-            'filling': ('rx', np.pi/2),
+            'filling': ('ry', -np.pi/2),
             -1: (),
         },
         'zy': {
             0: (),
-            1: ('ry', -np.pi/2),
-            'filling': ('rx', np.pi/2),
-            -2: ('ry', -np.pi/2),
+            1: ('rx', np.pi/2),
+            'filling': ('ry', -np.pi/2),
+            -2: ('rx', np.pi/2),
             -1: (),
         },
     }
@@ -161,7 +161,16 @@ class StringOperator(Qurry):
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
                 This name is also used for creating a folder to store the exports.
                 Defaults to `'exps'`.
-
+                
+            string (Literal['i', 'zy'], optional):
+                The string operator.
+                
+            i (Optional[int], optional):
+                The index of beginning qubits in the quantum circuit.
+                
+            k (Optional[int], optional):
+                The index of ending qubits in the quantum circuit.
+            
             otherArgs (any):
                 Other arguments.
 
@@ -260,7 +269,7 @@ class StringOperator(Qurry):
 
         strOp = self.strOpLib[argsNow.string]
         boundMapping = {
-            (numQubits+op if op < 0 else op): op
+            (argsNow.k+1+op if op < 0 else argsNow.i+op): op
             for op in strOp if isinstance(op, int)}
 
         for ci, qi in enumerate(range(argsNow.i, argsNow.k+1)):
@@ -310,7 +319,7 @@ class StringOperator(Qurry):
         counts = []
         order = -100
         onlyCount = None
-        orderCellList = []
+        # orderCellList = []
 
         try:
             counts = [result.get_counts(i) for i in resultIdxList]
@@ -324,12 +333,13 @@ class StringOperator(Qurry):
             onlyCount.items(),
             carousel=[('dots', 15, 6), 'basic'],
             prefix="| ",
-            desc="Counting order"
+            desc="Counting order",
+            finish_desc="Counting completed",
         ):
             add_or_reduce = 1 if sum([int(b) for b in s]) % 2 == 0 else -1
             cell = add_or_reduce*(m/shots)
-            orderCellList.append(cell)
-            order += add_or_reduce*(cell)
+            # orderCellList.append(cell)
+            order += cell
 
         quantity = {
             'order': order,
@@ -341,7 +351,7 @@ class StringOperator(Qurry):
     def measure(
         self,
         wave: Union[QuantumCircuit, any, None] = None,
-        string: argdictCore._stringLiteral = 'i',
+        string: Literal['i', 'zy'] = 'i',
         i: Optional[int] = 1,
         k: Optional[int] = None,
         expsName: str = 'exps',
@@ -350,7 +360,7 @@ class StringOperator(Qurry):
         """
 
         Args:
-            wave (Union[QuantumCircuit, int, None], optional):
+            wave (Union[QuantumCircuit, int, None], optional): 
                 The index of the wave function in `self.waves` or add new one to calaculation,
                 then choose one of waves as the experiment material.
                 If input is `QuantumCircuit`, then add and use it.
@@ -362,6 +372,15 @@ class StringOperator(Qurry):
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
                 This name is also used for creating a folder to store the exports.
                 Defaults to `'exps'`.
+                
+            string (Literal['i', 'zy'], optional):
+                The string operator.
+                
+            i (Optional[int], optional):
+                The index of beginning qubits in the quantum circuit.
+                
+            k (Optional[int], optional):
+                The index of ending qubits in the quantum circuit.
 
             otherArgs (any):
                 Other arguments.
