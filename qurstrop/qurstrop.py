@@ -10,25 +10,10 @@ import time
 from typing import Union, Optional, NamedTuple, Literal
 
 from ..qurrium import Qurry
-from ..tool import Configuration
+from ..tool import Configuration, Gajima
 
 # StringOperator V0.3.0 - Measuring Topological Phase - Qurstrop
 
-stringOperatorLib = {
-    'i': {
-        'bound': {
-            0: [''],
-        },
-        'filling': ['']
-    },
-    'zy': {
-        'bound': {
-            0: [],
-            1: ['ry', -np.pi/2],
-        },
-        'filling': ['rx', np.pi/2]
-    },
-}
 
 class StringOperator(Qurry):
     """StringOperator V0.3.0 of qurstrop
@@ -56,30 +41,59 @@ class StringOperator(Qurry):
 }
 ```
     """
-    
-    stringOperatorLib = {
+
+    strOpUnit = Union[tuple[Literal['rx', 'ry', 'rz'], float], str]
+    strOp = dict[strOpUnit]
+    strOpLib: dict[strOp] = {
         'i': {
-            'bound': {
-                0: [''],
-            },
-            'filling': ['']
+            0: (),
+            'filling': ('rx', np.pi/2),
+            -1: (),
         },
         'zy': {
-            'bound': {
-                0: [],
-                1: ['ry', -np.pi/2],
-            },
-            'filling': ['rx', np.pi/2]
+            0: (),
+            1: ('ry', -np.pi/2),
+            'filling': ('rx', np.pi/2),
+            -2: ('ry', -np.pi/2),
+            -1: (),
         },
     }
 
     class argdictCore(NamedTuple):
+        _stringLiteral = Literal['i', 'zy']
+
         expsName: str = 'exps'
         wave: Union[QuantumCircuit, any, None] = None,
-        string: Literal['i', 'zy'] = 'i',
+        string: _stringLiteral = 'i',
         # string: Literal[tuple(stringOperatorLib)] = 'i',
         i: Optional[int] = 1,
         k: Optional[int] = None,
+
+    def addStringOperator(
+        self,
+        string: str,
+        operator: strOp,
+    ) -> None:
+        if 'filling' not in operator:
+            raise ValueError('The filling operator unit is required.')
+
+        self.strOpLib = {
+            string: operator,
+            **self.strOpLib,
+        }
+        self._lastAddstring = string
+
+        class argdictCoreUpdate(NamedTuple):
+            _stringLiteral = Literal['i', 'zy']
+
+            expsName: str = 'exps'
+            wave: Union[QuantumCircuit, any, None] = None,
+            string: Union[_stringLiteral,
+                          Literal['self._lastAddstring']] = 'i',
+            i: Optional[int] = 1,
+            k: Optional[int] = None,
+
+        self.argdictCore = argdictCoreUpdate
 
     # Initialize
     def initialize(self) -> dict[str: any]:
@@ -88,6 +102,13 @@ class StringOperator(Qurry):
         Returns:
             dict[str: any]: The basic configuration of `Qurrech`.
         """
+
+        for k1 in list(self.strOpLib.keys()):
+            if 'filling' not in self.strOpLib[k1]:
+                raise ValueError(
+                    'The filling operator unit is required ' +
+                    f"but operator {k1} in '.strOpLib' lost this key, " +
+                    "initialization has been canceled.")
 
         self._expsConfig = self.expsConfig(
             name="qurstropConfig",
@@ -119,10 +140,11 @@ class StringOperator(Qurry):
         self,
         expsName: str = 'exps',
         wave: Union[QuantumCircuit, any, None] = None,
-        string: str = '1',
-        i: Optional[int] = 0,
+        string: Literal['i', 'zy'] = 'i',
+        # string: Literal[tuple(stringOperatorLib)] = 'i',
+        i: Optional[int] = 1,
         k: Optional[int] = None,
-        **otherArgs: any
+        **otherArgs: any,
     ) -> dict:
         """Handling all arguments and initializing a single experiment.
 
@@ -167,20 +189,37 @@ class StringOperator(Qurry):
                 wave = self.lastWave
 
         numQubits = self.waves[wave].num_qubits
-        # string order
-        
-        
+
         # i, k
+        if k == None:
+            k = numQubits - 2
+        if i == None:
+            i = 1
         if i >= k:
             raise KeyError(f"'i ({i}) >= k ({k})' which is not allowed")
-        # if 
-        
+        length = k-i+1
+
+        # string order
+        if string not in self.strOpLib:
+            raise ValueError(
+                "The given string is not in the library, " +
+                "use '.stringOperatorLib' to check available string.")
+        if numQubits < len(self.strOpLib[string]):
+            raise ValueError(
+                f"The given wave function '{wave}' only has {numQubits} qubits less than " +
+                f"min length {len(self.strOpLib[string])} of string operator {string}.")
+        if length < len(self.strOpLib[string]):
+            raise ValueError(
+                f"The given qubit range i={i} to k={k} only has length={length} less than " +
+                f"min length={len(self.strOpLib[string])} of string operator '{string}'.")
+
         return {
             'wave': wave,
             'numQubit': numQubits,
             'string': string,
             'i': i,
             'k': k,
+            'length': length,
             'expsName': f"w={wave}-str={string}-i={i}-k={k}.{self.shortName}",
             **otherArgs,
         }
@@ -197,11 +236,11 @@ class StringOperator(Qurry):
             Union[QuantumCircuit, list[QuantumCircuit]]: 
                 The quantum circuit of experiment.
         """
-        argsNow = self.now
+        argsNow: self.argdictCore = self.now
         numQubits = self.waves[argsNow.wave].num_qubits
 
         qFunc = QuantumRegister(numQubits, 'q1')
-        cMeas = ClassicalRegister(2, 'c1')
+        cMeas = ClassicalRegister(argsNow.length, 'c1')
         qcExp = QuantumCircuit(qFunc, cMeas)
 
         qcExp.append(self.waveInstruction(
@@ -209,10 +248,26 @@ class StringOperator(Qurry):
             runBy=argsNow.runBy,
             backend=argsNow.backend,
         ), [qFunc[i] for i in range(numQubits)])
-
         qcExp.barrier()
-        qcExp.measure(qFunc[i], cMeas[0])
-        qcExp.measure(qFunc[j], cMeas[1])
+
+        def handleStrOp(qi: int, ci: int, move: self.strOpUnit):
+            if len(move) != 0:
+                if move[0] == 'rx':
+                    qcExp.rx(move[1], qi)
+                elif move[0] == 'ry':
+                    qcExp.ry(move[1], qi)
+            qcExp.measure(qFunc[qi], cMeas[ci])
+
+        strOp = self.strOpLib[argsNow.string]
+        boundMapping = {
+            (numQubits+op if op < 0 else op): op
+            for op in strOp if isinstance(op, int)}
+
+        for ci, qi in enumerate(range(argsNow.i, argsNow.k+1)):
+            if qi in boundMapping:
+                handleStrOp(qi, ci, strOp[boundMapping[qi]])
+            else:
+                handleStrOp(qi, ci, strOp['filling'])
 
         return [qcExp]
 
@@ -242,67 +297,42 @@ class StringOperator(Qurry):
         """
 
         if resultIdxList == None:
-            resultIdxList = [i for i in range(numQubit*(numQubit-1))]
+            resultIdxList = [0]
         elif isinstance(resultIdxList, list):
-            if len(resultIdxList) > 1:
+            if len(resultIdxList) == 1:
                 ...
-            elif len(resultIdxList) != numQubit*(numQubit-1):
-                raise ValueError(
-                    f"The element number of 'resultIdxList': {len(resultIdxList)} is different with 'N(N-1)': {times*2}.")
             else:
                 raise ValueError(
-                    f"The element number of 'resultIdxList': {len(resultIdxList)} needs to be more than 1 for 'StringOperator'.")
+                    f"The element number of 'resultIdxList': {len(resultIdxList)} needs to be 1 for 'StringOperator'.")
         else:
             raise ValueError("'resultIdxList' needs to be 'list'.")
 
         counts = []
-        magnetsq = -100
-        magnetsqCellList = []
+        order = -100
+        onlyCount = None
+        orderCellList = []
 
-        length = len(resultIdxList)
-        idx = 0
-        Begin = time.time()
-        print(f"| Calculating magnetsq ...", end="\r")
-        for i in resultIdxList:
-            magnetsqCell = 0
-            checkSum = 0
-            print(
-                f"| Calculating magnetsq on {i}" +
-                f" - {idx}/{length} - {round(time.time() - Begin, 3)}s.", end="\r")
+        try:
+            counts = [result.get_counts(i) for i in resultIdxList]
+            onlyCount = counts[0]
+        except IBMQManagedResultDataNotAvailable as err:
+            print("| Failed Job result skip, index:", resultIdxList, err)
+            return {}
 
-            try:
-                allMeas = result.get_counts(i)
-                counts.append(allMeas)
-            except IBMQManagedResultDataNotAvailable as err:
-                counts.append(None)
-                print("| Failed Job result skip, index:", i, err)
-                continue
-
-            for bits in allMeas:
-                checkSum += allMeas[bits]
-                if (bits == '00') or (bits == '11'):
-                    magnetsqCell += allMeas[bits]/shots
-                else:
-                    magnetsqCell -= allMeas[bits]/shots
-
-            if checkSum != shots:
-                raise ValueError(
-                    f"'{allMeas}' may not be contained by '00', '11', '01', '10'.")
-
-            magnetsqCellList.append(magnetsqCell)
-            print(
-                f"| Calculating magnetsq end - {idx}/{length}" +
-                f" - {round(time.time() - Begin, 3)}s." +
-                " "*30, end="\r")
-            idx += 1
-        print(
-            f"| Calculating magnetsq end - {idx}/{length}" +
-            f" - {round(time.time() - Begin, 3)}s.")
-
-        magnetsq = (sum(magnetsqCellList) + numQubit)/(numQubit**2)
+        order = 0
+        for s, m in Gajima(
+            onlyCount.items(),
+            carousel=[('dots', 15, 6), 'basic'],
+            prefix="| ",
+            desc="Counting order"
+        ):
+            add_or_reduce = 1 if sum([int(b) for b in s]) % 2 == 0 else -1
+            cell = add_or_reduce*(m/shots)
+            orderCellList.append(cell)
+            order += add_or_reduce*(cell)
 
         quantity = {
-            'magnetsq': magnetsq,
+            'order': order,
         }
         return counts, quantity
 
@@ -311,6 +341,9 @@ class StringOperator(Qurry):
     def measure(
         self,
         wave: Union[QuantumCircuit, any, None] = None,
+        string: argdictCore._stringLiteral = 'i',
+        i: Optional[int] = 1,
+        k: Optional[int] = None,
         expsName: str = 'exps',
         **otherArgs: any
     ) -> dict:
@@ -338,6 +371,9 @@ class StringOperator(Qurry):
         """
         return self.output(
             wave=wave,
+            string=string,
+            i=i,
+            k=k,
             expsName=expsName,
             **otherArgs,
         )
