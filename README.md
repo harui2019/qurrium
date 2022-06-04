@@ -27,6 +27,12 @@ This is a tool to measure the Renyi entropy, Loschmidt Echo, and Magnetization S
 
 ---
 
+## Download
+
+Use `git clone https://github.com/harui2019/qurry-tutorial.git --recurse-submodules` to download the all files.
+
+---
+
 ## Measurement
 
 ### `qurrent` - The Renyi Entropy Measurement
