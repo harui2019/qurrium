@@ -57,6 +57,18 @@ class StringOperator(Qurry):
             -2: ('rx', np.pi/2),
             -1: (),
         },
+        # 'i': {s
+        #     0: (),
+        #     'filling': ('rx', np.pi/2),
+        #     -1: (),
+        # },
+        # 'zy': {
+        #     0: (),
+        #     1: ('ry', -np.pi/2),
+        #     'filling': ('rx', np.pi/2),
+        #     -2: ('ry', -np.pi/2),
+        #     -1: (),
+        # },
     }
 
     class argdictCore(NamedTuple):
@@ -319,7 +331,6 @@ class StringOperator(Qurry):
         counts = []
         order = -100
         onlyCount = None
-        # orderCellList = []
 
         try:
             counts = [result.get_counts(i) for i in resultIdxList]
@@ -338,7 +349,6 @@ class StringOperator(Qurry):
         ):
             add_or_reduce = 1 if sum([int(b) for b in s]) % 2 == 0 else -1
             cell = add_or_reduce*(m/shots)
-            # orderCellList.append(cell)
             order += cell
 
         quantity = {
