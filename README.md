@@ -4,6 +4,12 @@ This is a tool to measure the Renyi entropy, Loschmidt Echo, and Magnetization S
 
 ---
 
+## Usage
+
+Using `git clone https://github.com/harui2019/qurry-tutorial.git --recurse-submodules` to clone the repository anf its submodules.
+
+---
+
 ## Configurate Environment
 
 - **`Python 3.9.7+` installed by Anaconda**
