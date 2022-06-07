@@ -51,11 +51,11 @@ class StringOperator(Qurry):
             -1: (),
         },
         'zy': {
-            0: (),
+            0: ('rz', 0),
             1: ('rx', np.pi/2),
             'filling': ('ry', -np.pi/2),
             -2: ('rx', np.pi/2),
-            -1: (),
+            -1: ('rz', 0),
         },
         # 'i': {s
         #     0: (),
@@ -277,7 +277,7 @@ class StringOperator(Qurry):
                     qcExp.rx(move[1], qi)
                 elif move[0] == 'ry':
                     qcExp.ry(move[1], qi)
-            qcExp.measure(qFunc[qi], cMeas[ci])
+                qcExp.measure(qFunc[qi], cMeas[ci])
 
         strOp = self.strOpLib[argsNow.string]
         boundMapping = {
