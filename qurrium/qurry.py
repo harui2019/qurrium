@@ -31,6 +31,7 @@ from math import pi
 from uuid import uuid4
 from pathlib import Path
 from typing import Union, Optional, NamedTuple
+from abc import abstractmethod
 
 from ..tool import (
     Configuration,
@@ -41,6 +42,16 @@ from ..tool import (
     keyTupleLoads,
     Gajima,
 )
+from .exceptions import UnconfiguredWarning
+from .type import (
+    TagKeysAllowable,
+    TagMapExpsIDType,
+    TagMapIndexType,
+    TagMapQuantityType,
+    TagMapCountsType,
+    Quantity,
+    Counts,
+)
 
 # Qurry V0.3.0 - a Qiskit Macro
 
@@ -48,9 +59,6 @@ from ..tool import (
 def defaultCircuit(numQubit: int) -> QuantumCircuit:
     return QuantumCircuit(numQubit)
 
-
-dataTagAllow = Union[str, int, float, bool]
-dataTagsAllow = Union[tuple[dataTagAllow], dataTagAllow]
 
 """
 
@@ -120,7 +128,7 @@ class Qurry:
         resultKeep: bool = False,
         dataRetrieve: Optional[dict[Union[list[str], str]]] = None,
         expsName: str = 'exps',
-        tags: Optional[dataTagsAllow] = None,
+        tags: Optional[TagKeysAllowable] = None,
 
     def expsConfig(
         self,
@@ -304,11 +312,13 @@ class Qurry:
         listExpID: list = []
         listFile: list = []
 
-        tagMapExpsID: dict[list] = {
+        tagMapExpsID: TagMapExpsIDType = {
             'all': [], 'noTags': []}
-        tagMapQuantity: dict[list] = {
+        tagMapIndex: TagMapIndexType = {
             'all': [], 'noTags': []}
-        tagMapIndex: dict[list] = {
+        tagMapQuantity: TagMapQuantityType = {
+            'all': [], 'noTags': []}
+        tagMapCounts: TagMapCountsType = {
             'all': [], 'noTags': []}
 
         circuitsMap: dict = {}
@@ -729,7 +739,7 @@ class Qurry:
         resultKeep: bool = False,
         dataRetrieve: Optional[dict[Union[list[str], str]]] = None,
         expsName: str = 'exps',
-        tags: Optional[dataTagsAllow] = None,
+        tags: Optional[TagKeysAllowable] = None,
 
         **otherArgs: any,
     ) -> argdictNow:
@@ -984,7 +994,9 @@ class Qurry:
         # )
         for i in range(numQubits):
             circuit.measure(q1[i], c1[i])
-        print("It's default circuit, the quantum circuit is not yet configured.")
+        warnings.warn(
+            "It's default circuit, the quantum circuit is not yet configured.",
+            UnconfiguredWarning)
 
         return [circuit]
 
@@ -1368,6 +1380,18 @@ class Qurry:
 
         return result
 
+    @abstractmethod
+    @classmethod
+    def quantity(self) -> tuple[Quantity, Counts]:
+        """Computing specific squantity.
+        Where should be overwritten by each construction of new measurement.
+
+        Returns:
+            tuple[dict, dict]:
+                Counts, purity, entropy of experiment.
+        """
+        ...
+
     @classmethod
     def quantity(
         cls,
@@ -1375,7 +1399,7 @@ class Qurry:
         result: Union[Result, ManagedResults],
         resultIdxList: Optional[list[int]] = None,
         **otherArgs,
-    ) -> tuple[dict, dict]:
+    ):
         """Computing specific squantity.
         Where should be overwritten by each construction of new measurement.
 
@@ -1389,7 +1413,8 @@ class Qurry:
             ...
 
         warnings.warn(
-            "It's default '.quantity' which exports meaningless value.")
+            "It's default '.quantity' which exports meaningless value.",
+            UnconfiguredWarning)
         counts = result.get_counts(resultIdxList[0])
 
         dummy = -100
@@ -1402,8 +1427,9 @@ class Qurry:
     def output(
         self,
         dataRetrieve: Optional[dict[Union[list[str], str]]] = None,
+        withCounts: bool = False,
         **allArgs: any,
-    ) -> dict[float]:
+    ) -> Union[Quantity, tuple[Quantity, Counts]]:
         """Export the result which completed calculating purity.
 
         Args:
@@ -1412,10 +1438,7 @@ class Qurry:
         Returns:
             dict[float]: The result.
         """
-        print(
-            f"+"+"-"*20+"\n" +
-            f"| Calculating {self.__name__}..."
-        )
+        print(f"+"+"-"*20+"\n"+f"| Calculating {self.__name__}...")
 
         result = (self.retrieve if dataRetrieve != None else self.run)(
             dataRetrieve=dataRetrieve,
@@ -1452,14 +1475,26 @@ class Qurry:
         gc.collect()
         print(f"| End...\n"+f"+"+"-"*20)
 
-        return quantity
+        return (quantity, counts) if withCounts else quantity
+
+    @abstractmethod
+    def measure(self) -> Union[Quantity, tuple[Quantity, Counts]]:
+        """Computing specific squantity.
+        Where should be overwritten by each construction of new measurement.
+
+        Returns:
+            tuple[dict, dict]:
+                Counts, purity, entropy of experiment.
+        """
+        ...
 
     def measure(
         self,
         wave: Union[QuantumCircuit, any, None] = None,
         expsName: str = 'exps',
+        withCounts: bool = False,
         **otherArgs: any
-    ) -> dict:
+    ):
         """
 
         Args:
@@ -1482,9 +1517,16 @@ class Qurry:
         Returns:
             dict: The output.
         """
+
+        warnings.warn(
+            "This function is not yet configured with not completed function.",
+            UnconfiguredWarning
+        )
+
         return self.output(
             wave=wave,
             expsName=expsName,
+            withCounts=withCounts,
             **otherArgs,
         )
 
@@ -1675,7 +1717,7 @@ class Qurry:
 
                 'expIndex': expIndex,
             }))
-            
+
         # pendingTags
         pendingTags = [expsName, additionName]
 
@@ -1727,9 +1769,11 @@ class Qurry:
                 # 'listQuantity': [],  # expPurityList/expEntropyList
                 'tagMapExpsID': {
                     'all': [], 'noTags': []},  # expsBelong
+                'tagMapIndex': {
+                    'all': [], 'noTags': []},
                 'tagMapQuantity': {
                     'all': [], 'noTags': []},
-                'tagMapIndex': {
+                'tagMapCounts': {
                     'all': [], 'noTags': []},
 
                 'circuitsMap': {},
@@ -1844,7 +1888,7 @@ class Qurry:
         for config in argsMulti.configList:
             print(
                 f"| index={config['expIndex']}/{numConfig} - {round(time.time() - start_time, 2)}s")
-            quantity = self.output(**config)
+            quantity, counts = self.output(**config, withQuantity=True)
 
             # legacy writer
             legacy = self.writeLegacy(
@@ -1861,6 +1905,7 @@ class Qurry:
                     print(
                         f"| warning: '{k}' is a reserved key for export data.")
 
+            # packing
             argsMulti['listFile'].append(legacy['filename'])
             argsMulti['listExpID'].append(self.IDNow)
 
@@ -1880,6 +1925,13 @@ class Qurry:
             argsMulti.tagMapQuantity = self._legacyTagGuider(
                 argsMulti.tagMapQuantity, legacyTag, quantity
             )
+            
+            argsMulti.tagMapCounts = self._legacyTagGuider(
+                argsMulti.tagMapCounts, 'all', counts
+            )
+            argsMulti.tagMapCounts = self._legacyTagGuider(
+                argsMulti.tagMapCounts, legacyTag, counts
+            )
 
         print(f"| Export...")
         argsMulti['gitignore'].ignore('*.json')
@@ -1889,6 +1941,7 @@ class Qurry:
         for n, data in [
             ('multiJobs.json', dataMultiJobs),
             ('tagMapQuantity.json', argsMulti['tagMapQuantity']),
+            ('tagMapCounts.json', argsMulti['tagMapCounts']),
         ]:
             argsMulti['gitignore'].sync(f'*.{n}')
             print(f"| Export {n}")
@@ -1905,7 +1958,6 @@ class Qurry:
                 'listExpID',
                 'listFile',
                 'tagMapExpsID',
-                'tagMapQuantity',
                 'tagMapIndex'
             ]:
                 argsMulti['gitignore'].sync(f'*.{n}.json')
@@ -2013,8 +2065,9 @@ class Qurry:
                 'listExpID',
                 'listFile',
                 'tagMapExpsID',
-                'tagMapQuantity',
                 'tagMapIndex',
+                'tagMapQuantity',
+                'tagMapCounts',
             ]:
                 with open(
                         argsMulti.exportLocation /
@@ -2031,8 +2084,9 @@ class Qurry:
 
         for n in [
             'tagMapExpsID',
-            'tagMapQuantity',
             'tagMapIndex',
+            'tagMapQuantity',
+            'tagMapCounts',
         ]:
             if n in dataDummyJobs:
                 dataDummyJobs[n] = keyTupleLoads(dataDummyJobs[n])
@@ -2157,7 +2211,7 @@ class Qurry:
         argsMulti['gitignore'].ignore('*.json')
         dataPowerJobs = argsMulti.jsonize()
         argsMulti.state = 'pending'
-        
+
         argsMulti['gitignore'].sync(f'*.powerJobs.json')
         quickJSONExport(
             content=dataPowerJobs,
@@ -2193,8 +2247,7 @@ class Qurry:
                     jsonablize=True)
 
         argsMulti['gitignore'].export(argsMulti.exportLocation)
-        
-        
+
         gc.collect()
         print(
             f"| PowerPending {self.__name__} End in {round(time.time() - start_time, 2)} sec ...\n" +
@@ -2323,6 +2376,14 @@ class Qurry:
             dataPowerJobs['tagMapQuantity'] = self._legacyTagGuider(
                 dataPowerJobs['tagMapQuantity'], legacyTag, quantity
             )
+            
+            dataPowerJobs['tagMapCounts'] = self._legacyTagGuider(
+                dataPowerJobs['tagMapCounts'], 'all', counts
+            )
+            dataPowerJobs['tagMapCounts'] = self._legacyTagGuider(
+                dataPowerJobs['tagMapCounts'], legacyTag, counts
+            )
+            
             print(f"| index={idxNum} end...\n"+f"+"+"-"*20)
             idxNum += 1
 
@@ -2334,6 +2395,7 @@ class Qurry:
         for n, data in [
             ('powerJobs.json', dataPowerJobs),
             ('tagMapQuantity.json', dataPowerJobs['tagMapQuantity']),
+            ('tagMapCounts.json', dataPowerJobs['tagMapCounts']),
         ]:
             argsMulti['gitignore'].sync(f'*.{n}')
             print(f"| Export {n}")
