@@ -6,11 +6,12 @@ from qiskit import (
 from qiskit.quantum_info import Operator
 from qiskit.circuit.gate import Gate
 from qiskit.result import Result
-from qiskit.providers import Backend, BaseJob, JobError
+from qiskit.providers import Backend, JobError
 from qiskit.providers.ibmq import IBMQBackend
 from qiskit.providers.ibmq.managed import (
     IBMQJobManager,
-    ManagedJobSet,
+    # ManagedJobSet,
+    # ManagedJob,
     ManagedResults,
     IBMQJobManagerInvalidStateError,
     IBMQJobManagerUnknownJobSet)
@@ -228,7 +229,7 @@ class Qurry:
             'counts': None,
 
             # Export data
-            'jobID': [],
+            'jobID': '',
         }
         ```
 
@@ -263,7 +264,7 @@ class Qurry:
                 'counts': None,
 
                 # Export data
-                'jobID': [],
+                'jobID': '',
                 'expsName': 'exps',
 
                 # side product
@@ -291,6 +292,7 @@ class Qurry:
         # Multiple jobs shared
         isRetrieve: bool = False
         expsName: str = 'exps'
+        pendingTags: list[str] = []
         independentExports: bool = False
 
         # `writeLegacy`
@@ -772,7 +774,7 @@ class Qurry:
             'counts': None,
 
             # Export data
-            'jobID': [],
+            'jobID': '',
         }
         ```
 
@@ -1309,7 +1311,7 @@ class Qurry:
 
         Raises:
             KeyError: The necessary keys in `self.now.dataRetrieve` are lost.
-                When the job record does not have `jobId`.
+                When the job record does not have `jobID`.
             ValueError: `argsNow.dataRetrieve` is null.
 
         Returns:
@@ -1446,7 +1448,7 @@ class Qurry:
             **quantity,
             'counts': counts,
         }
-        
+
         gc.collect()
         print(f"| End...\n"+f"+"+"-"*20)
 
@@ -1658,9 +1660,8 @@ class Qurry:
             os.makedirs(exportLocation)
 
         # configList
-        expIndex = 0
         initedConfigList = []
-        for config in configList:
+        for expIndex, config in enumerate(configList):
             initedConfigList.append(self._expsConfig.make({
                 **config,
                 'shots': shots,
@@ -1674,7 +1675,9 @@ class Qurry:
 
                 'expIndex': expIndex,
             }))
-            expIndex += 1
+            
+        # pendingTags
+        pendingTags = [expsName, additionName]
 
         # dataRetrieve
         powerJobID = None
@@ -1710,6 +1713,7 @@ class Qurry:
                 'expsName': immutableName,
 
                 # Multiple job dedicated
+                'pendingTags': pendingTags,
                 'independentExports': independentExports,
 
                 # `writeLegacy`
@@ -2114,40 +2118,29 @@ class Qurry:
                 argsMulti.tagMapIndex, 'all', config['expIndex']
             )
 
-        print(f"| Preparing jobs pending ...")
-        argsMulti['gitignore'].ignore('*.json')
+        with Gajima(
+            enumerate(argsMulti['listExpID']),
+            carousel=[('dots', 20, 6), 'basic'],
+            prefix="| ",
+            desc="Packing circuits for pending",
+            finish_desc="Packing Completed",
+        ) as gajima:
+            for expIndex, expIDKey in gajima:
+                argsMulti['circuitsMap'][expIDKey] = []
+                tmpCircuitNum = argsMulti['circuitsNum'][expIDKey]
+                print(
+                    f"| Packing expID: {expIDKey}, index={expIndex} with {tmpCircuitNum} circuits ...")
 
-        expIndex = 0
-        for expIDKey in argsMulti['listExpID']:
-            argsMulti['circuitsMap'][expIDKey] = []
-            tmpCircuitNum = argsMulti['circuitsNum'][expIDKey]
-            print(
-                f"| Packing expID: {expIDKey}, index={expIndex} with {tmpCircuitNum} circuits ...")
-
-            for i in range(tmpCircuitNum):
-                argsMulti['circuitsMap'][expIDKey].append(len(pendingArray))
-                pendingArray.append(allTranspliedCircs[expIDKey][i])
-            expIndex += 1
-
-        print(
-            f"| Preparing end...\n"+f"+"+"-"*20 +
-            f"| .powerJobs.json export without JobID ...")
-
-        dataPowerJobs = argsMulti.jsonize()
-        argsMulti.state = 'pending'
-        argsMulti['gitignore'].sync(f'*.powerJobs.json')
-        quickJSONExport(
-            content=dataPowerJobs,
-            filename=argsMulti.exportLocation /
-            f"{argsMulti.expsName}.powerJobs.json",
-            mode='w+',
-            jsonablize=True)
+                for i in range(tmpCircuitNum):
+                    argsMulti['circuitsMap'][expIDKey].append(
+                        len(pendingArray))
+                    pendingArray.append(allTranspliedCircs[expIDKey][i])
 
         with Gajima(
             carousel=[('dots', 20, 6), 'basic'],
             prefix="| ",
             desc="Pending Jobs",
-            finish_desc="Pending Completed",
+            finish_desc="Pending end and Exporting",
         ) as gajima:
             powerJob = IBMQJobManager().run(
                 **argsMulti.managerRunArgs,
@@ -2155,15 +2148,17 @@ class Qurry:
                 backend=argsMulti.backend,
                 shots=argsMulti.shots,
                 name=f'{argsMulti.expsName}_w/_{len(pendingArray)}_jobs',
+                job_tags=[argsMulti.pendingTags]
             )
+            powerJobID = powerJob.job_set_id()
+            argsMulti.powerJobID = powerJobID
+            # powerJobsIDList = [mj.job.job_id() for mj in powerJob.jobs()]
 
-        powerJobID = powerJob.job_set_id()
-        argsMulti.powerJobID = powerJobID
-        print(
-            f"| Pending end...\n"+f"+"+"-"*20 +
-            f"| Export ...")
-
+        argsMulti['gitignore'].ignore('*.json')
         dataPowerJobs = argsMulti.jsonize()
+        argsMulti.state = 'pending'
+        
+        argsMulti['gitignore'].sync(f'*.powerJobs.json')
         quickJSONExport(
             content=dataPowerJobs,
             filename=argsMulti.exportLocation /
@@ -2198,6 +2193,8 @@ class Qurry:
                     jsonablize=True)
 
         argsMulti['gitignore'].export(argsMulti.exportLocation)
+        
+        
         gc.collect()
         print(
             f"| PowerPending {self.__name__} End in {round(time.time() - start_time, 2)} sec ...\n" +
@@ -2396,5 +2393,6 @@ class Qurry:
     def __repr__(self) -> str:
         return f"<{self.__name__}({len(self.exps)} experiments made)>"
 
-    def to_dict(self) -> dict:
-        return self.__dict__
+    """ Close the export of __dict__ for it is too large."""
+    # def to_dict(self) -> None:
+    #     return self.__dict__
