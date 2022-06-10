@@ -1381,7 +1381,6 @@ class Qurry:
         return result
 
     @abstractmethod
-    @classmethod
     def quantity(self) -> tuple[Quantity, Counts]:
         """Computing specific squantity.
         Where should be overwritten by each construction of new measurement.
@@ -1888,7 +1887,7 @@ class Qurry:
         for config in argsMulti.configList:
             print(
                 f"| index={config['expIndex']}/{numConfig} - {round(time.time() - start_time, 2)}s")
-            quantity, counts = self.output(**config, withQuantity=True)
+            quantity, counts = self.output(**config, withCounts=True)
 
             # legacy writer
             legacy = self.writeLegacy(
