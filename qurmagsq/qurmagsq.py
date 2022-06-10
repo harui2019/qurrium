@@ -138,7 +138,7 @@ class MagnetSquare(Qurry):
         for i, j in permut:
             qFunc = QuantumRegister(numQubits, 'q1')
             cMeas = ClassicalRegister(2, 'c1')
-            qcExp = QuantumCircuit(qFunc, cMeas)
+            qcExp = QuantumCircuit(qFunc, cMeas, name=f"magsq-{i}-{j}")
 
             qcExp.append(self.waveInstruction(
                 wave=argsNow.wave,
