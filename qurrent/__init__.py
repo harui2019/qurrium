@@ -9,9 +9,9 @@ from .qurrentV2.hadamardTest import hadamardTestV2
 from typing import Union
 
 measurementList = [
-    EntropyMeasureV2,
-    haarMeasureV2,
-    hadamardTestV2,
+    # EntropyMeasureV2,
+    # haarMeasureV2,
+    # hadamardTestV2,
     EntropyMeasureV3,
     haarMeasure,
     hadamardTest,
