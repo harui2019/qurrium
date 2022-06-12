@@ -30,7 +30,7 @@ import os
 from math import pi
 from uuid import uuid4
 from pathlib import Path
-from typing import Union, Optional, NamedTuple
+from typing import Union, Optional, NamedTuple, overload
 from abc import abstractmethod
 
 from ..tool import (
@@ -106,6 +106,7 @@ class Qurry:
     class argdictCore(NamedTuple):
         expsName: str = 'exps',
         wave: Union[QuantumCircuit, any, None] = None,
+        sampling: int = 1,
 
     class argdictNow(argdictCore):
         # ID of experiment.
@@ -502,15 +503,31 @@ class Qurry:
             qcResult = qcResult.decompose()
         return qcResult
 
+    @overload
+    def addWave(
+        self,
+        waveCircuit: list[QuantumCircuit],
+        key=None,
+    ) -> list[Optional[any]]:
+        ...
+
+    @overload
     def addWave(
         self,
         waveCircuit: QuantumCircuit,
-        key: Optional[any] = None,
+        key=None,
     ) -> Optional[any]:
+        ...
+
+    def addWave(
+        self,
+        waveCircuit: Union[QuantumCircuit, list[QuantumCircuit]],
+        key: Optional[Union[any, list[any]]] = None,
+    ) -> Union[list[Optional[any]], Optional[any]]:
         """Add new wave function to measure.
 
         Args:
-            waveCircuit (QuantumCircuit): The wave functions or circuits want to measure.
+            waveCircuit (Union[QuantumCircuit, list[QuantumCircuit]]): The wave functions or circuits want to measure.
             key (Optional[any], optional): Given a specific key to add to the wave function or circuit,
                 if `key == None`, then generate a number as key.
                 Defaults to None.
@@ -519,21 +536,38 @@ class Qurry:
             Optional[any]: Key of given wave function in `.waves`.
         """
 
-        genKey = len(self.waves)
-        if key == None:
-            key = genKey
-
-        if key in self.waves:
-            while genKey in self.waves:
-                genKey += 1
-            key = genKey
-        else:
-            ...
-
-        self.lastWave = key
         if isinstance(waveCircuit, QuantumCircuit):
+            genKey = len(self.waves)
+            if key == None:
+                key = genKey
+
+            if key in self.waves:
+                while genKey in self.waves:
+                    genKey += 1
+                key = genKey
+            else:
+                ...
+
+            self.lastWave = key
             self.waves[self.lastWave] = waveCircuit
             return self.lastWave
+
+        elif isinstance(waveCircuit, list):
+            if isinstance(key, list):
+                if len(key) == len(waveCircuit):
+                    return [self.addWave(
+                        waveCircuit=waveCircuit[i], key=key[i]) for i in range(len(waveCircuit))]
+                else:
+                    warnings.warn(
+                        "The length of key is not equal to the length of waveCircuit, then replace by automatic generating.")
+                    return [self.addWave(waveCircuit=waveCircuit[i])
+                            for i in range(len(waveCircuit))]
+            else:
+                warnings.warn(
+                    "The key is a list when waveCircuit is list, then replace by automatic generating.")
+                return [self.addWave(waveCircuit=waveCircuit[i])
+                        for i in range(len(waveCircuit))]
+
         else:
             warnings.warn("The input is not a 'QuantumCircuit'.")
             return None
@@ -675,6 +709,7 @@ class Qurry:
         self,
         expsName: str = 'exps',
         wave: Union[QuantumCircuit, any, None] = None,
+        sampling: int = 1,
         **otherArgs: any
     ) -> dict:
         """Handling all arguments and initializing a single experiment.
@@ -714,9 +749,17 @@ class Qurry:
                 warnings.warn(f"'{e}', use '.lastWave' as key")
                 wave = self.lastWave
 
+        # sampling
+        if isinstance(sampling, int):
+            ...
+        else:
+            sampling = 1
+            warnings.warn(f"'{sampling}' is not an integer, use 1 as default")
+
         return {
             'wave': wave,
-            'expsName': f"{expsName}-dummy.{wave}",
+            'expsName': f"{expsName}.{wave}",
+            'sampling': sampling,
             **otherArgs,
         }
 
@@ -977,28 +1020,13 @@ class Qurry:
             Union[QuantumCircuit, list[QuantumCircuit]]:
                 The quantum circuit of experiment.
         """
-        numQubits = self.waves[self.now.wave].num_qubits
+        argsNow: Qurry.argdictNow = self.now
+        circuit = self.waves[argsNow.wave]
+        numQubits = circuit.num_qubits
+        print(
+            f"| Directly call: {self.now.wave} with sampling {argsNow.sampling}")
 
-        q1 = QuantumRegister(numQubits, 'q1')
-        c1 = ClassicalRegister(numQubits, 'c1')
-        circuit = QuantumCircuit(q1, c1)
-
-        circuit.h(0)
-        # circuit.append(
-        #     self.waveInstruction(
-        #         wave=self.now.wave,
-        #         runBy=self.now.runBy,
-        #         backend=self.now.backend,
-        #     ),
-        #     [circuit[i] for i in range(numQubits)],
-        # )
-        for i in range(numQubits):
-            circuit.measure(q1[i], c1[i])
-        warnings.warn(
-            "It's default circuit, the quantum circuit is not yet configured.",
-            UnconfiguredWarning)
-
-        return [circuit]
+        return [circuit for i in range(argsNow.sampling)]
 
     def circuitBuild(
         self,
@@ -1419,7 +1447,6 @@ class Qurry:
         dummy = -100
         quantity = {
             '_dummy': dummy,
-            'echo': '_dummy_value',
         }
         return counts, quantity
 
@@ -1463,6 +1490,8 @@ class Qurry:
         for k in quantity:
             if k[0] == '_' and k != '_dummy':
                 self.exps[self.IDNow]['sideProduct'][k[1:]] = quantity[k]
+            if k == '_dummy':
+                withCounts = True
 
         quantity = {k: quantity[k] for k in quantity if k[0] != '_'}
         self.exps[self.IDNow] = {
@@ -1754,7 +1783,9 @@ class Qurry:
                 'expsName': immutableName,
 
                 # Multiple job dedicated
-                'pendingTags': pendingTags,
+                # 'pendingTags': pendingTags,
+                # ? pendingTags works uncorrectly, check contain and type
+                # ? by IBMQJobManagerInvalidStateError: 'job_tags needs to be a list or strings.'
                 'independentExports': independentExports,
 
                 # `writeLegacy`
@@ -1924,7 +1955,7 @@ class Qurry:
             argsMulti.tagMapQuantity = self._legacyTagGuider(
                 argsMulti.tagMapQuantity, legacyTag, quantity
             )
-            
+
             argsMulti.tagMapCounts = self._legacyTagGuider(
                 argsMulti.tagMapCounts, 'all', counts
             )
@@ -2181,12 +2212,15 @@ class Qurry:
             for expIndex, expIDKey in gajima:
                 argsMulti['circuitsMap'][expIDKey] = []
                 tmpCircuitNum = argsMulti['circuitsNum'][expIDKey]
-                print(
+                gajima.gprint(
                     f"| Packing expID: {expIDKey}, index={expIndex} with {tmpCircuitNum} circuits ...")
 
                 for i in range(tmpCircuitNum):
                     argsMulti['circuitsMap'][expIDKey].append(
                         len(pendingArray))
+                    if not isinstance(allTranspliedCircs[expIDKey][i], QuantumCircuit):
+                        print(allTranspliedCircs[expIDKey][i], i)
+                        raise ValueError("Critical Error")
                     pendingArray.append(allTranspliedCircs[expIDKey][i])
 
         with Gajima(
@@ -2195,15 +2229,19 @@ class Qurry:
             desc="Pending Jobs",
             finish_desc="Pending end and Exporting",
         ) as gajima:
-            powerJob = IBMQJobManager().run(
+            JobManager = IBMQJobManager()
+            powerJob = JobManager.run(
                 **argsMulti.managerRunArgs,
                 experiments=pendingArray,
                 backend=argsMulti.backend,
                 shots=argsMulti.shots,
                 name=f'{argsMulti.expsName}_w/_{len(pendingArray)}_jobs',
-                job_tags=[argsMulti.pendingTags]
+                # job_tags=argsMulti.pendingTags
+                # ? waiting for the issue of contain
             )
+            print(f"| report:", JobManager.report())
             powerJobID = powerJob.job_set_id()
+            gajima.gprint(f"| name: {powerJob.name()}")
             argsMulti.powerJobID = powerJobID
             # powerJobsIDList = [mj.job.job_id() for mj in powerJob.jobs()]
 
@@ -2375,14 +2413,14 @@ class Qurry:
             dataPowerJobs['tagMapQuantity'] = self._legacyTagGuider(
                 dataPowerJobs['tagMapQuantity'], legacyTag, quantity
             )
-            
+
             dataPowerJobs['tagMapCounts'] = self._legacyTagGuider(
                 dataPowerJobs['tagMapCounts'], 'all', counts
             )
             dataPowerJobs['tagMapCounts'] = self._legacyTagGuider(
                 dataPowerJobs['tagMapCounts'], legacyTag, counts
             )
-            
+
             print(f"| index={idxNum} end...\n"+f"+"+"-"*20)
             idxNum += 1
 
