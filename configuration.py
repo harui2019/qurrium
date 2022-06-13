@@ -85,6 +85,7 @@ class Configuration(dict):
     def make(
         self,
         inputObject: dict[any] = {},
+        partial: list[any] = [],
     ) -> dict[any]:
         """Export a dictionary of configuration.
 
@@ -99,13 +100,16 @@ class Configuration(dict):
             **self.default,
             **inputObject,
         }
-
-        return configIndividual
+        
+        if len(partial) == 0:
+            return configIndividual
+        else:
+            return { k: configIndividual[k] for k in partial }
 
     def json_make(
         self,
         inputObject: dict[any] = {},
-        save: bool = False,
+        partial: list[any] = [],
     ) -> dict[any]:
         """[summary]
 
@@ -118,7 +122,7 @@ class Configuration(dict):
 
         return jsonablize(self.make(
             inputObject=inputObject,
-            save=save,
+            partial=partial,
         ))
 
     def _handleInput(
