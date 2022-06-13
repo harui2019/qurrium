@@ -34,13 +34,15 @@ from typing import Union, Optional, NamedTuple, overload
 from abc import abstractmethod
 
 from ..tool import (
+    Gajima,
+)
+from ..qurrium import (
     Configuration,
     argdict,
     syncControl,
     jsonablize,
     quickJSONExport,
     keyTupleLoads,
-    Gajima,
 )
 from .exceptions import UnconfiguredWarning
 from .type import (
@@ -49,8 +51,11 @@ from .type import (
     TagMapIndexType,
     TagMapQuantityType,
     TagMapCountsType,
+    TagMapResultType,
     Quantity,
     Counts,
+    
+    TagMap,
 )
 
 # Qurry V0.3.0 - a Qiskit Macro
@@ -191,7 +196,7 @@ class Qurry:
         self,
         name: str = 'qurryExpsBase',
         defaultArg: dict = {
-            # Reault of experiment.
+            # Result of experiment.
         },
     ) -> Configuration:
         """The default storage format and values of a single experiment.
@@ -280,6 +285,20 @@ class Qurry:
                 'sideProduct': {},
             },
         )
+    
+    def expsBaseExcepts(
+        self,
+        excepts: list[str] = ['sideProduct', 'tagMapResult'],
+    ) -> dict:
+        """_summary_
+
+        Args:
+            excepts (list[str], optional): _description_. Defaults to ['sideProduct'].
+
+        Returns:
+            Configuration: _description_
+        """
+        return self.expsBase().make(partial=excepts)
 
     class argdictMultiNow(argdictCore):
         # configList
@@ -313,14 +332,11 @@ class Qurry:
         listExpID: list = []
         listFile: list = []
 
-        tagMapExpsID: TagMapExpsIDType = {
-            'all': [], 'noTags': []}
-        tagMapIndex: TagMapIndexType = {
-            'all': [], 'noTags': []}
-        tagMapQuantity: TagMapQuantityType = {
-            'all': [], 'noTags': []}
-        tagMapCounts: TagMapCountsType = {
-            'all': [], 'noTags': []}
+        tagMapExpsID: TagMapExpsIDType = TagMap.make()
+        tagMapIndex: TagMapIndexType = TagMap.make()
+        tagMapQuantity: TagMapQuantityType = TagMap.make()
+        tagMapCounts: TagMapCountsType = TagMap.make()
+        tagMapResult: TagMapResultType = TagMap.make()
 
         circuitsMap: dict = {}
         circuitsNum: dict = {}
@@ -1132,7 +1148,8 @@ class Qurry:
             warnings.warn(
                 f"Type of 'excepts' is not 'list' instead of '{type(excepts)}', ignore exception.")
         exports = {
-            k: self.exps[legacyId][k] for k in self.exps[legacyId] if k not in ['sideProduct']+excepts
+            k: self.exps[legacyId][k] for k in self.exps[legacyId] 
+            if k not in list(self.expsBaseExcepts().keys())+excepts
         }
 
         with Gajima(
@@ -1192,6 +1209,7 @@ class Qurry:
         filename: Optional[Union[Path, str]] = None,
         saveLocation: Union[Path, str] = Path('./'),
         expID: Optional[str] = None,
+        excepts: list = [],
     ) -> dict[str: any]:
         """Read the experiment data.
 
@@ -1246,6 +1264,11 @@ class Qurry:
         else:
             raise FileNotFoundError(f"The file 'expID={expID}' not found.")
 
+        legacyRead = { 
+            **self.expsBaseExcepts(),
+            **legacyRead,
+        }
+        
         if isinstance(legacyRead, dict):
             if "tags" in legacyRead:
                 legacyRead["tags"] = tuple(legacyRead["tags"]) if isinstance(
@@ -1439,9 +1462,6 @@ class Qurry:
         else:
             ...
 
-        warnings.warn(
-            "It's default '.quantity' which exports meaningless value.",
-            UnconfiguredWarning)
         counts = result.get_counts(resultIdxList[0])
 
         dummy = -100
@@ -1470,7 +1490,7 @@ class Qurry:
             dataRetrieve=dataRetrieve,
             **allArgs,
         )
-        argsNow = self.now
+        argsNow: self.argdictNow = self.now
         print(f"| name: {self.now.expsName}\n"+f"| id: {self.IDNow}")
 
         counts, quantity = self.quantity(
@@ -1801,6 +1821,7 @@ class Qurry:
                     'all': [], 'noTags': []},  # expsBelong
                 'tagMapIndex': {
                     'all': [], 'noTags': []},
+                
                 'tagMapQuantity': {
                     'all': [], 'noTags': []},
                 'tagMapCounts': {
@@ -1936,8 +1957,8 @@ class Qurry:
                         f"| warning: '{k}' is a reserved key for export data.")
 
             # packing
-            argsMulti['listFile'].append(legacy['filename'])
-            argsMulti['listExpID'].append(self.IDNow)
+            argsMulti.listFile.append(legacy['filename'])
+            argsMulti.listExpID.append(self.IDNow)
 
             argsMulti.tagMapExpsID = self._legacyTagGuider(
                 argsMulti.tagMapExpsID, legacyTag, self.IDNow
@@ -1964,7 +1985,7 @@ class Qurry:
             )
 
         print(f"| Export...")
-        argsMulti['gitignore'].ignore('*.json')
+        argsMulti.gitignore.ignore('*.json')
         argsMulti.state = 'completed'
         dataMultiJobs = argsMulti.jsonize()
 
@@ -1973,7 +1994,7 @@ class Qurry:
             ('tagMapQuantity.json', argsMulti['tagMapQuantity']),
             ('tagMapCounts.json', argsMulti['tagMapCounts']),
         ]:
-            argsMulti['gitignore'].sync(f'*.{n}')
+            argsMulti.gitignore.sync(f'*.{n}')
             print(f"| Export {n}")
             quickJSONExport(
                 content=data,
@@ -1990,7 +2011,7 @@ class Qurry:
                 'tagMapExpsID',
                 'tagMapIndex'
             ]:
-                argsMulti['gitignore'].sync(f'*.{n}.json')
+                argsMulti.gitignore.sync(f'*.{n}.json')
                 print(f"| Export {n}.json")
                 quickJSONExport(
                     content=argsMulti[n],
@@ -1999,7 +2020,7 @@ class Qurry:
                     mode='w+',
                     jsonablize=True)
 
-        argsMulti['gitignore'].export(argsMulti.exportLocation)
+        argsMulti.gitignore.export(argsMulti.exportLocation)
         gc.collect()
         print(
             f"| MultiOutput {self.__name__} End in {round(time.time() - start_time, 2)} sec ...\n" +
@@ -2123,7 +2144,7 @@ class Qurry:
 
         gc.collect()
         print(
-            f"| MultiRead {self.__name__} End in {time.time() - start_time} sec ...\n"+f"+"+"-"*20)
+            f"| MultiRead {self.__name__} End in {round(time.time() - start_time, 2)} sec ...\n"+f"+"+"-"*20)
 
         return dataDummyJobs
 
@@ -2172,7 +2193,7 @@ class Qurry:
                 warnings.warn(
                     f"The circuit output of '{self.IDNow}' is nor 'list' neither 'QuantumCircuit' " +
                     f"but '{type(circuitSet)}'.")
-            argsMulti['circuitsNum'][self.IDNow] = numCirc
+            argsMulti.circuitsNum[self.IDNow] = numCirc
 
             # legacy writer
             legacy = self.writeLegacy(
@@ -2189,8 +2210,8 @@ class Qurry:
                     print(
                         f"| warning: '{k}' is a reserved key for export data.")
 
-            argsMulti['listFile'].append(legacy['filename'])
-            argsMulti['listExpID'].append(self.IDNow)
+            argsMulti.listFile.append(legacy['filename'])
+            argsMulti.listExpID.append(self.IDNow)
 
             argsMulti.tagMapExpsID = self._legacyTagGuider(
                 argsMulti.tagMapExpsID, legacyTag, self.IDNow
@@ -2203,20 +2224,20 @@ class Qurry:
             )
 
         with Gajima(
-            enumerate(argsMulti['listExpID']),
+            enumerate(argsMulti.listExpID),
             carousel=[('dots', 20, 6), 'basic'],
             prefix="| ",
             desc="Packing circuits for pending",
             finish_desc="Packing Completed",
         ) as gajima:
             for expIndex, expIDKey in gajima:
-                argsMulti['circuitsMap'][expIDKey] = []
-                tmpCircuitNum = argsMulti['circuitsNum'][expIDKey]
+                argsMulti.circuitsMap[expIDKey] = []
+                tmpCircuitNum = argsMulti.circuitsNum[expIDKey]
                 gajima.gprint(
                     f"| Packing expID: {expIDKey}, index={expIndex} with {tmpCircuitNum} circuits ...")
 
                 for i in range(tmpCircuitNum):
-                    argsMulti['circuitsMap'][expIDKey].append(
+                    argsMulti.circuitsMap[expIDKey].append(
                         len(pendingArray))
                     if not isinstance(allTranspliedCircs[expIDKey][i], QuantumCircuit):
                         print(allTranspliedCircs[expIDKey][i], i)
@@ -2245,11 +2266,11 @@ class Qurry:
             argsMulti.powerJobID = powerJobID
             # powerJobsIDList = [mj.job.job_id() for mj in powerJob.jobs()]
 
-        argsMulti['gitignore'].ignore('*.json')
-        dataPowerJobs = argsMulti.jsonize()
         argsMulti.state = 'pending'
+        argsMulti.gitignore.ignore('*.json')
+        argsMulti.gitignore.sync(f'*.powerJobs.json')
 
-        argsMulti['gitignore'].sync(f'*.powerJobs.json')
+        dataPowerJobs = argsMulti.jsonize()
         quickJSONExport(
             content=dataPowerJobs,
             filename=argsMulti.exportLocation /
@@ -2274,7 +2295,7 @@ class Qurry:
                 'circuitsMap',
                 'circuitsNum',
             ]:
-                argsMulti['gitignore'].sync(f'*.{n}.json')
+                argsMulti.gitignore.sync(f'*.{n}.json')
                 print(f"| Export {n}.json")
                 quickJSONExport(
                     content=argsMulti,
@@ -2283,7 +2304,7 @@ class Qurry:
                     mode='w+',
                     jsonablize=True)
 
-        argsMulti['gitignore'].export(argsMulti.exportLocation)
+        argsMulti.gitignore.export(argsMulti.exportLocation)
 
         gc.collect()
         print(
@@ -2338,7 +2359,7 @@ class Qurry:
         if dataPowerJobs['type'] == 'multiJobs':
             print(
                 f"| PowerOutput {self.__name__} End " +
-                "with reading a multiJobs in {time.time() - start_time} sec ...\n" +
+                f"with reading a multiJobs in {time.time() - start_time} sec ...\n" +
                 f"+"+"-"*20)
             return dataPowerJobs
 
@@ -2381,11 +2402,18 @@ class Qurry:
                 saveLocation=Path(dataPowerJobs['exportLocation']),
             )
 
-            counts, quantity = self.quantity(**{
+            # output
+            counts, quantityWSideProduct = self.quantity(**{
                 **self.exps[expIDKey],
                 'result': powerResult,
                 'resultIdxList': dataPowerJobs['circuitsMap'][expIDKey],
             })
+            
+            for k in quantityWSideProduct:
+                if k[0] == '_' and k != '_dummy':
+                    self.exps[expIDKey]['sideProduct'][k[1:]] = quantityWSideProduct[k]
+
+            quantity = {k: quantityWSideProduct[k] for k in quantityWSideProduct if k[0] != '_'}
             self.exps[expIDKey] = {
                 **self.exps[expIDKey],
                 **quantity,
@@ -2425,7 +2453,7 @@ class Qurry:
             idxNum += 1
 
         print(f"| Export...")
-        argsMulti['gitignore'].ignore('*.json')
+        argsMulti.gitignore.ignore('*.json')
         dataPowerJobs['state'] = 'completed'
         dataPowerJobs = jsonablize(dataPowerJobs)
 
@@ -2434,7 +2462,7 @@ class Qurry:
             ('tagMapQuantity.json', dataPowerJobs['tagMapQuantity']),
             ('tagMapCounts.json', dataPowerJobs['tagMapCounts']),
         ]:
-            argsMulti['gitignore'].sync(f'*.{n}')
+            argsMulti.gitignore.sync(f'*.{n}')
             print(f"| Export {n}")
             quickJSONExport(
                 content=data,
@@ -2449,7 +2477,7 @@ class Qurry:
                 'tagMapQuantity',
                 'tagMapIndex'
             ]:
-                argsMulti['gitignore'].sync(f'*.{n}.json')
+                argsMulti.gitignore.sync(f'*.{n}.json')
                 print(f"| Export {n}.json")
                 quickJSONExport(
                     content=dataPowerJobs[n],
@@ -2458,7 +2486,7 @@ class Qurry:
                     mode='w+',
                     jsonablize=True)
 
-        argsMulti['gitignore'].export(Path(dataPowerJobs['exportLocation']))
+        argsMulti.gitignore.export(Path(dataPowerJobs['exportLocation']))
         gc.collect()
         print(
             f"| PowerOutput {self.__name__} End in {round(time.time() - start_time, 2)} sec ...\n"+f"+"+"-"*20)

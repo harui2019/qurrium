@@ -1,4 +1,7 @@
 from typing import Union, Optional, NamedTuple, TypeVar, Generic
+from qiskit.result import Result
+
+from ..tool import Configuration
 
 T = TypeVar('T')
 
@@ -16,4 +19,12 @@ TagMapExpsIDType = TagMapBaseType[str]
 TagMapIndexType = TagMapBaseType[Union[str, int]]
 TagMapQuantityType = TagMapBaseType[dict[float]]
 TagMapCountsType = TagMapBaseType[dict[Counts]]
+TagMapResultType = TagMapBaseType[Result]
+
+TagMap = Configuration(
+    name='TagMap',
+    default={
+        'all': [], 'noTags': [],
+    },
+)
 
