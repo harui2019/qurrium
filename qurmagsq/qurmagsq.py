@@ -10,7 +10,6 @@ import time
 from typing import Union, Optional, NamedTuple
 
 from ..qurrium import Qurry
-from ..tool import Configuration
 
 # MagnetSquare V0.3.0 - Measuring Magnetization Squared - Qurmagsq
 

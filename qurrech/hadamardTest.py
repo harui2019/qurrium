@@ -11,7 +11,6 @@ from typing import Union, Optional, Callable, List, NamedTuple
 from qiskit.visualization.counts_visualization import hamming_distance
 
 from .qurrech import EchoListen
-from ..tool import Configuration
 # EchoListen V0.3.0 - Measuring Loschmidt Echo - Qurrech
 
 

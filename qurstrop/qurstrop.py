@@ -4,13 +4,10 @@ from qiskit.providers.ibmq.managed import ManagedResults, IBMQManagedResultDataN
 
 import numpy as np
 import warnings
-from math import pi
-from itertools import permutations
-import time
 from typing import Union, Optional, NamedTuple, Literal
 
 from ..qurrium import Qurry
-from ..tool import Configuration, Gajima
+from ..tool import Gajima
 
 # StringOperator V0.3.0 - Measuring Topological Phase - Qurstrop
 

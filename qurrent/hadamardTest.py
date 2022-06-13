@@ -11,7 +11,6 @@ from typing import Union, Optional, Callable, List, NamedTuple
 from qiskit.visualization.counts_visualization import hamming_distance
 
 from .qurrent import EntropyMeasureV3
-from ..tool import Configuration
 # EntropyMeasure V0.3.0 - Measuring Renyi Entropy - Qurrech
 
 
