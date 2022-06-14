@@ -1,6 +1,6 @@
 
 
-class TapMap(dict):
+class TagMap(dict):
     def __init__(self, *args, **kwargs):
         super().__init__({ 'noTags': [] })
         self.__dict__ = self

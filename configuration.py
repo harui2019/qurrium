@@ -104,7 +104,8 @@ class Configuration(dict):
         if len(partial) == 0:
             return configIndividual
         else:
-            return { k: configIndividual[k] for k in partial }
+            
+            return { k: configIndividual[k] for k in partial if k in configIndividual}
 
     def json_make(
         self,
