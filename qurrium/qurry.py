@@ -36,14 +36,24 @@ from abc import abstractmethod
 from ..tool import (
     Gajima,
 )
-from ..qurrium import (
-    Configuration,
-    argdict,
-    syncControl,
-    jsonablize,
-    quickJSONExport,
-    keyTupleLoads,
-)
+try:
+    from .mori import (
+        Configuration,
+        argdict,
+        syncControl,
+        jsonablize,
+        quickJSONExport,
+        keyTupleLoads,
+    )
+except ImportError:
+    from .backup import (
+        Configuration,
+        argdict,
+        syncControl,
+        jsonablize,
+        quickJSONExport,
+        keyTupleLoads,
+    )
 from .exceptions import UnconfiguredWarning
 from .type import (
     TagKeysAllowable,
@@ -51,7 +61,7 @@ from .type import (
     TagMapIndexType,
     TagMapQuantityType,
     TagMapCountsType,
-    TagMapResultType,
+    # TagMapResultType,
     Quantity,
     Counts,
     
@@ -336,7 +346,7 @@ class Qurry:
         tagMapIndex: TagMapIndexType = TagMap.make()
         tagMapQuantity: TagMapQuantityType = TagMap.make()
         tagMapCounts: TagMapCountsType = TagMap.make()
-        tagMapResult: TagMapResultType = TagMap.make()
+        # tagMapResult: TagMapResultType = TagMap.make()
 
         circuitsMap: dict = {}
         circuitsNum: dict = {}
@@ -1363,73 +1373,73 @@ class Qurry:
 
         return result
 
-    def retrieve(
-        self,
-        **allArgs: any,
-    ) -> Optional[list[dict]]:
-        """Retrieve the data from IBMQService which is already done, and add it into `self.exps`.
+    # def retrieve(
+    #     self,
+    #     **allArgs: any,
+    # ) -> Optional[list[dict]]:
+    #     """Retrieve the data from IBMQService which is already done, and add it into `self.exps`.
 
-        Args:
-            allArgs: all arguments will handle by `self.paramsControl()` and export as specific format.
+    #     Args:
+    #         allArgs: all arguments will handle by `self.paramsControl()` and export as specific format.
 
-        Raises:
-            KeyError: The necessary keys in `self.now.dataRetrieve` are lost.
-                When the job record does not have `jobID`.
-            ValueError: `argsNow.dataRetrieve` is null.
+    #     Raises:
+    #         KeyError: The necessary keys in `self.now.dataRetrieve` are lost.
+    #             When the job record does not have `jobID`.
+    #         ValueError: `argsNow.dataRetrieve` is null.
 
-        Returns:
-            Optional[list[dict]]: The result of the job.
-        """
+    #     Returns:
+    #         Optional[list[dict]]: The result of the job.
+    #     """
 
-        argsNow = self.paramsControlCore(**allArgs)
-        if not isinstance(argsNow.provider, AccountProvider):
-            raise ValueError("Provider required.")
+    #     argsNow = self.paramsControlCore(**allArgs)
+    #     if not isinstance(argsNow.provider, AccountProvider):
+    #         raise ValueError("Provider required.")
 
-        retrievedBase = self._expsBase.make()
+    #     retrievedBase = self._expsBase.make()
 
-        if isinstance(argsNow.dataRetrieve, dict):
-            lost = self._expsBase.check(argsNow.dataRetrieve)
-            for k in lost:
-                if k in ["jobID", "IBMQJobManager"]:
-                    raise KeyError(
-                        f"The giving data to retrieve jobs needs the key '{k}'")
-            retrievedBase = argsNow.dataRetrieve
+    #     if isinstance(argsNow.dataRetrieve, dict):
+    #         lost = self._expsBase.check(argsNow.dataRetrieve)
+    #         for k in lost:
+    #             if k in ["jobID", "IBMQJobManager"]:
+    #                 raise KeyError(
+    #                     f"The giving data to retrieve jobs needs the key '{k}'")
+    #         retrievedBase = argsNow.dataRetrieve
 
-        elif isinstance(argsNow.dataRetrieve, str):
-            retrievedBase["jobID"] = [argsNow.dataRetrieve]
+    #     elif isinstance(argsNow.dataRetrieve, str):
+    #         retrievedBase["jobID"] = [argsNow.dataRetrieve]
 
-        else:
-            raise ValueError(
-                "The giving data to retrieve jobs has to be 'str' of 'jobID' or 'dict' contained 'jobID'.")
+    #     else:
+    #         raise ValueError(
+    #             "The giving data to retrieve jobs has to be 'str' of 'jobID' or 'dict' contained 'jobID'.")
 
-        result = None
-        for singleJobID in retrievedBase["jobID"]:
-            try:
-                retrieved = IBMQJobManager().retrieve_job_set(
-                    job_set_id=singleJobID,
-                    provider=argsNow.provider,
-                    refresh=True
-                )
-                result = retrieved.results()
+    #     result = None
+    #     for singleJobID in retrievedBase["jobID"]:
+    #         try:
+    #             retrieved = IBMQJobManager().retrieve_job_set(
+    #                 job_set_id=singleJobID,
+    #                 provider=argsNow.provider,
+    #                 refresh=True
+    #             )
+    #             result = retrieved.results()
 
-            except IBMQJobManagerUnknownJobSet as e:
-                warnings.warn("Job unknown.", e)
+    #         except IBMQJobManagerUnknownJobSet as e:
+    #             warnings.warn("Job unknown.", e)
 
-            except IBMQJobManagerInvalidStateError as e:
-                warnings.warn(
-                    "Job faied by 'IBMQJobManagerInvalidStateError'", e)
+    #         except IBMQJobManagerInvalidStateError as e:
+    #             warnings.warn(
+    #                 "Job faied by 'IBMQJobManagerInvalidStateError'", e)
 
-            except JobError as e:
-                warnings.warn("Job faied by 'JobError", e)
+    #         except JobError as e:
+    #             warnings.warn("Job faied by 'JobError", e)
 
-        self.exps[self.IDNow] = {
-            **self.exps[self.IDNow],
-            'expID': self.IDNow,
-            'result': result,
-            **retrievedBase,
-        }
+    #     self.exps[self.IDNow] = {
+    #         **self.exps[self.IDNow],
+    #         'expID': self.IDNow,
+    #         'result': result,
+    #         **retrievedBase,
+    #     }
 
-        return result
+    #     return result
 
     @abstractmethod
     def quantity(self) -> tuple[Quantity, Counts]:
@@ -1448,6 +1458,7 @@ class Qurry:
         shots: int,
         result: Union[Result, ManagedResults],
         resultIdxList: Optional[list[int]] = None,
+        sampling: int = 1,
         **otherArgs,
     ):
         """Computing specific squantity.
@@ -1458,7 +1469,7 @@ class Qurry:
                 Counts, purity, entropy of experiment.
         """
         if resultIdxList == None:
-            resultIdxList = [0]
+            resultIdxList = [i for i in range(sampling)]
         else:
             ...
 
@@ -1486,7 +1497,11 @@ class Qurry:
         """
         print(f"+"+"-"*20+"\n"+f"| Calculating {self.__name__}...")
 
-        result = (self.retrieve if dataRetrieve != None else self.run)(
+        # result = (self.retrieve if dataRetrieve != None else self.run)(
+        #     dataRetrieve=dataRetrieve,
+        #     **allArgs,
+        # )
+        result = self.run(
             dataRetrieve=dataRetrieve,
             **allArgs,
         )
@@ -2491,6 +2506,7 @@ class Qurry:
         print(
             f"| PowerOutput {self.__name__} End in {round(time.time() - start_time, 2)} sec ...\n"+f"+"+"-"*20)
 
+        dataPowerJobs['result'] = powerResult
         return dataPowerJobs
 
     """Other"""
