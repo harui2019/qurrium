@@ -41,13 +41,24 @@ from typing import (
     Callable
 )
 
-from ...tool import (
-    Configuration,
-    argdict,
-    syncControl,
-    jsonablize,
-    quickJSONExport,
-    keyTupleLoads)
+try:
+    from ...qurrium.mori import (
+        Configuration,
+        argdict,
+        syncControl,
+        jsonablize,
+        quickJSONExport,
+        keyTupleLoads,
+    )
+except ImportError:
+    from ...qurrium.backup import (
+        Configuration,
+        argdict,
+        syncControl,
+        jsonablize,
+        quickJSONExport,
+        keyTupleLoads,
+    )
 # EntropyMeasureV0.2.1
 
 
