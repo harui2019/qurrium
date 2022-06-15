@@ -33,9 +33,7 @@ from pathlib import Path
 from typing import Union, Optional, NamedTuple, overload
 from abc import abstractmethod
 
-from ..tool import (
-    Gajima,
-)
+from ..tool import Gajima
 try:
     from .mori import (
         Configuration,
@@ -44,8 +42,10 @@ try:
         jsonablize,
         quickJSONExport,
         keyTupleLoads,
+        TagMap,
     )
 except ImportError:
+    warnings.warn("Please run 'git submodule update --init --recursive' for full functional.")
     from .backup import (
         Configuration,
         argdict,
@@ -53,6 +53,7 @@ except ImportError:
         jsonablize,
         quickJSONExport,
         keyTupleLoads,
+        TagMap,
     )
 from .exceptions import UnconfiguredWarning
 from .type import (
@@ -64,51 +65,14 @@ from .type import (
     # TagMapResultType,
     Quantity,
     Counts,
-    
-    TagMap,
 )
 
-# Qurry V0.3.0 - a Qiskit Macro
+# Qurry V0.3.1 - a Qiskit Macro
 
 
 def defaultCircuit(numQubit: int) -> QuantumCircuit:
-    return QuantumCircuit(numQubit)
-
-
-"""
-
-_expsConfig = expsConfig(
-    name='dummyConfig',
-    defaultArg={
-        'wave': None,
-        'dummy': None,
-    },
-)
-_expsBase = expsBase(
-    name='dummyBase',
-    expsConfig= _expsConfig,
-    defaultArg={
-        'dummyResult1': None,
-        'dummyResult2': None,
-    },
-)
-_expsMultiConfig = expsConfigMulti(
-    name='dummyConfigMulti',
-    expsConfig= _expsConfig,
-    defaultArg={
-        'dummyMultiVariaint1': None,
-        'dummyMultiVariaint2': None,
-    },
-)
-_expsHint = expsHint(
-    name: str = 'qurryBaseHint',
-    expsConfig = _expsBase,
-    hintContext = {
-        'dummyResult1': 'This is dummyResult1.',
-        'dummyResult2': 'This is dummyResult2.',
-    },
-)
-"""
+    return QuantumCircuit(
+        numQubit, numQubit, name=f'qurry_default_{numQubit}')
 
 
 class Qurry:
@@ -156,7 +120,17 @@ class Qurry:
         """The default format and value for executing a single experiment.
         - Example:
 
+        ```python
+        _expsConfig = expsConfig(
+            name='dummyConfig',
+            defaultArg={
+                'wave': None,
+                'dummy': None,
+            },
+        )
         ```
+        Then `_expsConfig` will be
+        ```python
         {
             # ID of experiment.
             'expID': None,
@@ -191,7 +165,7 @@ class Qurry:
                 Defaults to { 'wave': None }.
 
         Returns:
-            Configuration: _description_
+            Configuration: The template of experiment configuration.
         """
         return Configuration(
             name=name,
@@ -212,7 +186,18 @@ class Qurry:
         """The default storage format and values of a single experiment.
         - Example:
 
+        ```python
+        _expsBase = expsBase(
+            name='dummyBase',
+            expsConfig= _expsConfig,
+            defaultArg={
+                'dummyResult1': None,
+                'dummyResult2': None,
+            },
+        )
         ```
+        Then `_expsBase` will be
+        ```python
         {
             # ID of experiment.
             'expID': None,
@@ -269,7 +254,7 @@ class Qurry:
                 Defaults to {}.
 
         Returns:
-            Configuration: _description_
+            Configuration: The template of experiment data.
         """
         return Configuration(
             name=name,
@@ -295,7 +280,7 @@ class Qurry:
                 'sideProduct': {},
             },
         )
-    
+
     def expsBaseExcepts(
         self,
         excepts: list[str] = ['sideProduct', 'tagMapResult'],
@@ -303,10 +288,12 @@ class Qurry:
         """_summary_
 
         Args:
-            excepts (list[str], optional): _description_. Defaults to ['sideProduct'].
+            excepts (list[str], optional):
+                Key of value wanted to be excluded.
+                Defaults to ['sideProduct'].
 
         Returns:
-            Configuration: _description_
+            dict: The value will be excluded.
         """
         return self.expsBase().make(partial=excepts)
 
@@ -342,11 +329,11 @@ class Qurry:
         listExpID: list = []
         listFile: list = []
 
-        tagMapExpsID: TagMapExpsIDType = TagMap.make()
-        tagMapIndex: TagMapIndexType = TagMap.make()
-        tagMapQuantity: TagMapQuantityType = TagMap.make()
-        tagMapCounts: TagMapCountsType = TagMap.make()
-        # tagMapResult: TagMapResultType = TagMap.make()
+        tagMapExpsID: TagMapExpsIDType = TagMap()
+        tagMapIndex: TagMapIndexType = TagMap()
+        tagMapQuantity: TagMapQuantityType = TagMap()
+        tagMapCounts: TagMapCountsType = TagMap()
+        # tagMapResult: TagMapResultType = TagMap()
 
         circuitsMap: dict = {}
         circuitsNum: dict = {}
@@ -364,7 +351,18 @@ class Qurry:
         """The default format and value for executing mutiple experiments.
         - Example:
 
+        ```python
+        _expsMultiConfig = expsConfigMulti(
+            name='dummyConfigMulti',
+            expsConfig= _expsConfig,
+            defaultArg={
+                'dummyMultiVariaint1': None,
+                'dummyMultiVariaint2': None,
+            },
+        )
         ```
+        Then `_expsMultiConfig` will be
+        ```python
         {
             # configList
             'configList': [],
@@ -409,7 +407,7 @@ class Qurry:
                 Defaults to {}.
 
         Returns:
-            Configuration: _description_
+            Configuration: The template of multiple experiment configuration.
         """
 
         return Configuration(
@@ -428,6 +426,47 @@ class Qurry:
             "_basicHint": "This is a hint of qurry.",
         },
     ) -> dict:
+        """Make hints for every values in :func:`.expsBase()`.
+        - Example:
+
+        ```python
+        expsHint(
+            name: str = 'qurryBaseHint',
+            hintContext = {
+                'expID': 'This is a expID'. # hint for `expsBase` value
+                'dummyResult1': 'This is dummyResult1.', # extra hint
+                'dummyResult2': 'This is dummyResult2.', # extra hint
+            },
+        )
+        ```
+        Then call `.expHint` will be
+        ```python
+        {
+
+            'expID': 'This is a expID',
+            'shots': '', # value without hint
+            ..., # other in `expsBase`
+
+            'dummyResult1': 'This is dummyResult1.', # extra hint
+            'dummyResult2': 'This is dummyResult2.', # extra hint
+
+        }
+        ```
+
+        Args:
+            name (str, optional):
+                Name of basic configuration for `Qurry`.
+                Defaults to 'qurryBaseHint'.
+            hintContext (dict, optional):
+                Hints for `.expBase`.
+                Defaults to `{
+                    "_basicHint": "This is a hint of qurry.",
+                }`.
+
+        Returns:
+            dict: The hints of the experiment data.
+        """
+
         hintDefaults = {k: "" for k in self.expsConfig()}
         hintDefaults = {**hintDefaults, **hintContext}
         return hintDefaults
@@ -1158,7 +1197,7 @@ class Qurry:
             warnings.warn(
                 f"Type of 'excepts' is not 'list' instead of '{type(excepts)}', ignore exception.")
         exports = {
-            k: self.exps[legacyId][k] for k in self.exps[legacyId] 
+            k: self.exps[legacyId][k] for k in self.exps[legacyId]
             if k not in list(self.expsBaseExcepts().keys())+excepts
         }
 
@@ -1274,11 +1313,11 @@ class Qurry:
         else:
             raise FileNotFoundError(f"The file 'expID={expID}' not found.")
 
-        legacyRead = { 
+        legacyRead = {
             **self.expsBaseExcepts(),
             **legacyRead,
         }
-        
+
         if isinstance(legacyRead, dict):
             if "tags" in legacyRead:
                 legacyRead["tags"] = tuple(legacyRead["tags"]) if isinstance(
@@ -1832,15 +1871,11 @@ class Qurry:
                 'listExpID': [],  # expIDList
                 'listFile': [],  # fileList
                 # 'listQuantity': [],  # expPurityList/expEntropyList
-                'tagMapExpsID': {
-                    'all': [], 'noTags': []},  # expsBelong
-                'tagMapIndex': {
-                    'all': [], 'noTags': []},
-                
-                'tagMapQuantity': {
-                    'all': [], 'noTags': []},
-                'tagMapCounts': {
-                    'all': [], 'noTags': []},
+                'tagMapExpsID': TagMap(),  # expsBelong
+                'tagMapIndex': TagMap(),
+
+                'tagMapQuantity': TagMap(),
+                'tagMapCounts': TagMap(),
 
                 'circuitsMap': {},
                 'circuitsNum': {},
@@ -1863,8 +1898,8 @@ class Qurry:
 
         Args:
             field (dict): _description_
-            legacyTag (any): _description_
-            v (any): _description_
+            legacyTag (any): The tag for legacy as key.
+            v (any): The value for legacy.
 
         Returns:
             dict: _description_
@@ -1974,30 +2009,35 @@ class Qurry:
             # packing
             argsMulti.listFile.append(legacy['filename'])
             argsMulti.listExpID.append(self.IDNow)
+            
+            argsMulti.tagMapExpsID.guider(legacyTag, self.IDNow)
+            argsMulti.tagMapIndex.guider(legacyTag, config['expIndex'])
+            argsMulti.tagMapQuantity.guider(legacyTag, quantity)
+            argsMulti.tagMapCounts.guider(legacyTag, counts)
 
-            argsMulti.tagMapExpsID = self._legacyTagGuider(
-                argsMulti.tagMapExpsID, legacyTag, self.IDNow
-            )
-            argsMulti.tagMapIndex = self._legacyTagGuider(
-                argsMulti.tagMapIndex, legacyTag, config['expIndex']
-            )
-            argsMulti.tagMapIndex = self._legacyTagGuider(
-                argsMulti.tagMapIndex, 'all', config['expIndex']
-            )
+            # argsMulti.tagMapExpsID = self._legacyTagGuider(
+            #     argsMulti.tagMapExpsID, legacyTag, self.IDNow
+            # )
+            # argsMulti.tagMapIndex = self._legacyTagGuider(
+            #     argsMulti.tagMapIndex, legacyTag, config['expIndex']
+            # )
+            # argsMulti.tagMapIndex = self._legacyTagGuider(
+            #     argsMulti.tagMapIndex, 'all', config['expIndex']
+            # )
 
-            argsMulti.tagMapQuantity = self._legacyTagGuider(
-                argsMulti.tagMapQuantity, 'all', quantity
-            )
-            argsMulti.tagMapQuantity = self._legacyTagGuider(
-                argsMulti.tagMapQuantity, legacyTag, quantity
-            )
+            # argsMulti.tagMapQuantity = self._legacyTagGuider(
+            #     argsMulti.tagMapQuantity, 'all', quantity
+            # )
+            # argsMulti.tagMapQuantity = self._legacyTagGuider(
+            #     argsMulti.tagMapQuantity, legacyTag, quantity
+            # )
 
-            argsMulti.tagMapCounts = self._legacyTagGuider(
-                argsMulti.tagMapCounts, 'all', counts
-            )
-            argsMulti.tagMapCounts = self._legacyTagGuider(
-                argsMulti.tagMapCounts, legacyTag, counts
-            )
+            # argsMulti.tagMapCounts = self._legacyTagGuider(
+            #     argsMulti.tagMapCounts, 'all', counts
+            # )
+            # argsMulti.tagMapCounts = self._legacyTagGuider(
+            #     argsMulti.tagMapCounts, legacyTag, counts
+            # )
 
         print(f"| Export...")
         argsMulti.gitignore.ignore('*.json')
@@ -2228,15 +2268,18 @@ class Qurry:
             argsMulti.listFile.append(legacy['filename'])
             argsMulti.listExpID.append(self.IDNow)
 
-            argsMulti.tagMapExpsID = self._legacyTagGuider(
-                argsMulti.tagMapExpsID, legacyTag, self.IDNow
-            )
-            argsMulti.tagMapIndex = self._legacyTagGuider(
-                argsMulti.tagMapIndex, legacyTag, config['expIndex']
-            )
-            argsMulti.tagMapIndex = self._legacyTagGuider(
-                argsMulti.tagMapIndex, 'all', config['expIndex']
-            )
+            argsMulti.tagMapExpsID.guider(legacyTag, self.IDNow)
+            argsMulti.tagMapIndex.guider(legacyTag, config['expIndex'])
+            
+            # argsMulti.tagMapExpsID = self._legacyTagGuider(
+            #     argsMulti.tagMapExpsID, legacyTag, self.IDNow
+            # )
+            # argsMulti.tagMapIndex = self._legacyTagGuider(
+            #     argsMulti.tagMapIndex, legacyTag, config['expIndex']
+            # )
+            # argsMulti.tagMapIndex = self._legacyTagGuider(
+            #     argsMulti.tagMapIndex, 'all', config['expIndex']
+            # )
 
         with Gajima(
             enumerate(argsMulti.listExpID),
@@ -2423,12 +2466,14 @@ class Qurry:
                 'result': powerResult,
                 'resultIdxList': dataPowerJobs['circuitsMap'][expIDKey],
             })
-            
+
             for k in quantityWSideProduct:
                 if k[0] == '_' and k != '_dummy':
-                    self.exps[expIDKey]['sideProduct'][k[1:]] = quantityWSideProduct[k]
+                    self.exps[expIDKey]['sideProduct'][k[1:]
+                                                       ] = quantityWSideProduct[k]
 
-            quantity = {k: quantityWSideProduct[k] for k in quantityWSideProduct if k[0] != '_'}
+            quantity = {k: quantityWSideProduct[k]
+                        for k in quantityWSideProduct if k[0] != '_'}
             self.exps[expIDKey] = {
                 **self.exps[expIDKey],
                 **quantity,
@@ -2450,19 +2495,22 @@ class Qurry:
                     print(
                         f"| warning: '{k}' is a reserved key for export data.")
 
-            dataPowerJobs['tagMapQuantity'] = self._legacyTagGuider(
-                dataPowerJobs['tagMapQuantity'], 'all', quantity
-            )
-            dataPowerJobs['tagMapQuantity'] = self._legacyTagGuider(
-                dataPowerJobs['tagMapQuantity'], legacyTag, quantity
-            )
+            argsMulti.tagMapQuantity.guider(legacyTag, quantity)
+            argsMulti.tagMapCounts.guider(legacyTag, counts)
+            
+            # dataPowerJobs['tagMapQuantity'] = self._legacyTagGuider(
+            #     dataPowerJobs['tagMapQuantity'], 'all', quantity
+            # )
+            # dataPowerJobs['tagMapQuantity'] = self._legacyTagGuider(
+            #     dataPowerJobs['tagMapQuantity'], legacyTag, quantity
+            # )
 
-            dataPowerJobs['tagMapCounts'] = self._legacyTagGuider(
-                dataPowerJobs['tagMapCounts'], 'all', counts
-            )
-            dataPowerJobs['tagMapCounts'] = self._legacyTagGuider(
-                dataPowerJobs['tagMapCounts'], legacyTag, counts
-            )
+            # dataPowerJobs['tagMapCounts'] = self._legacyTagGuider(
+            #     dataPowerJobs['tagMapCounts'], 'all', counts
+            # )
+            # dataPowerJobs['tagMapCounts'] = self._legacyTagGuider(
+            #     dataPowerJobs['tagMapCounts'], legacyTag, counts
+            # )
 
             print(f"| index={idxNum} end...\n"+f"+"+"-"*20)
             idxNum += 1

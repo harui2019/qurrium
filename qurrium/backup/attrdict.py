@@ -9,7 +9,9 @@ class argdict(dict):
         paramsKey: list[str] = [],
     ) -> None:
         """This class is a container to keep the parameters for each experiment.
-        And it's also am inherition of `dict`.
+        And it's also an inherition of `dict`.
+        
+        - :cls:`NameTuple` of :module:`typing` can be the type hint for this class.
 
         ## example:
 

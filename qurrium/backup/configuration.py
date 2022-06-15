@@ -1,4 +1,4 @@
-from typing import Union, Optional, Callable
+from typing import Union, Optional, Callable, TypedDict
 from .jsonablize import Parse as jsonablize
 
 
@@ -6,6 +6,7 @@ class Configuration(dict):
     def __init__(
         self,
         default: dict = {},
+        defaultType: Optional[dict[any]] = {},
         name: str = 'configuration'
     ) -> None:
         """Set the default parameters dictionary for multiple experiment.
@@ -18,18 +19,6 @@ class Configuration(dict):
         self.__name__ = name
         self.default = default
         super().__init__(self.default)
-        
-    @classmethod
-    def create(
-        cls,
-        default: dict = {},
-        name: str = 'configuration'
-    ):
-        
-        return cls(
-            default=default,
-            name=name
-        )
 
     @staticmethod
     def paramsCollectList(
@@ -96,27 +85,32 @@ class Configuration(dict):
     def make(
         self,
         inputObject: dict[any] = {},
+        partial: list[any] = [],
     ) -> dict[any]:
-        """[summary]
+        """Export a dictionary of configuration.
 
         Args:
-            inputObject (dict[any], optional): [description]. Defaults to {}.
+            inputObject (dict[any], optional): Additonal object. Defaults to `{}`.
 
         Returns:
-            dict[any]: [description]
+            dict[any]: A dictionary of configuration.
         """
             
         configIndividual = {
             **self.default,
             **inputObject,
         }
+        
+        if len(partial) == 0:
+            return configIndividual
+        else:
+            
+            return { k: configIndividual[k] for k in partial if k in configIndividual}
 
-        return configIndividual
-
-    def jsonMake(
+    def json_make(
         self,
         inputObject: dict[any] = {},
-        save: bool = False,
+        partial: list[any] = [],
     ) -> dict[any]:
         """[summary]
 
@@ -129,7 +123,7 @@ class Configuration(dict):
 
         return jsonablize(self.make(
             inputObject=inputObject,
-            save=save,
+            partial=partial,
         ))
 
     def _handleInput(
@@ -187,5 +181,5 @@ class Configuration(dict):
     def __repr__(self):
         return f"{self.__name__}({self.__dict__})"
 
-    def jsonDefault(self):
+    def json_default(self):
         return jsonablize(self.__dict__)
