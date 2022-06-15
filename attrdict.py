@@ -52,14 +52,14 @@ class argdict(dict):
         for k in paramsKey:
             if k in blacklist:
                 warnings.warn(
-                    f"'{k}' will be not added as attribution " +
+                    f"'{k}' will be not added as attribution but can be called by subscript" +
                     "due to this attribution is used for class working.")
             else:
                 self.__setattr__(k, None)
         for k in params:
             if k in blacklist:
                 warnings.warn(
-                    f"'{k}' will be not added as attribution " +
+                    f"'{k}' will be not added as attribution but can be called by subscript" +
                     "due to this attribution is used for class working.")
             else:
                 self.__setattr__(k, params[k])
