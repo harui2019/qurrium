@@ -4,7 +4,7 @@ from collections import namedtuple
 import warnings
 
 
-class argdict(dict):
+class argdictV1(dict):
     __name__ = 'argdict'
 
     def __init__(
@@ -83,7 +83,7 @@ class argdict(dict):
         return f'{self.__name__}({self.__dict__})'
 
 
-def argTuple(
+def argdictV2(
     params: dict[str: any],
     paramsKey: list[str] = [],
     name: str = 'argTuple',
@@ -127,7 +127,6 @@ def argTuple(
         **{k: v for k, v in params.items()},
     }
     prototype = namedtuple(field_names=f.keys(), typename=name)
-    argTuple_proto = prototype(**f)
 
     class argTuple(prototype):
         def __getitem__(self, key) -> any:
