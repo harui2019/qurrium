@@ -134,6 +134,9 @@ def argdictV2(
                 return self.__getattribute__(key)
             except AttributeError as e:
                 raise KeyError(e, ', so this key is not in the argTuple.')
+            
+        def keys(self) -> list:
+            return self._fields
 
         def jsonize(self) -> dict[str: str]:
             return jsonablize(self._asdict())
