@@ -4,7 +4,7 @@ from collections import namedtuple
 import warnings
 
 
-class argdictV1(dict):
+class argdict(dict):
     __name__ = 'argdict'
 
     def __init__(
@@ -83,7 +83,7 @@ class argdictV1(dict):
         return f'{self.__name__}({self.__dict__})'
 
 
-def argdictV2(
+def argTuple(
     params: dict[str: any],
     paramsKey: list[str] = [],
     name: str = 'argTuple',
@@ -100,7 +100,7 @@ def argdictV2(
     - call
 
     >>> A['a'], A.a
-    `('22', '22')`
+    `('22', '22')
 
     - iterations
 
