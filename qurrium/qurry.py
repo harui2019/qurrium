@@ -2046,8 +2046,8 @@ class Qurry:
 
         for n, data in [
             ('multiJobs.json', dataMultiJobs),
-            ('tagMapQuantity.json', argsMulti['tagMapQuantity']),
-            ('tagMapCounts.json', argsMulti['tagMapCounts']),
+            ('tagMapQuantity.json', argsMulti.tagMapQuantity),
+            ('tagMapCounts.json', argsMulti.tagMapCounts),
         ]:
             argsMulti.gitignore.sync(f'*.{n}')
             print(f"| Export {n}")
@@ -2356,7 +2356,7 @@ class Qurry:
                 argsMulti.gitignore.sync(f'*.{n}.json')
                 print(f"| Export {n}.json")
                 quickJSONExport(
-                    content=argsMulti,
+                    content=argsMulti[n],
                     filename=argsMulti.exportLocation /
                     f"{argsMulti.expsName}.{n}.json",
                     mode='w+',

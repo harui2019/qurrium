@@ -8,8 +8,6 @@ from .type import (
     TagMapResultType,
     Quantity,
     Counts,
-    
-    TagMap,
 )
 from .exceptions import *
 from .randomized import (
@@ -18,17 +16,26 @@ from .randomized import (
 )
 # Mori
 try:
-    from .mori.attrdict import argdict
-    from .mori.jsonablize import Parse as jsonablize, quickJSONExport, keyTupleLoads
-    from .mori.configuration import Configuration
-    from .mori.gitsync import syncControl
-except:
-    from .backup.attrdict import argdict
-    from .backup.jsonablize import Parse as jsonablize, quickJSONExport, keyTupleLoads
-    from .backup.configuration import Configuration
-    from .backup.gitsync import syncControl
-
-import numpy as np
+    from .mori import (
+        Configuration,
+        argdict,
+        syncControl,
+        jsonablize,
+        quickJSONExport,
+        keyTupleLoads,
+        TagMap,
+    )
+except ImportError:
+    warnings.warn("Please run 'git submodule update --init --recursive' for full functional.")
+    from .backup import (
+        Configuration,
+        argdict,
+        syncControl,
+        jsonablize,
+        quickJSONExport,
+        keyTupleLoads,
+        TagMap,
+    )
 
 pauliMatrix = {
     'rx': RXmatrix,
