@@ -14,6 +14,12 @@ I'm a DeadBeat, the fan of Hololive VTuber Mori Calliope, and want to name somet
 
 ---
 
+## Git Subtree Command
+
+`git subtree push --prefix qurrium/mori git@github.com:harui2019/mori.git master`
+
+---
+
 ## Configurate Environment
 
 - **`Python 3.9.7+` installed by Anaconda**
