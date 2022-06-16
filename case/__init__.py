@@ -1,4 +1,8 @@
-from .paramagnet import *
+import os
+try:
+    from .qurecipe import *
+except ImportError:
+    from .paramagnet import *
 
 caseSet = {
     "trivialParamagnet": trivialParamagnet,
