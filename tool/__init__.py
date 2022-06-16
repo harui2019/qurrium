@@ -3,4 +3,4 @@ from .command import *
 try:
     from .gajima.loading import Gajima
 except:
-    from .backup.loading import GajimaBackup as Gajima
+    from .gajima_default.loading import Gajima
