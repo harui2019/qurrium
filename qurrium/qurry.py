@@ -5,6 +5,7 @@ from qiskit import (
 
 from qiskit.quantum_info import Operator
 from qiskit.circuit.gate import Gate
+from qiskit.circuit.instruction import Instruction
 from qiskit.result import Result
 from qiskit.providers import Backend, JobError
 from qiskit.providers.ibmq import IBMQBackend
@@ -30,7 +31,7 @@ import os
 from math import pi
 from uuid import uuid4
 from pathlib import Path
-from typing import Union, Optional, NamedTuple, overload
+from typing import Literal, Union, Optional, NamedTuple, overload
 from abc import abstractmethod, abstractclassmethod
 
 from ..tool import Gajima
@@ -635,9 +636,9 @@ class Qurry:
     def waveInstruction(
         self,
         wave: Optional[any] = None,
-        runBy: Optional[str] = 'gate',
+        runBy: Optional[Literal['gate', 'operator', 'instruction']] = None,
         backend: Optional[Backend] = Aer.get_backend('qasm_simulator'),
-    ) -> Union[Gate, Operator]:
+    ) -> Union[Gate, Operator, Instruction]:
         """Parse wave Circuit into `Instruction` as `Gate` or `Operator` on `QuantumCircuit`.
 
         Args:
@@ -646,8 +647,8 @@ class Qurry:
                 If `wave==None`, then chooses `.lastWave` automatically added by last calling of `.addWave`.
                 Defaults to None.
             runBy (Optional[str], optional):
-                Export as `Gate` or `Operator`.
-                Defaults to 'gate'.
+                Export as `Gate`, `Operator`, or `Instruction`.
+                Defaults to `None`.
             backend (Optional[Backend], optional):
                 Current backend which to check whether exports to `IBMQBacked`,
                 if does, then no matter what option input at `runBy` will export `Gate`.
@@ -661,11 +662,15 @@ class Qurry:
             wave = self.lastWave
 
         if isinstance(backend, IBMQBackend):
-            return self.waves[wave].to_gate()
+            return self.waves[wave].to_instruction()
         elif runBy == 'operator':
             return Operator(self.waves[wave])
-        else:
+        elif runBy == 'gate':
             return self.waves[wave].to_gate()
+        elif runBy == 'instruction':
+            return self.waves[wave].to_instruction()
+        else:
+            return self.waves[wave].to_instruction()
 
     def waveOperator(
         self,
@@ -702,7 +707,10 @@ class Qurry:
         Returns:
             Gate: The gate of wave function.
         """
-        return self.waveInstruction(wave=wave)
+        return self.waveInstruction(
+            wave=wave,
+            runBy='gate',
+        )
 
     def find(
         self,
