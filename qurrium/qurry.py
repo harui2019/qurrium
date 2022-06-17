@@ -31,30 +31,18 @@ from math import pi
 from uuid import uuid4
 from pathlib import Path
 from typing import Union, Optional, NamedTuple, overload
-from abc import abstractmethod
+from abc import abstractmethod, abstractclassmethod
 
 from ..tool import Gajima
-try:
-    from .mori import (
-        Configuration,
-        argdict,
-        syncControl,
-        jsonablize,
-        quickJSONExport,
-        keyTupleLoads,
-        TagMap,
-    )
-except ImportError:
-    warnings.warn("Please run 'git submodule update --init --recursive' for full functional.")
-    from .backup import (
-        Configuration,
-        argdict,
-        syncControl,
-        jsonablize,
-        quickJSONExport,
-        keyTupleLoads,
-        TagMap,
-    )
+from .mori import (
+    Configuration,
+    argdict,
+    syncControl,
+    jsonablize,
+    quickJSONExport,
+    keyTupleLoads,
+    TagMap,
+)
 from .exceptions import UnconfiguredWarning
 from .type import (
     TagKeysAllowable,
@@ -81,13 +69,17 @@ class Qurry:
     """
 
     """ Configuration """
+    
+    @abstractmethod
+    class argdictCore(NamedTuple):
+        """Construct the experiment's parameters."""
 
     class argdictCore(NamedTuple):
         expsName: str = 'exps',
         wave: Union[QuantumCircuit, any, None] = None,
         sampling: int = 1,
 
-    class argdictNow(argdictCore):
+    class argdictNow(NamedTuple):
         # ID of experiment.
         expID: Optional[str] = None,
 
@@ -297,7 +289,7 @@ class Qurry:
         """
         return self.expsBase().make(partial=excepts)
 
-    class argdictMultiNow(argdictCore):
+    class argdictMultiNow(NamedTuple):
         # configList
         configList: list = []
 
@@ -472,13 +464,16 @@ class Qurry:
         return hintDefaults
 
     """ Initialize """
-
+    
+    @abstractmethod
     def initialize(self) -> dict[str: any]:
         """Configuration to Initialize Qurry.
 
         Returns:
             dict[str: any]: The basic configuration of `Qurry`.
         """
+
+    def initialize(self) -> dict[str: any]:
 
         self._expsConfig = self.expsConfig()
         self._expsBase = self.expsBase()
@@ -588,7 +583,7 @@ class Qurry:
         self,
         waveCircuit: Union[QuantumCircuit, list[QuantumCircuit]],
         key: Optional[Union[any, list[any]]] = None,
-    ) -> Union[list[Optional[any]], Optional[any]]:
+    ):
         """Add new wave function to measure.
 
         Args:
@@ -770,7 +765,11 @@ class Qurry:
 
         return qcDummy.draw(drawMethod)
 
-    def paramsControlMain(
+    @abstractmethod
+    def paramsControlCore(self) -> dict:
+        """Control the experiment's parameters."""
+
+    def paramsControlCore(
         self,
         expsName: str = 'exps',
         wave: Union[QuantumCircuit, any, None] = None,
@@ -828,7 +827,7 @@ class Qurry:
             **otherArgs,
         }
 
-    def paramsControlCore(
+    def paramsControlMain(
         self,
         # ID of experiment.
         expID: Optional[str] = None,
@@ -988,8 +987,8 @@ class Qurry:
             self.expsBelong[tags] = [self.IDNow]
 
         # Export all arguments
-        parsedOther = self.paramsControlMain(**otherArgs)
-        self.now: self.argdictNow = argdict(
+        parsedOther = self.paramsControlCore(**otherArgs)
+        self.now: Union[Qurry.argdictNow, Qurry.argdictCore] = argdict(
             params={
                 **self._expsConfig.make(),
                 # ID of experiment.
@@ -1076,7 +1075,8 @@ class Qurry:
             warnings.warn(
                 f"The type of '{circuitSet}' is '{type(circuitSet)}', which can not export.")
             return None
-
+        
+    @abstractmethod
     def circuitMethod(self) -> list[QuantumCircuit]:
         """The method to construct circuit.
         Where should be overwritten by each construction of new measurement.
@@ -1085,7 +1085,10 @@ class Qurry:
             Union[QuantumCircuit, list[QuantumCircuit]]:
                 The quantum circuit of experiment.
         """
-        argsNow: Qurry.argdictNow = self.now
+
+    def circuitMethod(self) -> list[QuantumCircuit]:
+
+        argsNow: Union[Qurry.argdictNow, Qurry.argdictCore] = self.now
         circuit = self.waves[argsNow.wave]
         numQubits = circuit.num_qubits
         print(
@@ -1104,7 +1107,7 @@ class Qurry:
         Returns:
             QuantumCircuit: The quantum circuit of experiment.
         """
-        argsNow = self.paramsControlCore(**allArgs)
+        argsNow = self.paramsControlMain(**allArgs)
 
         # circuit
         circuitSet = self.circuitMethod()
@@ -1480,8 +1483,8 @@ class Qurry:
 
     #     return result
 
-    @abstractmethod
-    def quantity(self) -> tuple[Quantity, Counts]:
+    @abstractclassmethod
+    def quantity(cls) -> tuple[Quantity, Counts]:
         """Computing specific squantity.
         Where should be overwritten by each construction of new measurement.
 
@@ -1544,8 +1547,8 @@ class Qurry:
             dataRetrieve=dataRetrieve,
             **allArgs,
         )
-        argsNow: self.argdictNow = self.now
-        print(f"| name: {self.now.expsName}\n"+f"| id: {self.IDNow}")
+        argsNow: Union[Qurry.argdictNow, Qurry.argdictCore] = self.now
+        print(f"| name: {argsNow.expsName}\n"+f"| id: {self.IDNow}")
 
         counts, quantity = self.quantity(
             **argsNow,
@@ -1833,7 +1836,7 @@ class Qurry:
         # gitignore
         gitignore = syncControl()
 
-        self.multiNow: self.argdictMultiNow = argdict(
+        self.multiNow: Qurry.argdictMultiNow = argdict(
             params={
                 **self._expsMultiConfig.make(),
                 **otherArgs,

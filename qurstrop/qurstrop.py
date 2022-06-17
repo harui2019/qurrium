@@ -145,7 +145,7 @@ class StringOperator(Qurry):
 
     """Arguments and Parameters control"""
 
-    def paramsControlMain(
+    def paramsControlCore(
         self,
         expsName: str = 'exps',
         wave: Union[QuantumCircuit, any, None] = None,

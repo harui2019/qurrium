@@ -59,7 +59,7 @@ class EchoListen(Qurry):
 
     """Arguments and Parameters control"""
 
-    def paramsControlMain(
+    def paramsControlCore(
         self,
         expsName: str = 'exps',
         wave1: Union[QuantumCircuit, any, None] = None,

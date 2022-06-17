@@ -84,7 +84,7 @@ class haarMeasureV3(EntropyMeasureV3, haarBase):
 
     """Arguments and Parameters control"""
 
-    def paramsControlMain(
+    def paramsControlCore(
         self,
         expsName: str = 'exps',
         wave: Union[QuantumCircuit, any, None] = None,
