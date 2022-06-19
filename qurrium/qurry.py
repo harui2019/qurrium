@@ -31,7 +31,7 @@ import os
 from math import pi
 from uuid import uuid4
 from pathlib import Path
-from typing import Literal, Union, Optional, NamedTuple, overload
+from typing import Literal, Union, Optional, NamedTuple, Hashable, overload
 from abc import abstractmethod, abstractclassmethod
 
 from ..tool import Gajima
@@ -54,6 +54,8 @@ from .type import (
     # TagMapResultType,
     Quantity,
     Counts,
+    waveGetter,
+    waveReturn,
 )
 
 # Qurry V0.3.1 - a Qiskit Macro
@@ -76,32 +78,32 @@ class Qurry:
         """Construct the experiment's parameters."""
 
     class argdictCore(NamedTuple):
-        expsName: str = 'exps',
-        wave: Union[QuantumCircuit, any, None] = None,
-        sampling: int = 1,
+        expsName: str = 'exps'
+        wave: Union[QuantumCircuit, any, None] = None
+        sampling: int = 1
 
     class argdictNow(NamedTuple):
         # ID of experiment.
-        expID: Optional[str] = None,
+        expID: Optional[str] = None
 
         # Qiskit argument of experiment.
         # Multiple jobs shared
-        shots: int = 1024,
-        backend: Backend = Aer.get_backend('qasm_simulator'),
-        provider: Optional[AccountProvider] = None,
-        runConfig: dict = {},
+        shots: int = 1024
+        backend: Backend = Aer.get_backend('qasm_simulator')
+        provider: Optional[AccountProvider] = None
+        runConfig: dict = {}
 
         # Single job dedicated
-        runBy: str = "gate",
-        decompose: Optional[int] = 2,
-        transpileArgs: dict = {},
+        runBy: str = "gate"
+        decompose: Optional[int] = 2
+        transpileArgs: dict = {}
 
         # Other arguments of experiment
-        drawMethod: str = 'text',
-        resultKeep: bool = False,
-        dataRetrieve: Optional[dict[Union[list[str], str]]] = None,
-        expsName: str = 'exps',
-        tags: Optional[TagKeysAllowable] = None,
+        drawMethod: str = 'text'
+        resultKeep: bool = False
+        dataRetrieve: Optional[dict[Union[list[str], str]]] = None
+        expsName: str = 'exps'
+        tags: Optional[TagKeysAllowable] = None
 
     def expsConfig(
         self,
@@ -569,7 +571,7 @@ class Qurry:
         self,
         waveCircuit: list[QuantumCircuit],
         key=None,
-    ) -> list[Optional[any]]:
+    ) -> list[Optional[Hashable]]:
         ...
 
     @overload
@@ -577,29 +579,31 @@ class Qurry:
         self,
         waveCircuit: QuantumCircuit,
         key=None,
-    ) -> Optional[any]:
+    ) -> Optional[Hashable]:
         ...
 
     def addWave(
         self,
         waveCircuit: Union[QuantumCircuit, list[QuantumCircuit]],
-        key: Optional[Union[any, list[any]]] = None,
+        key: Optional[waveGetter[Hashable]] = None,
     ):
         """Add new wave function to measure.
 
         Args:
             waveCircuit (Union[QuantumCircuit, list[QuantumCircuit]]): The wave functions or circuits want to measure.
-            key (Optional[any], optional): Given a specific key to add to the wave function or circuit,
+            key (Optional[Hashable], optional): Given a specific key to add to the wave function or circuit,
                 if `key == None`, then generate a number as key.
                 Defaults to None.
 
         Returns:
-            Optional[any]: Key of given wave function in `.waves`.
+            Optional[Hashable]: Key of given wave function in `.waves`.
         """
 
         if isinstance(waveCircuit, QuantumCircuit):
             genKey = len(self.waves)
             if key == None:
+                key = genKey
+            elif not isinstance(key, Hashable):
                 key = genKey
 
             if key in self.waves:
@@ -635,19 +639,19 @@ class Qurry:
 
     def waveInstruction(
         self,
-        wave: Optional[any] = None,
-        runBy: Optional[Literal['gate', 'operator', 'instruction']] = None,
+        wave: Union[list[Hashable], Hashable, None] = None,
+        runBy: Optional[Literal['gate', 'operator', 'instruction', 'copy']] = None,
         backend: Optional[Backend] = Aer.get_backend('qasm_simulator'),
-    ) -> Union[Gate, Operator, Instruction]:
+    ) -> waveGetter[waveReturn]:
         """Parse wave Circuit into `Instruction` as `Gate` or `Operator` on `QuantumCircuit`.
 
         Args:
-            wave (Optional[any], optional):
+            wave (Optional[Hashable], optional):
                 The key of wave in 'fict' `.waves`.
                 If `wave==None`, then chooses `.lastWave` automatically added by last calling of `.addWave`.
                 Defaults to None.
             runBy (Optional[str], optional):
-                Export as `Gate`, `Operator`, or `Instruction`.
+                Export as `Gate`, `Operator`, `Instruction` or a copy when input is `None`.
                 Defaults to `None`.
             backend (Optional[Backend], optional):
                 Current backend which to check whether exports to `IBMQBacked`,
@@ -655,11 +659,13 @@ class Qurry:
                 Defaults to Aer.get_backend('qasm_simulator').
 
         Returns:
-            Union[Gate, Operator]: The result of the wave as `Gate` or `Operator`.
+            waveReturn: The result of the wave as `Gate` or `Operator`.
         """
 
         if wave == None:
             wave = self.lastWave
+        elif isinstance(wave, list):
+            return [self.waveInstruction(w, runBy, backend) for w in wave]
 
         if isinstance(backend, IBMQBackend):
             return self.waves[wave].to_instruction()
@@ -669,17 +675,19 @@ class Qurry:
             return self.waves[wave].to_gate()
         elif runBy == 'instruction':
             return self.waves[wave].to_instruction()
+        elif runBy == 'copy':
+            return self.waves[wave].copy()
         else:
-            return self.waves[wave].to_instruction()
+            return self.waves[wave].to_gate()
 
     def waveOperator(
         self,
-        wave: Optional[any] = None,
-    ) -> Operator:
+        wave: Optional[Hashable] = None,
+    ) -> waveGetter[Operator]:
         """Export wave function as `Operator`.
 
         Args:
-            wave (Optional[any], optional):
+            wave (Optional[Hashable], optional):
                 The key of wave in 'fict' `.waves`.
                 If `wave==None`, then chooses `.lastWave` automatically added by last calling of `.addWave`.
                 Defaults to None.
@@ -694,12 +702,12 @@ class Qurry:
 
     def waveGate(
         self,
-        wave: Optional[any] = None,
-    ) -> Gate:
+        wave: Optional[Hashable] = None,
+    ) -> waveGetter[Gate]:
         """Export wave function as `Gate`.
 
         Args:
-            wave (Optional[any], optional):
+            wave (Optional[Hashable], optional):
                 The key of wave in 'fict' `.waves`.
                 If `wave==None`, then chooses `.lastWave` automatically added by last calling of `.addWave`.
                 Defaults to None.
@@ -742,14 +750,14 @@ class Qurry:
 
     def drawWave(
         self,
-        wave: Optional[any] = None,
+        wave: Optional[Hashable] = None,
         drawMethod: Optional[str] = 'text',
         decompose: Optional[int] = 1,
     ) -> Figure:
         """Draw the circuit of wave function.
 
         Args:
-            wave (Optional[any], optional):
+            wave (Optional[Hashable], optional):
                 The key of wave in 'fict' `.waves`.
                 If `wave==None`, then chooses `.lastWave` automatically added by last calling of `.addWave`.
                 Defaults to None.
@@ -1040,7 +1048,7 @@ class Qurry:
         """Draw the circuit of wave function.
 
         Args:
-            wave (Optional[any], optional):
+            wave (Optional[Hashable], optional):
                 The key of wave in 'fict' `.waves`.
                 If `wave==None`, then chooses `.lastWave` automatically added by last calling of `.addWave`.
                 Defaults to None.
@@ -1417,7 +1425,8 @@ class Qurry:
         )
         jobID = execution.job_id()
         self.exps[self.IDNow]['jobID'] = jobID
-
+        date = execution.creation_date()
+        self.exps[self.IDNow]['dateCreate'] = date
         result = execution.result()
         self.exps[self.IDNow]['result'] = result
 
