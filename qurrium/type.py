@@ -1,29 +1,22 @@
-from typing import Union, Optional, NamedTuple, TypeVar, Generic
+from qiskit import QuantumCircuit
+from qiskit.quantum_info import Operator
+from qiskit.circuit.gate import Gate
+from qiskit.circuit.instruction import Instruction
 from qiskit.result import Result
+
+from typing import Union, Optional, NamedTuple, TypeVar, Generic
+
 import warnings
 
-from ..tool import Configuration
-try:
-    from .mori import (
-        Configuration,
-        argdict,
-        syncControl,
-        jsonablize,
-        quickJSONExport,
-        keyTupleLoads,
-        TagMap,
-    )
-except ImportError:
-    warnings.warn("Please run 'git submodule update --init --recursive' for full functional.")
-    from .backup import (
-        Configuration,
-        argdict,
-        syncControl,
-        jsonablize,
-        quickJSONExport,
-        keyTupleLoads,
-        TagMap,
-    )
+from .mori import (
+    Configuration,
+    argdict,
+    syncControl,
+    jsonablize,
+    quickJSONExport,
+    keyTupleLoads,
+    TagMap,
+)
 
 T = TypeVar('T')
 
@@ -42,3 +35,7 @@ TagMapIndexType = TagMapBaseType[Union[str, int]]
 TagMapQuantityType = TagMapBaseType[dict[float]]
 TagMapCountsType = TagMapBaseType[dict[Counts]]
 TagMapResultType = TagMapBaseType[Result]
+
+# waveGetter methods
+waveGetter = Union[list[T], T]
+waveReturn = Union[Gate, Operator, Instruction, QuantumCircuit]

@@ -15,28 +15,15 @@ from .randomized import (
     makeTwoBitStr, makeTwoBitStrOneLiner, haarBase
 )
 # Mori
-try:
-    from .mori import (
-        Configuration,
-        argdict,
-        syncControl,
-        jsonablize,
-        quickJSONExport,
-        keyTupleLoads,
-        TagMap,
-    )
-except ImportError:
-    warnings.warn("Please run 'git submodule update --init --recursive' for full functional.")
-    from .backup import (
-        Configuration,
-        argdict,
-        syncControl,
-        jsonablize,
-        quickJSONExport,
-        keyTupleLoads,
-        TagMap,
-    )
-
+from .mori import (
+    Configuration,
+    argdict,
+    syncControl,
+    jsonablize,
+    quickJSONExport,
+    keyTupleLoads,
+    TagMap,
+)
 pauliMatrix = {
     'rx': RXmatrix,
     'ry': RYmatrix,

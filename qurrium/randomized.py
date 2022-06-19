@@ -5,7 +5,7 @@ from qiskit.result import Result
 import numpy as np
 from typing import Union, Optional, Callable, NamedTuple
 
-from ..tool import Configuration
+from .mori import Configuration
 # Haar Randomized Parts V0.3.0 - Qurrium
 
 RXmatrix = np.array([[0, 1], [1, 0]])

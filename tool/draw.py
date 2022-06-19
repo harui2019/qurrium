@@ -9,7 +9,7 @@ from pathlib import Path
 from math import pi
 from typing import Callable, Optional, Union
 
-from .backup.configuration import Configuration
+from ..qurrium.mori import Configuration
 
 
 def yLimDetector(
