@@ -193,7 +193,7 @@ class MagnetSquare(Qurry):
                 ...
             elif len(resultIdxList) != numQubit*(numQubit-1):
                 raise ValueError(
-                    f"The element number of 'resultIdxList': {len(resultIdxList)} is different with 'N(N-1)': {times*2}.")
+                    f"The element number of 'resultIdxList': {len(resultIdxList)} is different with 'N(N-1)': {numQubit*(numQubit-1)}.")
             else:
                 raise ValueError(
                     f"The element number of 'resultIdxList': {len(resultIdxList)} needs to be more than 1 for 'MagnetSquare'.")
