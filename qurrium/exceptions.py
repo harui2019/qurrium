@@ -1,7 +1,4 @@
-import warnings
-
 # General Error
-
 
 class QurryError(Exception):
     """Base class for errors raised by Qurry."""
@@ -18,9 +15,8 @@ class QurryError(Exception):
         """Return the message."""
         return repr(self.message)
 
+
 # General Warning
-
-
 class QurryWarning(Warning):
     """Base class for warning raised by Qurry."""
 
