@@ -2,7 +2,7 @@ from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.quantum_info import Operator
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumcircuit import Qubit
-from typing import Union, Sequence
+from typing import Union, Sequence, Optional
 
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.library.standard_gates.z import ZGate
