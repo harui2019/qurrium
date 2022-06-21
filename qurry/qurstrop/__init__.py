@@ -1,24 +1,25 @@
-from .qurstrop import StringOperator
+from typing import Literal
+
+from .qurstrop import StringOperator as StringOperatorOrigin
 
 
-measurementList = [
-    StringOperator,
-]
-measurement = { who().__name__: who for who in measurementList }
+def StringOperator(
+    *args,
+    method: Literal['original'] = 'original',
+    **kwargs,
+) -> StringOperatorOrigin:
+    """Call `StringOperator` methods.
 
+    Args:
+        method (Literal[&#39;original&#39;], optional): 
 
-def checkMeasurement(
-) -> list[str]:
-    return list(measurement.keys())
+            - original: the original `StringOperator`.
+            Defaults to 'original'.
 
-
-def getMeasurement(
-    name: str,
-) -> StringOperator:
-
-    if name in measurement:
-        return measurement[name]
+    Returns:
+        StringOperatorOrigin: method.
+    """
+    if method == 'original':
+        return StringOperatorOrigin(*args, **kwargs)
     else:
-        raise KeyError(
-            f"No such measurement, " +
-            f"the following are available: [{checkMeasurement()}]")
+        return StringOperatorOrigin(*args, **kwargs)

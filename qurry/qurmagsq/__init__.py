@@ -1,24 +1,25 @@
-from .qurmagsq import MagnetSquare
+from typing import Literal
+
+from .qurmagsq import MagnetSquare as MagnetSquareOrigin
 
 
-measurementList = [
-    MagnetSquare,
-]
-measurement = { who().__name__: who for who in measurementList }
+def MagnetSquare(
+    *args,
+    method: Literal['original'] = 'original',
+    **kwargs,
+) -> MagnetSquareOrigin:
+    """Call `MagnetSquare` methods.
 
+    Args:
+        method (Literal[&#39;original&#39;], optional): 
 
-def checkMeasurement(
-) -> list[str]:
-    return list(measurement.keys())
+            - original: the original `MagnetSquare`.
+            Defaults to 'original'.
 
-
-def getMeasurement(
-    name: str,
-) -> MagnetSquare:
-
-    if name in measurement:
-        return measurement[name]
+    Returns:
+        MagnetSquareOrigin: method.
+    """
+    if method == 'original':
+        return MagnetSquareOrigin(*args, **kwargs)
     else:
-        raise KeyError(
-            f"No such measurement, " +
-            f"the following are available: [{checkMeasurement()}]")
+        return MagnetSquareOrigin(*args, **kwargs)
