@@ -1453,7 +1453,7 @@ class Qurry:
         )
         jobID = execution.job_id()
         self.exps[self.IDNow]['jobID'] = jobID
-        date = datetime.today().strftime("%Y-%m-%d_%H-%M-%S")
+        date = datetime.datetime.today().strftime("%Y-%m-%d_%H-%M-%S")
         self.exps[self.IDNow]['dateCreate'] = date
         result = execution.result()
         self.exps[self.IDNow]['result'] = result
