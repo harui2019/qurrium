@@ -26,6 +26,7 @@ import glob
 import json
 import gc
 import warnings
+import datetime
 import time
 import os
 from math import pi
@@ -586,6 +587,7 @@ class Qurry:
         self,
         waveCircuit: Union[QuantumCircuit, list[QuantumCircuit]],
         key: Optional[waveGetter[Hashable]] = None,
+        replace: Literal[True, False, 'duplicate'] = False,
     ):
         """Add new wave function to measure.
 
@@ -593,7 +595,13 @@ class Qurry:
             waveCircuit (Union[QuantumCircuit, list[QuantumCircuit]]): The wave functions or circuits want to measure.
             key (Optional[Hashable], optional): Given a specific key to add to the wave function or circuit,
                 if `key == None`, then generate a number as key.
-                Defaults to None.
+                Defaults to `None`.
+            replace (bool, optional): 
+                If the key is already in the wave function or circuit,
+                then replace the old wave function or circuit when `True`,
+                or duplicate the wave function or circuit when `'duplicate'`,
+                otherwise only changes `.lastwave`.
+                Defaults to `False`.
 
         Returns:
             Optional[Hashable]: Key of given wave function in `.waves`.
@@ -606,16 +614,22 @@ class Qurry:
             elif not isinstance(key, Hashable):
                 key = genKey
 
-            if key in self.waves:
+            if key in self.waves and replace == False:
+                ...
+
+            elif key in self.waves and replace == 'duplicate':
                 while genKey in self.waves:
                     genKey += 1
                 key = genKey
+                self.waves[key] = waveCircuit
+                
             else:
-                ...
-
+                self.waves[key] = waveCircuit
+    
             self.lastWave = key
-            self.waves[self.lastWave] = waveCircuit
             return self.lastWave
+
+
 
         elif isinstance(waveCircuit, list):
             if isinstance(key, list):
@@ -636,6 +650,20 @@ class Qurry:
         else:
             warnings.warn("The input is not a 'QuantumCircuit'.")
             return None
+
+    def hasWave(
+        self, 
+        wavename: Hashable,
+    ) -> bool:
+        """Is there a wave with specific name.
+
+        Args:
+            wavename (Hashable): Name of wave which is used in `.waves`
+
+        Returns:
+            bool: Exist or not.
+        """
+        return wavename in self.waves
 
     def waveInstruction(
         self,
@@ -1425,7 +1453,7 @@ class Qurry:
         )
         jobID = execution.job_id()
         self.exps[self.IDNow]['jobID'] = jobID
-        date = execution.creation_date()
+        date = datetime.today().strftime("%Y-%m-%d_%H-%M-%S")
         self.exps[self.IDNow]['dateCreate'] = date
         result = execution.result()
         self.exps[self.IDNow]['result'] = result
