@@ -4,24 +4,22 @@ from qiskit import (
 )
 import pytest
 
-from ..qurry.case import trivialParamagnet
-from ..qurry import MagnetSquare
+from qurry.case import trivialParamagnet
+from qurry.qurstrop import StringOperator
 
 backend = {
-    'qasm': Aer.get_backend('qasm_simulator'),
-    'state': Aer.get_backend('statevector_simulator'),
     'aer': Aer.get_backend('aer_simulator'),
 }
 
-expDemo01 = MagnetSquare()
+expDemo01 = StringOperator()
 wave_adds = [
-    (expDemo01.addWave(trivialParamagnet(2).wave(i)),) for i in range(0, 10, 2)
+    (expDemo01.addWave(trivialParamagnet(i).wave(), i),) for i in range(6, 12, 2)
 ]
 
-@pytest.mark.parametrize("tgt", wave_adds)
+@pytest.mark.parametrize("tgt, ", wave_adds)
 def test_quantity(
-    tgt: int,
+    tgt,
 ) -> bool:
     
-    quantity = expDemo01.measure(tgt)
-    assert 'magnetsq' in quantity
+    quantity = expDemo01.measure(wave=tgt[0], backend=backend['aer'])
+    assert 'order' in quantity
