@@ -1,6 +1,3 @@
-[submodule "case/qurecipe"]
-	path = qurry/case/qurecipe
-	url = git@github.com:harui2019/qurecipe.git
 [submodule "tool/gajima"]
 	path = qurry/tool/gajima
 	url = git@github.com:harui2019/gajima.git
