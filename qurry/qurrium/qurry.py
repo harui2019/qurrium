@@ -29,13 +29,14 @@ import warnings
 import datetime
 import time
 import os
+import psutil
 from math import pi
 from uuid import uuid4
 from pathlib import Path
 from typing import Literal, Union, Optional, NamedTuple, Hashable, overload
 from abc import abstractmethod, abstractclassmethod
 
-from ..tool import Gajima
+from ..tool import Gajima, ResoureWatch
 from .mori import (
     Configuration,
     argdict,
@@ -1029,6 +1030,11 @@ class Qurry:
             self.expsBelong[tags].append(self.IDNow)
         else:
             self.expsBelong[tags] = [self.IDNow]
+            
+        # TODO: add params control
+        self.resourceWatch = ResoureWatch(
+            **otherArgs
+        )
 
         # Export all arguments
         parsedOther = self.paramsControlCore(**otherArgs)
@@ -1679,6 +1685,13 @@ class Qurry:
             withCounts=withCounts,
             **otherArgs,
         )
+        
+    """ Multiple Outputs """
+    def resourceCheck(self) -> None:
+        """_summary_
+        """
+        self.resourceWatch()
+        print(f"| Memory allocated: {psutil.virtual_memory().percent}/100")
 
     def paramsControlMulti(
         self,
@@ -2039,6 +2052,9 @@ class Qurry:
                 f"| index={config['expIndex']}/{numConfig} - {round(time.time() - start_time, 2)}s")
             quantity, counts = self.output(**config, withCounts=True)
 
+            # resource check
+            self.resourceCheck()
+
             # legacy writer
             legacy = self.writeLegacy(
                 saveLocation=argsMulti.exportLocation,
@@ -2285,6 +2301,10 @@ class Qurry:
                 f"| index={config['expIndex']}/{numConfig} - {round(time.time() - start_time, 2)}s")
             circuitSet = self.circuitTranspiler(**config)
             allTranspliedCircs[self.IDNow] = circuitSet
+            
+
+            # resource check
+            self.resourceCheck()
 
             # circuit numbers
             if isinstance(circuitSet, list):

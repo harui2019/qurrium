@@ -35,3 +35,9 @@ class QurryWarning(Warning):
 
 class UnconfiguredWarning(QurryWarning):
     "For dummy function in qurrium has been activated."
+
+class InvalidConfiguratedWarning(QurryWarning):
+    "This configuration method has no effect."
+
+class QurryMemoryOverAllocationWarning(QurryWarning):
+    "Automatically shutdown experiment to protect RAM for preventing crashing."
