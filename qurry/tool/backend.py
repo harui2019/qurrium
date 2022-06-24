@@ -76,14 +76,14 @@ class backendWrapper:
     
     def _update_callsign(self) -> None:
         self.backend_callsign = {
-            **self.backend_real_callsign, 
-            **self.backend_sim_callsign,
+            **self.backend_ibmq_callsign, 
+            **self.backend_aer_callsign,
         }
         
     def _update_backend(self) -> None:
         self.backend = {
-            **self.backend_real, 
-            **self.backend_sim,
+            **self.backend_ibmq, 
+            **self.backend_aer,
         }
     
     def __init__(
@@ -96,7 +96,7 @@ class backendWrapper:
         if 'GPU' in self._AerOwnedBackends[0].available_devices():
             self.isAerGPU = True
 
-        self.backend_sim_callsign = {
+        self.backend_aer_callsign = {
             'state': 'statevector',
             'aer_state': 'aer_statevector',
             'aer_density': 'aer_density_matrix',
@@ -104,30 +104,30 @@ class backendWrapper:
             'aer_state_gpu': 'aer_statevector_gpu',
             'aer_density_gpu': 'aer_density_matrix_gpu',
         }
-        self.backend_sim: dict[str, Backend] = {
+        self.backend_aer: dict[str, Backend] = {
             self._shorten_name(b.name(), ['_simulator']): b for b in self._AerOwnedBackends
         }
-        self.backend_sim = {
+        self.backend_aer = {
             'aer_gpu': Aer.get_backend('aer_simulator'),
-            **self.backend_sim,
+            **self.backend_aer,
         }
-        self.backend_sim["aer_gpu"].set_options(device='GPU')
+        self.backend_aer["aer_gpu"].set_options(device='GPU')
         # for k in self.backend_sim:
         #     if 'gpu' in k:
         #         self.backend_sim[k].set_option(device='GPU')
         
-        self.backend_real_callsign = {}
-        self.backend_real = {}
+        self.backend_ibmq_callsign = {}
+        self.backend_ibmq = {}
         if not realProvider is None:
-            self.backend_real = {
+            self.backend_ibmq = {
                 b.name(): b for b in realProvider.backends()
             }
-            self.backend_real_callsign = {
+            self.backend_ibmq_callsign = {
                 self._shorten_name(
                     bn, ['ibm_', 'ibmq_'], ['ibmq_qasm_simulator']
-                    ): bn for bn in self.backend_real
+                    ): bn for bn in self.backend_ibmq
             }
-            self.backend_real_callsign['ibmq_qasm'] = 'ibmq_qasm_simulator'
+            self.backend_ibmq_callsign['ibmq_qasm'] = 'ibmq_qasm_simulator'
             
         self._update_callsign()
         self._update_backend()
@@ -137,10 +137,10 @@ class backendWrapper:
         sign: Hashable = 'Galm 2',
         who: str = 'solo_wing_pixy',
     ) -> None:
-        if who in self.backend_sim:
-            self.backend_sim_callsign[sign] = who
-        elif who in self.backend_real:
-            self.backend_real_callsign[sign] = who
+        if who in self.backend_aer:
+            self.backend_aer_callsign[sign] = who
+        elif who in self.backend_ibmq:
+            self.backend_ibmq_callsign[sign] = who
         else:
             if sign == 'Galm 2' and who == 'solo_wing_pixy':
                 if random() <= 0.2:
@@ -150,7 +150,19 @@ class backendWrapper:
             
             raise ValueError(f"'{who}' unknown backend.")
         
-        self._update_callsig()
+        self._update_callsign()
+        
+    def add_backend(
+        self,
+        name: str,
+        backend: Backend,
+        callsign: Hashable = None,
+    ) -> None:
+            self.backend_ibmq[name] = backend
+            self._update_backend()
+            if not callsign is None:
+                self.backend_ibmq_callsign[callsign] = name
+                self._update_callsign()
 
     def __call__(
         self, 
@@ -168,7 +180,7 @@ class backendWrapper:
         elif backend_name in self.backend:
             ...
         else:
-            raise ValueError(f"'{backend_name}' unknown backend.")
+            raise ValueError(f"'{backend_name}' unknown backend or backend callsign.")
         
         return self.backend[backend_name]
         

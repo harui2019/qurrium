@@ -1,6 +1,6 @@
 import os
 
-def auto_cmd(
+def cmdWrapper(
     cmd: str = ""
 ) -> None:
     """Use command in anywhere, no matter it's in `.ipynb` or '.py'.
