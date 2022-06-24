@@ -10,7 +10,7 @@ with open(README_PATH) as readme_file:
     
 requirement = [
     "qiskit>=0.35.0",
-    "qiskit-aer;platform_system=='Linux'",
+    "qiskit-aer-gpu;platform_system=='Linux';python_version<='3.9'",
 ]
 
 setup(
@@ -28,5 +28,5 @@ setup(
     include_package_data=True,
     
     install_requires=requirement,
-    python_requires=">=3.8",
+    python_requires=">=3.9",
 )

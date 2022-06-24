@@ -3,25 +3,41 @@ from qiskit import (
     QuantumRegister, ClassicalRegister, QuantumCircuit,
 )
 import pytest
+from qurry.qurstrop import StringOperator
 
-from ..qurry.case import trivialParamagnet
-from ..qurry import MagnetSquare
+expDemo01 = StringOperator()
+try:
+    from qurry.case import trivialParamagnet
+
+    wave_adds = [
+        (expDemo01.addWave(trivialParamagnet(i).wave(), i),) for i in range(6, 12, 2)
+    ]
+except:
+    def trivialParamagnet(n) -> QuantumCircuit:
+        """Construct the example circuit.
+
+        Returns:
+            QuantumCircuit: The example circuit.
+        """
+        q = QuantumRegister(n, "q")
+        qc = QuantumCircuit(q)
+        [qc.h(q[i]) for i in range(n)]
+    
+        return qc
+    wave_adds = [
+        (expDemo01.addWave(trivialParamagnet(i), i),) for i in range(6, 12, 2)
+    ]
+
 
 backend = {
-    'qasm': Aer.get_backend('qasm_simulator'),
-    'state': Aer.get_backend('statevector_simulator'),
     'aer': Aer.get_backend('aer_simulator'),
 }
 
-expDemo01 = MagnetSquare()
-wave_adds = [
-    (expDemo01.addWave(trivialParamagnet(2).wave(i)),) for i in range(0, 10, 2)
-]
 
-@pytest.mark.parametrize("tgt", wave_adds)
+@pytest.mark.parametrize("tgt, ", wave_adds)
 def test_quantity(
-    tgt: int,
+    tgt,
 ) -> bool:
     
-    quantity = expDemo01.measure(tgt)
-    assert 'magnetsq' in quantity
+    quantity = expDemo01.measure(wave=tgt[0], backend=backend['aer'])
+    assert 'order' in quantity

@@ -4,3 +4,5 @@ from .qurmagsq import MagnetSquare
 from .qurrech import EchoListen
 from .qurrent import EntropyMeasure
 from .qurstrop import StringOperator
+
+from .tool import backendWrapper

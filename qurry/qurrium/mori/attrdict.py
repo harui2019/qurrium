@@ -9,7 +9,7 @@ class argdict(dict):
 
     def __init__(
         self,
-        params: dict[str: any],
+        params: dict[any],
         paramsKey: list[str] = [],
     ) -> None:
         """This class is a container to keep the parameters for each experiment.
