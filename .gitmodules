@@ -1,5 +1,5 @@
-[submodule "tool/gajima"]
-	path = qurry/tool/gajima
+[submodule "qurry/util/gajima"]
+	path = qurry/util/gajima
 	url = git@github.com:harui2019/gajima.git
 [submodule "qurry/case/qurecipe"]
 	path = qurry/case/qurecipe

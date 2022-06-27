@@ -109,3 +109,7 @@ class ResoureWatch:
 
     def __call__(self, *message: str) -> None:
         return self.check(message)
+
+    @staticmethod
+    def report() -> None:
+        print(f"| Memory allocated: {psutil.virtual_memory().percent}/100")
