@@ -2,6 +2,7 @@ from .qurry import Qurry, defaultCircuit
 from .type import (
     Quantity,
     Counts,
+    TagMapType,
 )
 from .exceptions import *
 from .randomized import (

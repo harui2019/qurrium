@@ -1,6 +1,5 @@
 import numpy as np
 from ...type import Quantity
-from .tagmaps import TagMap
 
 from typing import Union
 
@@ -12,13 +11,13 @@ def quantitiesMean(
 
 
 def tagMapQuantityMean(
-    tagMapQuantities: TagMap,
+    tagMapQuantities,
 ) -> dict[str, Quantity]:
     return {k: quantitiesMean(v) for k, v in tagMapQuantities.items()}
 
 
 def Q(
-    quantityComplex: Union[list[Quantity], TagMap]
+    quantityComplex: Union[list[Quantity], dict[str, list[Quantity]]]
 ) -> Union[Quantity, dict[str, Quantity], any]:
     if isinstance(quantityComplex, dict):
         if 'noTags' in quantityComplex:
