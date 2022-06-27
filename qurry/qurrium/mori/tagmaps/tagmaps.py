@@ -1,7 +1,23 @@
 from typing import Optional
 import warnings
 
-class TagMap(dict[list[any]]):
+class TagMap(dict[str, list[any]]):
+    """Specific data structures of :module:`qurry`.
+    
+    >>> bla = TagMap()
+    >>> bla.guider('strTag1', [...])
+    >>> bla.guider(('tupleTag1', ), [...])
+    >>> # other adding of key and value via `.guider()`
+    >>> bla
+    ... {
+    ...     'noTags': [...], # something which does not specify tags.
+    ...     'strTag1': [...], # something
+    ...     ('tupleTag1', ): [...], 
+    ...     ... # other hashable as key in python
+    ... }
+
+    """    
+    
     def __init__(self) -> None:
         super().__init__({ 'noTags': [] })
         self._noTags = self['noTags']
