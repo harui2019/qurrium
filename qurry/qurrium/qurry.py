@@ -7,7 +7,7 @@ from qiskit.quantum_info import Operator
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.instruction import Instruction
 from qiskit.result import Result
-from qiskit.providers import Backend, JobError
+from qiskit.providers import Backend, JobError, JobStatus
 from qiskit.providers.ibmq import IBMQBackend
 from qiskit.providers.ibmq.managed import (
     IBMQJobManager,
@@ -29,14 +29,13 @@ import warnings
 import datetime
 import time
 import os
-import psutil
-from math import pi
 from uuid import uuid4
 from pathlib import Path
 from typing import Literal, Union, Optional, NamedTuple, Hashable, overload
 from abc import abstractmethod, abstractclassmethod
+from collections import Counter
 
-from ..tool import Gajima, ResoureWatch
+from ..util import Gajima, ResoureWatch
 from .mori import (
     Configuration,
     argdict,
@@ -48,12 +47,7 @@ from .mori import (
 )
 from .exceptions import UnconfiguredWarning
 from .type import (
-    TagKeysAllowable,
-    TagMapExpsIDType,
-    TagMapIndexType,
-    TagMapQuantityType,
-    TagMapCountsType,
-    # TagMapResultType,
+    TagMapType,
     Quantity,
     Counts,
     waveGetter,
@@ -105,7 +99,7 @@ class Qurry:
         resultKeep: bool = False
         dataRetrieve: Optional[dict[Union[list[str], str]]] = None
         expsName: str = 'exps'
-        tags: Optional[TagKeysAllowable] = None
+        tags: Optional[Hashable] = None
 
     def expsConfig(
         self,
@@ -326,11 +320,11 @@ class Qurry:
         listExpID: list = []
         listFile: list = []
 
-        tagMapExpsID: TagMapExpsIDType = TagMap()
-        tagMapIndex: TagMapIndexType = TagMap()
-        tagMapQuantity: TagMapQuantityType = TagMap()
-        tagMapCounts: TagMapCountsType = TagMap()
-        # tagMapResult: TagMapResultType = TagMap()
+        tagMapExpsID: TagMapType[str] = TagMap()
+        tagMapIndex: TagMapType[Union[str, int]] = TagMap()
+        tagMapQuantity: TagMapType[Quantity] = TagMap()
+        tagMapCounts: TagMapType[Counts] = TagMap()
+        # tagMapResult: TagMapType[Result] = TagMap()
 
         circuitsMap: dict = {}
         circuitsNum: dict = {}
@@ -891,7 +885,7 @@ class Qurry:
         resultKeep: bool = False,
         dataRetrieve: Optional[dict[Union[list[str], str]]] = None,
         expsName: str = 'exps',
-        tags: Optional[TagKeysAllowable] = None,
+        tags: Optional[Hashable] = None,
 
         **otherArgs: any,
     ) -> argdictNow:
@@ -1691,7 +1685,7 @@ class Qurry:
         """_summary_
         """
         self.resourceWatch()
-        print(f"| Memory allocated: {psutil.virtual_memory().percent}/100")
+        self.resourceWatch.report()
 
     def paramsControlMulti(
         self,
@@ -2266,6 +2260,34 @@ class Qurry:
             f"| MultiRead {self.__name__} End in {round(time.time() - start_time, 2)} sec ...\n"+f"+"+"-"*20)
 
         return dataDummyJobs
+    
+    @staticmethod
+    def reportCounts(JobManager: IBMQJobManager) -> dict[str, int]:
+        """A better report representation of :meth:`IBMQJobManager().report()`
+
+        Args:
+            JobManager (IBMQJobManager): A :cls:`IBMQJobManager` object.
+
+        Returns:
+            dict[str, int]: Counts of report status.
+        """
+        job_set_statuses = [job_set.statuses() for job_set in JobManager._job_sets]
+        status_list = [stat for stat_list in job_set_statuses for stat in stat_list]
+
+        statusCounter = Counter(status_list)
+        status_counts = {
+            'Total': len(status_list),
+            'Successful': statusCounter[JobStatus.DONE],
+            'Failed': statusCounter[JobStatus.ERROR],
+            'Cancelled': statusCounter[JobStatus.CANCELLED],
+            'Running': statusCounter[JobStatus.RUNNING],
+            'Initializing': statusCounter[JobStatus.INITIALIZING],
+            'Validating': statusCounter[JobStatus.VALIDATING],
+            'Queued': statusCounter[JobStatus.QUEUED],
+        }
+
+        return status_counts
+        
 
     def powerPending(
         self,
@@ -2302,7 +2324,6 @@ class Qurry:
             circuitSet = self.circuitTranspiler(**config)
             allTranspliedCircs[self.IDNow] = circuitSet
             
-
             # resource check
             self.resourceCheck()
 
@@ -2374,7 +2395,7 @@ class Qurry:
             carousel=[('dots', 20, 6), 'basic'],
             prefix="| ",
             desc="Pending Jobs",
-            finish_desc="Pending end and Exporting",
+            finish_desc="Pending finished and Exporting",
         ) as gajima:
             JobManager = IBMQJobManager()
             powerJob = JobManager.run(
@@ -2386,13 +2407,42 @@ class Qurry:
                 # job_tags=argsMulti.pendingTags
                 # ? waiting for the issue of contain
             )
-            print(f"| report:", JobManager.report())
+            gajima.gprint(f"| report:", JobManager.report())
             powerJobID = powerJob.job_set_id()
             gajima.gprint(f"| name: {powerJob.name()}")
             argsMulti.powerJobID = powerJobID
+            argsMulti.state = 'pending'
+            
+            gajima.gprint(f"| Waiting for all jobs be queued... ")
+            isQueued = False
+            waiting = 0
+            
+            tiks = 20 # TODO: as a configure
+            givenUp = 1800
+            refreshPoint = 600
+            while not isQueued:
+                waiting += tiks
+                time.sleep(tiks)
+                DoubleChecker = IBMQJobManager()
+                if waiting > givenUp:
+                    print(f"| Pending may be failed, given up waiting.")
+                    argsMulti.state = 'failed'
+                    break
+                try:
+                    test = DoubleChecker.retrieve_job_set(
+                        job_set_id=argsMulti.powerJobID,
+                        provider=argsMulti.backend.provider(),
+                        refresh=waiting%refreshPoint == 0,
+                    )
+                    isQueued = True
+                    gajima.gprint(f"| All jobs are queued, continuing to export. ")
+                    statusCounts = self.reportCounts(JobManager)
+                    gajima.gprint(f"| status: {statusCounts}")
+                except IBMQJobManagerUnknownJobSet as e:
+                    isQueued = False
+            
             # powerJobsIDList = [mj.job.job_id() for mj in powerJob.jobs()]
-
-        argsMulti.state = 'pending'
+            
         argsMulti.gitignore.ignore('*.json')
         argsMulti.gitignore.sync(f'*.powerJobs.json')
 
