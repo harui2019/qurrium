@@ -1,11 +1,5 @@
 from .qurry import Qurry, defaultCircuit
 from .type import (
-    TagKeysAllowable,
-    TagMapExpsIDType,
-    TagMapIndexType,
-    TagMapQuantityType,
-    TagMapCountsType,
-    TagMapResultType,
     Quantity,
     Counts,
 )
