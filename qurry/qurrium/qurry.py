@@ -1892,8 +1892,6 @@ class Qurry:
             params={
                 **self._expsMultiConfig.make(),
                 **otherArgs,
-                # configList
-                'configList': initedConfigList,
 
                 # Configuration of `IBMQJobManager().run`
                 # Multiple jobs shared
@@ -1916,6 +1914,12 @@ class Qurry:
                 # ? pendingTags works uncorrectly, check contain and type
                 # ? by IBMQJobManagerInvalidStateError: 'job_tags needs to be a list or strings.'
                 'independentExports': independentExports,
+                
+                'type': jobsType,
+                'state': 'init',
+                
+                # configList
+                'configList': initedConfigList,
 
                 # `writeLegacy`
                 'additionName': additionName,
@@ -1935,40 +1939,11 @@ class Qurry:
                 'circuitsMap': {},
                 'circuitsNum': {},
 
-                'type': jobsType,
-                'state': 'init',
             },
             paramsKey=self._expsMultiConfig.make().keys(),
         )
 
         return self.multiNow
-
-    @staticmethod
-    def _legacyTagGuider(
-        field: dict,
-        legacyTag: any,
-        v: any,
-    ) -> dict:
-        """_summary_
-
-        Args:
-            field (dict): _description_
-            legacyTag (any): The tag for legacy as key.
-            v (any): The value for legacy.
-
-        Returns:
-            dict: _description_
-        """
-
-        fieldCopy = {**field}
-        if legacyTag == None:
-            fieldCopy['noTags'].append(v)
-        elif legacyTag in fieldCopy:
-            fieldCopy[legacyTag].append(v)
-        else:
-            fieldCopy[legacyTag] = [v]
-
-        return fieldCopy
 
     def multiOutput(
         self,
@@ -2072,30 +2047,6 @@ class Qurry:
             argsMulti.tagMapIndex.guider(legacyTag, config['expIndex'])
             argsMulti.tagMapQuantity.guider(legacyTag, quantity)
             argsMulti.tagMapCounts.guider(legacyTag, counts)
-
-            # argsMulti.tagMapExpsID = self._legacyTagGuider(
-            #     argsMulti.tagMapExpsID, legacyTag, self.IDNow
-            # )
-            # argsMulti.tagMapIndex = self._legacyTagGuider(
-            #     argsMulti.tagMapIndex, legacyTag, config['expIndex']
-            # )
-            # argsMulti.tagMapIndex = self._legacyTagGuider(
-            #     argsMulti.tagMapIndex, 'all', config['expIndex']
-            # )
-
-            # argsMulti.tagMapQuantity = self._legacyTagGuider(
-            #     argsMulti.tagMapQuantity, 'all', quantity
-            # )
-            # argsMulti.tagMapQuantity = self._legacyTagGuider(
-            #     argsMulti.tagMapQuantity, legacyTag, quantity
-            # )
-
-            # argsMulti.tagMapCounts = self._legacyTagGuider(
-            #     argsMulti.tagMapCounts, 'all', counts
-            # )
-            # argsMulti.tagMapCounts = self._legacyTagGuider(
-            #     argsMulti.tagMapCounts, legacyTag, counts
-            # )
 
         print(f"| Export...")
         argsMulti.gitignore.ignore('*.json')
@@ -2246,14 +2197,15 @@ class Qurry:
                     content = File.readlines()
                     dataDummyJobs['powerJobID'] = content[0][:-1]
 
-        for n in [
-            'tagMapExpsID',
-            'tagMapIndex',
-            'tagMapQuantity',
-            'tagMapCounts',
-        ]:
-            if n in dataDummyJobs:
-                dataDummyJobs[n] = keyTupleLoads(dataDummyJobs[n])
+        # for n in [
+        #     'tagMapExpsID',
+        #     'tagMapIndex',
+        #     'tagMapQuantity',
+        #     'tagMapCounts',
+        # ]:
+            # if n in dataDummyJobs:
+        for tmk in [k for k in dataDummyJobs.keys() if 'tagMap' in k]:
+            dataDummyJobs[tmk] = keyTupleLoads(dataDummyJobs[tmk])
 
         gc.collect()
         print(
@@ -2359,16 +2311,6 @@ class Qurry:
 
             argsMulti.tagMapExpsID.guider(legacyTag, self.IDNow)
             argsMulti.tagMapIndex.guider(legacyTag, config['expIndex'])
-            
-            # argsMulti.tagMapExpsID = self._legacyTagGuider(
-            #     argsMulti.tagMapExpsID, legacyTag, self.IDNow
-            # )
-            # argsMulti.tagMapIndex = self._legacyTagGuider(
-            #     argsMulti.tagMapIndex, legacyTag, config['expIndex']
-            # )
-            # argsMulti.tagMapIndex = self._legacyTagGuider(
-            #     argsMulti.tagMapIndex, 'all', config['expIndex']
-            # )
 
         with Gajima(
             enumerate(argsMulti.listExpID),
@@ -2615,20 +2557,6 @@ class Qurry:
 
             argsMulti.tagMapQuantity.guider(legacyTag, quantity)
             argsMulti.tagMapCounts.guider(legacyTag, counts)
-            
-            # dataPowerJobs['tagMapQuantity'] = self._legacyTagGuider(
-            #     dataPowerJobs['tagMapQuantity'], 'all', quantity
-            # )
-            # dataPowerJobs['tagMapQuantity'] = self._legacyTagGuider(
-            #     dataPowerJobs['tagMapQuantity'], legacyTag, quantity
-            # )
-
-            # dataPowerJobs['tagMapCounts'] = self._legacyTagGuider(
-            #     dataPowerJobs['tagMapCounts'], 'all', counts
-            # )
-            # dataPowerJobs['tagMapCounts'] = self._legacyTagGuider(
-            #     dataPowerJobs['tagMapCounts'], legacyTag, counts
-            # )
 
             print(f"| index={idxNum} end...\n"+f"+"+"-"*20)
             idxNum += 1
