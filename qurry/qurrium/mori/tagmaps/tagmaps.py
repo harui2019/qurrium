@@ -1,9 +1,12 @@
+from ..jsonablize import keyTupleLoads
+
 from typing import Optional
 import warnings
 
-class TagMap(dict[str, list[any]]):
-    """Specific data structures of :module:`qurry`.
-    
+
+class TagMap(dict):
+    """Specific data structures of :module:`qurry` like `dict[str, list[any]]`.
+
     >>> bla = TagMap()
     >>> bla.guider('strTag1', [...])
     >>> bla.guider(('tupleTag1', ), [...])
@@ -16,13 +19,34 @@ class TagMap(dict[str, list[any]]):
     ...     ... # other hashable as key in python
     ... }
 
-    """    
-    
-    def __init__(self) -> None:
-        super().__init__({ 'noTags': [] })
+    """
+
+    def __init__(
+        self,
+        o: dict[str, list] = {},
+        tupleStrTransplie: bool = True,
+    ) -> None:
+        if not isinstance(o, dict):
+            raise ValueError(
+                "Input needs to be a dict with all values are list.")
+
+        o = keyTupleLoads(o) if tupleStrTransplie else o
+        not_list_v = []
+        next_o = {'noTags': []}
+        for k, v in o.items():
+            if isinstance(v, list):
+                next_o[k] = v
+            else:
+                not_list_v.append(k)
+
+        super().__init__(next_o)
         self._noTags = self['noTags']
         self._all_tags = []
-        
+
+        if len(not_list_v) > 0:
+            warnings.warn(
+                f"The following keys '{not_list_v}' with the values are not list won't be added.")
+
     def all(self) -> list:
         if len(self._all_tags) == 0:
             d = []
@@ -31,19 +55,19 @@ class TagMap(dict[str, list[any]]):
                     d += v
             self._all_tags = d
         return self._all_tags
-    
+
     def with_all(self) -> dict[list]:
         return {
             **self,
             'all': self.all()
         }
-        
+
     def guider(
         self,
         legacyTag: Optional[any] = None,
-        v: any = None, 
+        v: any = None,
     ) -> None:
-        """Migarate from :func:`Qurry()._legacyTagGuider`.
+        """
 
         Args:
             legacyTag (any): The tag for legacy as key.
@@ -64,4 +88,6 @@ class TagMap(dict[str, list[any]]):
             self[legacyTag].append(v)
         else:
             self[legacyTag] = [v]
-            
+
+    # def tupleStrKey2tuple(self) -> None:
+    #     self = keyTupleLoads(self)
