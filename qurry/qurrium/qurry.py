@@ -1944,6 +1944,9 @@ class Qurry:
         )
 
         return self.multiNow
+        
+    JobManager = IBMQJobManager()
+    """:meth:`IBMQJobManager()` in :cls:`qurry`"""    
 
     def multiOutput(
         self,
@@ -2339,8 +2342,7 @@ class Qurry:
             desc="Pending Jobs",
             finish_desc="Pending finished and Exporting",
         ) as gajima:
-            JobManager = IBMQJobManager()
-            powerJob = JobManager.run(
+            powerJob = self.JobManager.run(
                 **argsMulti.managerRunArgs,
                 experiments=pendingArray,
                 backend=argsMulti.backend,
@@ -2349,39 +2351,40 @@ class Qurry:
                 # job_tags=argsMulti.pendingTags
                 # ? waiting for the issue of contain
             )
-            gajima.gprint(f"| report:", JobManager.report())
+            gajima.gprint(f"| report:", self.JobManager.report())
             powerJobID = powerJob.job_set_id()
             gajima.gprint(f"| name: {powerJob.name()}")
             argsMulti.powerJobID = powerJobID
             argsMulti.state = 'pending'
             
-            gajima.gprint(f"| Waiting for all jobs be queued... ")
-            isQueued = False
-            waiting = 0
+            # ! Too many request
+            # gajima.gprint(f"| Waiting for all jobs be queued... ")
+            # isQueued = False
+            # waiting = 0
             
-            tiks = 20 # TODO: as a configure
-            givenUp = 1800
-            refreshPoint = 600
-            while not isQueued:
-                waiting += tiks
-                time.sleep(tiks)
-                DoubleChecker = IBMQJobManager()
-                if waiting > givenUp:
-                    print(f"| Pending may be failed, given up waiting.")
-                    argsMulti.state = 'failed'
-                    break
-                try:
-                    test = DoubleChecker.retrieve_job_set(
-                        job_set_id=argsMulti.powerJobID,
-                        provider=argsMulti.backend.provider(),
-                        refresh=waiting%refreshPoint == 0,
-                    )
-                    isQueued = True
-                    gajima.gprint(f"| All jobs are queued, continuing to export. ")
-                    statusCounts = self.reportCounts(JobManager)
-                    gajima.gprint(f"| status: {statusCounts}")
-                except IBMQJobManagerUnknownJobSet as e:
-                    isQueued = False
+            # tiks = 20 # TODO: as a configure
+            # givenUp = 1800
+            # refreshPoint = 600
+            # while not isQueued:
+            #     waiting += tiks
+            #     time.sleep(tiks)
+            #     DoubleChecker = IBMQJobManager()
+            #     if waiting > givenUp:
+            #         print(f"| Pending may be failed, given up waiting.")
+            #         argsMulti.state = 'failed'
+            #         break
+            #     try:
+            #         test = DoubleChecker.retrieve_job_set(
+            #             job_set_id=argsMulti.powerJobID,
+            #             provider=argsMulti.backend.provider(),
+            #             refresh=waiting%refreshPoint == 0,
+            #         )
+            #         isQueued = True
+            #         gajima.gprint(f"| All jobs are queued, continuing to export. ")
+            #         statusCounts = self.reportCounts(JobManager)
+            #         gajima.gprint(f"| status: {statusCounts}")
+            #     except IBMQJobManagerUnknownJobSet as e:
+            #         isQueued = False
             
             # powerJobsIDList = [mj.job.job_id() for mj in powerJob.jobs()]
             
@@ -2483,14 +2486,14 @@ class Qurry:
 
         if dataPowerJobs['state'] == 'pending':
             print(f"| Retrieve result...")
-            powerJob = IBMQJobManager().retrieve_job_set(
+            powerJob = self.JobManager.retrieve_job_set(
                 job_set_id=dataPowerJobs['powerJobID'],
                 provider=argsMulti.provider,
             )
 
         elif overwrite and isinstance(overwrite, bool):
             print(f"| Overwrite activate and retrieve result...")
-            powerJob = IBMQJobManager().retrieve_job_set(
+            powerJob = self.JobManager.retrieve_job_set(
                 job_set_id=dataPowerJobs['powerJobID'],
                 provider=argsMulti.provider,
             )
