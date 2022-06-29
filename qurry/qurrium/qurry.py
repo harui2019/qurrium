@@ -1337,7 +1337,7 @@ class Qurry:
                 "'saveLocation' needs to be the type of 'str' or 'Path'.")
 
         if not os.path.exists(saveLocation):
-            raise FileNotFoundError("Such location not found.")
+            raise FileNotFoundError(f"Such location not found: {saveLocation}")
 
         legacyRead = {}
         if expID != None:
@@ -2438,7 +2438,6 @@ class Qurry:
         self,
         exportName: Union[Path, str],
         saveLocation: Union[Path, str] = './',
-        dataRetrieve: bool = False,
         overwrite: bool = False,
         **allArgs: any,
     ) -> dict[any]:
@@ -2471,6 +2470,7 @@ class Qurry:
         start_time = time.time()
         dataPowerJobs = self.multiRead(
             exportName=exportName,
+            dataRetrieve=True,
             saveLocation=saveLocation,
             **allArgs,
         )
