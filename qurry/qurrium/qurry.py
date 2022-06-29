@@ -1306,7 +1306,7 @@ class Qurry:
         saveLocation: Union[Path, str] = Path('./'),
         expID: Optional[str] = None,
         excepts: list = [],
-    ) -> dict[str: any]:
+    ) -> dict[str, any]:
         """Read the experiment data.
 
         Args:
@@ -1343,7 +1343,7 @@ class Qurry:
         if expID != None:
             lsfolder = glob.glob(str(saveLocation / f"*{expID}*.json"))
             if len(lsfolder) == 0:
-                raise FileNotFoundError(f"The file 'expID={expID}' not found.")
+                raise FileNotFoundError(f"The file 'expID={expID}' not found at '{saveLocation}'.")
 
             for p in lsfolder:
                 with open(p, 'r', encoding='utf-8') as Legacy:
@@ -2209,6 +2209,20 @@ class Qurry:
             # if n in dataDummyJobs:
         for tmk in [k for k in dataDummyJobs.keys() if 'tagMap' in k]:
             dataDummyJobs[tmk] = keyTupleLoads(dataDummyJobs[tmk])
+        
+        # TODO: remake multiRead
+        for n in [    
+            'tagMapQuantity',
+            'tagMapCounts',
+        ]:
+            with open(
+                    argsMulti.exportLocation /
+                f"{argsMulti.expsName}.{n}.json",
+                    'r', encoding='utf-8') as File:
+                dataDummyJobs[n] = json.load(File)
+            
+        if dataDummyJobs['saveLocation'] != argsMulti.saveLocation:
+            dataDummyJobs['saveLocation'] = argsMulti.saveLocation
 
         gc.collect()
         print(
@@ -2520,7 +2534,9 @@ class Qurry:
                 f"| index={idxNum}/{numConfig} - {round(time.time() - start_time, 2)}s")
             self.exps[expIDKey] = self.readLegacy(
                 expID=expIDKey,
-                saveLocation=Path(dataPowerJobs['exportLocation']),
+                # TODO: make it better
+                # saveLocation=Path(dataPowerJobs['exportLocation']),
+                saveLocation=Path(argsMulti.exportLocation),
             )
 
             # output
@@ -2545,7 +2561,7 @@ class Qurry:
 
             # legacy writer
             legacy = self.writeLegacy(
-                saveLocation=Path(dataPowerJobs['exportLocation']),
+                saveLocation=Path(argsMulti.exportLocation),
                 expID=expIDKey,
                 additionName=dataPowerJobs['additionName'],
             )
@@ -2571,14 +2587,14 @@ class Qurry:
 
         for n, data in [
             ('powerJobs.json', dataPowerJobs),
-            ('tagMapQuantity.json', dataPowerJobs['tagMapQuantity']),
-            ('tagMapCounts.json', dataPowerJobs['tagMapCounts']),
+            ('tagMapQuantity.json', argsMulti.tagMapQuantity),
+            ('tagMapCounts.json', argsMulti.tagMapCounts),
         ]:
             argsMulti.gitignore.sync(f'*.{n}')
             print(f"| Export {n}")
             quickJSONExport(
                 content=data,
-                filename=Path(dataPowerJobs['exportLocation']) /
+                filename=Path(argsMulti.exportLocation) /
                 f"{dataPowerJobs['expsName']}.{n}",
                 mode='w+',
                 jsonablize=True)
@@ -2593,12 +2609,12 @@ class Qurry:
                 print(f"| Export {n}.json")
                 quickJSONExport(
                     content=dataPowerJobs[n],
-                    filename=Path(dataPowerJobs['exportLocation']) /
+                    filename=Path(argsMulti.exportLocation) /
                     f"{dataPowerJobs['expsName']}.{n}.json",
                     mode='w+',
                     jsonablize=True)
 
-        argsMulti.gitignore.export(Path(dataPowerJobs['exportLocation']))
+        argsMulti.gitignore.export(Path(argsMulti.exportLocation))
         gc.collect()
         print(
             f"| PowerOutput {self.__name__} End in {round(time.time() - start_time, 2)} sec ...\n"+f"+"+"-"*20)
