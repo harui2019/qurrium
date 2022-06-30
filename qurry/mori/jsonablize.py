@@ -1,4 +1,6 @@
 import json
+from typing import Hashable
+from collections import OrderedDict
 
 
 def valueParse(v: any) -> any:
@@ -62,6 +64,28 @@ def Parse(o: any) -> any:
     return parsed
 
 
+def sortHashableAhead(o: dict) -> dict:
+    """Make hashable values be the ahead in dictionary."
+
+    Args:
+        o (dict): Unsorted dictionary.
+
+    Returns:
+        dict: Sorted dictionary.
+    """
+    sort_o = OrderedDict()
+    for k, v in o.items():
+        if isinstance(v, Hashable):
+            sort_o[k] = v
+    
+    for k, v in o.items():
+        if not k in sort_o:
+            sort_o[k] = v
+            
+    return sort_o
+    
+
+
 def quickJSONExport(
     content: any,
     filename: str,
@@ -77,41 +101,3 @@ def quickJSONExport(
         else:
             json.dump(content, File, indent=indent, ensure_ascii=False)
         print(f"'{filename}' exported successfully.")
-
-
-def keyTupleLoads(o: dict) -> dict:
-    """If a dictionary with string keys which read from json may originally be a python tuple, then transplies as a tuple.
-
-    Args:
-        o (dict): A dictionary with string keys which read from json.
-
-    Returns:
-        dict: Result which turns every possible string keys returning to 'tuple'.
-    """
-
-    if isinstance(o, dict):
-        ks = list(o.keys())
-        for k in ks:
-            if isinstance(k, (str)):
-                if k[0] == '(' and k[-1] == ')':
-                    
-                    kt = [tr for tr in k[1:-1].split(", ")]
-                    kt2 = []
-                    for ktsub in kt:
-                        if ktsub[0] == '\'':
-                            kt2.append(ktsub[1:-1])
-                        elif ktsub[0] == '\"':
-                            kt2.append(ktsub[1:-1])
-                        elif k.isdigit():
-                            kt2.append(int(ktsub))
-                        else:
-                            kt2.append(ktsub)
-                    kt2 = tuple(kt2)
-                    o[kt2] = o[k]
-                    del o[k]
-                else:
-                    ...
-                    # print(f"'{k}' may be not a tuple, parsing unactive.")
-    else:
-        ...
-    return o

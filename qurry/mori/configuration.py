@@ -1,4 +1,4 @@
-from typing import Union, Optional, Callable, TypedDict
+from typing import Union, Optional, Callable
 from .jsonablize import Parse as jsonablize
 
 
@@ -6,7 +6,6 @@ class Configuration(dict):
     def __init__(
         self,
         default: dict = {},
-        defaultType: Optional[dict[any]] = {},
         name: str = 'configuration'
     ) -> None:
         """Set the default parameters dictionary for multiple experiment.
@@ -37,19 +36,7 @@ class Configuration(dict):
                     f"Unrecognized type of input '{type(aItem)}'" +
                     " of '{aItem}' has been dropped.'")
         return collectA
-    
-    @staticmethod
-    def paramsCollectInt(
-        tgt: int
-    ) -> list[list[int]]:
-        return [[i] for i in range(tgt)]
 
-    @staticmethod
-    def paramsCollectRange(
-        tgt: range
-    ) -> list[list[int]]:
-        return [[i] for i in tgt]
-    
     @staticmethod
     def typeCheck(
         target: any,
@@ -95,30 +82,30 @@ class Configuration(dict):
         Returns:
             dict[any]: A dictionary of configuration.
         """
-            
+
         configIndividual = {
             **self.default,
             **inputObject,
         }
-        
+
         if len(partial) == 0:
             return configIndividual
         else:
-            
-            return { k: configIndividual[k] for k in partial if k in configIndividual}
+
+            return {k: configIndividual[k] for k in partial if k in configIndividual}
 
     def json_make(
         self,
         inputObject: dict[any] = {},
         partial: list[any] = [],
     ) -> dict[any]:
-        """[summary]
+        """Export a dictionary of configuration which is jsonable.
 
         Args:
-            inputObject (dict[any], optional): [description]. Defaults to {}.
+            inputObject (dict[any], optional): Additonal object. Defaults to {}.
 
         Returns:
-            dict[any]: [description]
+            dict[any]: A dictionary of configuration.
         """
 
         return jsonablize(self.make(
@@ -130,11 +117,11 @@ class Configuration(dict):
         self,
         inputObject: Optional[dict[any]] = None
     ) -> None:
-        """[summary]
+        """Check the input for :meth:`.check` and :meth:`.ready`.
 
         Args:
             inputObject (Optional[dict[any]], optional): 
-            Input. Defaults to None.
+                Input. Defaults to None.
 
         Raises:
             ValueError: When Input is None.
@@ -181,5 +168,5 @@ class Configuration(dict):
     def __repr__(self):
         return f"{self.__name__}({self.__dict__})"
 
-    def json_default(self):
+    def jsonize(self):
         return jsonablize(self.__dict__)

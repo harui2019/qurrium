@@ -1,7 +1,7 @@
 import numpy as np
-from ...type import Quantity
-
 from typing import Union
+
+from ...qurrium.type import Quantity
 
 
 def quantitiesMean(

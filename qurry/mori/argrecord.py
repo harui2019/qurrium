@@ -14,6 +14,9 @@ class argdict(dict):
     ) -> None:
         """This class is a container to keep the parameters for each experiment.
         And it's also an inherition of `dict`.
+        
+        In future, with the rebuilding of :meth:`multiOuput`, :meth:`powerOutput`
+        :cls:`argdict` will replace by :cls:`argTuple`, a better data structure made by :cls:`namedtuple`.
 
         - :cls:`NameTuple` of :module:`typing` can be the type hint for this class.
 
@@ -42,7 +45,7 @@ class argdict(dict):
         `{'a': 22}`
 
         Args:
-            params (dict[str: any]): The parameters of the experiment.
+            params (dict[str, any]): The parameters of the experiment.
             paramsKey (list[str]): The necessary parameters of the experiment.
         """
 
@@ -69,14 +72,14 @@ class argdict(dict):
 
     def __setitem__(self, key, value) -> None: ...
 
-    def to_dict(self) -> dict[str: any]:
+    def to_dict(self) -> dict[str, any]:
         return self.__dict__
 
     def __iter__(self):
         for k, v in self.__dict__.items():
             yield 'k', v
 
-    def jsonize(self) -> dict[str: str]:
+    def jsonize(self) -> dict[str, str]:
         return jsonablize(self.__dict__)
 
     def __repr__(self) -> str:
@@ -84,12 +87,11 @@ class argdict(dict):
 
 
 def argTuple(
-    params: dict[str: any],
+    params: dict[str, any],
     paramsKey: list[str] = [],
     name: str = 'argTuple',
 ) -> NamedTuple:
-    """This class is a container to keep the parameters for each experiment.
-    And it's also an inherition of `dict`.
+    """This class is a container to keep the parameters for each experiment powered by :cls:`NamedTuple`.
 
     - :cls:`NameTuple` of :module:`typing` can be the type hint for this class.
 
@@ -118,7 +120,7 @@ def argTuple(
     `{'a': 22}`
 
     Args:
-        params (dict[str: any]): The parameters of the experiment.
+        params (dict[str, any]): The parameters of the experiment.
         paramsKey (list[str]): The necessary parameters of the experiment.
     """
 
@@ -138,7 +140,7 @@ def argTuple(
         def keys(self) -> list:
             return self._fields
 
-        def jsonize(self) -> dict[str: str]:
+        def jsonize(self) -> dict[str, str]:
             return jsonablize(self._asdict())
 
     return argTuple(**f)
