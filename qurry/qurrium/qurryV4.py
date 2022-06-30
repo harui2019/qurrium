@@ -360,6 +360,9 @@ class Qurry:
         self.exps = {}
         self.expsBelong = {}
         self.jobManager = IBMQJobManager()
+        
+        # TODO: add params control
+        self.resourceWatch = ResoureWatch()
 
         # namedtuple prototype
         self.namedtupleNow = namedtuple(
@@ -601,12 +604,11 @@ class Qurry:
         """
 
         if expID != None:
-            if expID in self.exps:
-                tgtId = expID in self.exps
-            else:
-                tgtId = False
+            tgtId = expID if expID in self.exps else False
         else:
             tgtId = self.IDNow
+
+        return tgtId
 
         return tgtId
 

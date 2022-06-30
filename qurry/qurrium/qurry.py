@@ -531,6 +531,9 @@ class Qurry:
         # value create
         self.exps = {}
         self.expsBelong = {}
+        
+        # TODO: add params control
+        self.resourceWatch = ResoureWatch()
 
         # reresh per execution.
         self.now = argdict(
@@ -758,10 +761,7 @@ class Qurry:
         """
 
         if expID != None:
-            if expID in self.exps:
-                tgtId = expID in self.exps
-            else:
-                tgtId = False
+            tgtId = expID if expID in self.exps else False
         else:
             tgtId = self.IDNow
 
@@ -1019,11 +1019,6 @@ class Qurry:
             self.expsBelong[tags].append(self.IDNow)
         else:
             self.expsBelong[tags] = [self.IDNow]
-            
-        # TODO: add params control
-        self.resourceWatch = ResoureWatch(
-            **otherArgs
-        )
 
         # Export all arguments
         parsedOther = self.paramsControlCore(**otherArgs)
@@ -1567,6 +1562,7 @@ class Qurry:
         self,
         dataRetrieve: Optional[dict[Union[list[str], str]]] = None,
         withCounts: bool = False,
+        __log: dict[str] = {},
         **allArgs: any,
     ) -> Union[Quantity, tuple[Quantity, Counts]]:
         """Export the result which completed calculating purity.
@@ -1609,6 +1605,10 @@ class Qurry:
                 self.exps[self.IDNow]['sideProduct'][k[1:]] = quantity[k]
             if k == '_dummy':
                 withCounts = True
+                
+        for k, v in __log.items():
+            self.exps[self.IDNow]['sideProduct'][k] = v
+            
 
         quantity = {k: quantity[k] for k in quantity if k[0] != '_'}
         self.exps[self.IDNow] = {
@@ -1883,8 +1883,8 @@ class Qurry:
         # gitignore
         gitignore = syncControl()
 
-        self.multiNow: Qurry.argsMultiMain = sortHashableAhead(argdict(
-            params={
+        self.multiNow: Qurry.argsMultiMain = argdict(
+            params=sortHashableAhead({
                 **self._expsMultiConfig.make(),
                 **otherArgs,
 
@@ -1934,9 +1934,9 @@ class Qurry:
                 'circuitsMap': {},
                 'circuitsNum': {},
 
-            },
+            }),
             paramsKey=self._expsMultiConfig.make().keys(),
-        ))
+        )
 
         return self.multiNow
         
@@ -2017,7 +2017,14 @@ class Qurry:
         for config in argsMulti.configList:
             print(
                 f"| index={config['expIndex']}/{numConfig} - {round(time.time() - start_time, 2)}s")
-            quantity, counts = self.output(**config, withCounts=True)
+            quantity, counts = self.output(
+                **config,
+                withCounts=True,
+                __log={
+                    'time': time.time() - start_time,
+                    'memory': self.resourceWatch.virtual_memory().percent
+                }
+            )
 
             # resource check
             self.resourceCheck()
