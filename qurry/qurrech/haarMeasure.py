@@ -41,7 +41,7 @@ class haarMeasure(EchoListen, haarBase):
     """
 
     """ Configuration """
-    class argdictCore(NamedTuple):
+    class argsCore(NamedTuple):
         expsName: str = 'exps',
         wave1: Union[QuantumCircuit, any, None] = None,
         wave2: Union[QuantumCircuit, any, None] = None,

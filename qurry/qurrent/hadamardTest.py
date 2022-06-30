@@ -44,7 +44,7 @@ class hadamardTestV3(EntropyMeasureV3):
 
     """ Configuration """
 
-    class argdictCore(NamedTuple):
+    class argsCore(NamedTuple):
         expsName: str = 'exps',
         wave: Union[QuantumCircuit, any, None] = None,
         degree: Optional[int] = None,
@@ -171,7 +171,7 @@ class hadamardTestV3(EntropyMeasureV3):
             Union[QuantumCircuit, list[QuantumCircuit]]: 
                 The quantum circuit of experiment.
         """
-        argsNow: super().argdictNow = self.now
+        argsNow: super().argsMain = self.now
         numQubits = self.waves[argsNow.wave].num_qubits
 
         qAnc = QuantumRegister(1, 'ancilla')

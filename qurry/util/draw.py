@@ -9,7 +9,7 @@ from pathlib import Path
 from math import pi
 from typing import Callable, Optional, Union
 
-from ..qurrium.mori import Configuration
+from ..mori import Configuration
 
 
 def yLimDetector(
@@ -50,12 +50,12 @@ def yLimDetector(
 
 
 def yLimDecider(
-    data: dict[str: list[Union[float, int]]],
+    data: dict[str, list[Union[float, int]]],
 ) -> tuple[float, float]:
     """Give the `ylim` of the plot. (The remake of `yLimDetector`)
 
     Args:
-        data (dict[str: list[Union[float, int]]]): Plot data.
+        data (dict[str, list[Union[float, int]]]): Plot data.
 
     Returns:
         tuple[float, float]: The upper and the lower bounds of plot should be.
@@ -203,7 +203,7 @@ drawConfigDefault = Configuration(
 #     """
 
 #     def wrapper(
-#         data: dict[str: list[Union[float, int]]],
+#         data: dict[str, list[Union[float, int]]],
 #         plotName: str,
 #         saveFolder: Optional[Path] = None,
 #         dataConfig: Union[Configuration, dict] = dataConfigDefault,
@@ -243,7 +243,7 @@ drawConfigDefault = Configuration(
 
 
 def drawEntropyPlot(
-    data: dict[str: list[Union[float, int]]],
+    data: dict[str, list[Union[float, int]]],
     plotName: str,
     beta: float = 0,
     saveFolder: Optional[Path] = None,
@@ -343,7 +343,7 @@ def drawEntropyPlot(
 
 
 def drawEntropyErrorBar(
-    data: dict[str: list[Union[float, int]]],
+    data: dict[str, list[Union[float, int]]],
     plotName: str,
     saveFolder: Optional[Path] = None,
     dataConfig: Union[Configuration, dict] = dataConfigDefault,
@@ -444,7 +444,7 @@ def drawEntropyErrorBar(
 
 
 def drawEntropyErrorPlot(
-    data: dict[str: list[Union[float, int]]],
+    data: dict[str, list[Union[float, int]]],
     plotName: str,
     saveFolder: Optional[Path] = None,
     dataConfig: Union[Configuration, dict] = dataConfigDefault,
@@ -552,7 +552,7 @@ def drawEntropyErrorPlot(
 
 
 def drawPurityErrorAnalysis(
-    data: dict[str: list[Union[float, int]]],
+    data: dict[str, list[Union[float, int]]],
     plotName: str,
     saveFolder: Optional[Path] = None,
     dataConfig: Union[Configuration, dict] = dataConfigDefault,
@@ -686,7 +686,7 @@ def drawPurityErrorAnalysis(
 
 
 def drawPurityErrorAnalysis(
-    data: dict[str: list[Union[float, int]]],
+    data: dict[str, list[Union[float, int]]],
     plotName: str,
     saveFolder: Optional[Path] = None,
     dataConfig: Union[Configuration, dict] = dataConfigDefault,
@@ -822,7 +822,7 @@ def drawPurityErrorAnalysis(
 
 
 def drawEntropyOvershootAnalysis(
-    data: dict[str: list[Union[float, int]]],
+    data: dict[str, list[Union[float, int]]],
     plotName: str,
     plotType: str,
     saveFolder: Optional[Path] = None,
@@ -959,7 +959,7 @@ def drawEntropyOvershootAnalysis(
 
 
 def drawEntropyOvershootAnalysisV2(
-    data: dict[str: list[Union[float, int]]],
+    data: dict[str, list[Union[float, int]]],
     plotName: str,
     plotType: str,
     saveFolder: Optional[Path] = None,

@@ -42,7 +42,7 @@ class haarMeasureV3(EntropyMeasureV3, haarBase):
 
     """ Configuration """
 
-    class argdictCore(NamedTuple):
+    class argsCore(NamedTuple):
         expsName: str = 'exps',
         wave: Union[QuantumCircuit, any, None] = None,
         degree: Optional[int] = None,
@@ -182,7 +182,7 @@ class haarMeasureV3(EntropyMeasureV3, haarBase):
             Union[QuantumCircuit, list[QuantumCircuit]]: 
                 The quantum circuit of experiment.
         """
-        argsNow: EntropyMeasureV3.argdictNow = self.now
+        argsNow: EntropyMeasureV3.argsMain = self.now
         numQubits = self.waves[argsNow.wave].num_qubits
 
         qcList = []

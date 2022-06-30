@@ -22,52 +22,10 @@ class EntropyMeasureV3(Qurry):
 
     """ Configuration """
 
-    class argdictCore(NamedTuple):
+    class argsCore(NamedTuple):
         expsName: str = 'exps',
         wave: Union[QuantumCircuit, any, None] = None,
         degree: Optional[int] = None,
-
-    # class argdictNow(argdictCore, Qurry().argdictNow):
-    #     ...    
-        
-    # class argdicMultiNow(argdictCore, Qurry().argdictMultiNow):
-    #     ...  
-        
-    # def expsConfig(
-    #     self,
-    #     name: str = 'qurryConfig',
-    #     defaultArg: dict[any] = {
-    #         **argdictCore()._asdict()
-    #     },
-    # ) -> Configuration:
-    #     return super().expsConfig(name, defaultArg)
-    
-    # def expsBase(
-    #     self,
-    #     name: str = 'qurryExpsBase',
-    #     defaultArg: dict = {
-    #         # Reault of experiment.
-    #     },
-    # ) -> Configuration:
-    #     return super().expsBase(name, defaultArg)
-    
-    # def expsConfigMulti(
-    #     self,
-    #     name: str = 'qurryConfigMulti',
-    #     defaultArg: dict[any] = {
-    #         # Variants of experiment.
-    #     },
-    # ) -> Configuration:
-    #     return super().expsConfigMulti(name, defaultArg)
-    
-    # def expsHint(
-    #     self,
-    #     name: str = 'qurryBaseHint',
-    #     hintContext: dict = {
-    #         "_basicHint": "This is a hint of qurry.",
-    #     },
-    # ) -> dict:
-    #     return super().expsHint(name, hintContext)
         
     # Initialize
     def initialize(self) -> dict[str, any]:

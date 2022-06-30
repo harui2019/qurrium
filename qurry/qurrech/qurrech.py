@@ -20,7 +20,7 @@ class EchoListen(Qurry):
     """EchoCounting V0.3.0 of qurrech
     """
 
-    class argdictCore(NamedTuple):
+    class argsCore(NamedTuple):
         expsName: str = 'exps',
         wave1: Union[QuantumCircuit, any, None] = None,
         wave2: Union[QuantumCircuit, any, None] = None,

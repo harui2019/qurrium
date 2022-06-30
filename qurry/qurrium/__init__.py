@@ -9,16 +9,6 @@ from .randomized import (
     RXmatrix, RYmatrix, RZmatrix,
     makeTwoBitStr, makeTwoBitStrOneLiner, haarBase
 )
-# Mori
-from .mori import (
-    Configuration,
-    argdict,
-    syncControl,
-    jsonablize,
-    quickJSONExport,
-    keyTupleLoads,
-    TagMap,
-)
 
 
 pauliMatrix = {

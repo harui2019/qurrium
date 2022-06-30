@@ -18,7 +18,7 @@ class MagnetSquare(Qurry):
     """MagnetSquare V0.3.0 of qurmagsq
     """
 
-    class argdictCore(NamedTuple):
+    class argsCore(NamedTuple):
         expsName: str = 'exps',
         wave: Union[QuantumCircuit, any, None] = None,
 
