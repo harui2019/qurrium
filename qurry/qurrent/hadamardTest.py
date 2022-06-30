@@ -50,11 +50,11 @@ class hadamardTestV3(EntropyMeasureV3):
         degree: Optional[int] = None,
 
     # Initialize
-    def initialize(self) -> dict[str: any]:
+    def initialize(self) -> dict[str, any]:
         """Configuration to Initialize haarMeasure.
 
         Returns:
-            dict[str: any]: The basic configuration of `haarMeasure`.
+            dict[str, any]: The basic configuration of `haarMeasure`.
         """
 
         self._expsConfig = self.expsConfig(
@@ -125,7 +125,7 @@ class hadamardTestV3(EntropyMeasureV3):
             KeyError: The given parameters lost degree of freedom.".
 
         Returns:
-            tuple[str, dict[str: any]]: Current `expID` and arguments.
+            tuple[str, dict[str, any]]: Current `expID` and arguments.
         """
 
         # wave

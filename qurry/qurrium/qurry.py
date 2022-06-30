@@ -465,14 +465,14 @@ class Qurry:
     """ Initialize """
     
     @abstractmethod
-    def initialize(self) -> dict[str: any]:
+    def initialize(self) -> dict[str, any]:
         """Configuration to Initialize Qurry.
 
         Returns:
-            dict[str: any]: The basic configuration of `Qurry`.
+            dict[str, any]: The basic configuration of `Qurry`.
         """
 
-    def initialize(self) -> dict[str: any]:
+    def initialize(self) -> dict[str, any]:
 
         self._expsConfig = self.expsConfig()
         self._expsBase = self.expsBase()
@@ -1185,7 +1185,7 @@ class Qurry:
         additionName: Optional[str] = None,
         saveLocation: Optional[Union[Path, str]] = None,
         excepts: list = [],
-    ) -> dict[str: any]:
+    ) -> dict[str, any]:
         """Export the experiment data, if there is a previous export, then will overwrite.
 
         - example of file.name:
@@ -1327,7 +1327,7 @@ class Qurry:
             TypeError: File content is not `dict`.
 
         Returns:
-            dict[str: any]: The data.
+            dict[str, any]: The data.
         """
 
         if isinstance(saveLocation, (Path, str)):

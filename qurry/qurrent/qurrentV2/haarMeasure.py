@@ -45,7 +45,7 @@ makeTwoBitStrOneLiner: Callable[[int, List[str]], List[str]] = (
 # haarMeasureV2
 
 class haarMeasureV2(EntropyMeasureV2):
-    def initialize(self) -> dict[str: any]:
+    def initialize(self) -> dict[str, any]:
         """Configuration to Initialize 'haarMeasure'.
         - 
         ```
@@ -74,7 +74,7 @@ class haarMeasureV2(EntropyMeasureV2):
         ```
 
         Returns:
-            dict[str: any]: The basic configuration of `haarMeasure`.
+            dict[str, any]: The basic configuration of `haarMeasure`.
         """
 
         self.measureConfig = {
@@ -220,7 +220,7 @@ class haarMeasureV2(EntropyMeasureV2):
     def purityMethod(
         cls,
         aNum: int,
-        paramsOther: dict[str: int],
+        paramsOther: dict[str, int],
         shots: int,
         result: Union[Result, ManagedResults],
         resultIdxList: Optional[list[int]] = None,

@@ -70,11 +70,11 @@ class EntropyMeasureV3(Qurry):
     #     return super().expsHint(name, hintContext)
         
     # Initialize
-    def initialize(self) -> dict[str: any]:
+    def initialize(self) -> dict[str, any]:
         """Configuration to Initialize Hadamard.
 
         Returns:
-            dict[str: any]: The basic configuration of `Qurrech`.
+            dict[str, any]: The basic configuration of `Qurrech`.
         """
 
         self._expsConfig = self.expsConfig(
