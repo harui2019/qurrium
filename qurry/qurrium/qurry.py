@@ -36,13 +36,14 @@ from abc import abstractmethod, abstractclassmethod
 from collections import Counter
 
 from ..util import Gajima, ResoureWatch
-from .mori import (
+from ..mori import (
     Configuration,
     argdict,
     syncControl,
     jsonablize,
     quickJSONExport,
     keyTupleLoads,
+    sortHashableAhead,
     TagMap,
 )
 from .exceptions import UnconfiguredWarning
@@ -54,7 +55,7 @@ from .type import (
     waveReturn,
 )
 
-# Qurry V0.3.1 - a Qiskit Macro
+# Qurry V0.3.2 - a Qiskit Macro
 
 
 def defaultCircuit(numQubit: int) -> QuantumCircuit:
@@ -70,15 +71,15 @@ class Qurry:
     """ Configuration """
     
     @abstractmethod
-    class argdictCore(NamedTuple):
+    class argsCore(NamedTuple):
         """Construct the experiment's parameters."""
 
-    class argdictCore(NamedTuple):
+    class argsCore(NamedTuple):
         expsName: str = 'exps'
         wave: Union[QuantumCircuit, any, None] = None
         sampling: int = 1
 
-    class argdictNow(NamedTuple):
+    class argsMain(NamedTuple):
         # ID of experiment.
         expID: Optional[str] = None
 
@@ -105,7 +106,7 @@ class Qurry:
         self,
         name: str = 'qurryConfig',
         defaultArg: dict[any] = {
-            **argdictCore()._asdict()
+            **argsCore()._asdict()
         },
     ) -> Configuration:
         """The default format and value for executing a single experiment.
@@ -161,7 +162,7 @@ class Qurry:
         return Configuration(
             name=name,
             default={
-                **self.argdictNow()._asdict(),
+                **self.argsMain()._asdict(),
                 # Variants of experiment.
                 **defaultArg,
             },
@@ -288,7 +289,7 @@ class Qurry:
         """
         return self.expsBase().make(partial=excepts)
 
-    class argdictMultiNow(NamedTuple):
+    class argsMultiMain(NamedTuple):
         # configList
         configList: list = []
 
@@ -404,7 +405,7 @@ class Qurry:
         return Configuration(
             name=name,
             default={
-                **self.argdictMultiNow()._asdict(),
+                **self.argsMultiMain()._asdict(),
             },
         )
 
@@ -624,8 +625,6 @@ class Qurry:
             self.lastWave = key
             return self.lastWave
 
-
-
         elif isinstance(waveCircuit, list):
             if isinstance(key, list):
                 if len(key) == len(waveCircuit):
@@ -754,16 +753,13 @@ class Qurry:
         Args:
             expID (Optional[str], optional): The `expID` wants to check. Defaults to None.
 
-        Raises:
-            KeyError: When given `expID` is not available.
-
         Returns:
             str: The available `expID`.
         """
 
         if expID != None:
             if expID in self.exps:
-                tgtId = expID
+                tgtId = expID in self.exps
             else:
                 tgtId = False
         else:
@@ -884,11 +880,10 @@ class Qurry:
         drawMethod: str = 'text',
         resultKeep: bool = False,
         dataRetrieve: Optional[dict[Union[list[str], str]]] = None,
-        expsName: str = 'exps',
         tags: Optional[Hashable] = None,
 
         **otherArgs: any,
-    ) -> argdictNow:
+    ) -> argsMain:
         """Handling all arguments and initializing a single experiment.
 
         - example of a value in `self.exps`
@@ -919,7 +914,7 @@ class Qurry:
             'dataRetrieve': None,
             'tags': tags,
 
-            # Reault of experiment.
+            # Result of experiment.
             'echo': -100,
 
             # Measurement result
@@ -1032,7 +1027,7 @@ class Qurry:
 
         # Export all arguments
         parsedOther = self.paramsControlCore(**otherArgs)
-        self.now: Union[Qurry.argdictNow, Qurry.argdictCore] = argdict(
+        self.now: Union[Qurry.argsMain, Qurry.argsCore] = argdict(
             params={
                 **self._expsConfig.make(),
                 # ID of experiment.
@@ -1132,7 +1127,7 @@ class Qurry:
 
     def circuitMethod(self) -> list[QuantumCircuit]:
 
-        argsNow: Union[Qurry.argdictNow, Qurry.argdictCore] = self.now
+        argsNow: Union[Qurry.argsMain, Qurry.argsCore] = self.now
         circuit = self.waves[argsNow.wave]
         numQubits = circuit.num_qubits
         print(
@@ -1247,6 +1242,7 @@ class Qurry:
             k: self.exps[legacyId][k] for k in self.exps[legacyId]
             if k not in list(self.expsBaseExcepts().keys())+excepts
         }
+        exports = sortHashableAhead(exports)
 
         with Gajima(
             carousel=[('dots', 20, 6), 'basic'],
@@ -1302,9 +1298,9 @@ class Qurry:
 
     def readLegacy(
         self,
+        expID: Optional[str] = None,
         filename: Optional[Union[Path, str]] = None,
         saveLocation: Union[Path, str] = Path('./'),
-        expID: Optional[str] = None,
         excepts: list = [],
     ) -> dict[str, any]:
         """Read the experiment data.
@@ -1362,7 +1358,7 @@ class Qurry:
 
         legacyRead = {
             **self.expsBaseExcepts(),
-            **legacyRead,
+            **{ k: v for k, v in legacyRead.items() if k not in excepts },
         }
 
         if isinstance(legacyRead, dict):
@@ -1386,7 +1382,6 @@ class Qurry:
 
         Args:
             allArgs: all arguments will handle by `self.paramsControl()` and export as specific format.
-            {paramsControlArgsDoc}
 
         Returns:
             list[QuantumCircuit]:
@@ -1592,7 +1587,7 @@ class Qurry:
             dataRetrieve=dataRetrieve,
             **allArgs,
         )
-        argsNow: Union[Qurry.argdictNow, Qurry.argdictCore] = self.now
+        argsNow: Union[Qurry.argsMain, Qurry.argsCore] = self.now
         print(f"| name: {argsNow.expsName}\n"+f"| id: {self.IDNow}")
 
         counts, quantity = self.quantity(
@@ -1712,7 +1707,7 @@ class Qurry:
         saveLocation: Union[Path, str] = Path('./'),
 
         **otherArgs: any,
-    ) -> argdictMultiNow:
+    ) -> argsMultiMain:
         """Handling all arguments and initializing a single experiment.
 
         - example of a value in `self.exps`
@@ -1888,7 +1883,7 @@ class Qurry:
         # gitignore
         gitignore = syncControl()
 
-        self.multiNow: Qurry.argdictMultiNow = argdict(
+        self.multiNow: Qurry.argsMultiMain = sortHashableAhead(argdict(
             params={
                 **self._expsMultiConfig.make(),
                 **otherArgs,
@@ -1941,7 +1936,7 @@ class Qurry:
 
             },
             paramsKey=self._expsMultiConfig.make().keys(),
-        )
+        ))
 
         return self.multiNow
         
@@ -2488,7 +2483,7 @@ class Qurry:
             saveLocation=saveLocation,
             **allArgs,
         )
-        argsMulti: self.argdictMultiNow = self.multiNow
+        argsMulti: self.argsMultiMain = self.multiNow
 
         print(f"| PowerOutput {self.__name__} Start...\n"+f"+"+"-"*20)
         if dataPowerJobs['type'] == 'multiJobs':

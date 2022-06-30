@@ -7,7 +7,7 @@ from qiskit.result import Result
 from typing import Union, Optional, NamedTuple, TypeVar, Generic
 import warnings
 
-from .mori import TagMap
+from ..mori import TagMap
 
 T = TypeVar('T')
 
