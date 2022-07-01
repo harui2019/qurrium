@@ -14,6 +14,7 @@ from qiskit.providers.ibmq.managed import (
     # ManagedJobSet,
     # ManagedJob,
     ManagedResults,
+    IBMQManagedResultDataNotAvailable,
     IBMQJobManagerInvalidStateError,
     IBMQJobManagerUnknownJobSet)
 from qiskit.providers.ibmq.accountprovider import AccountProvider
@@ -66,6 +67,7 @@ class Qurry:
     """Qurry V0.4.0
     The qiskit job tool
     """
+    __version__ = (0,4,0)
 
     """ Configuration for single experiment. """
 
@@ -359,6 +361,9 @@ class Qurry:
         # value create
         self.exps = {}
         self.expsBelong = {}
+        self.expsMulti = argdict(
+            params=self.expsMultiMain._asdict()
+        ) # reresh per execution.
         self.jobManager = IBMQJobManager()
         
         # TODO: add params control
@@ -374,7 +379,7 @@ class Qurry:
             field_names=self.argsMain._fields+self.argsCore._fields,
         )
 
-        # reresh per execution.
+        # For reading arguments.
         self.now: Union[Qurry.argsMain, Qurry.argsCore] = self.namedtupleNow(**{ 
             **self.argsCore()._asdict(), **self.argsMain()._asdict()
         })
@@ -382,9 +387,7 @@ class Qurry:
         self.multiNow: Qurry.argsMultiMain = self.namedtupleMultiNow(
             **self.argsMultiMain._asdict()
         )
-        self.expsMulti = argdict(
-            params=self.expsMultiMain._asdict()
-        )
+
         
     """Wave Function"""
     @staticmethod
@@ -591,7 +594,7 @@ class Qurry:
     def find(
         self,
         expID: Optional[str] = None,
-    ) -> str:
+    ) -> Optional[str]:
         """Check whether given `expID` is available,
         If does, then return it, otherwise return `False`.
         Or given current `expID` when doesn't give any id.
@@ -604,11 +607,9 @@ class Qurry:
         """
 
         if expID != None:
-            tgtId = expID if expID in self.exps else False
+            tgtId = expID if expID in self.exps else None
         else:
             tgtId = self.IDNow
-
-        return tgtId
 
         return tgtId
 
@@ -716,7 +717,7 @@ class Qurry:
         shots: int = 1024,
         backend: Backend = Aer.get_backend('aer_simulator'),
         provider: Optional[AccountProvider] = None,
-        runConfig: dict = {},
+        runArgs: dict = {},
         # Single job dedicated
         runBy: str = "gate",
         decompose: Optional[int] = 2,
@@ -724,7 +725,6 @@ class Qurry:
         # Other arguments of experiment
         drawMethod: str = 'text',
         resultKeep: bool = False,
-        dataRetrieve: Optional[dict[Union[list[str], str]]] = None,
         tags: Optional[Hashable] = None,
 
         **otherArgs: any,
@@ -745,7 +745,7 @@ class Qurry:
             # Multiple jobs shared
             'shots': 1024,
             'backend': Aer.get_backend('aer_simulator'),
-            'runConfig': {},
+            'runArgs': {},
             'expsName': 'exps',
 
             # Single job dedicated
@@ -756,7 +756,6 @@ class Qurry:
             # Other arguments of experiment
             'drawMethod': 'text',
             'resultKeep': False,
-            'dataRetrieve': None,
             'tags': tags,
 
             # Result of experiment.
@@ -800,7 +799,7 @@ class Qurry:
                 :cls:`AccountProvider` of current backend for running :cls:`IBMQJobManager`.
                 Defaults to `None`.
 
-            runConfig (dict, optional):
+            runArgs (dict, optional):
                 Configuration of :func:`qiskit.execute`.
                 Defaults to `{}`.
 
@@ -828,10 +827,6 @@ class Qurry:
             resultKeep (bool, optional):
                 Whether to keep the results of qiskit job.
                 Defaults to `False`.
-
-            dataRetrieve (Optional[dict[Union[list[str], str]]], optional):
-                Data to collect results from IBMQ via `IBMQJobManager`.
-                Defaults to `None`.
 
             tags (Optional[Union[list[any], any]], optional):
                 Given the experiment multiple tags to make a dictionary for recongnizing it.
@@ -883,7 +878,9 @@ class Qurry:
             'shots': shots,
             'backend': backend,
             'provider': provider,
-            'runConfig': runConfig,
+            'runArgs': runArgs if not 'runConfig' in otherArgs else {
+                **runArgs, **otherArgs['runConfig'],
+            },
             
             # Single job dedicated
             'runBy': 'gate' if isinstance(backend, IBMQBackend) else runBy,
@@ -893,14 +890,13 @@ class Qurry:
             # Other arguments of experiment
             'drawMethod': drawMethod,
             'resultKeep': resultKeep,
-            'dataRetrieve': dataRetrieve,
             'tags': tags,
             
             **parsedOther,
         })
         self.exps[self.IDNow] = {
-            **self._expsBase.make(),
             **self.now,
+            **self._expsBase.make(),
         }
 
         return self.now
@@ -970,6 +966,7 @@ class Qurry:
         additionName: Optional[str] = None,
         saveLocation: Optional[Union[Path, str]] = None,
         excepts: list = [],
+        _isMulti: bool = False,
     ) -> dict[str, any]:
         """Export the experiment data, if there is a previous export, then will overwrite.
 
@@ -1010,7 +1007,7 @@ class Qurry:
         """
 
         legacyId = self.find(expID)
-        if not legacyId:
+        if legacyId == None:
             warnings.warn(
                 f"No such expID '{expID}', waiting for legacy be written.")
             return {}
@@ -1035,7 +1032,6 @@ class Qurry:
         exports = sortHashableAhead(exports)
 
         with Gajima(
-            carousel=[('dots', 20, 6), 'basic'],
             prefix="| ",
             desc="Writing Legacy",
             finish_desc="Legacy write out.",
@@ -1046,6 +1042,9 @@ class Qurry:
                     saveLocParts) > 0 else Path('./')
                 for p in saveLocParts[1:]:
                     saveLoc /= p
+                    
+                if _isMulti:
+                    saveLoc = saveLoc / 'legacy'
 
                 if not os.path.exists(saveLoc):
                     os.mkdir(saveLoc)
@@ -1056,19 +1055,16 @@ class Qurry:
                     json.dump(
                         legacyExport, Legacy, indent=2, ensure_ascii=False)
 
-            elif saveLocation == None:
-                legacyExport = jsonablize(exports)
-
             else:
                 legacyExport = jsonablize(exports)
-                warnings.warn(
-                    "'saveLocation' is not the type of 'str' or 'Path', " +
-                    "so export cancelled.")
+                if saveLocation != None:
+                    warnings.warn(
+                        "'saveLocation' is not the type of 'str' or 'Path', " +
+                        "so export cancelled.")
 
         tales = self.exps[legacyId]['sideProduct']
         if len(tales) > 0:
             with Gajima(
-                carousel=[('dots', 20, 6), 'basic'],
                 prefix="| ",
                 desc="Writing Tales",
                 leave=False,
@@ -1092,6 +1088,7 @@ class Qurry:
         filename: Optional[Union[Path, str]] = None,
         saveLocation: Union[Path, str] = Path('./'),
         excepts: list = [],
+        _isMulti: bool = False,
     ) -> dict[str, any]:
         """Read the experiment data.
 
@@ -1122,6 +1119,8 @@ class Qurry:
             raise ValueError(
                 "'saveLocation' needs to be the type of 'str' or 'Path'.")
 
+        if _isMulti:
+            saveLocation = saveLocation / 'legacy'
         if not os.path.exists(saveLocation):
             raise FileNotFoundError(f"Such location not found: {saveLocation}")
 
@@ -1179,7 +1178,14 @@ class Qurry:
         """
         circuitSet = self.circuitBuild(**allArgs)
         argsNow = self.now
-
+        
+        gajima = Gajima(
+            prefix="| ",
+            desc="Transpile circuits",
+            finish_desc="Transpile finished",
+        )
+        gajima.run()
+        
         # transpile
         circs = transpile(
             circuitSet if isinstance(circuitSet, list) else [circuitSet],
@@ -1187,30 +1193,246 @@ class Qurry:
             **argsNow.transpileArgs,
         )
 
-        figTranspile = None
-        with Gajima(
-            carousel=[('dots', 20, 6), 'basic'],
-            prefix="| ",
-            desc="Transpile circuits",
-            finish_desc="Transpile finished",
-        ) as gajima:
-            if isinstance(circs, QuantumCircuit):
-                figTranspile = [self.drawCircuit(
-                    expID=None,
-                    circuitSet=circs,
-                    drawMethod=argsNow.drawMethod,
-                    decompose=argsNow.decompose,
-                )]
+        figTranspile = []            
+        if isinstance(circs, QuantumCircuit):
+            figTranspile.append(self.drawCircuit(
+                expID=None,
+                circuitSet=circs,
+                drawMethod=argsNow.drawMethod,
+                decompose=argsNow.decompose,
+            ))
 
-            elif isinstance(circs, list):
-                circuitSetLength = len(circs)
-                figTranspile = [self.drawCircuit(
+        elif isinstance(circs, list):
+            for i, v in enumerate(circs):
+                figTranspile.append(self.drawCircuit(
                     expID=None,
                     circuitSet=circs,
                     whichCircuit=i,
                     drawMethod=argsNow.drawMethod,
                     decompose=argsNow.decompose,
-                ) for i in range(circuitSetLength)]
+                ))
+            
+        else:
+            raise TypeError(f"Unknown type '{type(circs)}'")
 
         self.exps[self.IDNow]['figTranspile'] = figTranspile
         return circs
+    
+    """ Execution single """
+    
+    def run(
+        self,
+        **allArgs: any,
+    ) -> Result:
+        """Export the result after running the job.
+
+        Args:
+            allArgs: all arguments will handle by `self.paramsControl()` and export as specific format.
+
+        Returns:
+            Result: The result of the job.
+        """
+        circs = self.circuitTranspiler(**allArgs)
+        argsNow = self.now
+
+        execution = execute(
+            circs,
+            backend=argsNow.backend,
+            shots=argsNow.shots,
+            **argsNow.runArgs,
+        )
+        jobID = execution.job_id()
+        self.exps[self.IDNow]['jobID'] = jobID
+        date = datetime.datetime.today().strftime("%Y-%m-%d_%H-%M-%S")
+        self.exps[self.IDNow]['dateCreate'] = date
+        result = execution.result()
+        self.exps[self.IDNow]['result'] = result
+        
+        return result
+    
+    """ Result processing """
+    
+    @abstractclassmethod
+    def counts(cls) -> Counts:
+        """Get counts.
+        Where should be overwritten by each construction of new measurement.
+
+        Returns:
+            Counts: Counts of experiment.
+        """
+    
+    @classmethod
+    def counts(
+        cls,
+        result: Union[Result, ManagedResults],
+        resultIdxList: Optional[list[int]] = None,
+        num: int = 1,
+        **otherArgs,
+    ):
+        """Computing specific squantity.
+        Where should be overwritten by each construction of new measurement.
+
+        Returns:
+            tuple[dict, dict]:
+                Counts, purity, entropy of experiment.
+        """
+        if resultIdxList == None:
+            resultIdxList = [i for i in range(num)]
+        else:
+            ...
+
+        counts = []
+        for i in resultIdxList:
+            try:
+                allMeas = result.get_counts(i)
+                counts.append(allMeas)
+            except IBMQManagedResultDataNotAvailable as err:
+                counts.append({})
+                print("| Failed Job result skip, index:", i, err)
+                continue
+
+        return counts
+    
+    @abstractclassmethod
+    def quantities(cls) -> dict[str, float]:
+        """Computing specific squantity.
+        Where should be overwritten by each construction of new measurement.
+
+        Returns:
+            dict[str, float]: Counts, purity, entropy of experiment.
+        """
+    
+    @classmethod
+    def quantities(
+        cls,
+        shots: int,
+        counts: Counts,
+        num: int = 1,
+        **otherArgs,
+    ):
+        
+        dummy = -100
+        quantity = {
+            '_dummy': dummy,
+            'sampling': num,
+        }
+        return counts, quantity
+    
+    """ Output single """
+    
+    def output(
+        self,
+        withCounts: bool = False,
+        __log: dict[str] = {},
+        **allArgs: any,
+    ) -> Union[Quantity, tuple[Quantity, Counts]]:
+        """Export the result which completed calculating purity.
+
+        Args:
+            allArgs: all arguments will handle by `self.paramsControl()` and export as specific format.
+
+        Returns:
+            dict[float]: The result.
+        """
+        print(f"+"+"-"*20+"\n"+f"| Calculating {self.__name__}...")
+        
+        result = self.run(**allArgs,)
+        argsNow: Union[Qurry.argsMain, Qurry.argsCore] = self.now
+        print(f"| name: {argsNow.expsName}\n"+f"| id: {self.IDNow}")
+
+        counts, quantity = self.quantity(
+            **argsNow,
+            result=result,
+        )
+
+        if argsNow.resultKeep:
+            warnings.warn(
+                "Result will keep, but it may cause memory overallocated.")
+            self.exps[self.IDNow]['result'] = result
+
+        else:
+            del self.exps[self.IDNow]['result']
+
+        for k in quantity:
+            if k[0] == '_' and k != '_dummy':
+                self.exps[self.IDNow]['sideProduct'][k[1:]] = quantity[k]
+            if k == '_dummy':
+                withCounts = True
+                
+        for k, v in __log.items():
+            self.exps[self.IDNow]['sideProduct'][k] = v
+
+        quantity = {k: quantity[k] for k in quantity if k[0] != '_'}
+        self.exps[self.IDNow] = {
+            **self.exps[self.IDNow],
+            **quantity,
+            'counts': counts,
+        }
+
+        gc.collect()
+        print(f"| End...\n"+f"+"+"-"*20)
+
+        return (quantity, counts) if withCounts else quantity
+        
+    @abstractmethod
+    def measure(self) -> Union[Quantity, tuple[Quantity, Counts]]:
+        """Computing specific squantity.
+        Where should be overwritten by each construction of new measurement.
+
+        Returns:
+            tuple[dict, dict]:
+                Counts, purity, entropy of experiment.
+        """
+        ...
+
+    def measure(
+        self,
+        wave: Union[QuantumCircuit, any, None] = None,
+        expsName: str = 'exps',
+        withCounts: bool = False,
+        **otherArgs: any
+    ):
+        """
+
+        Args:
+            wave (Union[QuantumCircuit, int, None], optional):
+                The index of the wave function in `self.waves` or add new one to calaculation,
+                then choose one of waves as the experiment material.
+                If input is `QuantumCircuit`, then add and use it.
+                If input is the key in `.waves`, then use it.
+                If input is `None` or something illegal, then use `.lastWave'.
+                Defaults to None.
+
+            expsName (str, optional):
+                Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
+                This name is also used for creating a folder to store the exports.
+                Defaults to `'exps'`.
+
+            otherArgs (any):
+                Other arguments.
+
+        Returns:
+            dict: The output.
+        """
+
+        warnings.warn(
+            "This function is not yet configured with not completed function.",
+            UnconfiguredWarning
+        )
+
+        return self.output(
+            wave=wave,
+            expsName=expsName,
+            withCounts=withCounts,
+            **otherArgs,
+        )
+        
+    """ Execution Multiple """
+    
+    def resourceCheck(self) -> None:
+        """_summary_
+        """
+        self.resourceWatch()
+        self.resourceWatch.report()
+        
+    # def pending(self):
