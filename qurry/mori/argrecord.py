@@ -6,7 +6,7 @@ import warnings
 
 class argdict(dict):
     __name__ = 'argdict'
-
+    __version__ = (0, 3, 0)
     def __init__(
         self,
         params: dict[any],
