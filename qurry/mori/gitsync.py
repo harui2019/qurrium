@@ -53,7 +53,7 @@ class syncControl(list):
         """
         printArgs = {k: v for k, v in printArgs.items() if k != 'file'}
         printArgs = {**self.defaultPrintArgs, **printArgs}
-        OpenArgs = {k: v for k, v in OpenArgs.items() if k != 'file'}
+        openArgs = {k: v for k, v in openArgs.items() if k != 'file'}
         openArgs = {**self.defaultOpenArgs, **openArgs}
 
         with open(
