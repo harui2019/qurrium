@@ -87,7 +87,7 @@ class Qurry:
         # Qiskit argument of experiment.
         # Multiple jobs shared
         shots: int = 1024
-        backend: Backend = Aer.get_backend('aer_simulator')
+        backend: Backend = AerProvider().get_backend('aer_simulator')
         provider: Optional[AccountProvider] = None
         runArgs: dict = {}
 
@@ -203,7 +203,7 @@ class Qurry:
         # Configuration of `IBMQJobManager().run`
         # Multiple jobs shared
         shots: int = 1024
-        backend: Backend = Aer.get_backend('aer_simulator')
+        backend: Backend = AerProvider().get_backend('aer_simulator')
         provider: AccountProvider = None
         runConfig: dict = {}
 
@@ -574,7 +574,7 @@ class Qurry:
         self,
         wave: Union[list[Hashable], Hashable, None] = None,
         runBy: Optional[Literal['gate', 'operator', 'instruction', 'copy']] = None,
-        backend: Optional[Backend] = Aer.get_backend('aer_simulator'),
+        backend: Optional[Backend] = AerProvider().get_backend('aer_simulator'),
     ) -> waveGetter[waveReturn]:
         """Parse wave Circuit into `Instruction` as `Gate` or `Operator` on `QuantumCircuit`.
 
@@ -589,7 +589,7 @@ class Qurry:
             backend (Optional[Backend], optional):
                 Current backend which to check whether exports to `IBMQBacked`,
                 if does, then no matter what option input at `runBy` will export `Gate`.
-                Defaults to Aer.get_backend('aer_simulator').
+                Defaults to AerProvider().get_backend('aer_simulator').
 
         Returns:
             waveReturn: The result of the wave as `Gate` or `Operator`.
@@ -777,7 +777,7 @@ class Qurry:
         # Qiskit argument of experiment.
         # Multiple jobs shared
         shots: int = 1024,
-        backend: Backend = Aer.get_backend('aer_simulator'),
+        backend: Backend = AerProvider().get_backend('aer_simulator'),
         provider: Optional[AccountProvider] = None,
         runArgs: dict = {},
         # Single job dedicated
@@ -806,7 +806,7 @@ class Qurry:
             # Qiskit argument of experiment.
             # Multiple jobs shared
             'shots': 1024,
-            'backend': Aer.get_backend('aer_simulator'),
+            'backend': AerProvider().get_backend('aer_simulator'),
             'runArgs': {},
             'expsName': 'exps',
 
@@ -855,7 +855,7 @@ class Qurry:
 
             backend (Backend, optional):
                 The quantum backend.
-                Defaults to `Aer.get_backend('aer_simulator')`.
+                Defaults to `AerProvider().get_backend('aer_simulator')`.
 
             provider (Optional[AccountProvider], optional):
                 :cls:`AccountProvider` of current backend for running :cls:`IBMQJobManager`.

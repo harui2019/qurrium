@@ -12,7 +12,6 @@ from qiskit.quantum_info import Operator
 from qiskit.circuit.gate import Gate
 from qiskit.result import Result
 
-from qiskit.providers import Backend, BaseJob, JobError
 from qiskit.providers.ibmq import IBMQBackend
 from qiskit.providers.ibmq.managed import (
     IBMQJobManager,
