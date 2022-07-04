@@ -230,6 +230,7 @@ class Qurry:
         listFile: list = []
 
         tagMapExpsID: TagMapType[str] = TagMap()
+        tagMapFiles: TagMapType[str] = TagMap()
         tagMapIndex: TagMapType[Union[str, int]] = TagMap()
         tagMapQuantity: TagMapType[Quantity] = TagMap()
         tagMapCounts: TagMapType[Counts] = TagMap()
@@ -240,6 +241,67 @@ class Qurry:
 
         jobsType: str = "multiJobs"
         state: str = "init"
+        
+    def expsMultiBase(
+        self,
+        name: str = 'qurryMultiBase',
+        defaultArg: dict = {
+            # Arguments of experiment.
+        },
+    ) -> Configuration:
+        """The default storage format and values of a single experiment.
+        - Example:
+
+        ```python
+        _expsBase = expsBase(
+            name='dummyBase',
+            expsConfig= _expsConfig,
+            defaultArg={
+                'dummyResult1': None,
+                'dummyResult2': None,
+            },
+        )
+        ```
+        Then `_expsBase` will be
+        ```python
+        {
+            # Reault of experiment.
+            'echo': -100,
+
+            # Measurement result
+            'circuit': None,
+            'figRaw': 'unexport',
+            'figTranspile': 'unexport',
+            'result': None,
+            'counts': None,
+
+            # Export data
+            'jobID': '',
+        }
+        ```
+
+        Args:
+            name (str, optional):
+                Name of basic configuration for `Qurry`.
+                Defaults to 'qurryExpsBase'.
+            expsConfig (dict, optional):
+                `expsConfig`.
+                Defaults to {}.
+            defaultArg (dict, optional):
+                Basic input for `.output`.
+                Defaults to {}.
+
+        Returns:
+            Configuration: The template of experiment data.
+        """
+        return Configuration(
+            name=name,
+            default={
+                **defaultArg,
+                **self.now._asdict(),
+                **self.expsMain._asdict(),
+            },
+        )
 
     # TODO: make hint available in qurry
 

@@ -2213,15 +2213,16 @@ class Qurry:
             dataDummyJobs[tmk] = keyTupleLoads(dataDummyJobs[tmk])
         
         # TODO: remake multiRead
-        for n in [    
-            'tagMapQuantity',
-            'tagMapCounts',
-        ]:
-            with open(
-                    argsMulti.exportLocation /
-                f"{argsMulti.expsName}.{n}.json",
-                    'r', encoding='utf-8') as File:
-                dataDummyJobs[n] = json.load(File)
+        if dataDummyJobs['state'] == "completed":
+            for n in [    
+                'tagMapQuantity',
+                'tagMapCounts',
+            ]:
+                with open(
+                        argsMulti.exportLocation /
+                    f"{argsMulti.expsName}.{n}.json",
+                        'r', encoding='utf-8') as File:
+                    dataDummyJobs[n] = json.load(File)
             
         if dataDummyJobs['saveLocation'] != argsMulti.saveLocation:
             dataDummyJobs['saveLocation'] = argsMulti.saveLocation

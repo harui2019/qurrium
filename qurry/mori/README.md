@@ -17,7 +17,7 @@ Definitely NOT because I'm a DeadBeat, the fan of Hololive VTuber Mori Calliope,
 
 ## Git Subtree Command
 
-`git subtree push --prefix qurry/qurry/mori git@github.com:harui2019/mori.git master`
+`git subtree push --prefix qurry/mori git@github.com:harui2019/mori.git master`
 
 ---
 
