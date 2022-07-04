@@ -61,7 +61,7 @@ def defaultCircuit(numQubit: int) -> QuantumCircuit:
         numQubit, numQubit, name=f'qurry_default_{numQubit}')
 
 
-class Qurry:
+class QurryV3:
     """Qurry V0.3.1
     The qiskit job tool
     """
@@ -413,7 +413,7 @@ class Qurry:
         self,
         name: str = 'qurryBaseHint',
         hintContext: dict = {
-            "_basicHint": "This is a hint of qurry.",
+            "_basicHint": "This is a hint of QurryV3.",
         },
     ) -> dict:
         """Make hints for every values in :func:`.expsBase()`.
@@ -450,7 +450,7 @@ class Qurry:
             hintContext (dict, optional):
                 Hints for `.expBase`.
                 Defaults to `{
-                    "_basicHint": "This is a hint of qurry.",
+                    "_basicHint": "This is a hint of QurryV3.",
                 }`.
 
         Returns:
@@ -465,7 +465,7 @@ class Qurry:
     
     @abstractmethod
     def initialize(self) -> dict[str, any]:
-        """Configuration to Initialize Qurry.
+        """Configuration to Initialize QurryV3.
 
         Returns:
             dict[str, any]: The basic configuration of `Qurry`.
@@ -486,7 +486,7 @@ class Qurry:
         self,
         waves: Union[QuantumCircuit, list[QuantumCircuit]] = defaultCircuit(1),
     ) -> None:
-        """The initialization of Qurry.
+        """The initialization of QurryV3.
 
         Args:
             waves (Union[QuantumCircuit, list[QuantumCircuit]], optional):
@@ -1020,7 +1020,7 @@ class Qurry:
 
         # Export all arguments
         parsedOther = self.paramsControlCore(**otherArgs)
-        self.now: Union[Qurry.argsMain, Qurry.argsCore] = argdict(
+        self.now: Union[QurryV3.argsMain, QurryV3.argsCore] = argdict(
             params={
                 **self._expsConfig.make(),
                 # ID of experiment.
@@ -1120,7 +1120,7 @@ class Qurry:
 
     def circuitMethod(self) -> list[QuantumCircuit]:
 
-        argsNow: Union[Qurry.argsMain, Qurry.argsCore] = self.now
+        argsNow: Union[QurryV3.argsMain, QurryV3.argsCore] = self.now
         circuit = self.waves[argsNow.wave]
         numQubits = circuit.num_qubits
         print(
@@ -1581,7 +1581,7 @@ class Qurry:
             dataRetrieve=dataRetrieve,
             **allArgs,
         )
-        argsNow: Union[Qurry.argsMain, Qurry.argsCore] = self.now
+        argsNow: Union[QurryV3.argsMain, QurryV3.argsCore] = self.now
         print(f"| name: {argsNow.expsName}\n"+f"| id: {self.IDNow}")
 
         counts, quantity = self.quantity(
@@ -1881,7 +1881,7 @@ class Qurry:
         # gitignore
         gitignore = syncControl()
 
-        self.multiNow: Qurry.argsMultiMain = argdict(
+        self.multiNow: QurryV3.argsMultiMain = argdict(
             params=sortHashableAhead({
                 **self._expsMultiConfig.make(),
                 **otherArgs,

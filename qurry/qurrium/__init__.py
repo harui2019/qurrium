@@ -1,4 +1,5 @@
-from .qurry import Qurry, defaultCircuit
+from .qurryV3 import QurryV3 as Qurry
+from .qurryV4 import QurryV4
 from .type import (
     Quantity,
     Counts,
