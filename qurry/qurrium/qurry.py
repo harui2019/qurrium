@@ -3,21 +3,18 @@ from qiskit import (
     QuantumRegister, ClassicalRegister, QuantumCircuit
 )
 from qiskit.providers.aer import AerProvider
-
 from qiskit.quantum_info import Operator
-from qiskit.circuit.gate import Gate
-from qiskit.circuit.instruction import Instruction
+from qiskit.circuit import Gate, Instruction
 from qiskit.result import Result
 from qiskit.providers import Backend, JobError, JobStatus
-from qiskit.providers.ibmq import IBMQBackend
+from qiskit.providers.ibmq import IBMQBackend, IBMQJobManager, AccountProvider
 from qiskit.providers.ibmq.managed import (
-    IBMQJobManager,
     # ManagedJobSet,
     # ManagedJob,
     ManagedResults,
+    IBMQManagedResultDataNotAvailable,
     IBMQJobManagerInvalidStateError,
     IBMQJobManagerUnknownJobSet)
-from qiskit.providers.ibmq.accountprovider import AccountProvider
 
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
