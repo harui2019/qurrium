@@ -10,7 +10,8 @@ This is a package which indepents from the data structure of Qurry 🍛 for easi
 
 ## Why this name ?
 
-I'm a DeadBeat, the fan of Hololive VTuber Mori Calliope, and want to name something after her for a not short time.
+There are many dedicated data structures for Qurry 🍛 If we say one of them like a tree in forest, then all data structures combine, it makes a forest or '森' mori in Japanese.
+Definitely NOT because I'm a DeadBeat, the fan of Hololive VTuber Mori Calliope, and I didn't want to name something after her for a not short time.
 
 ---
 
