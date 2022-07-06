@@ -10,7 +10,7 @@ from pathlib import Path
 from math import pi
 from typing import Callable, Optional, Union, NamedTuple, overload
 
-from ..util import argdict
+from ..mori import argdict
 from .widget import *
 
 
