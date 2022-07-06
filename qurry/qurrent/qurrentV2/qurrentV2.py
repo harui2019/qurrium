@@ -1,25 +1,20 @@
 from qiskit import (
-    Aer,
-    execute,
-    transpile,
-    QuantumRegister,
-    ClassicalRegister,
-    QuantumCircuit)
-from qiskit.tools import *
-from qiskit.visualization import *
-
+    execute, transpile,
+    QuantumRegister, ClassicalRegister, QuantumCircuit
+)
+from qiskit.providers.aer import AerProvider
 from qiskit.quantum_info import Operator
-from qiskit.circuit.gate import Gate
+from qiskit.circuit import Gate, Instruction
 from qiskit.result import Result
-
-from qiskit.providers.ibmq import IBMQBackend
+from qiskit.providers import Backend, JobError, JobStatus
+from qiskit.providers.ibmq import IBMQBackend, IBMQJobManager, AccountProvider
 from qiskit.providers.ibmq.managed import (
-    IBMQJobManager,
     ManagedJobSet,
+    # ManagedJob,
     ManagedResults,
+    IBMQManagedResultDataNotAvailable,
     IBMQJobManagerInvalidStateError,
     IBMQJobManagerUnknownJobSet)
-from qiskit.providers.ibmq.accountprovider import AccountProvider
 
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
@@ -29,16 +24,10 @@ import glob
 import json
 import gc
 import warnings
-
-from math import pi
+import os
 from uuid import uuid4
 from pathlib import Path
-from typing import (
-    Union,
-    Optional,
-    Annotated,
-    Callable
-)
+from typing import Union, Optional, Annotated, Callable
 
 from ...mori import (
     Configuration,
@@ -64,7 +53,7 @@ qurrentConfig = Configuration(
         'shots': 1024,
 
         'runBy': "gate",
-        'backend': Aer.get_backend('qasm_simulator'),
+        'backend': AerProvider().get_backend('qasm_simulator'),
         'drawMethod': 'text',
         'decompose': 1,
         'resultKeep': False,
@@ -95,7 +84,7 @@ measureBase = Configuration(
         'params': None,
         'runBy': "gate",
         'shots': 1024,
-        'backend': Aer.get_backend('qasm_simulator'),
+        'backend': AerProvider().get_backend('qasm_simulator'),
         'drawMethod': 'text',
         'decompose': 1,
         'resultKeep': False,
@@ -353,7 +342,7 @@ class EntropyMeasureV2:
         self,
         wave: Optional[any] = None,
         runBy: Optional[str] = 'gate',
-        backend: Optional[Backend] = Aer.get_backend('qasm_simulator'),
+        backend: Optional[Backend] = AerProvider().get_backend('qasm_simulator'),
     ) -> Union[Gate, Operator]:
         """Parse wave Circuit into `Instruction` as `Gate` or `Operator` on `QuantumCircuit`.
 
@@ -368,7 +357,7 @@ class EntropyMeasureV2:
             backend (Optional[Backend], optional): 
                 Current backend which to check whether exports to `IBMQBacked`, 
                 if does, then no matter what option input at `runBy` will export `Gate`. 
-                Defaults to Aer.get_backend('qasm_simulator').
+                Defaults to AerProvider().get_backend('qasm_simulator').
 
         Returns:
             Union[Gate, Operator]: The result of the wave as `Gate` or `Operator`.
@@ -561,7 +550,7 @@ class EntropyMeasureV2:
         params: Union[list[int], dict[int], int, None] = None,
         runBy: str = "gate",
         shots: int = 1024,
-        backend: Backend = Aer.get_backend('qasm_simulator'),
+        backend: Backend = AerProvider().get_backend('qasm_simulator'),
         drawMethod: Optional[str] = 'text',
         decompose: Optional[int] = 2,
         resultKeep: bool = False,
@@ -594,7 +583,7 @@ class EntropyMeasureV2:
                 Defaults to 1024.
             backend (Backend, optional): 
                 The quantum backend.
-                Defaults to Aer.get_backend('qasm_simulator').
+                Defaults to AerProvider().get_backend('qasm_simulator').
             drawMethod (Optional[str], optional): 
                 Draw quantum circuit by "text", "matplotlib", or "latex".
                 Defaults to 'text'.
@@ -809,7 +798,7 @@ class EntropyMeasureV2:
         expID: Optional[str] = None,
         drawMethod: Optional[str] = 'text',
         decompose: Optional[int] = 0,
-        backend: Backend = Aer.get_backend('qasm_simulator'),
+        backend: Backend = AerProvider().get_backend('qasm_simulator'),
     ) -> Union[str, Figure]:
         """Drawing the circuit figure of the experiment
 
@@ -1076,7 +1065,7 @@ class EntropyMeasureV2:
     def jobOnly(
         self,
         **allArgs: any,
-    ) -> tuple[BaseJob, list[str]]:
+    ) -> tuple[any, list[str]]:
         """Export the job of experiments.
 
         https://github.com/Qiskit/qiskit-terra/issues/4778
@@ -1139,7 +1128,6 @@ class EntropyMeasureV2:
             Optional[list[dict]]: The result of the job.
         """
 
-        job: BaseJob
         jobID: list[str]
         job, jobID = self.jobOnly(**allArgs)
         IDNow, argsNow = self.IDNow, self.now
@@ -1436,7 +1424,7 @@ class EntropyMeasureV2:
                 The list of configuration for each experiment. 
             backend (Backend): 
                 The quantum backend.
-                Defaults to Aer.get_backend('qasm_simulator').
+                Defaults to AerProvider().get_backend('qasm_simulator').
             shots (int, optional): 
                 Shots of the job.
                 Defaults to 1024.
