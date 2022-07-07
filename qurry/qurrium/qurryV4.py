@@ -56,15 +56,17 @@ from .type import (
 
 # Qurry V0.4.0 - a Qiskit Macro
 
+
 def defaultCircuit(numQubit: int) -> QuantumCircuit:
     return QuantumCircuit(
         numQubit, numQubit, name=f'qurry_default_{numQubit}')
+
 
 class QurryV4:
     """Qurry V0.4.0
     The qiskit job tool
     """
-    __version__ = (0,4,0)
+    __version__ = (0, 4, 0)
 
     """ Configuration for single experiment. """
 
@@ -96,14 +98,12 @@ class QurryV4:
         # Other arguments of experiment
         drawMethod: str = 'text'
         resultKeep: bool = False
-        
-        expsName: str = 'exps'
-        additionName: Optional[str] = None
+
         saveLocation: Union[Path, str] = Path('./')
         exportLocation: Path = Path('./')
-        
-        expIndex: Optional[int] = None,
-        
+
+        expIndex: Optional[int] = None
+
     class expsMain(NamedTuple):
         # Measurement result
         circuit: list[QuantumCircuit] = []
@@ -175,8 +175,9 @@ class QurryV4:
             name=name,
             default={
                 **defaultArg,
-                **self.now._asdict(),
-                **self.expsMain._asdict(),
+                **self.argsMain()._asdict(),
+                **self.argsCore()._asdict(),
+                **self.expsMain()._asdict(),
             },
         )
 
@@ -214,20 +215,22 @@ class QurryV4:
         # Other arguments of experiment
         # Multiple jobs shared
         expsName: str = 'exps'
-        additionName: Optional[str] = None
         saveLocation: Union[Path, str] = Path('./')
         exportLocation: Path = Path('./')
 
-        jobsType: Literal["multiJobs", "powerJobID"] = "multiJobs"
+        jobsType: Literal["multiJobs", "powerJobs"] = "multiJobs"
         isRetrieve: bool = False
-        independentExports: list[str] = ['tagMapQuantity', 'tagMapCounts', 'tagMapResult']
-        
+        independentExports: list[str] = [
+            'tagMapQuantity', 'tagMapCounts', 'tagMapResult',
+            'tagMapExpsID', 'tagMapFiles', 'tagMapIndex', 'tagMapCircuits'
+        ]
+
     class expsMultiMain(NamedTuple):
         # configList
         configList: list = []
-        
+
         gitignore: syncControl = syncControl()
-        
+
         # independentExports
         tagMapQuantity: TagMapType[Quantity] = TagMap()
         tagMapCounts: TagMapType[Counts] = TagMap()
@@ -241,8 +244,8 @@ class QurryV4:
         tagMapCircuits: TagMapType[str] = TagMap()
         circuitsNum: dict[str, int] = {}
 
-        state: Literal["init", "pending", "retrieved"] = "init"
-        
+        state: Literal["init", "pending", "completed"] = "init"
+
     def expsMultiBase(
         self,
         name: str = 'qurryMultiBase',
@@ -299,8 +302,8 @@ class QurryV4:
             name=name,
             default={
                 **defaultArg,
-                **self.now._asdict(),
-                **self.expsMain._asdict(),
+                **self.argsMultiMain()._asdict(),
+                **self.expsMultiMain()._asdict(),
             },
         )
 
@@ -354,7 +357,7 @@ class QurryV4:
             dict: The hints of the experiment data.
         """
 
-        hintDefaults = {k: "" for k in self.expsConfig()}
+        hintDefaults = {k: "" for k in self.expsBase()}
         hintDefaults = {**hintDefaults, **hintContext}
         return hintDefaults
 
@@ -375,8 +378,6 @@ class QurryV4:
         self._expsMultiBase = self.expsMultiBase()
         self.shortName = 'qurry'
         self.__name__ = 'Qurry'
-
-        return self._expsConfig, self._expsBase,
 
     jobManager = IBMQJobManager()
 
@@ -399,7 +400,7 @@ class QurryV4:
         # basic check
         if hasattr(self, 'initialize'):
             self.initialize()
-            for k in ['_expsConfig', '_expsBase', '_expsHint', 'shortName']:
+            for k in ['expsMultiBase', '_expsBase', '_expsHint', 'shortName']:
                 if not hasattr(self, k):
                     raise AttributeError(
                         f"'{k}' is lost, initialization stop.")
@@ -428,9 +429,9 @@ class QurryV4:
         self.exps = {}
         self.expsBelong = {}
         self.expsMulti = argdict(
-            params=self.expsMultiMain._asdict()
-        ) # reresh per execution.
-        
+            params=self.expsMultiMain()._asdict()
+        )  # reresh per execution.
+
         # TODO: add params control
         self.resourceWatch = ResoureWatch()
 
@@ -441,13 +442,12 @@ class QurryV4:
         )
 
         # For reading arguments.
-        self.now: Union[QurryV4.argsMain, QurryV4.argsCore] = self.namedtupleNow(**{ 
+        self.now: Union[QurryV4.argsMain, QurryV4.argsCore] = self.namedtupleNow(**{
             **self.argsCore()._asdict(), **self.argsMain()._asdict()
         })
         self.IDNow = ''
         self.multiNow: QurryV4.argsMultiMain = self.argsMultiMain()
 
-        
     """Wave Function"""
     @staticmethod
     def decomposer(
@@ -525,10 +525,10 @@ class QurryV4:
                     genKey += 1
                 key = genKey
                 self.waves[key] = waveCircuit
-                
+
             else:
                 self.waves[key] = waveCircuit
-    
+
             self.lastWave = key
             return self.lastWave
 
@@ -551,10 +551,9 @@ class QurryV4:
         else:
             warnings.warn("The input is not a 'QuantumCircuit'.")
             return None
-        
 
     def hasWave(
-        self, 
+        self,
         wavename: Hashable,
     ) -> bool:
         """Is there a wave with specific name.
@@ -570,8 +569,10 @@ class QurryV4:
     def waveCall(
         self,
         wave: Union[list[Hashable], Hashable, None] = None,
-        runBy: Optional[Literal['gate', 'operator', 'instruction', 'copy']] = None,
-        backend: Optional[Backend] = AerProvider().get_backend('aer_simulator'),
+        runBy: Optional[Literal['gate', 'operator',
+                                'instruction', 'copy']] = None,
+        backend: Optional[Backend] = AerProvider(
+        ).get_backend('aer_simulator'),
     ) -> waveGetter[waveReturn]:
         """Parse wave Circuit into `Instruction` as `Gate` or `Operator` on `QuantumCircuit`.
 
@@ -766,7 +767,7 @@ class QurryV4:
             'sampling': sampling,
             **otherArgs,
         }
-        
+
     def paramsControlMain(
         self,
         # ID of experiment.
@@ -916,7 +917,7 @@ class QurryV4:
             self.expsBelong[tags].append(self.IDNow)
         else:
             self.expsBelong[tags] = [self.IDNow]
-            
+
         # TODO: add params control
         self.resourceWatch = ResoureWatch(
             **otherArgs
@@ -924,12 +925,12 @@ class QurryV4:
 
         # Export all arguments
         parsedOther = self.argsCore(
-           **self.paramsControlCore(**otherArgs)
+            **self.paramsControlCore(**otherArgs)
         )
-        self.now: Union[QurryV4.argsMain, QurryV4.argsCore] = self.namedtupleNow(**{ 
+        self.now: Union[QurryV4.argsMain, QurryV4.argsCore] = self.namedtupleNow(**{
             # ID of experiment.
             'expID': self.IDNow,
-            
+
             # Qiskit argument of experiment.
             # Multiple jobs shared
             'shots': shots,
@@ -938,17 +939,17 @@ class QurryV4:
             'runArgs': runArgs if not 'runConfig' in otherArgs else {
                 **runArgs, **otherArgs['runConfig'],
             },
-            
+
             # Single job dedicated
             'runBy': 'gate' if isinstance(backend, IBMQBackend) else runBy,
             'decompose': decompose,
             'transpileArgs': transpileArgs,
-            
+
             # Other arguments of experiment
             'drawMethod': drawMethod,
             'resultKeep': resultKeep,
             'tags': tags,
-            
+
             **parsedOther,
         })
         self.exps[self.IDNow] = {
@@ -957,7 +958,7 @@ class QurryV4:
         }
 
         return self.now
-    
+
     @abstractmethod
     def method(self) -> list[QuantumCircuit]:
         """The method to construct circuit.
@@ -977,7 +978,7 @@ class QurryV4:
             f"| Directly call: {self.now.wave} with sampling {argsNow.sampling}")
 
         return [circuit for i in range(argsNow.sampling)]
-    
+
     def build(
         self,
         **allArgs: any,
@@ -992,7 +993,8 @@ class QurryV4:
         argsNow = self.paramsControlMain(**allArgs)
 
         # circuit
-        circuitSet = self.circuitMethod() if hasattr(self, 'circuitMethod') else self.method()
+        circuitSet = self.circuitMethod() if hasattr(
+            self, 'circuitMethod') else self.method()
         self.exps[self.IDNow]['circuit'] = circuitSet
 
         # draw
@@ -1016,11 +1018,10 @@ class QurryV4:
         self.exps[self.IDNow]['figRaw'] = figRaw
 
         return circuitSet
-    
+
     def writeLegacy(
         self,
         expID: Optional[str] = None,
-        additionName: Optional[str] = None,
         saveLocation: Optional[Union[Path, str]] = None,
         excepts: list = [],
         _isMulti: bool = False,
@@ -1029,25 +1030,18 @@ class QurryV4:
 
         - example of file.name:
 
-            `{name}.{self.exps[expID]['expsName']}.expId={expID}.json`
+            >>> {name}.{self.exps[expID]['expsName']}.expId={expID}.json
+
+            In `self.exps`,
+            >>> filename = ((
+                Path(f"{self.exps[legacyId]['expsName']}.expId={legacyId}.json")
+            )
+            >>> self.exps[legacyId]['filename'] = filename
 
         Args:
             expID (Optional[str], optional):
                 The id of the experiment will be exported.
                 If `expID == None`, then export the experiment which id is`.IDNow`.
-                Defaults to `None`.
-
-            additionName (Optional[str], optional):
-                Extend file name.
-
-                ```
-                filename = (
-                    Path(f"{additionName}.{self.exps[legacyId]['expsName']}.expId={legacyId}.json")
-                ) if additionName else (
-                    Path(f"{self.exps[legacyId]['expsName']}.expId={legacyId}.json")
-                )
-                self.exps[legacyId]['filename'] = filename
-                ```
                 Defaults to `None`.
 
             saveLocation (Optional[Union[Path, str]], optional):
@@ -1070,11 +1064,7 @@ class QurryV4:
             return {}
 
         # filename
-        filename = (
-            f"{additionName}.{self.exps[legacyId]['expsName']}.expId={legacyId}"
-        ) if additionName else (
-            f"{self.exps[legacyId]['expsName']}.expId={legacyId}"
-        )
+        filename = f"{self.exps[legacyId]['expsName']}.expId={legacyId}"
         self.exps[legacyId]['filename'] = filename
 
         # filter
@@ -1099,7 +1089,7 @@ class QurryV4:
                     saveLocParts) > 0 else Path('./')
                 for p in saveLocParts[1:]:
                     saveLoc /= p
-                    
+
                 if _isMulti:
                     saveLoc = saveLoc / 'legacy'
 
@@ -1177,15 +1167,18 @@ class QurryV4:
                 "'saveLocation' needs to be the type of 'str' or 'Path'.")
 
         if _isMulti:
-            saveLocation = saveLocation / 'legacy'
-        if not os.path.exists(saveLocation):
-            raise FileNotFoundError(f"Such location not found: {saveLocation}")
+            saveLocationLegacy = saveLocation / 'legacy'
+            if os.path.exists(saveLocationLegacy):
+                saveLocation = saveLocationLegacy
+            else:
+                print(f"| QurryV3 data readed.")
 
         legacyRead = {}
         if expID != None:
             lsfolder = glob.glob(str(saveLocation / f"*{expID}*.json"))
             if len(lsfolder) == 0:
-                raise FileNotFoundError(f"The file 'expID={expID}' not found at '{saveLocation}'.")
+                raise FileNotFoundError(
+                    f"The file 'expID={expID}' not found at '{saveLocation}'.")
 
             for p in lsfolder:
                 with open(p, 'r', encoding='utf-8') as Legacy:
@@ -1204,7 +1197,7 @@ class QurryV4:
 
         legacyRead = {
             **self.expsBaseExcepts(),
-            **{ k: v for k, v in legacyRead.items() if k not in excepts },
+            **{k: v for k, v in legacyRead.items() if k not in excepts},
         }
 
         if isinstance(legacyRead, dict):
@@ -1235,14 +1228,14 @@ class QurryV4:
         """
         circuitSet = self.circuitBuild(**allArgs)
         argsNow = self.now
-        
+
         gajima = Gajima(
             prefix="| ",
             desc="Transpile circuits",
             finish_desc="Transpile finished",
         )
         gajima.run()
-        
+
         # transpile
         circs = transpile(
             circuitSet if isinstance(circuitSet, list) else [circuitSet],
@@ -1250,7 +1243,7 @@ class QurryV4:
             **argsNow.transpileArgs,
         )
 
-        figTranspile = []            
+        figTranspile = []
         if isinstance(circs, QuantumCircuit):
             figTranspile.append(self.drawCircuit(
                 expID=None,
@@ -1268,15 +1261,15 @@ class QurryV4:
                     drawMethod=argsNow.drawMethod,
                     decompose=argsNow.decompose,
                 ))
-            
+
         else:
             raise TypeError(f"Unknown type '{type(circs)}'")
 
         self.exps[self.IDNow]['figTranspile'] = figTranspile
         return circs
-    
+
     """ Execution single """
-    
+
     def run(
         self,
         **allArgs: any,
@@ -1304,11 +1297,11 @@ class QurryV4:
         self.exps[self.IDNow]['dateCreate'] = date
         result = execution.result()
         self.exps[self.IDNow]['result'] = result
-        
+
         return result
-    
+
     """ Result processing """
-    
+
     @abstractclassmethod
     def counts(cls) -> Counts:
         """Get counts.
@@ -1317,7 +1310,7 @@ class QurryV4:
         Returns:
             Counts: Counts of experiment.
         """
-    
+
     @classmethod
     def counts(
         cls,
@@ -1349,7 +1342,7 @@ class QurryV4:
                 continue
 
         return counts
-    
+
     @abstractclassmethod
     def quantities(cls) -> dict[str, float]:
         """Computing specific squantity.
@@ -1358,25 +1351,27 @@ class QurryV4:
         Returns:
             dict[str, float]: Counts, purity, entropy of experiment.
         """
-    
+
     @classmethod
     def quantities(
         cls,
         shots: int,
         counts: Counts,
         num: int = 1,
+        __log: dict[str] = {},
         **otherArgs,
     ):
-        
+
         dummy = -100
         quantity = {
             '_dummy': dummy,
             'sampling': num,
+            **__log,
         }
         return counts, quantity
-    
+
     """ Output single """
-    
+
     def output(
         self,
         withCounts: bool = False,
@@ -1392,14 +1387,15 @@ class QurryV4:
             dict[float]: The result.
         """
         print(f"+"+"-"*20+"\n"+f"| Calculating {self.__name__}...")
-        
+
         result = self.run(**allArgs,)
         argsNow: Union[QurryV4.argsMain, QurryV4.argsCore] = self.now
         print(f"| name: {argsNow.expsName}\n"+f"| id: {self.IDNow}")
 
-        counts, quantity = self.quantity(
+        counts, quantity = self.quantities(
             **argsNow,
             result=result,
+            __log=__log,
         )
 
         if argsNow.resultKeep:
@@ -1415,7 +1411,7 @@ class QurryV4:
                 self.exps[self.IDNow]['sideProduct'][k[1:]] = quantity[k]
             if k == '_dummy':
                 withCounts = True
-                
+
         for k, v in __log.items():
             self.exps[self.IDNow]['sideProduct'][k] = v
 
@@ -1430,7 +1426,7 @@ class QurryV4:
         print(f"| End...\n"+f"+"+"-"*20)
 
         return (quantity, counts) if withCounts else quantity
-        
+
     @abstractmethod
     def measure(self) -> Union[Quantity, tuple[Quantity, Counts]]:
         """Computing specific squantity.
@@ -1483,15 +1479,15 @@ class QurryV4:
             withCounts=withCounts,
             **otherArgs,
         )
-        
+
     """ Execution Multiple """
-    
+
     def resourceCheck(self) -> None:
         """_summary_
         """
         self.resourceWatch()
         self.resourceWatch.report()
-        
+
     @classmethod
     def pending(
         cls,
@@ -1512,7 +1508,7 @@ class QurryV4:
         Returns:
             dict[str, str]: _description_
         """
-        
+
         pendingJob = cls.jobManager.run(
             **managerRunArgs,
             experiments=experiments,
@@ -1522,13 +1518,13 @@ class QurryV4:
         )
         jobID = pendingJob.job_set_id()
         report = pendingJob.report()
-        
+
         return {
             'pendingJob': pendingJob,
             'jobID': jobID,
             'report': report,
         }
-        
+
     @classmethod
     def retrieve(
         cls,
@@ -1546,23 +1542,127 @@ class QurryV4:
         Returns:
             ManagedResults: _description_
         """
-        
+
         retrievedJob = cls.jobManager.retrieve_job_set(
             job_set_id=jobID,
             provider=provider,
             refresh=refresh,
         )
-        
+
         return {
             'retrievedJob': retrievedJob,
         }
-    
+
+    _indexRename = 1
+    _rjustLen = 3
+
+    class _namingComplex(NamedTuple):
+        expsName: str
+        saveLocation: Path
+        exportLocation: Path
+
+    def _multiNaming(
+        self,
+        isRead: bool = False,
+        expsName: str = 'exps',
+        saveLocation: Union[Path, str] = Path('./'),
+    ) -> _namingComplex:
+        """Naming process for multiOutput.
+
+        Args:
+            isRead (bool, optional): 
+                Whether to read the experiment data.
+                Defaults to False.
+
+            expsName (str, optional):
+                Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
+                This name is also used for creating a folder to store the exports.
+                Defaults to `'exps'`.
+
+            saveLocation (Union[Path, str], optional):
+                Where to save the export data. Defaults to Path('./')
+
+        Raises:
+            TypeError: The :arg:`saveLocation` is not a 'str' or 'Path'.
+            FileNotFoundError: The :arg:`saveLocation` is not existed.
+            FileNotFoundError: Can not find the exportation data which will be readed.
+
+        Returns:
+            dict[str, Union[str, Path]]: Name.
+        """
+
+        print(f"| Naming...")
+        if isinstance(saveLocation, (Path, str)):
+            saveLocation = Path(saveLocation)
+        else:
+            raise TypeError(
+                f"The saveLocation '{saveLocation}' is not the type of 'str' or 'Path' but '{type(saveLocation)}'.")
+
+        if not os.path.exists(saveLocation):
+            raise FileNotFoundError(
+                f"Such location not found: '{saveLocation}'.")
+
+        if isRead:
+            immutableName = expsName
+            exportLocation = saveLocation / immutableName
+            if not os.path.exists(exportLocation):
+                raise FileNotFoundError(
+                    f"Such exportation data '{immutableName}' not found at '{saveLocation}', " +
+                    "'exportsName' may be wrong or not in this folder.")
+            print(
+                f"| Retrieve {immutableName}...\n" +
+                f"| at: {exportLocation}"
+            )
+
+        else:
+            expsName = f'{expsName}.{self.shortName}'
+            indexRename = self._indexRename
+
+            immutableName = f"{expsName}.{str(indexRename).rjust(self._rjustLen, '0')}"
+            exportLocation = saveLocation / immutableName
+            while os.path.exists(exportLocation):
+                print(f"| {exportLocation} is repeat location.")
+                indexRename += 1
+                immutableName = f"{expsName}.{str(indexRename).rjust(self._rjustLen, '0')}"
+                exportLocation = saveLocation / immutableName
+            print(
+                f"| Write {immutableName}...\n" +
+                f"| at: {exportLocation}"
+            )
+            os.makedirs(exportLocation)
+
+        namingComplex = self._namingComplex(**{
+            'expsName': immutableName,
+            'saveLocation': saveLocation,
+            'exportLocation': exportLocation,
+        })
+
+        return namingComplex
+
+    _generalJobKeyRequired = ['state']
+    _powerJobKeyRequired = ['powerJobID'] + _generalJobKeyRequired
+    _multiJobKeyRequired = [] + _generalJobKeyRequired
+
+    class _tagMapStateDepending(NamedTuple):
+        tagMapQuantity: TagMapType[Quantity] = TagMap()
+        tagMapCounts: TagMapType[Counts] = TagMap()
+
+    class _tagMapUnexported(NamedTuple):
+        tagMapResult: TagMapType[Result] = TagMap()
+
+    class _tagMapNeccessary(NamedTuple):
+        # with Job.json file
+        tagMapExpsID: TagMapType[str] = TagMap()
+        tagMapFiles: TagMapType[str] = TagMap()
+        tagMapIndex: TagMapType[Union[str, int]] = TagMap()
+
+        tagMapCircuits: TagMapType[str] = TagMap()
 
     def paramsControlMulti(
         self,
         # configList
         configList: list = [],
-        
+
         # Configuration of `IBMQJobManager().run`
         # Multiple jobs shared
         shots: int = 1024,
@@ -1572,33 +1672,34 @@ class QurryV4:
         managerRunArgs: dict[str] = {
             'max_experiments_per_job': 200,
         },
-        powerJobID: Optional[str] = None,
+        powerJobID: Optional[Union[str, list[str]]] = None,
         # Other arguments of experiment
         # Multiple jobs shared
         expsName: str = 'exps',
-        additionName: Optional[str] = None,
         saveLocation: Union[Path, str] = Path('./'),
-        
-        jobsType: Literal["multiJobs", "powerJobID"] = "multiJobs",
+
+        jobsType: Literal["multiJobs", "powerJobs"] = "multiJobs",
         isRetrieve: bool = False,
-        independentExports: list[str] = ['tagMapQuantity', 'tagMapCounts', 'tagMapResult'],
-        
+        isRead: bool = False,
+        independentExports: list[str] = [
+            'tagMapQuantity', 'tagMapCounts', 'tagMapResult'],
+
         # storage
-        gitignore: syncControl = syncControl(),
-        # independentExports
-        tagMapQuantity: TagMapType[Quantity] = TagMap(),
-        tagMapCounts: TagMapType[Counts] = TagMap(),
-        # tagMapResult: TagMapType[Result] = TagMap(),
+        # gitignore: syncControl = syncControl(),
+        # # independentExports
+        # tagMapQuantity: TagMapType[Quantity] = TagMap(),
+        # tagMapCounts: TagMapType[Counts] = TagMap(),
+        # # tagMapResult: TagMapType[Result] = TagMap(),
 
-        # with Job.json file
-        tagMapExpsID: TagMapType[str] = TagMap(),
-        tagMapFiles: TagMapType[str] = TagMap(),
-        tagMapIndex: TagMapType[Union[str, int]] = TagMap(),
-        # circuitsMap: TagMapType[str] = TagMap(),
-        tagMapCircuits: TagMapType[str] = TagMap(),
-        circuitsNum: dict[str, int] = {},
+        # # with Job.json file
+        # tagMapExpsID: TagMapType[str] = TagMap(),
+        # tagMapFiles: TagMapType[str] = TagMap(),
+        # tagMapIndex: TagMapType[Union[str, int]] = TagMap(),
+        # # circuitsMap: TagMapType[str] = TagMap(),
+        # tagMapCircuits: TagMapType[str] = TagMap(),
+        # circuitsNum: dict[str, int] = {},
 
-        state: Literal["init", "pending", "retrieved"] = "init",
+        state: Literal["init", "pending", "completed"] = "init",
 
         **otherArgs: any,
     ) -> argsMultiMain:
@@ -1633,7 +1734,6 @@ class QurryV4:
             'independentExports': False,
 
             # `writeLegacy`
-            'additionName': 'export',
             'saveLocation': None,
             'exportLocation': None,
         }
@@ -1660,10 +1760,6 @@ class QurryV4:
                 :cls:`AccountProvider` of current backend for running :cls:`IBMQJobManager`.
                 Defaults to `None`.
 
-            runConfig (dict, optional):
-                Configuration of :func:`qiskit.execute`.
-                Defaults to `{}`.
-
             # IBMQJobManager() dedicated
             managerRunArgs (dict, optional):
                 Configuration of :func:`IBMQJobManager().run`.
@@ -1671,41 +1767,31 @@ class QurryV4:
                     'max_experiments_per_job': 200,
                 }`.
 
-            # Other arguments of experiment
-            jobType (str, optional):
-                The type name of the jobs.
-                Defaults to `"multiJobs"`.
-
-            isRetrieve (bool, optional):
-                Whether to retrieve the experiment data.
-                Defaults to `False`.
-
             expsName (str, optional):
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
                 This name is also used for creating a folder to store the exports.
                 Defaults to `'exps'`.
 
-            independentExports (bool, optional):
+            saveLocation (Union[Path, str], optional):
+                Where to save the export data. Defaults to Path('./')
+
+            # Other arguments of experiment
+            jobType (str, optional):
+                The type name of the jobs.
+                Defaults to `"multiJobs"`.
+
+            isRead (bool, optional): 
+                Whether to read the experiment data.
+                Defaults to False.
+
+            isRetrieve (bool, optional):
+                Whether to retrieve the experiment data.
+                Defaults to `False`.
+
+            independentExports (list[str], optional):
                 Making independent output for some data will export in `multiJobs` or `powerJobs`.
                 Defaults to `False`.
 
-            additionName (Optional[str], optional):
-                Extend file name.
-
-                ```
-                filename = (
-                    Path(f"{additionName}.{self.exps[legacyId]['expsName']}.expId={legacyId}.json")
-                ) if additionName else (
-                    Path(f"{self.exps[legacyId]['expsName']}.expId={legacyId}.json")
-                )
-                self.exps[legacyId]['filename'] = filename
-                ```
-                Defaults to `None`.
-
-            saveLocation (Optional[Union[Path, str]], optional):
-                Where to save the export content as `json` file.
-                If `saveLocation == None`, then cancelled the file to be exported.
-                Defaults to `None`.
 
         - example of file.name:
 
@@ -1718,40 +1804,15 @@ class QurryV4:
             argdict: Current arguments.
         """
 
-        # naming
-        print(f"| Naming...")
-        indexRename = 1
-        rjustLen = 3
-        if isinstance(saveLocation, (Path, str)):
-            saveLocation = Path(saveLocation)
-        else:
-            raise TypeError(f"The saveLocation '{saveLocation}' is not the type of 'str' or 'Path'.")
-        
-        
-        if isRetrieve:
-            immutableName = expsName
-            exportLocation = saveLocation / immutableName
-            print(
-                f"| Retrieve {immutableName}...\n" +
-                f"| at: {exportLocation}"
-            )
+        # is reading
+        isRead = isRetrieve | isRead
 
-        else:
-            expsName = f'{expsName}.{self.shortName}'
-            rjustLen = 3 if int(np.log10(indexRename)) + \
-                2 <= 3 else int(np.log10(indexRename))+2
-            immutableName = f"{expsName}.{str(indexRename).rjust(rjustLen, '0')}"
-            exportLocation = saveLocation / immutableName
-            while os.path.exists(exportLocation):
-                print(f"| {exportLocation} is repeat location.")
-                indexRename += 1
-                immutableName = f"{expsName}.{str(indexRename).rjust(rjustLen, '0')}"
-                exportLocation = saveLocation / immutableName
-            print(
-                f"| Write {immutableName}...\n" +
-                f"| at: {exportLocation}"
-            )
-            os.makedirs(exportLocation)
+        # naming
+        namingComplex = self._multiNaming(
+            isRead=isRead,
+            expsName=expsName,
+            saveLocation=saveLocation,
+        )
 
         # configList
         initedConfigList = []
@@ -1762,19 +1823,107 @@ class QurryV4:
                 'backend': backend,
                 'provider': provider,
 
-                'expsName': immutableName,
-                'additionName': additionName,
-                'saveLocation': saveLocation,
-                'exportLocation': exportLocation,
+                'expsName': namingComplex.expsName,
+                'saveLocation': namingComplex.saveLocation,
+                'exportLocation': namingComplex.exportLocation,
 
                 'expIndex': expIndex,
             })
-            
-        # handle v3
-        if 'type' in otherArgs:
-            jobsType = otherArgs['type']
-        if 'circuitsMap' in otherArgs:
-            tagMapCircuits = TagMap(otherArgs['circuitsMap'])
+
+        # read or generate
+        if isRead:
+            dataDummyJobs: dict[any] = {}
+            dataPowerJobsName = namingComplex.exportLocation / \
+                f"{namingComplex.expsName}.multiJobs.json"
+            dataMultiJobsName = namingComplex.exportLocation / \
+                f"{namingComplex.expsName}.powerJobs.json"
+
+            # read
+            if os.path.exists(dataPowerJobsName):
+                with open(dataPowerJobsName, 'r', encoding='utf-8') as theData:
+                    dataDummyJobs = json.load(theData)
+                jobsType = "powerJobs"
+
+            else:
+                with open(dataMultiJobsName, 'r', encoding='utf-8') as theData:
+                    dataDummyJobs = json.load(theData)
+                jobsType = "multiJobs"
+
+            # key check
+            lostKey = []
+            for k in (self._powerJobKeyRequired if jobsType == "powerJobs" else self._multiJobKeyRequired):
+                if k not in dataDummyJobs:
+                    lostKey.append(k)
+            if len(lostKey) > 0:
+                raise ValueError(
+                    f"'{lostKey}' are the key required in 'powerJob', otherwise this file may be broken.")
+
+            # state check
+            if 'state' in dataDummyJobs:
+                state = dataDummyJobs['state']
+            else:
+                warnings.warn(f"'state' no found, use '{state}'.")
+
+            # handle v3 key name and value redefined
+            if 'circuitsMap' in dataDummyJobs:
+                dataDummyJobs['tagMapCircuits'] = dataDummyJobs['circuitsMap']
+            if "independentExports" in dataDummyJobs:
+                dataDummyJobs["independentExports"] = [
+                    'tagMapQuantity', 'tagMapCounts', 'tagMapResult'],
+            if 'listFile' in dataDummyJobs:
+                dataDummyJobs['tagMapFiles'] = {
+                    'noTags': dataDummyJobs['listFile']}
+
+            # tagMapStateDepending
+            if state == 'completed':
+                tagMapStateDepending = self._tagMapStateDepending(
+                    tagMapQuantity=TagMap.read(
+                        saveLocation=namingComplex.exportLocation,
+                        tagmapName='tagMapQuantity',
+                    ),
+                    tagMapCounts=TagMap.read(
+                        saveLocation=namingComplex.exportLocation,
+                        tagmapName='tagMapCounts',
+                    )
+                )
+            else:
+                tagMapStateDepending = self._tagMapStateDepending()
+
+            # tagMapUnexported
+            tagMapUnexported = self._tagMapUnexported()
+            # tagMapNeccessary
+            tagMapNeccessary = self._tagMapNeccessary(**{
+                k: TagMap(dataDummyJobs[k]) if k in dataDummyJobs else TagMap.read(
+                    saveLocation=namingComplex.saveLocation,
+                    tagmapName=k,
+                )
+                for k in self._tagMapNeccessary._fields})
+
+            circuitsNum: dict[str, int] = dataDummyJobs['circuitsNum']
+            gitignore: syncControl = (syncControl(
+                dataDummyJobs['gitignore']) if 'gitignore' in dataDummyJobs else syncControl())
+
+        else:
+            # tagMapStateDepending
+            tagMapStateDepending = self._tagMapStateDepending()
+            # tagMapUnexported
+            tagMapUnexported = self._tagMapUnexported()
+            # tagMapUnexported
+            tagMapNeccessary = self._tagMapNeccessary()
+
+            circuitsNum: dict[str, int] = {}
+            gitignore: syncControl = syncControl()
+
+        # powerJobID and handle v3
+        if isinstance(powerJobID, str):
+            powerJobID = [powerJobID]
+        elif powerJobID is None:
+            powerJobID = []
+        elif isinstance(powerJobID, list):
+            ...
+        else:
+            raise TypeError(
+                f"Invalid type '{type(powerJobID)}' for 'powerJobID', only 'str', 'list[str]', or 'None' are available.")
 
         self.multiNow: QurryV4.argsMultiMain = self.argsMultiMain(**{
             # Configuration of `IBMQJobManager().run`
@@ -1782,54 +1931,94 @@ class QurryV4:
             'shots': shots,
             'backend': backend,
             'provider': provider,
-            
+
             # IBMQJobManager() dedicated
             'managerRunArgs': managerRunArgs,
             'powerJobID': powerJobID,
-            
+
             # Other arguments of experiment
             # Multiple jobs shared
-            'expsName': immutableName,
-            'additionName': additionName,
-            'saveLocation': saveLocation,
-            'exportLocation': exportLocation,
-            
+            'expsName': namingComplex.expsName,
+            'saveLocation': namingComplex.saveLocation,
+            'exportLocation': namingComplex.exportLocation,
+
             'jobsType': jobsType,
             'isRetrieve': isRetrieve,
             'independentExports': independentExports,
         })
         self.expsMulti: QurryV4.expsMultiMain = argdict(
             params={
-                **self.expsMultiMain._asdict(),
+                **self.multiNow._asdict(),
+                'gitignore': gitignore,
+                'state': state,
+
                 # configList
                 'configList': initedConfigList,
-                'gitignore': gitignore,
-                
-                # independentExports
-                'tagMapQuantity': tagMapQuantity,
-                'tagMapCounts': tagMapCounts,
-                # 'tagMapResult': TagMapType[Result] = TagMap(),
-                
-                # with Job.json file
-                'tagMapExpsID': tagMapExpsID,
-                'tagMapFiles': tagMapFiles,
-                'tagMapIndex': tagMapIndex,
 
-                'tagMapCircuits': tagMapCircuits,
+                # tagMapStateDepending
+                **tagMapStateDepending._asdict(),
+                # tagMapUnexported
+                **tagMapUnexported._asdict(),
+                # tagMapNeccessary
+                **tagMapNeccessary._asdict(),
                 'circuitsNum': circuitsNum,
 
-                'state': state,
                 **otherArgs,
             }
         )
 
-        return self.multiNow
-    
+        return self.expsMulti
+
+    def multiRead(
+        self,
+        exportName: Union[Path, str],
+        saveLocation: Union[Path, str] = './',
+        isRetrieve: bool = False,
+        **allArgs: any,
+    ) -> dict[any]:
+        """Require to read the file exported by `.powerJobsPending`.
+
+        Args:
+            exportName (Union[Path, str]):
+                The folder name of the job wanted to import.
+
+
+            powerJobID (str, optional):
+                Job Id. Defaults to ''.
+
+            provider (Optional[AccountProvider], optional):
+                :cls:`AccountProvider` of current backend for running :cls:`IBMQJobManager`.
+                Defaults to `None`.
+
+            saveLocation (Optional[Union[Path, str]], optional):
+                Where to save the export content as `json` file.
+                If `saveLocation == None`, then cancelled the file to be exported.
+                Defaults to `None`.
+
+            allArgs: all arguments will handle by `.paramsControlMulti()` and export as specific format.
+
+        Raises:
+            ValueError: When file is broken.
+
+        Returns:
+            dict[any]: All result of jobs.
+        """
+
+        expsMulti = self.paramsControlMulti(
+            saveLocation=saveLocation,
+            expsName=exportName,
+            isRead=True,
+            isRetrieve=isRetrieve,
+            **allArgs,
+        )
+
+        return expsMulti
+
     def multiOutput(
         self,
         # configList
         configList: list = [],
-        
+
         # Configuration of `IBMQJobManager().run`
         # Multiple jobs shared
         shots: int = 1024,
@@ -1837,7 +2026,6 @@ class QurryV4:
 
         # Multiple jobs shared
         expsName: str = 'exps',
-        additionName: Optional[str] = None,
         saveLocation: Union[Path, str] = Path('./'),
 
         **allArgs: any,
@@ -1894,9 +2082,11 @@ class QurryV4:
             # Other arguments of experiment
             # Multiple jobs shared
             expsName=expsName,
-            additionName=additionName,
             saveLocation=saveLocation,
 
+            jobsType='multiJobs',
+            isRetrieve=False,
+            isRead=False,
             **allArgs
         )
 
@@ -1909,8 +2099,8 @@ class QurryV4:
                 **config,
                 withCounts=True,
                 __log={
-                    'time': time.time() - start_time,
-                    'memory': self.resourceWatch.virtual_memory().percent
+                    '_time': time.time() - start_time,
+                    '_memory': self.resourceWatch.virtual_memory().percent
                 }
             )
 
@@ -1921,7 +2111,6 @@ class QurryV4:
             legacy = self.writeLegacy(
                 saveLocation=argsMulti.exportLocation,
                 expID=self.IDNow,
-                additionName=argsMulti.additionName,
             )
             legacyTag = tuple(legacy['tags']) if isinstance(
                 legacy['tags'], list) else legacy['tags']
@@ -1935,7 +2124,7 @@ class QurryV4:
             # packing
             argsMulti.listFile.append(legacy['filename'])
             argsMulti.listExpID.append(self.IDNow)
-            
+
             argsMulti.tagMapExpsID.guider(legacyTag, self.IDNow)
             argsMulti.tagMapIndex.guider(legacyTag, config['expIndex'])
             argsMulti.tagMapQuantity.guider(legacyTag, quantity)
