@@ -1567,7 +1567,7 @@ class QurryV4:
         expsName: str = 'exps',
         saveLocation: Union[Path, str] = Path('./'),
     ) -> _namingComplex:
-        """Naming process for multiOutput.
+        """The process of naming.
 
         Args:
             isRead (bool, optional): 
@@ -1655,8 +1655,155 @@ class QurryV4:
         tagMapExpsID: TagMapType[str] = TagMap()
         tagMapFiles: TagMapType[str] = TagMap()
         tagMapIndex: TagMapType[Union[str, int]] = TagMap()
-
+        # circuitsMap
         tagMapCircuits: TagMapType[str] = TagMap()
+
+    def _multiDataGenOrRead(
+        self,
+        namingComplex: _namingComplex,
+        isRead: bool = False,
+    ) -> tuple[
+        _tagMapStateDepending,
+        _tagMapUnexported,
+        _tagMapNeccessary,
+        dict[str, int],
+        syncControl
+    ]:
+        """The process of data generation or reading.
+
+        >>> class _tagMapStateDepending(NamedTuple):
+                tagMapQuantity: TagMapType[Quantity] = TagMap()
+                tagMapCounts: TagMapType[Counts] = TagMap()
+
+        >>> class _tagMapUnexported(NamedTuple):
+                tagMapResult: TagMapType[Result] = TagMap()
+
+        >>> class _tagMapNeccessary(NamedTuple):
+                # with Job.json file
+                tagMapExpsID: TagMapType[str] = TagMap()
+                tagMapFiles: TagMapType[str] = TagMap()
+                tagMapIndex: TagMapType[Union[str, int]] = TagMap()
+                # circuitsMap
+                tagMapCircuits: TagMapType[str] = TagMap()
+
+        Args:
+            namingComplex (_namingComplex): 
+                The namedtuple of names.
+                >>> class _namingComplex(NamedTuple):
+                        expsName: str
+                        saveLocation: Path
+                        exportLocation: Path
+
+            isRead (bool, optional): 
+                Is reading mode. Defaults to False.
+
+        Raises:
+            ValueError: The imported file broken.
+
+        Returns:
+            tuple[ _tagMapStateDepending, _tagMapUnexported, _tagMapNeccessary, dict[str, int], syncControl ]: _description_
+        """
+
+        if isRead:
+            dataDummyJobs: dict[any] = {}
+            dataPowerJobsName = namingComplex.exportLocation / \
+                f"{namingComplex.expsName}.multiJobs.json"
+            dataMultiJobsName = namingComplex.exportLocation / \
+                f"{namingComplex.expsName}.powerJobs.json"
+
+            # read
+            if os.path.exists(dataPowerJobsName):
+                with open(dataPowerJobsName, 'r', encoding='utf-8') as theData:
+                    dataDummyJobs = json.load(theData)
+                jobsType = "powerJobs"
+
+            else:
+                with open(dataMultiJobsName, 'r', encoding='utf-8') as theData:
+                    dataDummyJobs = json.load(theData)
+                jobsType = "multiJobs"
+
+            # key check
+            lostKey = []
+            for k in (self._powerJobKeyRequired if jobsType == "powerJobs" else self._multiJobKeyRequired):
+                if k not in dataDummyJobs:
+                    lostKey.append(k)
+            if len(lostKey) > 0:
+                raise ValueError(
+                    f"'{lostKey}' are the key required in 'powerJob', otherwise this file may be broken.")
+
+            # state check
+            if 'state' in dataDummyJobs:
+                state = dataDummyJobs['state']
+            else:
+                warnings.warn(f"'state' no found, use '{state}'.")
+
+            # handle v3 key name and value redefined
+            if 'circuitsMap' in dataDummyJobs:
+                dataDummyJobs['tagMapCircuits'] = dataDummyJobs['circuitsMap']
+            if "independentExports" in dataDummyJobs:
+                dataDummyJobs["independentExports"] = [
+                    'tagMapQuantity', 'tagMapCounts', 'tagMapResult'],
+            if 'listFile' in dataDummyJobs:
+                dataDummyJobs['tagMapFiles'] = {
+                    'noTags': dataDummyJobs['listFile']}
+
+            # tagMapStateDepending
+            if state == 'completed':
+                tagMapStateDepending = self._tagMapStateDepending(
+                    tagMapQuantity=TagMap.read(
+                        saveLocation=namingComplex.exportLocation,
+                        tagmapName='tagMapQuantity',
+                    ),
+                    tagMapCounts=TagMap.read(
+                        saveLocation=namingComplex.exportLocation,
+                        tagmapName='tagMapCounts',
+                    )
+                )
+            else:
+                tagMapStateDepending = self._tagMapStateDepending()
+
+            # tagMapUnexported
+            tagMapUnexported = self._tagMapUnexported()
+            # tagMapNeccessary
+            tagMapNeccessary = self._tagMapNeccessary(**{
+                k: TagMap(dataDummyJobs[k]) if k in dataDummyJobs else TagMap.read(
+                    saveLocation=namingComplex.saveLocation,
+                    tagmapName=k,
+                )
+                for k in self._tagMapNeccessary._fields})
+
+            circuitsNum: dict[str, int] = dataDummyJobs['circuitsNum']
+            gitignore: syncControl = (syncControl(
+                dataDummyJobs['gitignore']) if 'gitignore' in dataDummyJobs else syncControl())
+
+        else:
+            # tagMapStateDepending
+            tagMapStateDepending = self._tagMapStateDepending()
+            # tagMapUnexported
+            tagMapUnexported = self._tagMapUnexported()
+            # tagMapUnexported
+            tagMapNeccessary = self._tagMapNeccessary()
+
+            circuitsNum: dict[str, int] = {}
+            gitignore: syncControl = syncControl()
+
+        # reading experiment datas
+        if isRead:
+            for tags, files in tagMapNeccessary.tagMapExpsID.items():
+                for expIDKey in files:
+                    self.exps[expIDKey] = self.readLegacy(
+                        expID=expIDKey,
+                        saveLocation=Path(namingComplex.exportLocation),
+                        _isMulti=True,
+                    )
+
+        return (
+            tagMapStateDepending,
+            tagMapUnexported,
+            tagMapNeccessary,
+            circuitsNum,
+            gitignore,
+        )
 
     def paramsControlMulti(
         self,
@@ -1831,88 +1978,16 @@ class QurryV4:
             })
 
         # read or generate
-        if isRead:
-            dataDummyJobs: dict[any] = {}
-            dataPowerJobsName = namingComplex.exportLocation / \
-                f"{namingComplex.expsName}.multiJobs.json"
-            dataMultiJobsName = namingComplex.exportLocation / \
-                f"{namingComplex.expsName}.powerJobs.json"
-
-            # read
-            if os.path.exists(dataPowerJobsName):
-                with open(dataPowerJobsName, 'r', encoding='utf-8') as theData:
-                    dataDummyJobs = json.load(theData)
-                jobsType = "powerJobs"
-
-            else:
-                with open(dataMultiJobsName, 'r', encoding='utf-8') as theData:
-                    dataDummyJobs = json.load(theData)
-                jobsType = "multiJobs"
-
-            # key check
-            lostKey = []
-            for k in (self._powerJobKeyRequired if jobsType == "powerJobs" else self._multiJobKeyRequired):
-                if k not in dataDummyJobs:
-                    lostKey.append(k)
-            if len(lostKey) > 0:
-                raise ValueError(
-                    f"'{lostKey}' are the key required in 'powerJob', otherwise this file may be broken.")
-
-            # state check
-            if 'state' in dataDummyJobs:
-                state = dataDummyJobs['state']
-            else:
-                warnings.warn(f"'state' no found, use '{state}'.")
-
-            # handle v3 key name and value redefined
-            if 'circuitsMap' in dataDummyJobs:
-                dataDummyJobs['tagMapCircuits'] = dataDummyJobs['circuitsMap']
-            if "independentExports" in dataDummyJobs:
-                dataDummyJobs["independentExports"] = [
-                    'tagMapQuantity', 'tagMapCounts', 'tagMapResult'],
-            if 'listFile' in dataDummyJobs:
-                dataDummyJobs['tagMapFiles'] = {
-                    'noTags': dataDummyJobs['listFile']}
-
-            # tagMapStateDepending
-            if state == 'completed':
-                tagMapStateDepending = self._tagMapStateDepending(
-                    tagMapQuantity=TagMap.read(
-                        saveLocation=namingComplex.exportLocation,
-                        tagmapName='tagMapQuantity',
-                    ),
-                    tagMapCounts=TagMap.read(
-                        saveLocation=namingComplex.exportLocation,
-                        tagmapName='tagMapCounts',
-                    )
-                )
-            else:
-                tagMapStateDepending = self._tagMapStateDepending()
-
-            # tagMapUnexported
-            tagMapUnexported = self._tagMapUnexported()
-            # tagMapNeccessary
-            tagMapNeccessary = self._tagMapNeccessary(**{
-                k: TagMap(dataDummyJobs[k]) if k in dataDummyJobs else TagMap.read(
-                    saveLocation=namingComplex.saveLocation,
-                    tagmapName=k,
-                )
-                for k in self._tagMapNeccessary._fields})
-
-            circuitsNum: dict[str, int] = dataDummyJobs['circuitsNum']
-            gitignore: syncControl = (syncControl(
-                dataDummyJobs['gitignore']) if 'gitignore' in dataDummyJobs else syncControl())
-
-        else:
-            # tagMapStateDepending
-            tagMapStateDepending = self._tagMapStateDepending()
-            # tagMapUnexported
-            tagMapUnexported = self._tagMapUnexported()
-            # tagMapUnexported
-            tagMapNeccessary = self._tagMapNeccessary()
-
-            circuitsNum: dict[str, int] = {}
-            gitignore: syncControl = syncControl()
+        (
+            tagMapStateDepending,
+            tagMapUnexported,
+            tagMapNeccessary,
+            circuitsNum,
+            gitignore
+        ) = self._multiDataGenOrRead(
+            namingComplex=namingComplex,
+            isRead=isRead,
+        )
 
         # powerJobID and handle v3
         if isinstance(powerJobID, str):
@@ -1949,11 +2024,13 @@ class QurryV4:
         self.expsMulti: QurryV4.expsMultiMain = argdict(
             params={
                 **self.multiNow._asdict(),
-                'gitignore': gitignore,
                 'state': state,
 
                 # configList
                 'configList': initedConfigList,
+
+                'circuitsNum': circuitsNum,
+                'gitignore': gitignore,
 
                 # tagMapStateDepending
                 **tagMapStateDepending._asdict(),
@@ -1961,7 +2038,6 @@ class QurryV4:
                 **tagMapUnexported._asdict(),
                 # tagMapNeccessary
                 **tagMapNeccessary._asdict(),
-                'circuitsNum': circuitsNum,
 
                 **otherArgs,
             }
