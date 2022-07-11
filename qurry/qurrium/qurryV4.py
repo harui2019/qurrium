@@ -98,6 +98,7 @@ class QurryV4:
         # Other arguments of experiment
         drawMethod: str = 'text'
         resultKeep: bool = False
+        tags: tuple[str] = ()
 
         saveLocation: Union[Path, str] = Path('./')
         exportLocation: Path = Path('./')
@@ -118,6 +119,10 @@ class QurryV4:
 
         # side product
         sideProduct: dict = {}
+        
+    _v3ArgsMapping = {
+        'runConfig': 'runArgs',
+    }
 
     def expsBase(
         self,
@@ -129,33 +134,33 @@ class QurryV4:
         """The default storage format and values of a single experiment.
         - Example:
 
-        ```python
-        _expsBase = expsBase(
+        >>> self._expsBase = self.expsBase(
             name='dummyBase',
-            expsConfig= _expsConfig,
             defaultArg={
                 'dummyResult1': None,
                 'dummyResult2': None,
             },
         )
-        ```
-        Then `_expsBase` will be
-        ```python
-        {
+
+        Then :attr:`._expsBase` will be
+
+        >>> {
             # Reault of experiment.
             'echo': -100,
-
+            #
             # Measurement result
             'circuit': None,
             'figRaw': 'unexport',
             'figTranspile': 'unexport',
             'result': None,
             'counts': None,
-
+            #
             # Export data
             'jobID': '',
+            #
+            'dummyResult1': None,
+            'dummyResult2': None,
         }
-        ```
 
         Args:
             name (str, optional):
@@ -181,9 +186,10 @@ class QurryV4:
             },
         )
 
+    _expsBaseExceptKeys = ['sideProduct', 'result']
     def expsBaseExcepts(
         self,
-        excepts: list[str] = ['sideProduct', 'tagMapResult'],
+        excepts: list[str] = _expsBaseExceptKeys,
     ) -> dict:
         """The exception when export.
 
@@ -220,10 +226,8 @@ class QurryV4:
 
         jobsType: Literal["multiJobs", "powerJobs"] = "multiJobs"
         isRetrieve: bool = False
-        independentExports: list[str] = [
-            'tagMapQuantity', 'tagMapCounts', 'tagMapResult',
-            'tagMapExpsID', 'tagMapFiles', 'tagMapIndex', 'tagMapCircuits'
-        ]
+        independentExports: list[str] = []
+        filetype: TagMap._availableFileType = 'json'
 
     class expsMultiMain(NamedTuple):
         # configList
@@ -245,6 +249,10 @@ class QurryV4:
         circuitsNum: dict[str, int] = {}
 
         state: Literal["init", "pending", "completed"] = "init"
+        
+    _v3MultiArgsMapping = {
+        'circuitsMap': 'tagMapCircuits',
+    }
 
     def expsMultiBase(
         self,
@@ -256,33 +264,41 @@ class QurryV4:
         """The default storage format and values of a single experiment.
         - Example:
 
-        ```python
-        _expsBase = expsBase(
-            name='dummyBase',
-            expsConfig= _expsConfig,
+        >>> self._expsMultiBase = self.expsMultiBase(
+            name='dummyMultiBase',
             defaultArg={
                 'dummyResult1': None,
                 'dummyResult2': None,
             },
         )
-        ```
-        Then `_expsBase` will be
-        ```python
-        {
-            # Reault of experiment.
-            'echo': -100,
 
-            # Measurement result
-            'circuit': None,
-            'figRaw': 'unexport',
-            'figTranspile': 'unexport',
-            'result': None,
-            'counts': None,
+        Then :attr:`._expsMultiMain` will be
 
-            # Export data
-            'jobID': '',
+        >>> {
+            # configList
+            configList: [],
+            #
+            gitignore: syncControl(),
+            #
+            # tagMapStateDepending
+            tagMapQuantity: TagMap(),
+            tagMapCounts: TagMap(),
+            #
+            # tagMapUnexported
+            # tagMapResult: TagMap(),
+            #
+            # tagMapNeccessary
+            tagMapExpsID: TagMap(),
+            tagMapFiles: TagMap(),
+            tagMapIndex: TagMap(),
+            tagMapCircuits: TagMap(),
+            circuitsNum: dict[str, int] = {}
+            #
+            state: Literal["init", "pending", "completed"] = "init"
+            #
+            'dummyResult1': None,
+            'dummyResult2': None,
         }
-        ```
 
         Args:
             name (str, optional):
@@ -319,8 +335,7 @@ class QurryV4:
         """Make hints for every values in :func:`.expsBase()`.
         - Example:
 
-        ```python
-        expsHint(
+        >>> self._expsMultiBase = self.expsHint(
             name: str = 'qurryBaseHint',
             hintContext = {
                 'expID': 'This is a expID'. # hint for `expsBase` value
@@ -328,20 +343,17 @@ class QurryV4:
                 'dummyResult2': 'This is dummyResult2.', # extra hint
             },
         )
-        ```
-        Then call `.expHint` will be
-        ```python
-        {
 
+        Then :attr:`.expHint` will be
+
+        >>> {
             'expID': 'This is a expID',
             'shots': '', # value without hint
             ..., # other in `expsBase`
-
+            #
             'dummyResult1': 'This is dummyResult1.', # extra hint
             'dummyResult2': 'This is dummyResult2.', # extra hint
-
         }
-        ```
 
         Args:
             name (str, optional):
@@ -359,6 +371,7 @@ class QurryV4:
 
         hintDefaults = {k: "" for k in self.expsBase()}
         hintDefaults = {**hintDefaults, **hintContext}
+        
         return hintDefaults
 
     """ Initialize """
@@ -439,6 +452,7 @@ class QurryV4:
         self.namedtupleNow = namedtuple(
             typename='qurryArguments',
             field_names=self.argsMain._fields+self.argsCore._fields,
+            defaults=list(self.argsMain._field_defaults.values())+list(self.argsCore._field_defaults.values()),
         )
 
         # For reading arguments.
@@ -924,9 +938,10 @@ class QurryV4:
         )
 
         # Export all arguments
-        parsedOther = self.argsCore(
-            **self.paramsControlCore(**otherArgs)
-        )
+        coreFiltered  = self.paramsControlCore(**otherArgs)
+        coreParams = {k: v for k, v in coreFiltered.items() if k in self.argsCore._fields}
+        otherParams = {k: v for k, v in coreFiltered.items() if not k in self.argsCore._fields}
+
         self.now: Union[QurryV4.argsMain, QurryV4.argsCore] = self.namedtupleNow(**{
             # ID of experiment.
             'expID': self.IDNow,
@@ -950,14 +965,71 @@ class QurryV4:
             'resultKeep': resultKeep,
             'tags': tags,
 
-            **parsedOther,
+            **coreParams
         })
         self.exps[self.IDNow] = {
-            **self.now,
+            **otherParams,
+            **self.now._asdict(),
             **self._expsBase.make(),
         }
 
         return self.now
+    
+    def drawCircuit(
+        self,
+        expID: Optional[str] = None,
+        circuitSet: Optional[
+            Union[QuantumCircuit, list[QuantumCircuit]]] = None,
+        whichCircuit: int = 0,
+        drawMethod: str = 'text',
+        decompose: int = 0,
+    ) -> Optional[Figure]:
+        """Draw the circuit of wave function.
+
+        Args:
+            wave (Optional[Hashable], optional):
+                The key of wave in 'fict' `.waves`.
+                If `wave==None`, then chooses `.lastWave` automatically added by last calling of `.addWave`.
+                Defaults to None.
+            whichCircuit (Optional[int], optional):
+                If there is multiple circuits used in this experiment,
+                then used the given number as index of list to pick up the circuit.
+                and the first circuit which index is '0' as default export when not specified.
+            drawMethod (Optional[str], optional): Draw quantum circuit by
+                "text", "matplotlib", or "latex". Defaults to 'text'.
+            decompose (Optional[int], optional): Draw quantum circuit with
+                `QuantumCircuit` decomposed with given times. Defaults to 1.
+
+        Returns:
+            Union[str, Figure]: The figure of wave function.
+        """
+
+        if circuitSet:
+            ...
+        elif expID != None:
+            tgtId = self.find(expID=expID)
+            if tgtId:
+                circuitSet = self.exps[tgtId]['circuit']
+            else:
+                warnings.warn(f"'{expID}' does not exist.")
+                return None
+        else:
+            warnings.warn(f"'{circuitSet}' and '{expID}' are not available.")
+            return None
+
+        if isinstance(circuitSet, QuantumCircuit):
+            circuit = self.decomposer(circuitSet, decompose)
+            return circuit.draw(drawMethod)
+
+        elif isinstance(circuitSet, list):
+            circuit = self.decomposer(
+                circuitSet[whichCircuit], decompose)
+            return circuit.draw(drawMethod)
+
+        else:
+            warnings.warn(
+                f"The type of '{circuitSet}' is '{type(circuitSet)}', which can not export.")
+            return None
 
     @abstractmethod
     def method(self) -> list[QuantumCircuit]:
@@ -1199,14 +1271,19 @@ class QurryV4:
             **self.expsBaseExcepts(),
             **{k: v for k, v in legacyRead.items() if k not in excepts},
         }
+        
+        # handle v3 compatibility
+        for k in list(legacyRead):
+            if k in self._v3ArgsMapping:
+                legacyRead[self._v3ArgsMapping[k]] = legacyRead[k]
 
         if isinstance(legacyRead, dict):
             if "tags" in legacyRead:
                 legacyRead["tags"] = tuple(legacyRead["tags"]) if isinstance(
                     legacyRead["tags"], list) else legacyRead["tags"]
 
-            if not self._expsBase.ready(legacyRead):
-                lost = self._expsBase.check(legacyRead)
+            if not self._expsBase.ready(legacyRead, ignores=self._expsBaseExceptKeys):
+                lost = self._expsBase.check(legacyRead, ignores=self._expsBaseExceptKeys)
                 print(f"Key Lost: {lost}")
         else:
             raise TypeError("The export file does not match the type 'dict'.")
@@ -1226,7 +1303,7 @@ class QurryV4:
             list[QuantumCircuit]:
                 Transpiled Circuit.
         """
-        circuitSet = self.circuitBuild(**allArgs)
+        circuitSet = self.build(**allArgs)
         argsNow = self.now
 
         gajima = Gajima(
@@ -1235,13 +1312,13 @@ class QurryV4:
             finish_desc="Transpile finished",
         )
         gajima.run()
-
         # transpile
         circs = transpile(
             circuitSet if isinstance(circuitSet, list) else [circuitSet],
             backend=argsNow.backend,
             **argsNow.transpileArgs,
         )
+        gajima.stop()
 
         figTranspile = []
         if isinstance(circs, QuantumCircuit):
@@ -1261,6 +1338,7 @@ class QurryV4:
                     drawMethod=argsNow.drawMethod,
                     decompose=argsNow.decompose,
                 ))
+                
 
         else:
             raise TypeError(f"Unknown type '{type(circs)}'")
@@ -1282,14 +1360,14 @@ class QurryV4:
         Returns:
             Result: The result of the job.
         """
-        circs = self.circuitTranspiler(**allArgs)
+        circs = self.transpiler(**allArgs)
         argsNow = self.now
 
         execution = execute(
             circs,
+            **argsNow.runArgs,
             backend=argsNow.backend,
             shots=argsNow.shots,
-            **argsNow.runArgs,
         )
         jobID = execution.job_id()
         self.exps[self.IDNow]['jobID'] = jobID
@@ -1303,7 +1381,7 @@ class QurryV4:
     """ Result processing """
 
     @abstractclassmethod
-    def counts(cls) -> Counts:
+    def counts(cls) -> list[Counts]:
         """Get counts.
         Where should be overwritten by each construction of new measurement.
 
@@ -1356,7 +1434,7 @@ class QurryV4:
     def quantities(
         cls,
         shots: int,
-        counts: Counts,
+        counts: list[Counts],
         num: int = 1,
         __log: dict[str] = {},
         **otherArgs,
@@ -1368,7 +1446,7 @@ class QurryV4:
             'sampling': num,
             **__log,
         }
-        return counts, quantity
+        return quantity
 
     """ Output single """
 
@@ -1387,15 +1465,19 @@ class QurryV4:
             dict[float]: The result.
         """
         print(f"+"+"-"*20+"\n"+f"| Calculating {self.__name__}...")
-
         result = self.run(**allArgs,)
+        
         argsNow: Union[QurryV4.argsMain, QurryV4.argsCore] = self.now
         print(f"| name: {argsNow.expsName}\n"+f"| id: {self.IDNow}")
-
-        counts, quantity = self.quantities(
-            **argsNow,
+        
+        counts = self.counts(
+            **argsNow._asdict(),
             result=result,
-            __log=__log,
+        )
+
+        quantity = self.quantities(
+            **argsNow._asdict(),
+            counts=counts,
         )
 
         if argsNow.resultKeep:
@@ -1552,6 +1634,14 @@ class QurryV4:
         return {
             'retrievedJob': retrievedJob,
         }
+        
+    _time_ndigits = 2
+
+    def _time_takes(
+        self,
+        start: float,
+    ):
+        return " - "+f"{round(time.time() - start, self._time_ndigits)}".rjust(4, '0')+" sec"
 
     _indexRename = 1
     _rjustLen = 3
@@ -1738,8 +1828,9 @@ class QurryV4:
                 warnings.warn(f"'state' no found, use '{state}'.")
 
             # handle v3 key name and value redefined
-            if 'circuitsMap' in dataDummyJobs:
-                dataDummyJobs['tagMapCircuits'] = dataDummyJobs['circuitsMap']
+            for k in list(dataDummyJobs):
+                if k in self._v3MultiArgsMapping:
+                    dataDummyJobs[self._v3MultiArgsMapping[k]] = dataDummyJobs[k]
             if "independentExports" in dataDummyJobs:
                 dataDummyJobs["independentExports"] = [
                     'tagMapQuantity', 'tagMapCounts', 'tagMapResult'],
@@ -1849,7 +1940,7 @@ class QurryV4:
         state: Literal["init", "pending", "completed"] = "init",
 
         **otherArgs: any,
-    ) -> argsMultiMain:
+    ) -> Union[argsMultiMain, expsMultiMain]:
         """Handling all arguments and initializing a single experiment.
 
         - example of a value in `self.exps`
@@ -2149,7 +2240,7 @@ class QurryV4:
             dict[any]: All result of jobs.
         """
         start_time = time.time()
-        argsMulti = self.paramsControlMulti(
+        expsMulti = self.paramsControlMulti(
             configList=configList,
             # Configuration of `IBMQJobManager().run`
             # Multiple jobs shared
@@ -2168,9 +2259,9 @@ class QurryV4:
 
         print(f"| MultiOutput {self.__name__} Start...\n"+f"+"+"-"*20)
         numConfig = len(self.expsMulti.configList)
-        for config in argsMulti.configList:
+        for config in expsMulti.configList:
             print(
-                f"| index={config['expIndex']}/{numConfig} - {round(time.time() - start_time, 2)}s")
+                f"| index={config['expIndex']}/{numConfig} - {self._time_takes(start_time)}.")
             quantity, counts = self.output(
                 **config,
                 withCounts=True,
@@ -2185,67 +2276,50 @@ class QurryV4:
 
             # legacy writer
             legacy = self.writeLegacy(
-                saveLocation=argsMulti.exportLocation,
+                saveLocation=expsMulti.exportLocation,
                 expID=self.IDNow,
             )
             legacyTag = tuple(legacy['tags']) if isinstance(
                 legacy['tags'], list) else legacy['tags']
 
-            for k in ['all', 'noTags']:
-                if legacyTag == k:
-                    legacyTag == None
-                    print(
-                        f"| warning: '{k}' is a reserved key for export data.")
-
             # packing
-            argsMulti.listFile.append(legacy['filename'])
-            argsMulti.listExpID.append(self.IDNow)
-
-            argsMulti.tagMapExpsID.guider(legacyTag, self.IDNow)
-            argsMulti.tagMapIndex.guider(legacyTag, config['expIndex'])
-            argsMulti.tagMapQuantity.guider(legacyTag, quantity)
-            argsMulti.tagMapCounts.guider(legacyTag, counts)
+            expsMulti.tagMapExpsID[legacyTag].append(self.IDNow)
+            expsMulti.tagMapFiles[legacyTag].append(legacy['filename'])
+            expsMulti.tagMapIndex[legacyTag].append(config['expIndex'])
+            
+            expsMulti.tagMapQuantity[legacyTag].append(quantity)
+            expsMulti.tagMapCounts[legacyTag].append(counts)
 
         print(f"| Export...")
-        argsMulti.gitignore.ignore('*.json')
-        argsMulti.state = 'completed'
-        dataMultiJobs = argsMulti.jsonize()
+        expsMulti.gitignore.ignore('*.json')
+        expsMulti.state = 'completed'
+        
+        for k in self._tagMapStateDepending._fields+self._tagMapNeccessary._fields:
+            expsMulti.independentExports.append(k)
+        dataMultiJobs = expsMulti.jsonize()
+        
+        for k in self._tagMapStateDepending._fields+self._tagMapNeccessary._fields:
+            expsMulti[k].export(
+                saveLocation=expsMulti.exportLocation,
+                additionName=expsMulti.expsName,
+                name=k,
+                filetype=expsMulti.filetype
+            )
+            expsMulti.gitignore.sync(f'*.{k}.{expsMulti.filetype}')
+            del dataMultiJobs[k]
 
-        for n, data in [
-            ('multiJobs.json', dataMultiJobs),
-            ('tagMapQuantity.json', argsMulti.tagMapQuantity),
-            ('tagMapCounts.json', argsMulti.tagMapCounts),
-        ]:
-            argsMulti.gitignore.sync(f'*.{n}')
-            print(f"| Export {n}")
-            quickJSONExport(
-                content=data,
-                filename=argsMulti.exportLocation /
-                f"{argsMulti.expsName}.{n}",
-                mode='w+',
-                jsonablize=True)
+        quickJSONExport(
+            content=dataMultiJobs,
+            filename=expsMulti.exportLocation /
+            f"{expsMulti.expsName}.multiJobs.json",
+            mode='w+',
+            jsonablize=True
+        )
 
-        if argsMulti.independentExports:
-            print(f"| independentExports...")
-            for n in [
-                'listExpID',
-                'listFile',
-                'tagMapExpsID',
-                'tagMapIndex'
-            ]:
-                argsMulti.gitignore.sync(f'*.{n}.json')
-                print(f"| Export {n}.json")
-                quickJSONExport(
-                    content=argsMulti[n],
-                    filename=argsMulti.exportLocation /
-                    f"{argsMulti.expsName}.{n}.json",
-                    mode='w+',
-                    jsonablize=True)
-
-        argsMulti.gitignore.export(argsMulti.exportLocation)
+        expsMulti.gitignore.export(expsMulti.exportLocation)
         gc.collect()
         print(
-            f"| MultiOutput {self.__name__} End in {round(time.time() - start_time, 2)} sec ...\n" +
+            f"| MultiOutput {self.__name__} End in {self._time_takes(start_time)} ...\n" +
             f"+"+"-"*20)
 
-        return dataMultiJobs
+        return expsMulti

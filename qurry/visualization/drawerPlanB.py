@@ -59,8 +59,10 @@ def quenchEntropy(
         raise TypeError('entropies must be a dictionary.')
         
     for k, v in entropies.items():
+        if isinstance(v, dict):
+            v = v.values()
         ax_main.plot(
-            timeEvo, v.values(),
+            timeEvo, v,
             marker='.',
             label="".join([f"{k}"])
         )

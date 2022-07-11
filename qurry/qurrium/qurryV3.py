@@ -43,6 +43,7 @@ from ..mori import (
     keyTupleLoads,
     sortHashableAhead,
     TagMap,
+    singleColList,
 )
 from .exceptions import UnconfiguredWarning
 from .type import (
@@ -316,6 +317,8 @@ class QurryV3:
         exportLocation: Path = Path('./')
 
         gitignore: syncControl = syncControl()
+        logTime: singleColList = singleColList()
+        logRAM: singleColList = singleColList()
         listExpID: list = []
         listFile: list = []
 
@@ -2035,6 +2038,9 @@ class QurryV3:
             )
             legacyTag = tuple(legacy['tags']) if isinstance(
                 legacy['tags'], list) else legacy['tags']
+            
+            argsMulti.logTime.append(round(time.time() - start_time, 2))
+            argsMulti.logRAM.append(self.resourceWatch.virtual_memory().percent)
 
             for k in ['all', 'noTags']:
                 if legacyTag == k:
@@ -2088,6 +2094,8 @@ class QurryV3:
                     jsonablize=True)
 
         argsMulti.gitignore.export(argsMulti.exportLocation)
+        argsMulti.logTime.export(argsMulti.exportLocation, 'Time.log')
+        argsMulti.logRAM.export(argsMulti.exportLocation, 'RAM.log')
         gc.collect()
         print(
             f"| MultiOutput {self.__name__} End in {round(time.time() - start_time, 2)} sec ...\n" +
