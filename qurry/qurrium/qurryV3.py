@@ -43,7 +43,7 @@ from ..mori import (
     keyTupleLoads,
     sortHashableAhead,
     TagMap,
-    singleColList,
+    singleColCSV,
 )
 from .exceptions import UnconfiguredWarning
 from .type import (
@@ -317,8 +317,8 @@ class QurryV3:
         exportLocation: Path = Path('./')
 
         gitignore: syncControl = syncControl()
-        logTime: singleColList = singleColList()
-        logRAM: singleColList = singleColList()
+        logTime: singleColCSV = singleColCSV()
+        logRAM: singleColCSV = singleColCSV()
         listExpID: list = []
         listFile: list = []
 
