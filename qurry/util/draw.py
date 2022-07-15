@@ -376,7 +376,7 @@ def drawEntropyErrorBar(
     })
     figName = f"{plotName}.{drawConfig['format']}"
 
-    PlotFig: Figure = plt.figure()
+    PlotFig: Figure = plt.figure(figsize=((len(data)+6)*0.5, 4.8))
     ax: Axes = PlotFig.add_subplot(1, 1, 1)
 
     ax.set_xlabel(
@@ -394,7 +394,7 @@ def drawEntropyErrorBar(
     ax.set_xticks([2*i for i in range(len(data)+2)])
     ax.set_xticklabels(
         [None]+[k for k in data]+[None],
-        rotation=30,
+        rotation=90,
     )
     ax.grid(linestyle=drawConfig["lineStyle"])
 
@@ -418,15 +418,15 @@ def drawEntropyErrorBar(
             label="".join([f"{k}"])
         )
 
-    h, l = ax.get_legend_handles_labels()
-    legendPlt = ax.legend(
-        handles=zip(h[:len(data)], h[len(data):]),
-        handler_map={tuple: matplotlib.legend_handler.HandlerTuple(None)},
-        labels=l[:len(data)],
-        bbox_to_anchor=(1.025, 1.0),
-        loc='upper left',
-        borderaxespad=0.,
-    )
+    # h, l = ax.get_legend_handles_labels()
+    # legendPlt = ax.legend(
+    #     handles=zip(h[:len(data)], h[len(data):]),
+    #     handler_map={tuple: matplotlib.legend_handler.HandlerTuple(None)},
+    #     labels=l[:len(data)],
+    #     bbox_to_anchor=(1.025, 1.0),
+    #     loc='upper left',
+    #     borderaxespad=0.,
+    # )
 
     if isinstance(saveFolder, Path):
         saveLoc = saveFolder / figName
@@ -434,7 +434,7 @@ def drawEntropyErrorBar(
             saveLoc,
             format=drawConfig["format"],
             dpi=drawConfig['dpi'],
-            bbox_extra_artists=(legendPlt, ),
+            # bbox_extra_artists=(legendPlt, ),
             bbox_inches='tight'
         )
         return PlotFig, saveLoc
