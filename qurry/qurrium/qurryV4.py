@@ -37,7 +37,6 @@ from ..util import Gajima, ResoureWatch
 from ..mori import (
     Configuration,
     argdict,
-    argTuple,
     syncControl,
     jsonablize,
     quickJSONExport,
