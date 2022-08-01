@@ -3,7 +3,6 @@ from .qurryV4 import QurryV4
 from .type import (
     Quantity,
     Counts,
-    TagMapType,
 )
 from .exceptions import *
 from .randomized import (

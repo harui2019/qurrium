@@ -36,7 +36,8 @@ from collections import Counter, namedtuple
 from ..util import Gajima, ResoureWatch
 from ..mori import (
     Configuration,
-    argdict,
+    attributedDict,
+    defaultConfig,
     syncControl,
     jsonablize,
     quickJSONExport,
@@ -44,9 +45,9 @@ from ..mori import (
     sortHashableAhead,
     TagMap,
 )
+from ..mori.type import TagMapType
 from .exceptions import UnconfiguredWarning
 from .type import (
-    TagMapType,
     Quantity,
     Counts,
     waveGetter,
@@ -440,7 +441,7 @@ class QurryV4:
         # value create
         self.exps = {}
         self.expsBelong = {}
-        self.expsMulti = argdict(
+        self.expsMulti = attributedDict(
             params=self.expsMultiMain()._asdict()
         )  # reresh per execution.
 
@@ -912,7 +913,7 @@ class QurryV4:
             KeyError: Given `expID` does not exist.
 
         Returns:
-            argdict: Current arguments.
+            attributedDict: Current arguments.
         """
 
         # expID
@@ -2038,7 +2039,7 @@ class QurryV4:
                 Other arguments includes the variants of experiment.
 
         Returns:
-            argdict: Current arguments.
+            attributedDict: Current arguments.
         """
 
         # is reading
@@ -2111,7 +2112,7 @@ class QurryV4:
             'isRetrieve': isRetrieve,
             'independentExports': independentExports,
         })
-        self.expsMulti: QurryV4.expsMultiMain = argdict(
+        self.expsMulti: QurryV4.expsMultiMain = attributedDict(
             params={
                 **self.multiNow._asdict(),
                 'state': state,
@@ -2295,7 +2296,7 @@ class QurryV4:
         
         for k in self._tagMapStateDepending._fields+self._tagMapNeccessary._fields:
             expsMulti.independentExports.append(k)
-        dataMultiJobs = expsMulti.jsonize()
+        dataMultiJobs = expsMulti._jsonize()
         
         for k in self._tagMapStateDepending._fields+self._tagMapNeccessary._fields:
             expsMulti[k].export(

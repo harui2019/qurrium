@@ -36,7 +36,7 @@ from collections import Counter
 from ..util import Gajima, ResoureWatch
 from ..mori import (
     Configuration,
-    argdict,
+    attributedDict,
     syncControl,
     jsonablize,
     quickJSONExport,
@@ -45,9 +45,9 @@ from ..mori import (
     TagMap,
     singleColCSV,
 )
+from ..mori.type import TagMapType
 from .exceptions import UnconfiguredWarning
 from .type import (
-    TagMapType,
     Quantity,
     Counts,
     waveGetter,
@@ -537,11 +537,11 @@ class QurryV3:
         self.resourceWatch = ResoureWatch()
 
         # reresh per execution.
-        self.now = argdict(
+        self.now = attributedDict(
             params=self._expsConfig.make(),
         )
         self.IDNow = None
-        self.multiNow = argdict(
+        self.multiNow = attributedDict(
             params=self._expsMultiConfig.make(),
         )
 
@@ -1000,7 +1000,7 @@ class QurryV3:
             KeyError: Given `expID` does not exist.
 
         Returns:
-            argdict: Current arguments.
+            attributedDict: Current arguments.
         """
 
         # expID
@@ -1023,7 +1023,7 @@ class QurryV3:
 
         # Export all arguments
         parsedOther = self.paramsControlCore(**otherArgs)
-        self.now: Union[QurryV3.argsMain, QurryV3.argsCore] = argdict(
+        self.now: Union[QurryV3.argsMain, QurryV3.argsCore] = attributedDict(
             params={
                 **self._expsConfig.make(),
                 # ID of experiment.
@@ -1822,7 +1822,7 @@ class QurryV3:
                 Other arguments includes the variants of experiment.
 
         Returns:
-            argdict: Current arguments.
+            attributedDict: Current arguments.
         """
 
         # naming
@@ -1884,7 +1884,7 @@ class QurryV3:
         # gitignore
         gitignore = syncControl()
 
-        self.multiNow: QurryV3.argsMultiMain = argdict(
+        self.multiNow: QurryV3.argsMultiMain = attributedDict(
             params=sortHashableAhead({
                 **self._expsMultiConfig.make(),
                 **otherArgs,
@@ -2060,7 +2060,7 @@ class QurryV3:
         print(f"| Export...")
         argsMulti.gitignore.ignore('*.json')
         argsMulti.state = 'completed'
-        dataMultiJobs = argsMulti.jsonize()
+        dataMultiJobs = argsMulti._jsonize()
 
         for n, data in [
             ('multiJobs.json', dataMultiJobs),
@@ -2414,7 +2414,7 @@ class QurryV3:
         argsMulti.gitignore.ignore('*.json')
         argsMulti.gitignore.sync(f'*.powerJobs.json')
 
-        dataPowerJobs = argsMulti.jsonize()
+        dataPowerJobs = argsMulti._jsonize()
         quickJSONExport(
             content=dataPowerJobs,
             filename=argsMulti.exportLocation /
