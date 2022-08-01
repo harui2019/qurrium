@@ -1,4 +1,4 @@
-from typing import Union, Iterable, NamedTuple, Optional, Literal
+from typing import Union, Iterable, NamedTuple, Optional, Literal, Callable
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes, SubplotBase
 import matplotlib.pyplot as plt
@@ -9,7 +9,8 @@ import numpy as np
 import warnings
 import os
 
-from ..qurrium import TagMapType, Quantity
+from ..mori.type import TagMapType
+from ..qurrium import Quantity
 
 _mplExportFormat = Literal['eps', 'jpg', 'jpeg', 'pdf', 'pgf',
                            'png', 'ps', 'raw', 'rgba', 'svg', 'svgz', 'tif', 'tiff']
@@ -29,9 +30,9 @@ class QurchartConfig(NamedTuple):
     additionName: Optional[str] = None
     filetype: _mplExportFormat = 'png'
 
-    name: Optional[str] = None
-    filename: Optional[str] = None
-    saveFolder: Optional[Union[Path, str]] = None
+    name: str = 'Qurchart'
+    filename: str = 'Qurchart.png'
+    saveFolder: Union[Path, str] = './'
 
 
 def paramsControl(
@@ -50,7 +51,8 @@ def paramsControl(
     additionName: Optional[str] = None,
     filetype: _mplExportFormat = 'png',
 
-    saveFolder: Optional[Union[Path, str]] = None,
+    saveFolder: Union[Path, str] = './',
+    defaultSettings: QurchartConfig = QurchartConfig(),
     **otherArgs,
 ) -> QurchartConfig:
     """_summary_
@@ -76,7 +78,7 @@ def paramsControl(
     """
 
     # yLim
-    if isinstance(yLim, callable):
+    if isinstance(yLim, Callable):
         yLim = yLim(data, quantity)
     elif yLim == 'qurchart':
         yLim = yLimDecider(data, quantity)
@@ -92,17 +94,17 @@ def paramsControl(
     # saveFolder
     if isinstance(saveFolder, str):
         saveFolder = Path(saveFolder)
-        
+
     if not os.path.exists(saveFolder):
         os.mkdir(saveFolder)
 
     name = f"{additionName}.{plotName}" if not additionName is None else f"{plotName}"
     filename = name + f".{filetype}"
-    
+
     if len(otherArgs) > 0:
         print(otherArgs, "dropped")
 
-    return QurchartConfig(
+    return defaultSettings._replace(
         yLim=yLimResult,
         fontSize=fontSize,
         lineStyle=lineStyle,
@@ -176,3 +178,21 @@ def yLimDecider(
     lowerBound -= boundAdd
 
     return lowerBound, upperBound
+
+
+def valueGetter(v: Union[float, dict[float]], quantity) -> Optional[float]:
+    if isinstance(v, dict):
+        return v[quantity] if quantity in v else None
+    elif isinstance(v, float):
+        return v
+    else:
+        raise ValueError(f"Unavailable type '{type(v)}'")
+
+
+def stickLabelGiver(l: Union[int, str]):
+    if isinstance(l, int):
+        return l
+    elif isinstance(l, str):
+        return l if len(l) < 4 else None
+    else:
+        raise ValueError(f"Unavailable type '{type(l)}'")

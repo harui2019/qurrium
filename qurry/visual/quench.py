@@ -6,22 +6,24 @@ from math import pi
 
 import matplotlib.pyplot as plt
 
-from .qurchart import QurchartConfig, paramsControl
-from ..qurrium import TagMapType, Quantity
+from .qurchart import paramsControl
+from ..mori.type import TagMapType
+from ..qurrium import Quantity
 
 
 def quench(
-    quantities: Union[TagMapType[Quantity], dict[str, dict[str, float]]],
+    data: Union[TagMapType[Quantity], dict[str, dict[str, float]]],
     beta: float,
     timeEvo: Iterable,
     name: str,
+    saveFolder: Optional[Union[Path, str]] = None,
     quantity: str = 'entropy',
     **otherArgs,
 ) -> tuple[Figure, Union[str, Path]]:
     """_summary_
 
     Args:
-        quantities (Union[TagMapType[Quantity], dict[str, dict[str, float]]]): _description_
+        data (Union[TagMapType[Quantity], dict[str, dict[str, float]]]): _description_
         beta (float): _description_
         timeEvo (Iterable): _description_
         name (str): _description_
@@ -34,18 +36,20 @@ def quench(
     Returns:
         tuple[Figure, Union[str, Path]]: _description_
     """
-    
+
     config = paramsControl(
-        **otherArgs,
+        data=data,
         additionName=name,
-        name=f'{quantity}.quench',
-        quantity=quantity
+        plotName=f'{quantity}.quench',
+        quantity=quantity,
+        saveFolder=saveFolder,
+        **otherArgs,
     )
 
     fig = plt.figure()
     ax_main: Union[SubplotBase, Axes] = fig.add_subplot(1, 1, 1)
 
-    ax_main.set_title(config.name)
+    # ax_main.set_title(config.name)
     ax_main.set_xlabel(
         f'evolution ($\Delta t = {beta} \pi$)', size=config.fontSize)
     ax_main.set_ylabel(f"{config.quantity}", size=config.fontSize)
@@ -55,10 +59,10 @@ def quench(
 
     ax_main.grid(linestyle=config.lineStyle)
 
-    if not isinstance(quantities, dict):
+    if not isinstance(data, dict):
         raise TypeError('entropies must be a dictionary.')
 
-    for k, v in quantities.items():
+    for k, v in data.items():
         if isinstance(v, dict):
             v = v.values()
         ax_main.plot(
@@ -76,8 +80,9 @@ def quench(
         return fig, config.name
 
     else:
+        saveLoc = config.saveFolder / config.filename
         export_fig = plt.savefig(
-            config.saveFolder/config.filename,
+            saveLoc,
             format=config.filetype,
             dpi=config.dpi,
             bbox_extra_artists=(ax_main_legend,),

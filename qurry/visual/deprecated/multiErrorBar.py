@@ -10,8 +10,8 @@ from pathlib import Path
 from math import pi
 from typing import Callable, Optional, Union, NamedTuple, overload
 
-from ..mori import argdict
-from .widget import *
+from ...mori import argdict, Configuration
+from ..qurchart import yLimDecider
 
 
 class QurryplotV1:

@@ -6,7 +6,7 @@ from math import pi
 
 import matplotlib.pyplot as plt
 
-from .config import QurryPlotConfig
+from ..qurchart import QurchartConfig
 
 def quenchEntropy(
     entropies: dict[str, Union[list[float], dict[str, float]]],
@@ -14,7 +14,13 @@ def quenchEntropy(
     timeEvo: Iterable,
     name: str,
     saveFolder: Optional[Union[Path, str]] = None,
-    config: QurryPlotConfig = QurryPlotConfig(),
+    config: QurchartConfig = QurchartConfig(
+        fontSize = 12,
+        yLim = (-0.1, 1.1),
+        lineStyle = "--",
+        filetype = "png",
+        dpi = 300,
+    ),
     pltObject: bool = False,
 ) -> tuple[Figure, str]:
 
@@ -57,8 +63,8 @@ def quenchEntropy(
     
     else:
         export_fig = plt.savefig(
-            saveFolder/f"{name}.{config.fileFormat}",
-            format=config.fileFormat,
+            saveFolder/f"{name}.{config.filetype}",
+            format=config.filetype,
             dpi=config.dpi,
             bbox_extra_artists=(ax_main_legend,),
             # bbox_extra_artists=(ax_main_legend, ax_main_secxa,),
