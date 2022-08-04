@@ -68,6 +68,7 @@ class QurryV3:
     """
 
     """ Configuration """
+    __version__ = (0, 3, 4)
     
     @abstractmethod
     class argsCore(NamedTuple):
@@ -1050,7 +1051,7 @@ class QurryV3:
         )
         self.exps[self.IDNow] = {
             **self._expsBase.make(),
-            **self.now,
+            **self.now._asdict(),
         }
 
         return self.now
@@ -1563,7 +1564,7 @@ class QurryV3:
         self,
         dataRetrieve: Optional[dict[Union[list[str], str]]] = None,
         withCounts: bool = False,
-        __log: dict[str] = {},
+        run_log: dict[str] = {},
         **allArgs: any,
     ) -> Union[Quantity, tuple[Quantity, Counts]]:
         """Export the result which completed calculating purity.
@@ -1588,7 +1589,7 @@ class QurryV3:
         print(f"| name: {argsNow.expsName}\n"+f"| id: {self.IDNow}")
 
         counts, quantity = self.quantity(
-            **argsNow,
+            **argsNow._asdict(),
             result=result,
         )
 
@@ -1607,7 +1608,7 @@ class QurryV3:
             if k == '_dummy':
                 withCounts = True
                 
-        for k, v in __log.items():
+        for k, v in run_log.items():
             self.exps[self.IDNow]['sideProduct'][k] = v
             
 
@@ -2021,7 +2022,7 @@ class QurryV3:
             quantity, counts = self.output(
                 **config,
                 withCounts=True,
-                __log={
+                run_log={
                     'time': time.time() - start_time,
                     'memory': self.resourceWatch.virtual_memory().percent
                 }

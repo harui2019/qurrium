@@ -1,4 +1,4 @@
-from typing import Union, Iterable, NamedTuple, Optional, Literal, Callable
+from typing import Union, NamedTuple, Optional, Literal, Callable
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes, SubplotBase
 import matplotlib.pyplot as plt

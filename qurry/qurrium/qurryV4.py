@@ -1436,7 +1436,7 @@ class QurryV4:
         shots: int,
         counts: list[Counts],
         num: int = 1,
-        __log: dict[str] = {},
+        run_log: dict[str] = {},
         **otherArgs,
     ):
 
@@ -1444,7 +1444,7 @@ class QurryV4:
         quantity = {
             '_dummy': dummy,
             'sampling': num,
-            **__log,
+            **run_log,
         }
         return quantity
 
@@ -1453,7 +1453,7 @@ class QurryV4:
     def output(
         self,
         withCounts: bool = False,
-        __log: dict[str] = {},
+        run_log: dict[str] = {},
         **allArgs: any,
     ) -> Union[Quantity, tuple[Quantity, Counts]]:
         """Export the result which completed calculating purity.
@@ -1494,7 +1494,7 @@ class QurryV4:
             if k == '_dummy':
                 withCounts = True
 
-        for k, v in __log.items():
+        for k, v in run_log.items():
             self.exps[self.IDNow]['sideProduct'][k] = v
 
         quantity = {k: quantity[k] for k in quantity if k[0] != '_'}
@@ -2265,7 +2265,7 @@ class QurryV4:
             quantity, counts = self.output(
                 **config,
                 withCounts=True,
-                __log={
+                run_log={
                     '_time': time.time() - start_time,
                     '_memory': self.resourceWatch.virtual_memory().percent
                 }
