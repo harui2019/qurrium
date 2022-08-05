@@ -105,6 +105,10 @@ class QurryV4:
 
         expIndex: Optional[int] = None
 
+
+    class expsCore(NamedTuple):
+        ...
+
     class expsMain(NamedTuple):
         # Measurement result
         circuit: list[QuantumCircuit] = []
