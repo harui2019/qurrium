@@ -35,7 +35,7 @@ from collections import Counter
 
 from ..util import Gajima, ResoureWatch
 from ..mori import (
-    Configuration,
+    defaultConfig,
     attributedDict,
     syncControl,
     jsonablize,
@@ -67,7 +67,7 @@ class QurryV3:
     The qiskit job tool
     """
 
-    """ Configuration """
+    """ defaultConfig """
     __version__ = (0, 3, 4)
     
     @abstractmethod
@@ -108,7 +108,7 @@ class QurryV3:
         defaultArg: dict[any] = {
             **argsCore()._asdict()
         },
-    ) -> Configuration:
+    ) -> defaultConfig:
         """The default format and value for executing a single experiment.
         - Example:
 
@@ -150,16 +150,16 @@ class QurryV3:
 
         Args:
             name (str, optional):
-                Name of basic configuration for `Qurry`.
+                Name of basic defaultConfig for `Qurry`.
                 Defaults to 'qurryConfig'.
             defaultArg (dict[any], optional):
                 Basic input for `.output`.
                 Defaults to { 'wave': None }.
 
         Returns:
-            Configuration: The template of experiment configuration.
+            defaultConfig: The template of experiment defaultConfig.
         """
-        return Configuration(
+        return defaultConfig(
             name=name,
             default={
                 **self.argsMain()._asdict(),
@@ -174,7 +174,7 @@ class QurryV3:
         defaultArg: dict = {
             # Result of experiment.
         },
-    ) -> Configuration:
+    ) -> defaultConfig:
         """The default storage format and values of a single experiment.
         - Example:
 
@@ -236,7 +236,7 @@ class QurryV3:
 
         Args:
             name (str, optional):
-                Name of basic configuration for `Qurry`.
+                Name of basic defaultConfig for `Qurry`.
                 Defaults to 'qurryConfig'.
             expsConfig (dict, optional):
                 `expsConfig`.
@@ -246,13 +246,13 @@ class QurryV3:
                 Defaults to {}.
 
         Returns:
-            Configuration: The template of experiment data.
+            defaultConfig: The template of experiment data.
         """
-        return Configuration(
+        return defaultConfig(
             name=name,
             default={
                 # inherit from `expsConfig`
-                **self.expsConfig(),
+                **self.expsConfig().make(),
 
                 # Reault of experiment.
                 **defaultArg,
@@ -293,7 +293,7 @@ class QurryV3:
         # configList
         configList: list = []
 
-        # Configuration of `IBMQJobManager().run`
+        # defaultConfig of `IBMQJobManager().run`
         # Multiple jobs shared
         shots: int = 1024
         backend: Backend = AerProvider().get_backend('aer_simulator')
@@ -341,7 +341,7 @@ class QurryV3:
         defaultArg: dict[any] = {
             # Variants of experiment.
         },
-    ) -> Configuration:
+    ) -> defaultConfig:
         """The default format and value for executing mutiple experiments.
         - Example:
 
@@ -361,7 +361,7 @@ class QurryV3:
             # configList
             'configList': [],
 
-            # Configuration of `IBMQJobManager().run`
+            # defaultConfig of `IBMQJobManager().run`
             # Multiple jobs shared
             'shots': 1024,
             'backend': AerProvider().get_backend('aer_simulator'),
@@ -391,7 +391,7 @@ class QurryV3:
 
         Args:
             expsName (str, optional):
-                Name of basic configuration for `Qurry`.
+                Name of basic defaultConfig for `Qurry`.
                 Defaults to 'qurryConfig'.
             expsConfig (dict, optional):
                 `expsConfig`.
@@ -401,10 +401,10 @@ class QurryV3:
                 Defaults to {}.
 
         Returns:
-            Configuration: The template of multiple experiment configuration.
+            defaultConfig: The template of multiple experiment defaultConfig.
         """
 
-        return Configuration(
+        return defaultConfig(
             name=name,
             default={
                 **self.argsMultiMain()._asdict(),
@@ -449,7 +449,7 @@ class QurryV3:
 
         Args:
             name (str, optional):
-                Name of basic configuration for `Qurry`.
+                Name of basic defaultConfig for `Qurry`.
                 Defaults to 'qurryBaseHint'.
             hintContext (dict, optional):
                 Hints for `.expBase`.
@@ -461,7 +461,7 @@ class QurryV3:
             dict: The hints of the experiment data.
         """
 
-        hintDefaults = {k: "" for k in self.expsConfig()}
+        hintDefaults = {k: "" for k in self.expsConfig().make()}
         hintDefaults = {**hintDefaults, **hintContext}
         return hintDefaults
 
@@ -469,10 +469,10 @@ class QurryV3:
     
     @abstractmethod
     def initialize(self) -> dict[str, any]:
-        """Configuration to Initialize QurryV3.
+        """defaultConfig to Initialize QurryV3.
 
         Returns:
-            dict[str, any]: The basic configuration of `Qurry`.
+            dict[str, any]: The basic defaultConfig of `Qurry`.
         """
 
     def initialize(self) -> dict[str, any]:
@@ -499,7 +499,7 @@ class QurryV3:
         Raises:
             ValueError: When input is a null list.
             TypeError: When input is nor a `QuantumCircuit` or `list[QuantumCircuit]`.
-            KeyError: Configuration lost.
+            KeyError: defaultConfig lost.
             KeyError: `self.measureConfig['hint']` is not completed.
         """
         # basic check
@@ -958,7 +958,7 @@ class QurryV3:
                 Defaults to `None`.
 
             runConfig (dict, optional):
-                Configuration of :func:`qiskit.execute`.
+                defaultConfig of :func:`qiskit.execute`.
                 Defaults to `{}`.
 
             # Single job dedicated
@@ -973,7 +973,7 @@ class QurryV3:
                 Defaults to 2.
 
             transpileArg (dict, optional):
-                Configuration of :func:`qiskit.transpile`.
+                defaultConfig of :func:`qiskit.transpile`.
                 Defaults to `{}`.
 
             # Other arguments of experiment
@@ -1688,7 +1688,7 @@ class QurryV3:
         self,
         # configList
         configList: list = [],
-        # Configuration of `IBMQJobManager().run`
+        # defaultConfig of `IBMQJobManager().run`
         # Multiple jobs shared
         shots: int = 1024,
         backend: Backend = AerProvider().get_backend('aer_simulator'),
@@ -1719,7 +1719,7 @@ class QurryV3:
             # configList
             'configList': [],
 
-            # Configuration of `IBMQJobManager().run`
+            # defaultConfig of `IBMQJobManager().run`
             # Multiple jobs shared
             'shots': 1024,
             'backend': AerProvider().get_backend('aer_simulator'),
@@ -1751,9 +1751,9 @@ class QurryV3:
             # List of experiments.
 
             configList (list):
-                The list of configuration of multiple experiment.
+                The list of defaultConfig of multiple experiment.
 
-            # Configuration of `IBMQJobManager().run`
+            # defaultConfig of `IBMQJobManager().run`
             # Multiple jobs shared
 
             shots (int, optional):
@@ -1769,12 +1769,12 @@ class QurryV3:
                 Defaults to `None`.
 
             runConfig (dict, optional):
-                Configuration of :func:`qiskit.execute`.
+                defaultConfig of :func:`qiskit.execute`.
                 Defaults to `{}`.
 
             # IBMQJobManager() dedicated
             managerRunArgs (dict, optional):
-                Configuration of :func:`IBMQJobManager().run`.
+                defaultConfig of :func:`IBMQJobManager().run`.
                 Defaults to `{
                     'max_experiments_per_job': 200,
                 }`.
@@ -1890,7 +1890,7 @@ class QurryV3:
                 **self._expsMultiConfig.make(),
                 **otherArgs,
 
-                # Configuration of `IBMQJobManager().run`
+                # defaultConfig of `IBMQJobManager().run`
                 # Multiple jobs shared
                 'shots': shots,
                 'backend': backend,
@@ -1962,7 +1962,7 @@ class QurryV3:
 
         Args:        
             configList (list):
-                The list of configuration of multiple experiment.
+                The list of defaultConfig of multiple experiment.
 
             shots (int, optional):
                 Shots of the job.
