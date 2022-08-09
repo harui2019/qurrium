@@ -13,8 +13,9 @@ from qiskit.providers.ibmq.managed import (
     # ManagedJob,
     ManagedResults,
     IBMQManagedResultDataNotAvailable,
-    IBMQJobManagerInvalidStateError,
-    IBMQJobManagerUnknownJobSet)
+    # IBMQJobManagerInvalidStateError,
+    # IBMQJobManagerUnknownJobSet
+)
 
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
@@ -33,9 +34,8 @@ from typing import Literal, Union, Optional, NamedTuple, Hashable, overload
 from abc import abstractmethod, abstractclassmethod
 from collections import Counter, namedtuple
 
-from ..util import Gajima, ResoureWatch
 from ..mori import (
-    Configuration,
+    defaultConfig,
     attributedDict,
     defaultConfig,
     syncControl,
@@ -46,13 +46,19 @@ from ..mori import (
     TagMap,
 )
 from ..mori.type import TagMapType
-from .exceptions import UnconfiguredWarning
-from .type import (
-    Quantity,
-    Counts,
-    waveGetter,
-    waveReturn,
+from ..util import Gajima, ResoureWatch
+
+from .runargs import (
+    transpileConfig,
+    managerRunConfig,
+    runConfig,
+    ResoureWatchConfig,
 )
+from .exceptions import (
+    UnconfiguredWarning,
+    InvalidConfiguratedWarning,
+)
+from .type import Quantity, Counts, waveGetter, waveReturn
 
 # Qurry V0.4.0 - a Qiskit Macro
 
@@ -68,7 +74,7 @@ class QurryV4:
     """
     __version__ = (0, 4, 0)
 
-    """ Configuration for single experiment. """
+    """ defaultConfig for single experiment. """
 
     @abstractmethod
     class argsCore(NamedTuple):
@@ -88,24 +94,27 @@ class QurryV4:
         shots: int = 1024
         backend: Backend = AerProvider().get_backend('aer_simulator')
         provider: Optional[AccountProvider] = None
-        runArgs: dict = {}
+        runArgs: dict[str, any] = {}
 
         # Single job dedicated
         runBy: str = "gate"
         decompose: Optional[int] = 2
-        transpileArgs: dict = {}
+        transpileArgs: dict[str, any] = {}
 
         # Other arguments of experiment
         drawMethod: str = 'text'
         resultKeep: bool = False
         tags: tuple[str] = ()
+        resoureControl: dict[str, any] = {}
 
         saveLocation: Union[Path, str] = Path('./')
         exportLocation: Path = Path('./')
 
         expIndex: Optional[int] = None
 
-
+    @abstractmethod
+    class expsCore(NamedTuple):
+        """Construct the experiment's output."""
     class expsCore(NamedTuple):
         ...
 
@@ -128,68 +137,6 @@ class QurryV4:
         'runConfig': 'runArgs',
     }
 
-    def expsBase(
-        self,
-        name: str = 'qurryExpsBase',
-        defaultArg: dict = {
-            # Arguments of experiment.
-        },
-    ) -> Configuration:
-        """The default storage format and values of a single experiment.
-        - Example:
-
-        >>> self._expsBase = self.expsBase(
-            name='dummyBase',
-            defaultArg={
-                'dummyResult1': None,
-                'dummyResult2': None,
-            },
-        )
-
-        Then :attr:`._expsBase` will be
-
-        >>> {
-            # Reault of experiment.
-            'echo': -100,
-            #
-            # Measurement result
-            'circuit': None,
-            'figRaw': 'unexport',
-            'figTranspile': 'unexport',
-            'result': None,
-            'counts': None,
-            #
-            # Export data
-            'jobID': '',
-            #
-            'dummyResult1': None,
-            'dummyResult2': None,
-        }
-
-        Args:
-            name (str, optional):
-                Name of basic configuration for `Qurry`.
-                Defaults to 'qurryExpsBase'.
-            expsConfig (dict, optional):
-                `expsConfig`.
-                Defaults to {}.
-            defaultArg (dict, optional):
-                Basic input for `.output`.
-                Defaults to {}.
-
-        Returns:
-            Configuration: The template of experiment data.
-        """
-        return Configuration(
-            name=name,
-            default={
-                **defaultArg,
-                **self.argsMain()._asdict(),
-                **self.argsCore()._asdict(),
-                **self.expsMain()._asdict(),
-            },
-        )
-
     _expsBaseExceptKeys = ['sideProduct', 'result']
     def expsBaseExcepts(
         self,
@@ -207,10 +154,10 @@ class QurryV4:
         """
         return self._expsBase.make(partial=excepts)
 
-    """ Configuration for multiple experiments. """
+    """ defaultConfig for multiple experiments. """
 
     class argsMultiMain(NamedTuple):
-        # Configuration of `IBMQJobManager().run`
+        # defaultConfig of `IBMQJobManager().run`
         # Multiple jobs shared
         shots: int = 1024
         backend: Backend = AerProvider().get_backend('aer_simulator')
@@ -258,141 +205,39 @@ class QurryV4:
         'circuitsMap': 'tagMapCircuits',
     }
 
-    def expsMultiBase(
-        self,
-        name: str = 'qurryMultiBase',
-        defaultArg: dict = {
-            # Arguments of experiment.
-        },
-    ) -> Configuration:
-        """The default storage format and values of a single experiment.
-        - Example:
-
-        >>> self._expsMultiBase = self.expsMultiBase(
-            name='dummyMultiBase',
-            defaultArg={
-                'dummyResult1': None,
-                'dummyResult2': None,
-            },
-        )
-
-        Then :attr:`._expsMultiMain` will be
-
-        >>> {
-            # configList
-            configList: [],
-            #
-            gitignore: syncControl(),
-            #
-            # tagMapStateDepending
-            tagMapQuantity: TagMap(),
-            tagMapCounts: TagMap(),
-            #
-            # tagMapUnexported
-            # tagMapResult: TagMap(),
-            #
-            # tagMapNeccessary
-            tagMapExpsID: TagMap(),
-            tagMapFiles: TagMap(),
-            tagMapIndex: TagMap(),
-            tagMapCircuits: TagMap(),
-            circuitsNum: dict[str, int] = {}
-            #
-            state: Literal["init", "pending", "completed"] = "init"
-            #
-            'dummyResult1': None,
-            'dummyResult2': None,
-        }
-
-        Args:
-            name (str, optional):
-                Name of basic configuration for `Qurry`.
-                Defaults to 'qurryExpsBase'.
-            expsConfig (dict, optional):
-                `expsConfig`.
-                Defaults to {}.
-            defaultArg (dict, optional):
-                Basic input for `.output`.
-                Defaults to {}.
-
-        Returns:
-            Configuration: The template of experiment data.
-        """
-        return Configuration(
-            name=name,
-            default={
-                **defaultArg,
-                **self.argsMultiMain()._asdict(),
-                **self.expsMultiMain()._asdict(),
-            },
-        )
-
     # TODO: make hint available in qurry
-
-    def expsHint(
-        self,
-        name: str = 'qurryBaseHint',
-        hintContext: dict = {
-            "_basicHint": "This is a hint of QurryV4.",
-        },
-    ) -> dict:
-        """Make hints for every values in :func:`.expsBase()`.
-        - Example:
-
-        >>> self._expsMultiBase = self.expsHint(
-            name: str = 'qurryBaseHint',
-            hintContext = {
-                'expID': 'This is a expID'. # hint for `expsBase` value
-                'dummyResult1': 'This is dummyResult1.', # extra hint
-                'dummyResult2': 'This is dummyResult2.', # extra hint
-            },
-        )
-
-        Then :attr:`.expHint` will be
-
-        >>> {
-            'expID': 'This is a expID',
-            'shots': '', # value without hint
-            ..., # other in `expsBase`
-            #
-            'dummyResult1': 'This is dummyResult1.', # extra hint
-            'dummyResult2': 'This is dummyResult2.', # extra hint
-        }
-
-        Args:
-            name (str, optional):
-                Name of basic configuration for `Qurry`.
-                Defaults to 'qurryBaseHint'.
-            hintContext (dict, optional):
-                Hints for `.expBase`.
-                Defaults to `{
-                    "_basicHint": "This is a hint of QurryV4.",
-                }`.
-
-        Returns:
-            dict: The hints of the experiment data.
-        """
-
-        hintDefaults = {k: "" for k in self.expsBase()}
-        hintDefaults = {**hintDefaults, **hintContext}
-        
-        return hintDefaults
 
     """ Initialize """
 
     @abstractmethod
     def initialize(self) -> dict[str, any]:
-        """Configuration to Initialize QurryV4.
+        """defaultConfig to Initialize QurryV4.
 
         Returns:
-            dict[str, any]: The basic configuration of `Qurry`.
+            dict[str, any]: The basic defaultConfig of `Qurry`.
         """
 
     def initialize(self) -> dict[str, any]:
 
-        self._expsBase = self.expsBase()
-        self._expsHint = self.expsHint()
-        self._expsMultiBase = self.expsMultiBase()
+        self._expsBase = defaultConfig(
+            name='QurriumMultiBase',
+            default={
+                **self.argsMain()._asdict(),
+                **self.argsCore()._asdict(),
+                **self.expsMain()._asdict(),
+            },
+        )
+        self._expsHint = {
+            **{k: f"sample: {v}" for k, v in self._expsBase},
+            "_basicHint": "This is a hint of QurryV4.",
+        }
+        self._expsMultiBase = defaultConfig(
+            name='QurriumMultiBase',
+            default={
+                **self.argsMultiMain()._asdict(),
+                **self.expsMultiMain()._asdict(),
+            },
+        )
         self.shortName = 'qurry'
         self.__name__ = 'Qurry'
 
@@ -411,7 +256,7 @@ class QurryV4:
         Raises:
             ValueError: When input is a null list.
             TypeError: When input is nor a `QuantumCircuit` or `list[QuantumCircuit]`.
-            KeyError: Configuration lost.
+            KeyError: defaultConfig lost.
             KeyError: `self.measureConfig['hint']` is not completed.
         """
         # basic check
@@ -734,7 +579,7 @@ class QurryV4:
         wave: Union[QuantumCircuit, any, None] = None,
         sampling: int = 1,
         **otherArgs: any
-    ) -> dict:
+    ) -> tuple[argsCore, dict[str, any]]:
         """Handling all arguments and initializing a single experiment.
 
         Args:
@@ -778,13 +623,18 @@ class QurryV4:
         else:
             sampling = 1
             warnings.warn(f"'{sampling}' is not an integer, use 1 as default")
-
-        return {
-            'wave': wave,
-            'expsName': f"{expsName}.{wave}",
-            'sampling': sampling,
-            **otherArgs,
-        }
+        
+        return (
+            self.argsCore(**{
+                'wave': wave,
+                'expsName': f"{expsName}.{wave}",
+                'sampling': sampling,
+            }),
+            {
+                k: v for k, v in otherArgs.items() 
+                if k not in self.argsCore._fields 
+            }
+        )
 
     def paramsControlMain(
         self,
@@ -795,18 +645,19 @@ class QurryV4:
         shots: int = 1024,
         backend: Backend = AerProvider().get_backend('aer_simulator'),
         provider: Optional[AccountProvider] = None,
-        runArgs: dict = {},
+        runArgs: dict[str, any] = {},
         # Single job dedicated
         runBy: str = "gate",
         decompose: Optional[int] = 2,
-        transpileArgs: dict = {},
+        transpileArgs: dict[str, any] = {},
         # Other arguments of experiment
         drawMethod: str = 'text',
         resultKeep: bool = False,
         tags: Optional[Hashable] = None,
+        resoureControl: dict[str, any] = {},
 
         **otherArgs: any,
-    ) -> argsMain:
+    ) -> Union[argsMain, argsCore]:
         """Handling all arguments and initializing a single experiment.
 
         - example of a value in `self.exps`
@@ -878,7 +729,7 @@ class QurryV4:
                 Defaults to `None`.
 
             runArgs (dict, optional):
-                Configuration of :func:`qiskit.execute`.
+                defaultConfig of :func:`qiskit.execute`.
                 Defaults to `{}`.
 
             # Single job dedicated
@@ -893,7 +744,7 @@ class QurryV4:
                 Defaults to 2.
 
             transpileArg (dict, optional):
-                Configuration of :func:`qiskit.transpile`.
+                defaultConfig of :func:`qiskit.transpile`.
                 Defaults to `{}`.
 
             # Other arguments of experiment
@@ -936,15 +787,31 @@ class QurryV4:
         else:
             self.expsBelong[tags] = [self.IDNow]
 
-        # TODO: add params control
-        self.resourceWatch = ResoureWatch(
-            **otherArgs
-        )
+        # config check
+        for config, checker in [
+            (runArgs, runConfig),
+            (transpileArgs, transpileConfig),
+            (resoureControl, ResoureWatchConfig),
+        ]:
+            if (len(config) > 0 and not checker.contain(config)):
+                warnings.warn(
+                    f"The following configuration has no any effected arguments,"+
+                    f"'{config}' for '{checker.__name__}'\n"+ 
+                    f'Available keys: {checker.default_names}',
+                    InvalidConfiguratedWarning
+                )
+
+        self.resourceWatch = ResoureWatch(**resoureControl)
 
         # Export all arguments
-        coreFiltered  = self.paramsControlCore(**otherArgs)
-        coreParams = {k: v for k, v in coreFiltered.items() if k in self.argsCore._fields}
-        otherParams = {k: v for k, v in coreFiltered.items() if not k in self.argsCore._fields}
+        coreFiltered, otherParams = self.paramsControlCore(**otherArgs)
+        coreParams = {k: v for k, v in coreFiltered._asdict().items() }
+        warnings.warn(
+            f"The following keys are not recognized as arguments for main process of experiment: \n"+
+            f"{list(otherParams.keys())}'\n"+ 
+            ', but are still kept in experiment record.',
+            InvalidConfiguratedWarning
+        )
 
         self.now: Union[QurryV4.argsMain, QurryV4.argsCore] = self.namedtupleNow(**{
             # ID of experiment.
@@ -1905,13 +1772,13 @@ class QurryV4:
         # configList
         configList: list = [],
 
-        # Configuration of `IBMQJobManager().run`
+        # defaultConfig of `IBMQJobManager().run`
         # Multiple jobs shared
         shots: int = 1024,
         backend: Backend = AerProvider().get_backend('aer_simulator'),
         provider: AccountProvider = None,
         # IBMQJobManager() dedicated
-        managerRunArgs: dict[str] = {
+        managerRunArgs: dict[str, any] = {
             'max_experiments_per_job': 200,
         },
         powerJobID: Optional[Union[str, list[str]]] = None,
@@ -1954,7 +1821,7 @@ class QurryV4:
             # configList
             'configList': [],
 
-            # Configuration of `IBMQJobManager().run`
+            # defaultConfig of `IBMQJobManager().run`
             # Multiple jobs shared
             'shots': 1024,
             'backend': AerProvider().get_backend('aer_simulator'),
@@ -1985,9 +1852,9 @@ class QurryV4:
             # List of experiments.
 
             configList (list):
-                The list of configuration of multiple experiment.
+                The list of defaultConfig of multiple experiment.
 
-            # Configuration of `IBMQJobManager().run`
+            # defaultConfig of `IBMQJobManager().run`
             # Multiple jobs shared
 
             shots (int, optional):
@@ -2004,7 +1871,7 @@ class QurryV4:
 
             # IBMQJobManager() dedicated
             managerRunArgs (dict, optional):
-                Configuration of :func:`IBMQJobManager().run`.
+                defaultConfig of :func:`IBMQJobManager().run`.
                 Defaults to `{
                     'max_experiments_per_job': 200,
                 }`.
@@ -2095,8 +1962,20 @@ class QurryV4:
             raise TypeError(
                 f"Invalid type '{type(powerJobID)}' for 'powerJobID', only 'str', 'list[str]', or 'None' are available.")
 
+        # config check
+        for config, checker in [
+            (managerRunArgs, managerRunConfig),
+        ]:
+            if (len(config) > 0 and not checker.contain(config)):
+                warnings.warn(
+                    f"The following configuration has no any effected arguments,"+
+                    f"'{config}' for '{checker.__name__}'\n"+ 
+                    f'Available keys: {checker.default_names}',
+                    InvalidConfiguratedWarning
+                )
+
         self.multiNow: QurryV4.argsMultiMain = self.argsMultiMain(**{
-            # Configuration of `IBMQJobManager().run`
+            # defaultConfig of `IBMQJobManager().run`
             # Multiple jobs shared
             'shots': shots,
             'backend': backend,
@@ -2190,7 +2069,7 @@ class QurryV4:
         # configList
         configList: list = [],
 
-        # Configuration of `IBMQJobManager().run`
+        # defaultConfig of `IBMQJobManager().run`
         # Multiple jobs shared
         shots: int = 1024,
         backend: Backend = AerProvider().get_backend('aer_simulator'),
@@ -2205,7 +2084,7 @@ class QurryV4:
 
         Args:        
             configList (list):
-                The list of configuration of multiple experiment.
+                The list of defaultConfig of multiple experiment.
 
             shots (int, optional):
                 Shots of the job.
@@ -2246,7 +2125,7 @@ class QurryV4:
         start_time = time.time()
         expsMulti = self.paramsControlMulti(
             configList=configList,
-            # Configuration of `IBMQJobManager().run`
+            # defaultConfig of `IBMQJobManager().run`
             # Multiple jobs shared
             shots=shots,
             backend=backend,
