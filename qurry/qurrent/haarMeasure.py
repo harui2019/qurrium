@@ -230,10 +230,12 @@ class haarMeasureV3(EntropyMeasureV3, haarBase):
     def quantity(
         cls,
         shots: int,
-        result: Union[Result, ManagedResults],
+        result: Optional[Union[Result, ManagedResults]] = None,
         resultIdxList: Optional[list[int]] = None,
         times: int = 0,
         degree: int = None,
+        
+        counts: list[dict[str, int]] = [],
         **otherArgs,
     ) -> tuple[dict, dict]:
         """Computing specific quantity.
@@ -257,28 +259,41 @@ class haarMeasureV3(EntropyMeasureV3, haarBase):
         else:
             raise ValueError("'resultIdxList' needs to be 'list'.")
 
-        counts = []
         purity = -100
         entropy = -100
         purityCellList = []
 
         Begin = time.time()
+
         print(f"| Calculating overlap ...", end="\r")
+        if len(counts) < 1:
+            for i in range(times):
+                t1 = resultIdxList[i]
+                print(
+                    f"| Calculating overlap {t1} and {t1}" +
+                    f" - {i+1}/{times} - {round(time.time() - Begin, 3)}s.", end="\r")
+
+                try:    
+                    allMeas1 = result.get_counts(t1)
+                    counts.append(allMeas1)
+                except IBMQManagedResultDataNotAvailable as err:
+                    counts.append(None)
+                    print("| Failed Job result skip, index:", i, err)
+                    continue
+        
+        if (times == len(counts)):
+            ...
+        elif (times == 0):
+            times == len(counts)
+        else:
+            times == len(counts)
+            warnings.warn(f"times: {times} and counts number: {len(counts)} are different, use counts number.")
+
         for i in range(times):
-            purityCell = 0
+            allMeas1 = counts[i]
             t1 = resultIdxList[i]
-            print(
-                f"| Calculating overlap {t1} and {t1}" +
-                f" - {i+1}/{times} - {round(time.time() - Begin, 3)}s.", end="\r")
-
-            try:
-                allMeas1 = result.get_counts(t1)
-                counts.append(allMeas1)
-            except IBMQManagedResultDataNotAvailable as err:
-                counts.append(None)
-                print("| Failed Job result skip, index:", i, err)
-                continue
-
+            purityCell = 0
+            
             allMeasUnderDegree = dict.fromkeys(
                 [k[:degree] for k in allMeas1], 0)
             for kMeas in list(allMeas1):
@@ -299,9 +314,6 @@ class haarMeasureV3(EntropyMeasureV3, haarBase):
                 f"| Calculating overlap end - {i+1}/{times}" +
                 f" - {round(time.time() - Begin, 3)}s." +
                 " "*30, end="\r")
-        print(
-            f"| Calculating overlap end - {i+1}/{times}" +
-            f" - {round(time.time() - Begin, 3)}s.")
 
         purity = np.mean(purityCellList)
         entropy = -np.log2(purity)
