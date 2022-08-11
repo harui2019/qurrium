@@ -234,7 +234,7 @@ class haarMeasureV3(EntropyMeasureV3, haarBase):
         resultIdxList: Optional[list[int]] = None,
         times: int = 0,
         degree: int = None,
-        
+
         counts: list[dict[str, int]] = [],
         **otherArgs,
     ) -> tuple[dict, dict]:
@@ -245,6 +245,15 @@ class haarMeasureV3(EntropyMeasureV3, haarBase):
             tuple[dict, dict]:
                 Counts, purity, entropy of experiment.
         """
+
+        if (times == len(counts)):
+            ...
+        else:
+            times = len(counts)
+            warnings.warn(
+                f"times: {times} and counts number: {len(counts)} are different, use counts number," +
+                "'times' = 0 is the default number.")
+
         if resultIdxList == None:
             resultIdxList = [i for i in range(times)]
         elif isinstance(resultIdxList, list):
@@ -273,27 +282,19 @@ class haarMeasureV3(EntropyMeasureV3, haarBase):
                     f"| Calculating overlap {t1} and {t1}" +
                     f" - {i+1}/{times} - {round(time.time() - Begin, 3)}s.", end="\r")
 
-                try:    
+                try:
                     allMeas1 = result.get_counts(t1)
                     counts.append(allMeas1)
                 except IBMQManagedResultDataNotAvailable as err:
                     counts.append(None)
                     print("| Failed Job result skip, index:", i, err)
                     continue
-        
-        if (times == len(counts)):
-            ...
-        elif (times == 0):
-            times == len(counts)
-        else:
-            times == len(counts)
-            warnings.warn(f"times: {times} and counts number: {len(counts)} are different, use counts number.")
 
         for i in range(times):
             allMeas1 = counts[i]
             t1 = resultIdxList[i]
             purityCell = 0
-            
+
             allMeasUnderDegree = dict.fromkeys(
                 [k[:degree] for k in allMeas1], 0)
             for kMeas in list(allMeas1):
