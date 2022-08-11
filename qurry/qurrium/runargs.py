@@ -1,3 +1,7 @@
+from typing import Optional
+import warnings
+
+from .exceptions import InvalidConfiguratedWarning
 from ..mori import defaultConfig
 from ..util.watch import ResoureWatch
 
@@ -90,5 +94,54 @@ runConfig = defaultConfig(
 
 ResoureWatchConfig = defaultConfig(
     name='ResoureWatchArgs',
-    default=ResoureWatch.RESOURCE_LIMIT._asdict(),
+    default=ResoureWatch.RESOURCE_LIMIT()._asdict(),
 )
+
+
+def containChecker(
+    config: dict[str, any],
+    checker: defaultConfig,
+    restrict: bool = False,
+) -> Optional[Exception]:
+    """Check whether configuration is available.
+
+    Args:
+        config (dict[str, any]): Configuration.
+        checker (defaultConfig): defaultConfig for it.
+        restrict (bool, optional):
+            Raise error when `True`, otherwise only shows as a warning. 
+            Defaults to False.
+
+    Raises:
+        InvalidConfiguratedWarning: _description_
+        InvalidConfiguratedWarning: _description_
+
+    Returns:
+        Optional[Exception]: _description_
+    """
+    if (len(config) > 0):
+        if not checker.contain(config):
+            text = (
+                f"The following configuration has no any effected arguments," +
+                f"'{config}' for '{checker.__name__}'\n" +
+                f'Available keys: {checker.default_names}'
+            )
+
+            if restrict:
+                raise InvalidConfiguratedWarning(text)
+            else:
+                warnings.warn(text, InvalidConfiguratedWarning)
+        else:
+            useKey = checker.has(config)
+            noUseKey = checker.has(config, reverse=True)
+            text = (
+                f"'{useKey}' will be applied.\n" +
+                f"The following configuration has no any effected arguments," +
+                f"'{noUseKey}' for '{checker.__name__}'\n"
+            )
+            if restrict:
+                raise InvalidConfiguratedWarning(text)
+            else:
+                warnings.warn(text, InvalidConfiguratedWarning)
+    else:
+        ...

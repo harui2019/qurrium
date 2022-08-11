@@ -53,6 +53,7 @@ from .runargs import (
     managerRunConfig,
     runConfig,
     ResoureWatchConfig,
+    containChecker,
 )
 from .exceptions import (
     UnconfiguredWarning,
@@ -793,13 +794,7 @@ class QurryV4:
             (transpileArgs, transpileConfig),
             (resoureControl, ResoureWatchConfig),
         ]:
-            if (len(config) > 0 and not checker.contain(config)):
-                warnings.warn(
-                    f"The following configuration has no any effected arguments,"+
-                    f"'{config}' for '{checker.__name__}'\n"+ 
-                    f'Available keys: {checker.default_names}',
-                    InvalidConfiguratedWarning
-                )
+            containChecker(config, checker)
 
         self.resourceWatch = ResoureWatch(**resoureControl)
 
@@ -1966,13 +1961,7 @@ class QurryV4:
         for config, checker in [
             (managerRunArgs, managerRunConfig),
         ]:
-            if (len(config) > 0 and not checker.contain(config)):
-                warnings.warn(
-                    f"The following configuration has no any effected arguments,"+
-                    f"'{config}' for '{checker.__name__}'\n"+ 
-                    f'Available keys: {checker.default_names}',
-                    InvalidConfiguratedWarning
-                )
+            containChecker(config, checker)
 
         self.multiNow: QurryV4.argsMultiMain = self.argsMultiMain(**{
             # defaultConfig of `IBMQJobManager().run`
