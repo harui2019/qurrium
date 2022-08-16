@@ -133,15 +133,16 @@ def containChecker(
                 warnings.warn(text, InvalidConfiguratedWarning)
         else:
             useKey = checker.has(config)
-            noUseKey = checker.has(config, reverse=True)
+            uselessKey = checker.useless(config)
             text = (
-                f"'{useKey}' will be applied.\n" +
-                f"The following configuration has no any effected arguments," +
-                f"'{noUseKey}' for '{checker.__name__}'\n"
+                f"'{useKey}' will be applied. " +
+                f"The following configuration has no any affect: " +
+                f"'{uselessKey}' for '{checker.__name__}'"
             )
-            if restrict:
-                raise InvalidConfiguratedWarning(text)
-            else:
-                warnings.warn(text, InvalidConfiguratedWarning)
+            if len(uselessKey) > 0:
+                if restrict:
+                    raise InvalidConfiguratedWarning(text)
+                else:
+                    warnings.warn(text, InvalidConfiguratedWarning)
     else:
         ...

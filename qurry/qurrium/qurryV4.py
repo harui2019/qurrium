@@ -263,7 +263,7 @@ class QurryV4:
         # basic check
         if hasattr(self, 'initialize'):
             self.initialize()
-            for k in ['expsMultiBase', '_expsBase', '_expsHint', 'shortName']:
+            for k in ['_expsMultiBase', '_expsBase', '_expsHint', 'shortName']:
                 if not hasattr(self, k):
                     raise AttributeError(
                         f"'{k}' is lost, initialization stop.")
@@ -656,6 +656,11 @@ class QurryV4:
         resultKeep: bool = False,
         tags: Optional[Hashable] = None,
         resoureControl: dict[str, any] = {},
+        
+        # export option
+        expIndex: Optional[int] = None,
+        saveLocation: Optional[Union[Path, str]] = None,
+        exportLocation: Optional[Path] = None,
 
         **otherArgs: any,
     ) -> Union[argsMain, argsCore]:
@@ -800,13 +805,14 @@ class QurryV4:
 
         # Export all arguments
         coreFiltered, otherParams = self.paramsControlCore(**otherArgs)
-        coreParams = {k: v for k, v in coreFiltered._asdict().items() }
-        warnings.warn(
-            f"The following keys are not recognized as arguments for main process of experiment: \n"+
-            f"{list(otherParams.keys())}'\n"+ 
-            ', but are still kept in experiment record.',
-            InvalidConfiguratedWarning
-        )
+        coreParams = coreFiltered._asdict()
+        if len(otherParams) > 0:
+            warnings.warn(
+                f"The following keys are not recognized as arguments for main process of experiment: "+
+                f"{list(otherParams.keys())}'"+ 
+                ', but are still kept in experiment record.',
+                InvalidConfiguratedWarning
+            )
 
         self.now: Union[QurryV4.argsMain, QurryV4.argsCore] = self.namedtupleNow(**{
             # ID of experiment.
@@ -830,6 +836,12 @@ class QurryV4:
             'drawMethod': drawMethod,
             'resultKeep': resultKeep,
             'tags': tags,
+            'resoureControl': resoureControl,
+            
+            'saveLocation': saveLocation,
+            'exportLocation': exportLocation,
+            
+            'expIndex': expIndex,
 
             **coreParams
         })
@@ -1016,54 +1028,46 @@ class QurryV4:
         }
         exports = sortHashableAhead(exports)
 
-        with Gajima(
-            prefix="| ",
-            desc="Writing Legacy",
-            finish_desc="Legacy write out.",
-        ) as gajima:
-            if isinstance(saveLocation, (Path, str)):
-                saveLocParts = Path(saveLocation).parts
-                saveLoc = Path(saveLocParts[0]) if len(
-                    saveLocParts) > 0 else Path('./')
-                for p in saveLocParts[1:]:
-                    saveLoc /= p
+        if isinstance(saveLocation, (Path, str)):
+            saveLocParts = Path(saveLocation).parts
+            saveLoc = Path(saveLocParts[0]) if len(
+                saveLocParts) > 0 else Path('./')
+            for p in saveLocParts[1:]:
+                saveLoc /= p
+            if not os.path.exists(saveLoc):
+                os.mkdir(saveLoc)
+                
+            if _isMulti:
+                legacysLib = saveLoc / 'legacy'
+                if not os.path.exists(legacysLib):
+                    os.mkdir(legacysLib)
+            else: 
+                legacysLib = saveLoc
 
-                if _isMulti:
-                    saveLoc = saveLoc / 'legacy'
-
-                if not os.path.exists(saveLoc):
-                    os.mkdir(saveLoc)
-
-                self.exps[legacyId]['saveLocation'] = saveLoc
-                legacyExport = jsonablize(exports)
-                with open((saveLoc / (filename+'.json')), 'w+', encoding='utf-8') as Legacy:
-                    json.dump(
-                        legacyExport, Legacy, indent=2, ensure_ascii=False)
-
-            else:
-                legacyExport = jsonablize(exports)
-                if saveLocation != None:
-                    warnings.warn(
-                        "'saveLocation' is not the type of 'str' or 'Path', " +
-                        "so export cancelled.")
-
-        tales = self.exps[legacyId]['sideProduct']
-        if len(tales) > 0:
-            with Gajima(
-                prefix="| ",
-                desc="Writing Tales",
-                leave=False,
-                finish_desc="Tales write out.",
-            ) as gajima:
+            self.exps[legacyId]['saveLocation'] = legacysLib
+            legacyExport = jsonablize(exports)
+            with open((legacysLib / (filename+'.json')), 'w+', encoding='utf-8') as Legacy:
+                json.dump(
+                    legacyExport, Legacy, indent=2, ensure_ascii=False)
+                
+            tales = self.exps[legacyId]['sideProduct']
+            if len(tales) > 0:
                 talesLib = saveLoc / 'tales'
                 if not os.path.exists(talesLib):
                     os.mkdir(talesLib)
-
+                
                 for k in tales:
                     talesExport = jsonablize(tales[k])
                     with open((talesLib / (filename+f'.{k}.json')), 'w+', encoding='utf-8') as Tales:
                         json.dump(
                             talesExport, Tales, indent=2, ensure_ascii=False)
+
+        else:
+            legacyExport = jsonablize(exports)
+            if saveLocation != None:
+                warnings.warn(
+                    "'saveLocation' is not the type of 'str' or 'Path', " +
+                    "so export cancelled.")
 
         return legacyExport
 
@@ -1288,7 +1292,7 @@ class QurryV4:
         return counts
 
     @abstractclassmethod
-    def quantities(cls) -> dict[str, float]:
+    def quantities(cls) -> Union[dict[str, float], expsCore]:
         """Computing specific squantity.
         Where should be overwritten by each construction of new measurement.
 
@@ -1345,6 +1349,8 @@ class QurryV4:
             **argsNow._asdict(),
             counts=counts,
         )
+        
+        quantity = quantity if isinstance(quantity, dict) else quantity._asdict()
 
         if argsNow.resultKeep:
             warnings.warn(
@@ -1724,7 +1730,7 @@ class QurryV4:
             # tagMapNeccessary
             tagMapNeccessary = self._tagMapNeccessary(**{
                 k: TagMap(dataDummyJobs[k]) if k in dataDummyJobs else TagMap.read(
-                    saveLocation=namingComplex.saveLocation,
+                    saveLocation=namingComplex.exportLocation,
                     tagmapName=k,
                 )
                 for k in self._tagMapNeccessary._fields})
@@ -2150,6 +2156,7 @@ class QurryV4:
             legacy = self.writeLegacy(
                 saveLocation=expsMulti.exportLocation,
                 expID=self.IDNow,
+                _isMulti=True,
             )
             legacyTag = tuple(legacy['tags']) if isinstance(
                 legacy['tags'], list) else legacy['tags']

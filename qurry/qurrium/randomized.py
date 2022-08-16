@@ -3,7 +3,7 @@ from qiskit.quantum_info import random_unitary
 # from qiskit.result import Result
 
 import numpy as np
-from typing import Callable
+from typing import Callable, Literal, Union
 
 # Haar Randomized Parts V0.3.0 - Qurrium
 
@@ -25,6 +25,7 @@ makeTwoBitStrOneLiner: Callable[[int, list[str]], list[str]] = (
 
 
 class haarBase:
+    randomized_tool_version = (0, 1, 0)
     """Basic function of Haar randomized measure
 
     - Reference:
@@ -149,3 +150,55 @@ class haarBase:
         ay: np.complex128 = np.trace(np.dot(rho, RYmatrix))/2
         az: np.complex128 = np.trace(np.dot(rho, RZmatrix))/2
         return [(float(a.real), float(a.imag)) for a in [ax, ay, az]]
+    
+    
+    @staticmethod
+    def qubitSelector(
+        num_qubits: int,
+        degree: Union[int, tuple[int, int], None] = None,
+        as_what: Literal['degree', 'unitary_set', 'measure range'] = 'degree',
+    ) -> tuple[int]:
+        """_summary_
+
+        Args:
+            num_qubits (int): _description_
+            degree (Union[int, tuple[int, int], None], optional): _description_. Defaults to None.
+
+        Raises:
+            ValueError: _description_
+            ValueError: _description_
+            ValueError: _description_
+            ValueError: _description_
+
+        Returns:
+            list[int]: _description_
+        """        
+        subsystem = [i for i in range(num_qubits)]
+        item_range = ()
+        
+        if isinstance(degree, int):
+            if degree > num_qubits:
+                raise ValueError(
+                    f"The subsystem A includes {degree} qubits beyond {num_qubits} which the wave function has.")
+            elif degree < 0:
+                raise ValueError(
+                    f"The number of qubits of subsystem A has to be natural number.")
+            
+            item_range = (0, degree)
+            subsystem = subsystem[:degree]
+        elif isinstance(degree, (tuple, list)):
+            if len(degree) ==  2:
+                degParsed = [d%num_qubits if d!=num_qubits else num_qubits for d in degree]
+                item_range = (min(degParsed), max(degParsed))
+                subsystem = subsystem[min(degParsed):max(degParsed)]
+                print(f"| - Qubits: '{subsystem}' will be selected as {as_what}.")
+
+            else:
+                raise ValueError(
+                    f"Subsystem range is defined by only two integers, but there is {len(degree)} integers in '{degree}'.")
+            
+        else:
+            raise ValueError("Degree of freedom is not given.")
+        
+        return item_range
+        
