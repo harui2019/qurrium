@@ -1,8 +1,4 @@
-from qiskit import (
-    QuantumRegister,
-    ClassicalRegister,
-    QuantumCircuit
-)
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.result import Result
 from qiskit.quantum_info import random_unitary
 from qiskit.providers.ibmq.managed import ManagedResults, IBMQManagedResultDataNotAvailable
@@ -10,29 +6,50 @@ from qiskit.providers.ibmq.managed import ManagedResults, IBMQManagedResultDataN
 import numpy as np
 import warnings
 import time
-from math import pi
-from typing import Union, Optional, NamedTuple
+from typing import Union, Optional, NamedTuple, Hashable
 
-from ..qurrium import QurryV4, haarBase
-from ..qurrium.type import Quantity, Counts, waveGetter, waveReturn
+from ..qurrium import QurryV4, haarBase, qubitSelector, waveSelecter, Counts
 from ..mori import defaultConfig
 
 # EntropyMeasure V0.4.0 - Measuring Renyi Entropy - Qurrent
 
 
 class EntropyHaarMeasureV4(QurryV4, haarBase):
-    """EntropyMeasure V0.4.0 of qurrech
+    """HaarMeasure V0.4.0 of qurrent
+
+    - Reference:
+        - Used in:
+            Statistical correlations between locally randomized measurements: A toolbox for probing entanglement in many-body quantum states - A. Elben, B. Vermersch, C. F. Roos, and P. Zoller, [PhysRevA.99.052323](https://doi.org/10.1103/PhysRevA.99.052323)
+
+        - `bibtex`:
+
+```bibtex
+@article{PhysRevA.99.052323,
+    title = {Statistical correlations between locally randomized measurements: A toolbox for probing entanglement in many-body quantum states},
+    author = {Elben, A. and Vermersch, B. and Roos, C. F. and Zoller, P.},
+    journal = {Phys. Rev. A},
+    volume = {99},
+    issue = {5},
+    pages = {052323},
+    numpages = {12},
+    year = {2019},
+    month = {May},
+    publisher = {American Physical Society},
+    doi = {10.1103/PhysRevA.99.052323},
+    url = {https://link.aps.org/doi/10.1103/PhysRevA.99.052323}
+}
+```
     """
 
     """ Configuration """
 
     class argsCore(NamedTuple):
-        expsName: str = 'exps'
-        wave: Union[QuantumCircuit, any, None] = None
-        degree: Union[int, tuple[int, int], None] = None
+        expsName: str = None
+        wave: Hashable = None
+        degree: tuple[int, int] = None
         times: int = 100
-        measure: Union[int, tuple[int, int], None] = None
-        unitary_set: Union[int, tuple[int, int], None] = None
+        measure: tuple[int, int] = None
+        unitary_set: tuple[int, int] = None
 
     class expsCore(NamedTuple):
         entropy: float
@@ -47,7 +64,7 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
             dict[str, any]: The basic configuration of `haarMeasure`.
         """
         self._expsBase = defaultConfig(
-            name='QurrentHaarMultiBase',
+            name='QurrentHaarBase',
             default={
                 **self.argsMain()._asdict(),
                 **self.argsCore()._asdict(),
@@ -66,12 +83,12 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
             },
         )
 
-        self.shortName = 'qurrent.haar'
-        self.__name__ = 'qurrent.haarMeasure'
+        self.shortName = 'qurrent_haar'
+        self.__name__ = 'qurrent_haarMeasure'
 
     def paramsControlCore(
         self,
-        expsName: str = 'exps',
+        expsName: Optional[str] = None,
         wave: Union[QuantumCircuit, any, None] = None,
         degree: Union[int, tuple[int, int], None] = None,
         times: int = 100,
@@ -120,29 +137,18 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
         """
 
         # wave
-        if isinstance(wave, QuantumCircuit):
-            wave = self.addWave(wave)
-            print(f"| Add new wave with key: {wave}")
-        elif wave == None:
-            wave = self.lastWave
-            print(f"| Autofill will use '.lastWave' as key")
-        else:
-            try:
-                self.waves[wave]
-            except KeyError as e:
-                warnings.warn(f"'{e}', use '.lastWave' as key")
-                wave = self.lastWave
+        wave = waveSelecter(self, wave)
 
         # degree
         numQubits = self.waves[wave].num_qubits
-        degree = self.qubitSelector(numQubits, degree=degree)
+        degree = qubitSelector(numQubits, degree=degree)
         if measure is None:
             measure = numQubits
-        measure = self.qubitSelector(
+        measure = qubitSelector(
             numQubits, degree=measure, as_what='measure range')
         if unitary_set is None:
             unitary_set = numQubits
-        unitary_set = self.qubitSelector(
+        unitary_set = qubitSelector(
             numQubits, degree=unitary_set, as_what='unitary_set')
 
         if (min(degree) < min(measure)) or (max(degree) > max(measure)):
@@ -157,6 +163,10 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
             raise ValueError("'times' must be an 'int'.")
         elif times <= 0:
             raise ValueError("'times' must be larger than 0.")
+        
+        # expsName
+        if expsName is None:
+            expsName = f"w={wave}-deg={degree[1]-degree[0]}-at={times}.{self.shortName}"
 
         return (
             self.argsCore(**{
@@ -166,7 +176,7 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
 
                 'measure': measure,
                 'unitary_set': unitary_set,
-                'expsName': f"w={wave}-deg={degree[1]-degree[0]}-at={times}.{self.shortName}",
+                'expsName': expsName,
             }),
             {
                 k: v for k, v in otherArgs.items()
@@ -328,8 +338,10 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
     def measure(
         self,
         wave: Union[QuantumCircuit, any, None] = None,
-        degree: Optional[int] = None,
+        degree: Union[int, tuple[int, int], None] = None,
         times: int = 100,
+        measure: Union[int, tuple[int, int], None] = None,
+        unitary_set: Union[int, tuple[int, int], None] = None,
         expsName: str = 'exps',
         **otherArgs: any
     ) -> dict:
@@ -359,6 +371,8 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
             wave=wave,
             degree=degree,
             times=times,
+            measure=measure,
             expsName=expsName,
+            unitary_set=unitary_set,
             **otherArgs,
         )

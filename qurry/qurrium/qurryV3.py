@@ -2219,7 +2219,7 @@ class QurryV3:
             dict[any]: All result of jobs.
         """
         start_time = time.time()
-        argsMulti = self.paramsControlMulti(
+        expsMulti = self.paramsControlMulti(
             **allArgs,
             jobsType='powerJobs',
             configList=configList,
@@ -2228,8 +2228,8 @@ class QurryV3:
         allTranspliedCircs = {}
 
         print(f"| PowerPending {self.__name__} Start...\n"+f"+"+"-"*20)
-        numConfig = len(argsMulti.configList)
-        for config in argsMulti.configList:
+        numConfig = len(expsMulti.configList)
+        for config in expsMulti.configList:
             print(
                 f"| index={config['expIndex']}/{numConfig} - {round(time.time() - start_time, 2)}s")
             circuitSet = self.circuitTranspiler(**config)
@@ -2248,13 +2248,13 @@ class QurryV3:
                 warnings.warn(
                     f"The circuit output of '{self.IDNow}' is nor 'list' neither 'QuantumCircuit' " +
                     f"but '{type(circuitSet)}'.")
-            argsMulti.circuitsNum[self.IDNow] = numCirc
+            expsMulti.circuitsNum[self.IDNow] = numCirc
 
             # legacy writer
             legacy = self.writeLegacy(
-                saveLocation=argsMulti.exportLocation,
+                saveLocation=expsMulti.exportLocation,
                 expID=self.IDNow,
-                additionName=argsMulti.additionName,
+                additionName=expsMulti.additionName,
             )
             legacyTag = tuple(legacy['tags']) if isinstance(
                 legacy['tags'], list) else legacy['tags']
@@ -2265,27 +2265,27 @@ class QurryV3:
                     print(
                         f"| warning: '{k}' is a reserved key for export data.")
 
-            argsMulti.listFile.append(legacy['filename'])
-            argsMulti.listExpID.append(self.IDNow)
+            expsMulti.listFile.append(legacy['filename'])
+            expsMulti.listExpID.append(self.IDNow)
 
-            argsMulti.tagMapExpsID.guider(legacyTag, self.IDNow)
-            argsMulti.tagMapIndex.guider(legacyTag, config['expIndex'])
+            expsMulti.tagMapExpsID.guider(legacyTag, self.IDNow)
+            expsMulti.tagMapIndex.guider(legacyTag, config['expIndex'])
 
         with Gajima(
-            enumerate(argsMulti.listExpID),
+            enumerate(expsMulti.listExpID),
             carousel=[('dots', 20, 6), 'basic'],
             prefix="| ",
             desc="Packing circuits for pending",
             finish_desc="Packing Completed",
         ) as gajima:
             for expIndex, expIDKey in gajima:
-                argsMulti.circuitsMap[expIDKey] = []
-                tmpCircuitNum = argsMulti.circuitsNum[expIDKey]
+                expsMulti.circuitsMap[expIDKey] = []
+                tmpCircuitNum = expsMulti.circuitsNum[expIDKey]
                 gajima.gprint(
                     f"| Packing expID: {expIDKey}, index={expIndex} with {tmpCircuitNum} circuits ...")
 
                 for i in range(tmpCircuitNum):
-                    argsMulti.circuitsMap[expIDKey].append(
+                    expsMulti.circuitsMap[expIDKey].append(
                         len(pendingArray))
                     if not isinstance(allTranspliedCircs[expIDKey][i], QuantumCircuit):
                         print(allTranspliedCircs[expIDKey][i], i)
@@ -2299,19 +2299,19 @@ class QurryV3:
             finish_desc="Pending finished and Exporting",
         ) as gajima:
             powerJob = self.JobManager.run(
-                **argsMulti.managerRunArgs,
+                **expsMulti.managerRunArgs,
                 experiments=pendingArray,
-                backend=argsMulti.backend,
-                shots=argsMulti.shots,
-                name=f'{argsMulti.expsName}_w/_{len(pendingArray)}_jobs',
+                backend=expsMulti.backend,
+                shots=expsMulti.shots,
+                name=f'{expsMulti.expsName}_w/_{len(pendingArray)}_jobs',
                 # job_tags=argsMulti.pendingTags
                 # ? waiting for the issue of contain
             )
             gajima.gprint(f"| report:", self.JobManager.report())
             powerJobID = powerJob.job_set_id()
             gajima.gprint(f"| name: {powerJob.name()}")
-            argsMulti.powerJobID = powerJobID
-            argsMulti.state = 'pending'
+            expsMulti.powerJobID = powerJobID
+            expsMulti.state = 'pending'
             
             # ! Too many request
             # gajima.gprint(f"| Waiting for all jobs be queued... ")
@@ -2344,25 +2344,25 @@ class QurryV3:
             
             # powerJobsIDList = [mj.job.job_id() for mj in powerJob.jobs()]
             
-        argsMulti.gitignore.ignore('*.json')
-        argsMulti.gitignore.sync(f'*.powerJobs.json')
+        expsMulti.gitignore.ignore('*.json')
+        expsMulti.gitignore.sync(f'*.powerJobs.json')
 
-        dataPowerJobs = argsMulti._jsonize()
+        dataPowerJobs = expsMulti._jsonize()
         quickJSONExport(
             content=dataPowerJobs,
-            filename=argsMulti.exportLocation /
-            f"{argsMulti.expsName}.powerJobs.json",
+            filename=expsMulti.exportLocation /
+            f"{expsMulti.expsName}.powerJobs.json",
             mode='w+',
             jsonablize=True)
 
         with open(
-                argsMulti.exportLocation /
-            f"{argsMulti.expsName}.powerJobID.csv",
+                expsMulti.exportLocation /
+            f"{expsMulti.expsName}.powerJobID.csv",
                 'w+', encoding='utf-8') as theFile:
             print(f"{powerJobID}", file=theFile)
         print(f"| Export powerJobID.csv")
 
-        if argsMulti.independentExports:
+        if expsMulti.independentExports:
             print(f"| independentExports...")
             for n in [
                 'listExpID',
@@ -2372,16 +2372,16 @@ class QurryV3:
                 'circuitsMap',
                 'circuitsNum',
             ]:
-                argsMulti.gitignore.sync(f'*.{n}.json')
+                expsMulti.gitignore.sync(f'*.{n}.json')
                 print(f"| Export {n}.json")
                 quickJSONExport(
-                    content=argsMulti[n],
-                    filename=argsMulti.exportLocation /
-                    f"{argsMulti.expsName}.{n}.json",
+                    content=expsMulti[n],
+                    filename=expsMulti.exportLocation /
+                    f"{expsMulti.expsName}.{n}.json",
                     mode='w+',
                     jsonablize=True)
 
-        argsMulti.gitignore.export(argsMulti.exportLocation)
+        expsMulti.gitignore.export(expsMulti.exportLocation)
 
         gc.collect()
         print(
