@@ -19,13 +19,17 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
 
     - Reference:
         - Used in:
-            Statistical correlations between locally randomized measurements: A toolbox for probing entanglement in many-body quantum states - A. Elben, B. Vermersch, C. F. Roos, and P. Zoller, [PhysRevA.99.052323](https://doi.org/10.1103/PhysRevA.99.052323)
+            Statistical correlations between locally randomized measurements: 
+            A toolbox for probing entanglement in many-body quantum states - 
+            A. Elben, B. Vermersch, C. F. Roos, and P. Zoller, 
+            [PhysRevA.99.052323](https://doi.org/10.1103/PhysRevA.99.052323)
 
         - `bibtex`:
 
 ```bibtex
 @article{PhysRevA.99.052323,
-    title = {Statistical correlations between locally randomized measurements: A toolbox for probing entanglement in many-body quantum states},
+    title = {Statistical correlations between locally randomized measurements: 
+    A toolbox for probing entanglement in many-body quantum states},
     author = {Elben, A. and Vermersch, B. and Roos, C. F. and Zoller, P.},
     journal = {Phys. Rev. A},
     volume = {99},
@@ -207,7 +211,7 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
         print(f"| Build circuit: {argsNow.wave}", end="\r")
         for i in range(argsNow.times):
             qFunc1 = QuantumRegister(numQubits, 'q1')
-            cMeas1 = ClassicalRegister(numQubits, 'c1')
+            cMeas1 = ClassicalRegister(argsNow.measure[1]-argsNow.measure[0], 'c1')
             qcExp1 = QuantumCircuit(qFunc1, cMeas1)
 
             qcExp1.append(self.waveCall(
@@ -222,7 +226,7 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
                 qcExp1.append(unitaryList[i][j], [j])
 
             for j in range(*argsNow.measure):
-                qcExp1.measure(qFunc1[j], cMeas1[j])
+                qcExp1.measure(qFunc1[j], cMeas1[j-argsNow.measure[0]])
 
             qcList.append(qcExp1)
             print(
