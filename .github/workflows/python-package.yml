@@ -5,9 +5,13 @@ name: Python package
 
 on:
   push:
-    branches: ["stable", "dev"]
+    branches: 
+      - "stable"
+      - "dev"
   pull_request:
-    branches: ["stable", "dev"]
+    branches: 
+      - "stable"
+      - "dev"
 
 jobs:
   build:
@@ -24,10 +28,10 @@ jobs:
           submodules: true
 
       # Update references
-      - name: Git Sumbodule Update
-        run: |
-          git pull --recurse-submodules
-          git submodule update --remote --recursive
+#       - name: Git Sumbodule Update
+#         run: |
+#           git pull --recurse-submodules
+#           git submodule update --remote --recursive
 
       # - name: Commit update
       #   run: |
