@@ -10,12 +10,16 @@ from pathlib import Path
 from math import pi
 from typing import Callable, Optional, Union, NamedTuple, overload
 
-from ..tool import argdict
-from .widget import *
+from ...mori import argdict, Configuration
+from ..qurchart import yLimDecider
 
 
 class QurryplotV1:
-    """QurryplotV1 will be pointed to migrate old code and function in draw.py
+    """:cls:`QurryplotV1` will be pointed to migrate old code and function in draw.py
+    And it's just temporarily solution on drawing.
+    
+    With exportation data form be fixed as :cls:`TagMap`
+    :cls:`QurryplotV1` will replaced by :cls:`QurryDrawer` with better data structure handling.
 
     Returns:
         _type_: _description_
@@ -82,7 +86,7 @@ class QurryplotV1:
         return Configuration(
             name=name,
             default={
-                **self.argdictNow()._asdict(),
+                **self.argsMain()._asdict(),
                 # Variants of experiment.
                 **defaultArg,
             },

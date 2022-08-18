@@ -1,22 +1,20 @@
 from qiskit import (
-    Aer, execute, transpile,
+    execute, transpile,
     QuantumRegister, ClassicalRegister, QuantumCircuit
 )
-
+from qiskit.providers.aer import AerProvider
 from qiskit.quantum_info import Operator
-from qiskit.circuit.gate import Gate
-from qiskit.circuit.instruction import Instruction
+from qiskit.circuit import Gate, Instruction
 from qiskit.result import Result
-from qiskit.providers import Backend, JobError
-from qiskit.providers.ibmq import IBMQBackend
+from qiskit.providers import Backend, JobError, JobStatus
+from qiskit.providers.ibmq import IBMQBackend, IBMQJobManager, AccountProvider
 from qiskit.providers.ibmq.managed import (
-    IBMQJobManager,
     # ManagedJobSet,
     # ManagedJob,
     ManagedResults,
+    IBMQManagedResultDataNotAvailable,
     IBMQJobManagerInvalidStateError,
     IBMQJobManagerUnknownJobSet)
-from qiskit.providers.ibmq.accountprovider import AccountProvider
 
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
@@ -29,38 +27,34 @@ import warnings
 import datetime
 import time
 import os
-import psutil
-from math import pi
 from uuid import uuid4
 from pathlib import Path
 from typing import Literal, Union, Optional, NamedTuple, Hashable, overload
 from abc import abstractmethod, abstractclassmethod
+from collections import Counter
 
-from ..tool import Gajima, ResoureWatch
-from .mori import (
-    Configuration,
-    argdict,
+from ..util import Gajima, ResoureWatch
+from ..mori import (
+    defaultConfig,
+    attributedDict,
     syncControl,
     jsonablize,
     quickJSONExport,
     keyTupleLoads,
+    sortHashableAhead,
     TagMap,
+    singleColCSV,
 )
+from ..mori.type import TagMapType
 from .exceptions import UnconfiguredWarning
 from .type import (
-    TagKeysAllowable,
-    TagMapExpsIDType,
-    TagMapIndexType,
-    TagMapQuantityType,
-    TagMapCountsType,
-    # TagMapResultType,
     Quantity,
     Counts,
     waveGetter,
     waveReturn,
 )
 
-# Qurry V0.3.1 - a Qiskit Macro
+# Qurry V0.3.2 - a Qiskit Macro
 
 
 def defaultCircuit(numQubit: int) -> QuantumCircuit:
@@ -68,30 +62,31 @@ def defaultCircuit(numQubit: int) -> QuantumCircuit:
         numQubit, numQubit, name=f'qurry_default_{numQubit}')
 
 
-class Qurry:
+class QurryV3:
     """Qurry V0.3.1
     The qiskit job tool
     """
 
-    """ Configuration """
+    """ defaultConfig """
+    __version__ = (0, 3, 4)
     
     @abstractmethod
-    class argdictCore(NamedTuple):
+    class argsCore(NamedTuple):
         """Construct the experiment's parameters."""
 
-    class argdictCore(NamedTuple):
+    class argsCore(NamedTuple):
         expsName: str = 'exps'
         wave: Union[QuantumCircuit, any, None] = None
         sampling: int = 1
 
-    class argdictNow(NamedTuple):
+    class argsMain(NamedTuple):
         # ID of experiment.
         expID: Optional[str] = None
 
         # Qiskit argument of experiment.
         # Multiple jobs shared
         shots: int = 1024
-        backend: Backend = Aer.get_backend('aer_simulator')
+        backend: Backend = AerProvider().get_backend('aer_simulator')
         provider: Optional[AccountProvider] = None
         runConfig: dict = {}
 
@@ -105,15 +100,15 @@ class Qurry:
         resultKeep: bool = False
         dataRetrieve: Optional[dict[Union[list[str], str]]] = None
         expsName: str = 'exps'
-        tags: Optional[TagKeysAllowable] = None
+        tags: Optional[Hashable] = None
 
     def expsConfig(
         self,
         name: str = 'qurryConfig',
         defaultArg: dict[any] = {
-            **argdictCore()._asdict()
+            **argsCore()._asdict()
         },
-    ) -> Configuration:
+    ) -> defaultConfig:
         """The default format and value for executing a single experiment.
         - Example:
 
@@ -138,7 +133,7 @@ class Qurry:
             # Qiskit argument of experiment.
             # Multiple jobs shared
             'shots': 1024,
-            'backend': Aer.get_backend('aer_simulator'),
+            'backend': AerProvider().get_backend('aer_simulator'),
             'runConfig': {}
 
             # Single job dedicated
@@ -155,19 +150,19 @@ class Qurry:
 
         Args:
             name (str, optional):
-                Name of basic configuration for `Qurry`.
+                Name of basic defaultConfig for `Qurry`.
                 Defaults to 'qurryConfig'.
             defaultArg (dict[any], optional):
                 Basic input for `.output`.
                 Defaults to { 'wave': None }.
 
         Returns:
-            Configuration: The template of experiment configuration.
+            defaultConfig: The template of experiment defaultConfig.
         """
-        return Configuration(
+        return defaultConfig(
             name=name,
             default={
-                **self.argdictNow()._asdict(),
+                **self.argsMain()._asdict(),
                 # Variants of experiment.
                 **defaultArg,
             },
@@ -179,7 +174,7 @@ class Qurry:
         defaultArg: dict = {
             # Result of experiment.
         },
-    ) -> Configuration:
+    ) -> defaultConfig:
         """The default storage format and values of a single experiment.
         - Example:
 
@@ -205,7 +200,7 @@ class Qurry:
             # Qiskit argument of experiment.
             # Multiple jobs shared
             'shots': 1024,
-            'backend': Aer.get_backend('aer_simulator'),
+            'backend': AerProvider().get_backend('aer_simulator'),
             'provider': 'None',
             'runConfig': {},
 
@@ -241,7 +236,7 @@ class Qurry:
 
         Args:
             name (str, optional):
-                Name of basic configuration for `Qurry`.
+                Name of basic defaultConfig for `Qurry`.
                 Defaults to 'qurryConfig'.
             expsConfig (dict, optional):
                 `expsConfig`.
@@ -251,13 +246,13 @@ class Qurry:
                 Defaults to {}.
 
         Returns:
-            Configuration: The template of experiment data.
+            defaultConfig: The template of experiment data.
         """
-        return Configuration(
+        return defaultConfig(
             name=name,
             default={
                 # inherit from `expsConfig`
-                **self.expsConfig(),
+                **self.expsConfig().make(),
 
                 # Reault of experiment.
                 **defaultArg,
@@ -294,14 +289,14 @@ class Qurry:
         """
         return self.expsBase().make(partial=excepts)
 
-    class argdictMultiNow(NamedTuple):
+    class argsMultiMain(NamedTuple):
         # configList
         configList: list = []
 
-        # Configuration of `IBMQJobManager().run`
+        # defaultConfig of `IBMQJobManager().run`
         # Multiple jobs shared
         shots: int = 1024
-        backend: Backend = Aer.get_backend('aer_simulator')
+        backend: Backend = AerProvider().get_backend('aer_simulator')
         provider: AccountProvider = None
         runConfig: dict = {}
 
@@ -323,14 +318,16 @@ class Qurry:
         exportLocation: Path = Path('./')
 
         gitignore: syncControl = syncControl()
+        logTime: singleColCSV = singleColCSV()
+        logRAM: singleColCSV = singleColCSV()
         listExpID: list = []
         listFile: list = []
 
-        tagMapExpsID: TagMapExpsIDType = TagMap()
-        tagMapIndex: TagMapIndexType = TagMap()
-        tagMapQuantity: TagMapQuantityType = TagMap()
-        tagMapCounts: TagMapCountsType = TagMap()
-        # tagMapResult: TagMapResultType = TagMap()
+        tagMapExpsID: TagMapType[str] = TagMap()
+        tagMapIndex: TagMapType[Union[str, int]] = TagMap()
+        tagMapQuantity: TagMapType[Quantity] = TagMap()
+        tagMapCounts: TagMapType[Counts] = TagMap()
+        # tagMapResult: TagMapType[Result] = TagMap()
 
         circuitsMap: dict = {}
         circuitsNum: dict = {}
@@ -344,7 +341,7 @@ class Qurry:
         defaultArg: dict[any] = {
             # Variants of experiment.
         },
-    ) -> Configuration:
+    ) -> defaultConfig:
         """The default format and value for executing mutiple experiments.
         - Example:
 
@@ -364,10 +361,10 @@ class Qurry:
             # configList
             'configList': [],
 
-            # Configuration of `IBMQJobManager().run`
+            # defaultConfig of `IBMQJobManager().run`
             # Multiple jobs shared
             'shots': 1024,
-            'backend': Aer.get_backend('aer_simulator'),
+            'backend': AerProvider().get_backend('aer_simulator'),
             'provider': 'None',
             'runConfig': {},
 
@@ -394,7 +391,7 @@ class Qurry:
 
         Args:
             expsName (str, optional):
-                Name of basic configuration for `Qurry`.
+                Name of basic defaultConfig for `Qurry`.
                 Defaults to 'qurryConfig'.
             expsConfig (dict, optional):
                 `expsConfig`.
@@ -404,13 +401,13 @@ class Qurry:
                 Defaults to {}.
 
         Returns:
-            Configuration: The template of multiple experiment configuration.
+            defaultConfig: The template of multiple experiment defaultConfig.
         """
 
-        return Configuration(
+        return defaultConfig(
             name=name,
             default={
-                **self.argdictMultiNow()._asdict(),
+                **self.argsMultiMain()._asdict(),
             },
         )
 
@@ -420,7 +417,7 @@ class Qurry:
         self,
         name: str = 'qurryBaseHint',
         hintContext: dict = {
-            "_basicHint": "This is a hint of qurry.",
+            "_basicHint": "This is a hint of QurryV3.",
         },
     ) -> dict:
         """Make hints for every values in :func:`.expsBase()`.
@@ -452,33 +449,33 @@ class Qurry:
 
         Args:
             name (str, optional):
-                Name of basic configuration for `Qurry`.
+                Name of basic defaultConfig for `Qurry`.
                 Defaults to 'qurryBaseHint'.
             hintContext (dict, optional):
                 Hints for `.expBase`.
                 Defaults to `{
-                    "_basicHint": "This is a hint of qurry.",
+                    "_basicHint": "This is a hint of QurryV3.",
                 }`.
 
         Returns:
             dict: The hints of the experiment data.
         """
 
-        hintDefaults = {k: "" for k in self.expsConfig()}
+        hintDefaults = {k: "" for k in self.expsConfig().make()}
         hintDefaults = {**hintDefaults, **hintContext}
         return hintDefaults
 
     """ Initialize """
     
     @abstractmethod
-    def initialize(self) -> dict[str: any]:
-        """Configuration to Initialize Qurry.
+    def initialize(self) -> dict[str, any]:
+        """defaultConfig to Initialize QurryV3.
 
         Returns:
-            dict[str: any]: The basic configuration of `Qurry`.
+            dict[str, any]: The basic defaultConfig of `Qurry`.
         """
 
-    def initialize(self) -> dict[str: any]:
+    def initialize(self) -> dict[str, any]:
 
         self._expsConfig = self.expsConfig()
         self._expsBase = self.expsBase()
@@ -493,7 +490,7 @@ class Qurry:
         self,
         waves: Union[QuantumCircuit, list[QuantumCircuit]] = defaultCircuit(1),
     ) -> None:
-        """The initialization of Qurry.
+        """The initialization of QurryV3.
 
         Args:
             waves (Union[QuantumCircuit, list[QuantumCircuit]], optional):
@@ -502,7 +499,7 @@ class Qurry:
         Raises:
             ValueError: When input is a null list.
             TypeError: When input is nor a `QuantumCircuit` or `list[QuantumCircuit]`.
-            KeyError: Configuration lost.
+            KeyError: defaultConfig lost.
             KeyError: `self.measureConfig['hint']` is not completed.
         """
         # basic check
@@ -536,13 +533,16 @@ class Qurry:
         # value create
         self.exps = {}
         self.expsBelong = {}
+        
+        # TODO: add params control
+        self.resourceWatch = ResoureWatch()
 
         # reresh per execution.
-        self.now = argdict(
+        self.now = attributedDict(
             params=self._expsConfig.make(),
         )
         self.IDNow = None
-        self.multiNow = argdict(
+        self.multiNow = attributedDict(
             params=self._expsMultiConfig.make(),
         )
 
@@ -630,8 +630,6 @@ class Qurry:
             self.lastWave = key
             return self.lastWave
 
-
-
         elif isinstance(waveCircuit, list):
             if isinstance(key, list):
                 if len(key) == len(waveCircuit):
@@ -670,7 +668,7 @@ class Qurry:
         self,
         wave: Union[list[Hashable], Hashable, None] = None,
         runBy: Optional[Literal['gate', 'operator', 'instruction', 'copy']] = None,
-        backend: Optional[Backend] = Aer.get_backend('aer_simulator'),
+        backend: Optional[Backend] = AerProvider().get_backend('aer_simulator'),
     ) -> waveGetter[waveReturn]:
         """Parse wave Circuit into `Instruction` as `Gate` or `Operator` on `QuantumCircuit`.
 
@@ -685,7 +683,7 @@ class Qurry:
             backend (Optional[Backend], optional):
                 Current backend which to check whether exports to `IBMQBacked`,
                 if does, then no matter what option input at `runBy` will export `Gate`.
-                Defaults to Aer.get_backend('aer_simulator').
+                Defaults to AerProvider().get_backend('aer_simulator').
 
         Returns:
             waveReturn: The result of the wave as `Gate` or `Operator`.
@@ -760,18 +758,12 @@ class Qurry:
         Args:
             expID (Optional[str], optional): The `expID` wants to check. Defaults to None.
 
-        Raises:
-            KeyError: When given `expID` is not available.
-
         Returns:
             str: The available `expID`.
         """
 
         if expID != None:
-            if expID in self.exps:
-                tgtId = expID
-            else:
-                tgtId = False
+            tgtId = expID if expID in self.exps else False
         else:
             tgtId = self.IDNow
 
@@ -879,7 +871,7 @@ class Qurry:
         # Qiskit argument of experiment.
         # Multiple jobs shared
         shots: int = 1024,
-        backend: Backend = Aer.get_backend('aer_simulator'),
+        backend: Backend = AerProvider().get_backend('aer_simulator'),
         provider: Optional[AccountProvider] = None,
         runConfig: dict = {},
         # Single job dedicated
@@ -890,11 +882,10 @@ class Qurry:
         drawMethod: str = 'text',
         resultKeep: bool = False,
         dataRetrieve: Optional[dict[Union[list[str], str]]] = None,
-        expsName: str = 'exps',
-        tags: Optional[TagKeysAllowable] = None,
+        tags: Optional[Hashable] = None,
 
         **otherArgs: any,
-    ) -> argdictNow:
+    ) -> argsMain:
         """Handling all arguments and initializing a single experiment.
 
         - example of a value in `self.exps`
@@ -910,7 +901,7 @@ class Qurry:
             # Qiskit argument of experiment.
             # Multiple jobs shared
             'shots': 1024,
-            'backend': Aer.get_backend('aer_simulator'),
+            'backend': AerProvider().get_backend('aer_simulator'),
             'runConfig': {},
             'expsName': 'exps',
 
@@ -925,7 +916,7 @@ class Qurry:
             'dataRetrieve': None,
             'tags': tags,
 
-            # Reault of experiment.
+            # Result of experiment.
             'echo': -100,
 
             # Measurement result
@@ -960,14 +951,14 @@ class Qurry:
 
             backend (Backend, optional):
                 The quantum backend.
-                Defaults to `Aer.get_backend('aer_simulator')`.
+                Defaults to `AerProvider().get_backend('aer_simulator')`.
 
             provider (Optional[AccountProvider], optional):
                 :cls:`AccountProvider` of current backend for running :cls:`IBMQJobManager`.
                 Defaults to `None`.
 
             runConfig (dict, optional):
-                Configuration of :func:`qiskit.execute`.
+                defaultConfig of :func:`qiskit.execute`.
                 Defaults to `{}`.
 
             # Single job dedicated
@@ -982,7 +973,7 @@ class Qurry:
                 Defaults to 2.
 
             transpileArg (dict, optional):
-                Configuration of :func:`qiskit.transpile`.
+                defaultConfig of :func:`qiskit.transpile`.
                 Defaults to `{}`.
 
             # Other arguments of experiment
@@ -1010,7 +1001,7 @@ class Qurry:
             KeyError: Given `expID` does not exist.
 
         Returns:
-            argdict: Current arguments.
+            attributedDict: Current arguments.
         """
 
         # expID
@@ -1030,15 +1021,10 @@ class Qurry:
             self.expsBelong[tags].append(self.IDNow)
         else:
             self.expsBelong[tags] = [self.IDNow]
-            
-        # TODO: add params control
-        self.resourceWatch = ResoureWatch(
-            **otherArgs
-        )
 
         # Export all arguments
         parsedOther = self.paramsControlCore(**otherArgs)
-        self.now: Union[Qurry.argdictNow, Qurry.argdictCore] = argdict(
+        self.now: Union[QurryV3.argsMain, QurryV3.argsCore] = attributedDict(
             params={
                 **self._expsConfig.make(),
                 # ID of experiment.
@@ -1065,7 +1051,7 @@ class Qurry:
         )
         self.exps[self.IDNow] = {
             **self._expsBase.make(),
-            **self.now,
+            **self.now._asdict(),
         }
 
         return self.now
@@ -1138,7 +1124,7 @@ class Qurry:
 
     def circuitMethod(self) -> list[QuantumCircuit]:
 
-        argsNow: Union[Qurry.argdictNow, Qurry.argdictCore] = self.now
+        argsNow: Union[QurryV3.argsMain, QurryV3.argsCore] = self.now
         circuit = self.waves[argsNow.wave]
         numQubits = circuit.num_qubits
         print(
@@ -1191,7 +1177,7 @@ class Qurry:
         additionName: Optional[str] = None,
         saveLocation: Optional[Union[Path, str]] = None,
         excepts: list = [],
-    ) -> dict[str: any]:
+    ) -> dict[str, any]:
         """Export the experiment data, if there is a previous export, then will overwrite.
 
         - example of file.name:
@@ -1253,6 +1239,7 @@ class Qurry:
             k: self.exps[legacyId][k] for k in self.exps[legacyId]
             if k not in list(self.expsBaseExcepts().keys())+excepts
         }
+        exports = sortHashableAhead(exports)
 
         with Gajima(
             carousel=[('dots', 20, 6), 'basic'],
@@ -1308,11 +1295,11 @@ class Qurry:
 
     def readLegacy(
         self,
+        expID: Optional[str] = None,
         filename: Optional[Union[Path, str]] = None,
         saveLocation: Union[Path, str] = Path('./'),
-        expID: Optional[str] = None,
         excepts: list = [],
-    ) -> dict[str: any]:
+    ) -> dict[str, any]:
         """Read the experiment data.
 
         Args:
@@ -1333,7 +1320,7 @@ class Qurry:
             TypeError: File content is not `dict`.
 
         Returns:
-            dict[str: any]: The data.
+            dict[str, any]: The data.
         """
 
         if isinstance(saveLocation, (Path, str)):
@@ -1343,13 +1330,13 @@ class Qurry:
                 "'saveLocation' needs to be the type of 'str' or 'Path'.")
 
         if not os.path.exists(saveLocation):
-            raise FileNotFoundError("Such location not found.")
+            raise FileNotFoundError(f"Such location not found: {saveLocation}")
 
         legacyRead = {}
         if expID != None:
             lsfolder = glob.glob(str(saveLocation / f"*{expID}*.json"))
             if len(lsfolder) == 0:
-                raise FileNotFoundError(f"The file 'expID={expID}' not found.")
+                raise FileNotFoundError(f"The file 'expID={expID}' not found at '{saveLocation}'.")
 
             for p in lsfolder:
                 with open(p, 'r', encoding='utf-8') as Legacy:
@@ -1368,7 +1355,7 @@ class Qurry:
 
         legacyRead = {
             **self.expsBaseExcepts(),
-            **legacyRead,
+            **{ k: v for k, v in legacyRead.items() if k not in excepts },
         }
 
         if isinstance(legacyRead, dict):
@@ -1392,7 +1379,6 @@ class Qurry:
 
         Args:
             allArgs: all arguments will handle by `self.paramsControl()` and export as specific format.
-            {paramsControlArgsDoc}
 
         Returns:
             list[QuantumCircuit]:
@@ -1466,74 +1452,6 @@ class Qurry:
 
         return result
 
-    # def retrieve(
-    #     self,
-    #     **allArgs: any,
-    # ) -> Optional[list[dict]]:
-    #     """Retrieve the data from IBMQService which is already done, and add it into `self.exps`.
-
-    #     Args:
-    #         allArgs: all arguments will handle by `self.paramsControl()` and export as specific format.
-
-    #     Raises:
-    #         KeyError: The necessary keys in `self.now.dataRetrieve` are lost.
-    #             When the job record does not have `jobID`.
-    #         ValueError: `argsNow.dataRetrieve` is null.
-
-    #     Returns:
-    #         Optional[list[dict]]: The result of the job.
-    #     """
-
-    #     argsNow = self.paramsControlCore(**allArgs)
-    #     if not isinstance(argsNow.provider, AccountProvider):
-    #         raise ValueError("Provider required.")
-
-    #     retrievedBase = self._expsBase.make()
-
-    #     if isinstance(argsNow.dataRetrieve, dict):
-    #         lost = self._expsBase.check(argsNow.dataRetrieve)
-    #         for k in lost:
-    #             if k in ["jobID", "IBMQJobManager"]:
-    #                 raise KeyError(
-    #                     f"The giving data to retrieve jobs needs the key '{k}'")
-    #         retrievedBase = argsNow.dataRetrieve
-
-    #     elif isinstance(argsNow.dataRetrieve, str):
-    #         retrievedBase["jobID"] = [argsNow.dataRetrieve]
-
-    #     else:
-    #         raise ValueError(
-    #             "The giving data to retrieve jobs has to be 'str' of 'jobID' or 'dict' contained 'jobID'.")
-
-    #     result = None
-    #     for singleJobID in retrievedBase["jobID"]:
-    #         try:
-    #             retrieved = IBMQJobManager().retrieve_job_set(
-    #                 job_set_id=singleJobID,
-    #                 provider=argsNow.provider,
-    #                 refresh=True
-    #             )
-    #             result = retrieved.results()
-
-    #         except IBMQJobManagerUnknownJobSet as e:
-    #             warnings.warn("Job unknown.", e)
-
-    #         except IBMQJobManagerInvalidStateError as e:
-    #             warnings.warn(
-    #                 "Job faied by 'IBMQJobManagerInvalidStateError'", e)
-
-    #         except JobError as e:
-    #             warnings.warn("Job faied by 'JobError", e)
-
-    #     self.exps[self.IDNow] = {
-    #         **self.exps[self.IDNow],
-    #         'expID': self.IDNow,
-    #         'result': result,
-    #         **retrievedBase,
-    #     }
-
-    #     return result
-
     @abstractclassmethod
     def quantity(cls) -> tuple[Quantity, Counts]:
         """Computing specific squantity.
@@ -1578,6 +1496,7 @@ class Qurry:
         self,
         dataRetrieve: Optional[dict[Union[list[str], str]]] = None,
         withCounts: bool = False,
+        run_log: dict[str] = {},
         **allArgs: any,
     ) -> Union[Quantity, tuple[Quantity, Counts]]:
         """Export the result which completed calculating purity.
@@ -1598,11 +1517,11 @@ class Qurry:
             dataRetrieve=dataRetrieve,
             **allArgs,
         )
-        argsNow: Union[Qurry.argdictNow, Qurry.argdictCore] = self.now
+        argsNow: Union[QurryV3.argsMain, QurryV3.argsCore] = self.now
         print(f"| name: {argsNow.expsName}\n"+f"| id: {self.IDNow}")
 
         counts, quantity = self.quantity(
-            **argsNow,
+            **argsNow._asdict(),
             result=result,
         )
 
@@ -1620,6 +1539,10 @@ class Qurry:
                 self.exps[self.IDNow]['sideProduct'][k[1:]] = quantity[k]
             if k == '_dummy':
                 withCounts = True
+                
+        for k, v in run_log.items():
+            self.exps[self.IDNow]['sideProduct'][k] = v
+            
 
         quantity = {k: quantity[k] for k in quantity if k[0] != '_'}
         self.exps[self.IDNow] = {
@@ -1691,16 +1614,16 @@ class Qurry:
         """_summary_
         """
         self.resourceWatch()
-        print(f"| Memory allocated: {psutil.virtual_memory().percent}/100")
+        self.resourceWatch.report()
 
     def paramsControlMulti(
         self,
         # configList
         configList: list = [],
-        # Configuration of `IBMQJobManager().run`
+        # defaultConfig of `IBMQJobManager().run`
         # Multiple jobs shared
         shots: int = 1024,
-        backend: Backend = Aer.get_backend('aer_simulator'),
+        backend: Backend = AerProvider().get_backend('aer_simulator'),
         provider: AccountProvider = None,
         runConfig: dict = {},
         # IBMQJobManager() dedicated
@@ -1718,7 +1641,7 @@ class Qurry:
         saveLocation: Union[Path, str] = Path('./'),
 
         **otherArgs: any,
-    ) -> argdictMultiNow:
+    ) -> argsMultiMain:
         """Handling all arguments and initializing a single experiment.
 
         - example of a value in `self.exps`
@@ -1728,10 +1651,10 @@ class Qurry:
             # configList
             'configList': [],
 
-            # Configuration of `IBMQJobManager().run`
+            # defaultConfig of `IBMQJobManager().run`
             # Multiple jobs shared
             'shots': 1024,
-            'backend': Aer.get_backend('aer_simulator'),
+            'backend': AerProvider().get_backend('aer_simulator'),
             'provider': 'None',
             'runConfig': {},
 
@@ -1760,9 +1683,9 @@ class Qurry:
             # List of experiments.
 
             configList (list):
-                The list of configuration of multiple experiment.
+                The list of defaultConfig of multiple experiment.
 
-            # Configuration of `IBMQJobManager().run`
+            # defaultConfig of `IBMQJobManager().run`
             # Multiple jobs shared
 
             shots (int, optional):
@@ -1771,19 +1694,19 @@ class Qurry:
 
             backend (Backend, optional):
                 The quantum backend.
-                Defaults to `Aer.get_backend('aer_simulator')`.
+                Defaults to `AerProvider().get_backend('aer_simulator')`.
 
             provider (Optional[AccountProvider], optional):
                 :cls:`AccountProvider` of current backend for running :cls:`IBMQJobManager`.
                 Defaults to `None`.
 
             runConfig (dict, optional):
-                Configuration of :func:`qiskit.execute`.
+                defaultConfig of :func:`qiskit.execute`.
                 Defaults to `{}`.
 
             # IBMQJobManager() dedicated
             managerRunArgs (dict, optional):
-                Configuration of :func:`IBMQJobManager().run`.
+                defaultConfig of :func:`IBMQJobManager().run`.
                 Defaults to `{
                     'max_experiments_per_job': 200,
                 }`.
@@ -1832,7 +1755,7 @@ class Qurry:
                 Other arguments includes the variants of experiment.
 
         Returns:
-            argdict: Current arguments.
+            attributedDict: Current arguments.
         """
 
         # naming
@@ -1894,14 +1817,12 @@ class Qurry:
         # gitignore
         gitignore = syncControl()
 
-        self.multiNow: Qurry.argdictMultiNow = argdict(
-            params={
+        self.multiNow: QurryV3.argsMultiMain = attributedDict(
+            params=sortHashableAhead({
                 **self._expsMultiConfig.make(),
                 **otherArgs,
-                # configList
-                'configList': initedConfigList,
 
-                # Configuration of `IBMQJobManager().run`
+                # defaultConfig of `IBMQJobManager().run`
                 # Multiple jobs shared
                 'shots': shots,
                 'backend': backend,
@@ -1922,6 +1843,12 @@ class Qurry:
                 # ? pendingTags works uncorrectly, check contain and type
                 # ? by IBMQJobManagerInvalidStateError: 'job_tags needs to be a list or strings.'
                 'independentExports': independentExports,
+                
+                'type': jobsType,
+                'state': 'init',
+                
+                # configList
+                'configList': initedConfigList,
 
                 # `writeLegacy`
                 'additionName': additionName,
@@ -1941,46 +1868,20 @@ class Qurry:
                 'circuitsMap': {},
                 'circuitsNum': {},
 
-                'type': jobsType,
-                'state': 'init',
-            },
+            }),
             paramsKey=self._expsMultiConfig.make().keys(),
         )
 
         return self.multiNow
-
-    @staticmethod
-    def _legacyTagGuider(
-        field: dict,
-        legacyTag: any,
-        v: any,
-    ) -> dict:
-        """_summary_
-
-        Args:
-            field (dict): _description_
-            legacyTag (any): The tag for legacy as key.
-            v (any): The value for legacy.
-
-        Returns:
-            dict: _description_
-        """
-
-        fieldCopy = {**field}
-        if legacyTag == None:
-            fieldCopy['noTags'].append(v)
-        elif legacyTag in fieldCopy:
-            fieldCopy[legacyTag].append(v)
-        else:
-            fieldCopy[legacyTag] = [v]
-
-        return fieldCopy
+        
+    JobManager = IBMQJobManager()
+    """:meth:`IBMQJobManager()` in :cls:`qurry`"""    
 
     def multiOutput(
         self,
         configList: list = [],
         shots: int = 1024,
-        backend: Backend = Aer.get_backend('aer_simulator'),
+        backend: Backend = AerProvider().get_backend('aer_simulator'),
 
         expsName: str = 'exps',
         independentExports: bool = False,
@@ -1993,7 +1894,7 @@ class Qurry:
 
         Args:        
             configList (list):
-                The list of configuration of multiple experiment.
+                The list of defaultConfig of multiple experiment.
 
             shots (int, optional):
                 Shots of the job.
@@ -2001,7 +1902,7 @@ class Qurry:
 
             backend (Backend, optional):
                 The quantum backend.
-                Defaults to `Aer.get_backend('aer_simulator')`.
+                Defaults to `AerProvider().get_backend('aer_simulator')`.
 
             # Other arguments of experiment
             isRetrieve (bool, optional):
@@ -2050,7 +1951,14 @@ class Qurry:
         for config in argsMulti.configList:
             print(
                 f"| index={config['expIndex']}/{numConfig} - {round(time.time() - start_time, 2)}s")
-            quantity, counts = self.output(**config, withCounts=True)
+            quantity, counts = self.output(
+                **config,
+                withCounts=True,
+                run_log={
+                    'time': time.time() - start_time,
+                    'memory': self.resourceWatch.virtual_memory().percent
+                }
+            )
 
             # resource check
             self.resourceCheck()
@@ -2063,6 +1971,9 @@ class Qurry:
             )
             legacyTag = tuple(legacy['tags']) if isinstance(
                 legacy['tags'], list) else legacy['tags']
+            
+            argsMulti.logTime.append(round(time.time() - start_time, 2))
+            argsMulti.logRAM.append(self.resourceWatch.virtual_memory().percent)
 
             for k in ['all', 'noTags']:
                 if legacyTag == k:
@@ -2079,34 +1990,10 @@ class Qurry:
             argsMulti.tagMapQuantity.guider(legacyTag, quantity)
             argsMulti.tagMapCounts.guider(legacyTag, counts)
 
-            # argsMulti.tagMapExpsID = self._legacyTagGuider(
-            #     argsMulti.tagMapExpsID, legacyTag, self.IDNow
-            # )
-            # argsMulti.tagMapIndex = self._legacyTagGuider(
-            #     argsMulti.tagMapIndex, legacyTag, config['expIndex']
-            # )
-            # argsMulti.tagMapIndex = self._legacyTagGuider(
-            #     argsMulti.tagMapIndex, 'all', config['expIndex']
-            # )
-
-            # argsMulti.tagMapQuantity = self._legacyTagGuider(
-            #     argsMulti.tagMapQuantity, 'all', quantity
-            # )
-            # argsMulti.tagMapQuantity = self._legacyTagGuider(
-            #     argsMulti.tagMapQuantity, legacyTag, quantity
-            # )
-
-            # argsMulti.tagMapCounts = self._legacyTagGuider(
-            #     argsMulti.tagMapCounts, 'all', counts
-            # )
-            # argsMulti.tagMapCounts = self._legacyTagGuider(
-            #     argsMulti.tagMapCounts, legacyTag, counts
-            # )
-
         print(f"| Export...")
         argsMulti.gitignore.ignore('*.json')
         argsMulti.state = 'completed'
-        dataMultiJobs = argsMulti.jsonize()
+        dataMultiJobs = argsMulti._jsonize()
 
         for n, data in [
             ('multiJobs.json', dataMultiJobs),
@@ -2140,6 +2027,8 @@ class Qurry:
                     jsonablize=True)
 
         argsMulti.gitignore.export(argsMulti.exportLocation)
+        argsMulti.logTime.export(argsMulti.exportLocation, 'Time.log')
+        argsMulti.logRAM.export(argsMulti.exportLocation, 'RAM.log')
         gc.collect()
         print(
             f"| MultiOutput {self.__name__} End in {round(time.time() - start_time, 2)} sec ...\n" +
@@ -2252,20 +2141,64 @@ class Qurry:
                     content = File.readlines()
                     dataDummyJobs['powerJobID'] = content[0][:-1]
 
-        for n in [
-            'tagMapExpsID',
-            'tagMapIndex',
-            'tagMapQuantity',
-            'tagMapCounts',
-        ]:
-            if n in dataDummyJobs:
-                dataDummyJobs[n] = keyTupleLoads(dataDummyJobs[n])
+        # for n in [
+        #     'tagMapExpsID',
+        #     'tagMapIndex',
+        #     'tagMapQuantity',
+        #     'tagMapCounts',
+        # ]:
+            # if n in dataDummyJobs:
+        for tmk in [k for k in dataDummyJobs.keys() if 'tagMap' in k]:
+            dataDummyJobs[tmk] = keyTupleLoads(dataDummyJobs[tmk])
+        
+        # TODO: remake multiRead
+        if dataDummyJobs['state'] == "completed":
+            for n in [    
+                'tagMapQuantity',
+                'tagMapCounts',
+            ]:
+                with open(
+                        argsMulti.exportLocation /
+                    f"{argsMulti.expsName}.{n}.json",
+                        'r', encoding='utf-8') as File:
+                    dataDummyJobs[n] = json.load(File)
+            
+        if dataDummyJobs['saveLocation'] != argsMulti.saveLocation:
+            dataDummyJobs['saveLocation'] = argsMulti.saveLocation
 
         gc.collect()
         print(
             f"| MultiRead {self.__name__} End in {round(time.time() - start_time, 2)} sec ...\n"+f"+"+"-"*20)
 
         return dataDummyJobs
+    
+    @staticmethod
+    def reportCounts(JobManager: IBMQJobManager) -> dict[str, int]:
+        """A better report representation of :meth:`IBMQJobManager().report()`
+
+        Args:
+            JobManager (IBMQJobManager): A :cls:`IBMQJobManager` object.
+
+        Returns:
+            dict[str, int]: Counts of report status.
+        """
+        job_set_statuses = [job_set.statuses() for job_set in JobManager._job_sets]
+        status_list = [stat for stat_list in job_set_statuses for stat in stat_list]
+
+        statusCounter = Counter(status_list)
+        status_counts = {
+            'Total': len(status_list),
+            'Successful': statusCounter[JobStatus.DONE],
+            'Failed': statusCounter[JobStatus.ERROR],
+            'Cancelled': statusCounter[JobStatus.CANCELLED],
+            'Running': statusCounter[JobStatus.RUNNING],
+            'Initializing': statusCounter[JobStatus.INITIALIZING],
+            'Validating': statusCounter[JobStatus.VALIDATING],
+            'Queued': statusCounter[JobStatus.QUEUED],
+        }
+
+        return status_counts
+        
 
     def powerPending(
         self,
@@ -2286,7 +2219,7 @@ class Qurry:
             dict[any]: All result of jobs.
         """
         start_time = time.time()
-        argsMulti = self.paramsControlMulti(
+        expsMulti = self.paramsControlMulti(
             **allArgs,
             jobsType='powerJobs',
             configList=configList,
@@ -2295,14 +2228,13 @@ class Qurry:
         allTranspliedCircs = {}
 
         print(f"| PowerPending {self.__name__} Start...\n"+f"+"+"-"*20)
-        numConfig = len(argsMulti.configList)
-        for config in argsMulti.configList:
+        numConfig = len(expsMulti.configList)
+        for config in expsMulti.configList:
             print(
                 f"| index={config['expIndex']}/{numConfig} - {round(time.time() - start_time, 2)}s")
             circuitSet = self.circuitTranspiler(**config)
             allTranspliedCircs[self.IDNow] = circuitSet
             
-
             # resource check
             self.resourceCheck()
 
@@ -2316,13 +2248,13 @@ class Qurry:
                 warnings.warn(
                     f"The circuit output of '{self.IDNow}' is nor 'list' neither 'QuantumCircuit' " +
                     f"but '{type(circuitSet)}'.")
-            argsMulti.circuitsNum[self.IDNow] = numCirc
+            expsMulti.circuitsNum[self.IDNow] = numCirc
 
             # legacy writer
             legacy = self.writeLegacy(
-                saveLocation=argsMulti.exportLocation,
+                saveLocation=expsMulti.exportLocation,
                 expID=self.IDNow,
-                additionName=argsMulti.additionName,
+                additionName=expsMulti.additionName,
             )
             legacyTag = tuple(legacy['tags']) if isinstance(
                 legacy['tags'], list) else legacy['tags']
@@ -2333,37 +2265,27 @@ class Qurry:
                     print(
                         f"| warning: '{k}' is a reserved key for export data.")
 
-            argsMulti.listFile.append(legacy['filename'])
-            argsMulti.listExpID.append(self.IDNow)
+            expsMulti.listFile.append(legacy['filename'])
+            expsMulti.listExpID.append(self.IDNow)
 
-            argsMulti.tagMapExpsID.guider(legacyTag, self.IDNow)
-            argsMulti.tagMapIndex.guider(legacyTag, config['expIndex'])
-            
-            # argsMulti.tagMapExpsID = self._legacyTagGuider(
-            #     argsMulti.tagMapExpsID, legacyTag, self.IDNow
-            # )
-            # argsMulti.tagMapIndex = self._legacyTagGuider(
-            #     argsMulti.tagMapIndex, legacyTag, config['expIndex']
-            # )
-            # argsMulti.tagMapIndex = self._legacyTagGuider(
-            #     argsMulti.tagMapIndex, 'all', config['expIndex']
-            # )
+            expsMulti.tagMapExpsID.guider(legacyTag, self.IDNow)
+            expsMulti.tagMapIndex.guider(legacyTag, config['expIndex'])
 
         with Gajima(
-            enumerate(argsMulti.listExpID),
+            enumerate(expsMulti.listExpID),
             carousel=[('dots', 20, 6), 'basic'],
             prefix="| ",
             desc="Packing circuits for pending",
             finish_desc="Packing Completed",
         ) as gajima:
             for expIndex, expIDKey in gajima:
-                argsMulti.circuitsMap[expIDKey] = []
-                tmpCircuitNum = argsMulti.circuitsNum[expIDKey]
+                expsMulti.circuitsMap[expIDKey] = []
+                tmpCircuitNum = expsMulti.circuitsNum[expIDKey]
                 gajima.gprint(
                     f"| Packing expID: {expIDKey}, index={expIndex} with {tmpCircuitNum} circuits ...")
 
                 for i in range(tmpCircuitNum):
-                    argsMulti.circuitsMap[expIDKey].append(
+                    expsMulti.circuitsMap[expIDKey].append(
                         len(pendingArray))
                     if not isinstance(allTranspliedCircs[expIDKey][i], QuantumCircuit):
                         print(allTranspliedCircs[expIDKey][i], i)
@@ -2374,44 +2296,73 @@ class Qurry:
             carousel=[('dots', 20, 6), 'basic'],
             prefix="| ",
             desc="Pending Jobs",
-            finish_desc="Pending end and Exporting",
+            finish_desc="Pending finished and Exporting",
         ) as gajima:
-            JobManager = IBMQJobManager()
-            powerJob = JobManager.run(
-                **argsMulti.managerRunArgs,
+            powerJob = self.JobManager.run(
+                **expsMulti.managerRunArgs,
                 experiments=pendingArray,
-                backend=argsMulti.backend,
-                shots=argsMulti.shots,
-                name=f'{argsMulti.expsName}_w/_{len(pendingArray)}_jobs',
+                backend=expsMulti.backend,
+                shots=expsMulti.shots,
+                name=f'{expsMulti.expsName}_w/_{len(pendingArray)}_jobs',
                 # job_tags=argsMulti.pendingTags
                 # ? waiting for the issue of contain
             )
-            print(f"| report:", JobManager.report())
+            gajima.gprint(f"| report:", self.JobManager.report())
             powerJobID = powerJob.job_set_id()
             gajima.gprint(f"| name: {powerJob.name()}")
-            argsMulti.powerJobID = powerJobID
+            expsMulti.powerJobID = powerJobID
+            expsMulti.state = 'pending'
+            
+            # ! Too many request
+            # gajima.gprint(f"| Waiting for all jobs be queued... ")
+            # isQueued = False
+            # waiting = 0
+            
+            # tiks = 20 # TODO: as a configure
+            # givenUp = 1800
+            # refreshPoint = 600
+            # while not isQueued:
+            #     waiting += tiks
+            #     time.sleep(tiks)
+            #     DoubleChecker = IBMQJobManager()
+            #     if waiting > givenUp:
+            #         print(f"| Pending may be failed, given up waiting.")
+            #         argsMulti.state = 'failed'
+            #         break
+            #     try:
+            #         test = DoubleChecker.retrieve_job_set(
+            #             job_set_id=argsMulti.powerJobID,
+            #             provider=argsMulti.backend.provider(),
+            #             refresh=waiting%refreshPoint == 0,
+            #         )
+            #         isQueued = True
+            #         gajima.gprint(f"| All jobs are queued, continuing to export. ")
+            #         statusCounts = self.reportCounts(JobManager)
+            #         gajima.gprint(f"| status: {statusCounts}")
+            #     except IBMQJobManagerUnknownJobSet as e:
+            #         isQueued = False
+            
             # powerJobsIDList = [mj.job.job_id() for mj in powerJob.jobs()]
+            
+        expsMulti.gitignore.ignore('*.json')
+        expsMulti.gitignore.sync(f'*.powerJobs.json')
 
-        argsMulti.state = 'pending'
-        argsMulti.gitignore.ignore('*.json')
-        argsMulti.gitignore.sync(f'*.powerJobs.json')
-
-        dataPowerJobs = argsMulti.jsonize()
+        dataPowerJobs = expsMulti._jsonize()
         quickJSONExport(
             content=dataPowerJobs,
-            filename=argsMulti.exportLocation /
-            f"{argsMulti.expsName}.powerJobs.json",
+            filename=expsMulti.exportLocation /
+            f"{expsMulti.expsName}.powerJobs.json",
             mode='w+',
             jsonablize=True)
 
         with open(
-                argsMulti.exportLocation /
-            f"{argsMulti.expsName}.powerJobID.csv",
+                expsMulti.exportLocation /
+            f"{expsMulti.expsName}.powerJobID.csv",
                 'w+', encoding='utf-8') as theFile:
             print(f"{powerJobID}", file=theFile)
         print(f"| Export powerJobID.csv")
 
-        if argsMulti.independentExports:
+        if expsMulti.independentExports:
             print(f"| independentExports...")
             for n in [
                 'listExpID',
@@ -2421,16 +2372,16 @@ class Qurry:
                 'circuitsMap',
                 'circuitsNum',
             ]:
-                argsMulti.gitignore.sync(f'*.{n}.json')
+                expsMulti.gitignore.sync(f'*.{n}.json')
                 print(f"| Export {n}.json")
                 quickJSONExport(
-                    content=argsMulti[n],
-                    filename=argsMulti.exportLocation /
-                    f"{argsMulti.expsName}.{n}.json",
+                    content=expsMulti[n],
+                    filename=expsMulti.exportLocation /
+                    f"{expsMulti.expsName}.{n}.json",
                     mode='w+',
                     jsonablize=True)
 
-        argsMulti.gitignore.export(argsMulti.exportLocation)
+        expsMulti.gitignore.export(expsMulti.exportLocation)
 
         gc.collect()
         print(
@@ -2443,7 +2394,6 @@ class Qurry:
         self,
         exportName: Union[Path, str],
         saveLocation: Union[Path, str] = './',
-        dataRetrieve: bool = False,
         overwrite: bool = False,
         **allArgs: any,
     ) -> dict[any]:
@@ -2476,10 +2426,11 @@ class Qurry:
         start_time = time.time()
         dataPowerJobs = self.multiRead(
             exportName=exportName,
+            dataRetrieve=True,
             saveLocation=saveLocation,
             **allArgs,
         )
-        argsMulti: self.argdictMultiNow = self.multiNow
+        argsMulti: self.argsMultiMain = self.multiNow
 
         print(f"| PowerOutput {self.__name__} Start...\n"+f"+"+"-"*20)
         if dataPowerJobs['type'] == 'multiJobs':
@@ -2491,14 +2442,14 @@ class Qurry:
 
         if dataPowerJobs['state'] == 'pending':
             print(f"| Retrieve result...")
-            powerJob = IBMQJobManager().retrieve_job_set(
+            powerJob = self.JobManager.retrieve_job_set(
                 job_set_id=dataPowerJobs['powerJobID'],
                 provider=argsMulti.provider,
             )
 
         elif overwrite and isinstance(overwrite, bool):
             print(f"| Overwrite activate and retrieve result...")
-            powerJob = IBMQJobManager().retrieve_job_set(
+            powerJob = self.JobManager.retrieve_job_set(
                 job_set_id=dataPowerJobs['powerJobID'],
                 provider=argsMulti.provider,
             )
@@ -2525,7 +2476,9 @@ class Qurry:
                 f"| index={idxNum}/{numConfig} - {round(time.time() - start_time, 2)}s")
             self.exps[expIDKey] = self.readLegacy(
                 expID=expIDKey,
-                saveLocation=Path(dataPowerJobs['exportLocation']),
+                # TODO: make it better
+                # saveLocation=Path(dataPowerJobs['exportLocation']),
+                saveLocation=Path(argsMulti.exportLocation),
             )
 
             # output
@@ -2550,7 +2503,7 @@ class Qurry:
 
             # legacy writer
             legacy = self.writeLegacy(
-                saveLocation=Path(dataPowerJobs['exportLocation']),
+                saveLocation=Path(argsMulti.exportLocation),
                 expID=expIDKey,
                 additionName=dataPowerJobs['additionName'],
             )
@@ -2565,20 +2518,6 @@ class Qurry:
 
             argsMulti.tagMapQuantity.guider(legacyTag, quantity)
             argsMulti.tagMapCounts.guider(legacyTag, counts)
-            
-            # dataPowerJobs['tagMapQuantity'] = self._legacyTagGuider(
-            #     dataPowerJobs['tagMapQuantity'], 'all', quantity
-            # )
-            # dataPowerJobs['tagMapQuantity'] = self._legacyTagGuider(
-            #     dataPowerJobs['tagMapQuantity'], legacyTag, quantity
-            # )
-
-            # dataPowerJobs['tagMapCounts'] = self._legacyTagGuider(
-            #     dataPowerJobs['tagMapCounts'], 'all', counts
-            # )
-            # dataPowerJobs['tagMapCounts'] = self._legacyTagGuider(
-            #     dataPowerJobs['tagMapCounts'], legacyTag, counts
-            # )
 
             print(f"| index={idxNum} end...\n"+f"+"+"-"*20)
             idxNum += 1
@@ -2590,14 +2529,14 @@ class Qurry:
 
         for n, data in [
             ('powerJobs.json', dataPowerJobs),
-            ('tagMapQuantity.json', dataPowerJobs['tagMapQuantity']),
-            ('tagMapCounts.json', dataPowerJobs['tagMapCounts']),
+            ('tagMapQuantity.json', argsMulti.tagMapQuantity),
+            ('tagMapCounts.json', argsMulti.tagMapCounts),
         ]:
             argsMulti.gitignore.sync(f'*.{n}')
             print(f"| Export {n}")
             quickJSONExport(
                 content=data,
-                filename=Path(dataPowerJobs['exportLocation']) /
+                filename=Path(argsMulti.exportLocation) /
                 f"{dataPowerJobs['expsName']}.{n}",
                 mode='w+',
                 jsonablize=True)
@@ -2612,12 +2551,12 @@ class Qurry:
                 print(f"| Export {n}.json")
                 quickJSONExport(
                     content=dataPowerJobs[n],
-                    filename=Path(dataPowerJobs['exportLocation']) /
+                    filename=Path(argsMulti.exportLocation) /
                     f"{dataPowerJobs['expsName']}.{n}.json",
                     mode='w+',
                     jsonablize=True)
 
-        argsMulti.gitignore.export(Path(dataPowerJobs['exportLocation']))
+        argsMulti.gitignore.export(Path(argsMulti.exportLocation))
         gc.collect()
         print(
             f"| PowerOutput {self.__name__} End in {round(time.time() - start_time, 2)} sec ...\n"+f"+"+"-"*20)

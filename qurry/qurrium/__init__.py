@@ -1,11 +1,6 @@
-from .qurry import Qurry, defaultCircuit
+from .qurryV3 import QurryV3 as Qurry
+from .qurryV4 import QurryV4
 from .type import (
-    TagKeysAllowable,
-    TagMapExpsIDType,
-    TagMapIndexType,
-    TagMapQuantityType,
-    TagMapCountsType,
-    TagMapResultType,
     Quantity,
     Counts,
 )
@@ -14,16 +9,7 @@ from .randomized import (
     RXmatrix, RYmatrix, RZmatrix,
     makeTwoBitStr, makeTwoBitStrOneLiner, haarBase
 )
-# Mori
-from .mori import (
-    Configuration,
-    argdict,
-    syncControl,
-    jsonablize,
-    quickJSONExport,
-    keyTupleLoads,
-    TagMap,
-)
+from .extend import qubitSelector, waveSelecter
 
 
 pauliMatrix = {

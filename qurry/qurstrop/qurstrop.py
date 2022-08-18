@@ -7,7 +7,7 @@ import warnings
 from typing import Union, Optional, NamedTuple, Literal
 
 from ..qurrium import Qurry
-from ..tool import Gajima
+from ..util import Gajima
 
 # StringOperator V0.3.0 - Measuring Topological Phase - Qurstrop
 
@@ -68,7 +68,7 @@ class StringOperator(Qurry):
         # },
     }
 
-    class argdictCore(NamedTuple):
+    class argsCore(NamedTuple):
         _stringLiteral = Literal['i', 'zy']
 
         expsName: str = 'exps'
@@ -92,7 +92,7 @@ class StringOperator(Qurry):
         }
         self._lastAddstring = string
 
-        class argdictCoreUpdate(NamedTuple):
+        class argsCoreUpdate(NamedTuple):
             _stringLiteral = Literal['i', 'zy']
 
             expsName: str = 'exps'
@@ -102,14 +102,14 @@ class StringOperator(Qurry):
             i: Optional[int] = 1,
             k: Optional[int] = None,
 
-        self.argdictCore = argdictCoreUpdate
+        self.argsCore = argsCoreUpdate
 
     # Initialize
-    def initialize(self) -> dict[str: any]:
+    def initialize(self) -> dict[str, any]:
         """Configuration to Initialize Qurrech.
 
         Returns:
-            dict[str: any]: The basic configuration of `Qurrech`.
+            dict[str, any]: The basic configuration of `Qurrech`.
         """
 
         for k1 in list(self.strOpLib.keys()):
@@ -189,7 +189,7 @@ class StringOperator(Qurry):
             KeyError: The given parameters lost degree of freedom.".
 
         Returns:
-            tuple[str, dict[str: any]]: Current `expID` and arguments.
+            tuple[str, dict[str, any]]: Current `expID` and arguments.
         """
 
         # wave
@@ -254,7 +254,7 @@ class StringOperator(Qurry):
             Union[QuantumCircuit, list[QuantumCircuit]]: 
                 The quantum circuit of experiment.
         """
-        argsNow: self.argdictCore = self.now
+        argsNow: self.argsCore = self.now
         numQubits = self.waves[argsNow.wave].num_qubits
 
         qFunc = QuantumRegister(numQubits, 'q1')

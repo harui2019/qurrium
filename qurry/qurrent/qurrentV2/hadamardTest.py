@@ -25,11 +25,11 @@ from .qurrentV2 import EntropyMeasureV2
 
 
 class hadamardTestV2(EntropyMeasureV2):
-    def initialize(self) -> dict[str: any]:
+    def initialize(self) -> dict[str, any]:
         """Configuration to Initialize 'hadamardTest'.
 
         Returns:
-            dict[str: any]: The basic configuration of `hadamardTest`.
+            dict[str, any]: The basic configuration of `hadamardTest`.
         """
 
         self.measureConfig = {
@@ -94,7 +94,7 @@ class hadamardTestV2(EntropyMeasureV2):
     def purityMethod(
         cls,
         aNum: int,
-        paramsOther: dict[str: int],
+        paramsOther: dict[str, int],
         shots: int,
         result: Union[Result, ManagedResults],
         resultIdxList: Optional[list[int]] = None,

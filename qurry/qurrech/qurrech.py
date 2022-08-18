@@ -20,17 +20,17 @@ class EchoListen(Qurry):
     """EchoCounting V0.3.0 of qurrech
     """
 
-    class argdictCore(NamedTuple):
+    class argsCore(NamedTuple):
         expsName: str = 'exps',
         wave1: Union[QuantumCircuit, any, None] = None,
         wave2: Union[QuantumCircuit, any, None] = None,
 
     # Initialize
-    def initialize(self) -> dict[str: any]:
+    def initialize(self) -> dict[str, any]:
         """Configuration to Initialize Qurrech.
 
         Returns:
-            dict[str: any]: The basic configuration of `Qurrech`.
+            dict[str, any]: The basic configuration of `Qurrech`.
         """
 
         self._expsConfig = self.expsConfig(
@@ -91,7 +91,7 @@ class EchoListen(Qurry):
             KeyError: The given parameters lost degree of freedom.".
 
         Returns:
-            tuple[str, dict[str: any]]: Current `expID` and arguments.
+            tuple[str, dict[str, any]]: Current `expID` and arguments.
         """
 
         # wave1

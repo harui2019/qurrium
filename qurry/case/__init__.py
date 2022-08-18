@@ -1,10 +1,10 @@
 
-_isQurecipe = False
+isQurecipe = False
 try:
+    isQurecipe = True
     from .qurecipe import *
-    _isQurecipe = True
 except ImportError as e:
-    _isQurecipe = False
+    isQurecipe = False
     from .paramagnet import *
 
     case_set: dict[Case] = {
@@ -25,5 +25,3 @@ except ImportError as e:
             QuantumCircuit: _description_
         """
         return case_set[name]
-    
-def isQurecipe(): return _isQurecipe

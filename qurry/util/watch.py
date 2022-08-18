@@ -59,6 +59,10 @@ class ResoureWatch:
             self.SAVE_LOCK._replace(**{lock: True})
         else:
             print(f"| Lock '{lock}' does not exist.")
+            
+    @staticmethod
+    def virtual_memory() -> any:
+        return psutil.virtual_memory()
 
     @property
     def judge(self) -> property:
@@ -73,10 +77,10 @@ class ResoureWatch:
             )
 
             def max_ram_percentage(inner_self) -> bool:
-                return psutil.virtual_memory().percent >= self.ALLOW_LIMIT.max_ram_percentage
+                return self.virtual_memory().percent >= self.ALLOW_LIMIT.max_ram_percentage
 
             def min_ram_remain(inner_self) -> bool:
-                return psutil.virtual_memory().available <= self.ALLOW_LIMIT.min_ram_remain
+                return self.virtual_memory().available <= self.ALLOW_LIMIT.min_ram_remain
 
             def __call__(inner_self) -> bool:
                 self.judgement = inner_self.judge_proto(**{
@@ -109,3 +113,7 @@ class ResoureWatch:
 
     def __call__(self, *message: str) -> None:
         return self.check(message)
+
+    @staticmethod
+    def report() -> None:
+        print(f"| Memory allocated: {psutil.virtual_memory().percent}/100")

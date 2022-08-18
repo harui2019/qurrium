@@ -1,26 +1,20 @@
 from qiskit import (
-    Aer,
-    execute,
-    transpile,
-    QuantumRegister,
-    ClassicalRegister,
-    QuantumCircuit)
-from qiskit.tools import *
-from qiskit.visualization import *
-
+    execute, transpile,
+    QuantumRegister, ClassicalRegister, QuantumCircuit
+)
+from qiskit.providers.aer import AerProvider
 from qiskit.quantum_info import Operator
-from qiskit.circuit.gate import Gate
+from qiskit.circuit import Gate, Instruction
 from qiskit.result import Result
-
-from qiskit.providers import Backend, BaseJob, JobError
-from qiskit.providers.ibmq import IBMQBackend
+from qiskit.providers import Backend, JobError, JobStatus
+from qiskit.providers.ibmq import IBMQBackend, IBMQJobManager, AccountProvider
 from qiskit.providers.ibmq.managed import (
-    IBMQJobManager,
     ManagedJobSet,
+    # ManagedJob,
     ManagedResults,
+    IBMQManagedResultDataNotAvailable,
     IBMQJobManagerInvalidStateError,
     IBMQJobManagerUnknownJobSet)
-from qiskit.providers.ibmq.accountprovider import AccountProvider
 
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
@@ -30,35 +24,20 @@ import glob
 import json
 import gc
 import warnings
-
-from math import pi
+import os
 from uuid import uuid4
 from pathlib import Path
-from typing import (
-    Union,
-    Optional,
-    Annotated,
-    Callable
+from typing import Union, Optional, Annotated, Callable
+
+from ...mori import (
+    Configuration,
+    argdict,
+    syncControl,
+    jsonablize,
+    quickJSONExport,
+    keyTupleLoads,
 )
 
-try:
-    from ...qurrium.mori import (
-        Configuration,
-        argdict,
-        syncControl,
-        jsonablize,
-        quickJSONExport,
-        keyTupleLoads,
-    )
-except ImportError:
-    from ...qurrium.backup import (
-        Configuration,
-        argdict,
-        syncControl,
-        jsonablize,
-        quickJSONExport,
-        keyTupleLoads,
-    )
 # EntropyMeasureV0.2.1
 
 
@@ -74,7 +53,7 @@ qurrentConfig = Configuration(
         'shots': 1024,
 
         'runBy': "gate",
-        'backend': Aer.get_backend('qasm_simulator'),
+        'backend': AerProvider().get_backend('qasm_simulator'),
         'drawMethod': 'text',
         'decompose': 1,
         'resultKeep': False,
@@ -105,7 +84,7 @@ measureBase = Configuration(
         'params': None,
         'runBy': "gate",
         'shots': 1024,
-        'backend': Aer.get_backend('qasm_simulator'),
+        'backend': AerProvider().get_backend('qasm_simulator'),
         'drawMethod': 'text',
         'decompose': 1,
         'resultKeep': False,
@@ -174,7 +153,7 @@ class EntropyMeasureV2:
     """
 
     # Initialize
-    def initialize(self) -> dict[str: any]:
+    def initialize(self) -> dict[str, any]:
         """Configuration to Initialize EntropyMeasure.
         It requires the following parameters are setted:
         ```
@@ -198,7 +177,7 @@ class EntropyMeasureV2:
         When you completed 'hint', then remove the key 'unConfig' to finish it.
 
         Returns:
-            dict[str: any]: The basic configuration of `EntropyMeasureV2`.
+            dict[str, any]: The basic configuration of `EntropyMeasureV2`.
         """
 
         self.measureConfig = {
@@ -297,7 +276,7 @@ class EntropyMeasureV2:
         self.defaultOther = tmp
 
         # value create
-        self.exps: dict[str: expsItem] = {}
+        self.exps: dict[str, expsItem] = {}
         self.expsBelong = {}
 
         # reresh per calculation.
@@ -363,7 +342,7 @@ class EntropyMeasureV2:
         self,
         wave: Optional[any] = None,
         runBy: Optional[str] = 'gate',
-        backend: Optional[Backend] = Aer.get_backend('qasm_simulator'),
+        backend: Optional[Backend] = AerProvider().get_backend('qasm_simulator'),
     ) -> Union[Gate, Operator]:
         """Parse wave Circuit into `Instruction` as `Gate` or `Operator` on `QuantumCircuit`.
 
@@ -378,7 +357,7 @@ class EntropyMeasureV2:
             backend (Optional[Backend], optional): 
                 Current backend which to check whether exports to `IBMQBacked`, 
                 if does, then no matter what option input at `runBy` will export `Gate`. 
-                Defaults to Aer.get_backend('qasm_simulator').
+                Defaults to AerProvider().get_backend('qasm_simulator').
 
         Returns:
             Union[Gate, Operator]: The result of the wave as `Gate` or `Operator`.
@@ -571,11 +550,11 @@ class EntropyMeasureV2:
         params: Union[list[int], dict[int], int, None] = None,
         runBy: str = "gate",
         shots: int = 1024,
-        backend: Backend = Aer.get_backend('qasm_simulator'),
+        backend: Backend = AerProvider().get_backend('qasm_simulator'),
         drawMethod: Optional[str] = 'text',
         decompose: Optional[int] = 2,
         resultKeep: bool = False,
-        dataRetrieve: dict[str: Union[list[str], str]] = None,
+        dataRetrieve: dict[str, Union[list[str], str]] = None,
         provider: Optional[AccountProvider] = None,
         expsName: str = 'exps',
         tag: Optional[Union[tuple[str], str]] = None,
@@ -604,7 +583,7 @@ class EntropyMeasureV2:
                 Defaults to 1024.
             backend (Backend, optional): 
                 The quantum backend.
-                Defaults to Aer.get_backend('qasm_simulator').
+                Defaults to AerProvider().get_backend('qasm_simulator').
             drawMethod (Optional[str], optional): 
                 Draw quantum circuit by "text", "matplotlib", or "latex".
                 Defaults to 'text'.
@@ -638,7 +617,7 @@ class EntropyMeasureV2:
             KeyError: The given parameters lost degree of freedom.".
 
         Returns:
-            tuple[str, dict[str: any]]: Current `expID` and arguments.
+            tuple[str, dict[str, any]]: Current `expID` and arguments.
         """
 
         # wave
@@ -819,7 +798,7 @@ class EntropyMeasureV2:
         expID: Optional[str] = None,
         drawMethod: Optional[str] = 'text',
         decompose: Optional[int] = 0,
-        backend: Backend = Aer.get_backend('qasm_simulator'),
+        backend: Backend = AerProvider().get_backend('qasm_simulator'),
     ) -> Union[str, Figure]:
         """Drawing the circuit figure of the experiment
 
@@ -922,13 +901,13 @@ class EntropyMeasureV2:
     @staticmethod
     def _paramsAsName(
         aNum: int,
-        other: dict[str: int] = {},
+        other: dict[str, int] = {},
     ) -> str:
         """Generate name for each experiment from `.exps[(expID)]['aNum']` and `.exps[(expID)]['paramsOther']`.
 
         Args:
             aNum (int): `.exps[(expID)]['aNum']`, the degree of the freedom.
-            other (dict[str: int]): `.exps[(expID)]['paramsOther']`, other parameters required by measurement.
+            other (dict[str, int]): `.exps[(expID)]['paramsOther']`, other parameters required by measurement.
 
         Returns:
             str: The name generated by parameters.
@@ -942,7 +921,7 @@ class EntropyMeasureV2:
         saveLocation: Optional[Union[Path, str]] = None,
         expID: Optional[str] = None,
         exceptItems: Optional[list[str]] = None,
-    ) -> dict[str: any]:
+    ) -> dict[str, any]:
         """Export the experiment data, if there is a previous export, then will overwrite.
 
         Args:
@@ -959,7 +938,7 @@ class EntropyMeasureV2:
                 Defaults to None.
 
         Returns:
-            dict[str: any]: the export content.
+            dict[str, any]: the export content.
         """
 
         tgtID = self._isthere(expID=expID)
@@ -1019,7 +998,7 @@ class EntropyMeasureV2:
         filename: Optional[Union[Path, str]] = None,
         saveLocation: Union[Path, str] = Path('./'),
         expID: Optional[str] = None,
-    ) -> dict[str: any]:
+    ) -> dict[str, any]:
         """Read the experiment data.
 
         Raises:
@@ -1027,7 +1006,7 @@ class EntropyMeasureV2:
             TypeError: File content is not `dict`.
 
         Returns:
-            dict[str: any]: The data.
+            dict[str, any]: The data.
         """
 
         if isinstance(saveLocation, (Path)):
@@ -1086,7 +1065,7 @@ class EntropyMeasureV2:
     def jobOnly(
         self,
         **allArgs: any,
-    ) -> tuple[BaseJob, list[str]]:
+    ) -> tuple[any, list[str]]:
         """Export the job of experiments.
 
         https://github.com/Qiskit/qiskit-terra/issues/4778
@@ -1149,7 +1128,6 @@ class EntropyMeasureV2:
             Optional[list[dict]]: The result of the job.
         """
 
-        job: BaseJob
         jobID: list[str]
         job, jobID = self.jobOnly(**allArgs)
         IDNow, argsNow = self.IDNow, self.now
@@ -1253,7 +1231,7 @@ class EntropyMeasureV2:
     @staticmethod
     def purityMethod(
         aNum: int,
-        paramsOther: dict[str: int],
+        paramsOther: dict[str, int],
         shots: int,
         result: Union[Result, ManagedResults],
         resultIdxList: Optional[list[int]] = None,
@@ -1279,7 +1257,7 @@ class EntropyMeasureV2:
     @paramsControlDoc
     def purityOnly(
         self,
-        dataRetrieve: dict[str: Union[list[str], str]] = None,
+        dataRetrieve: dict[str, Union[list[str], str]] = None,
         **allArgs: any,
     ) -> tuple[float, float]:
         """Export the result which completed calculating purity.
@@ -1421,7 +1399,7 @@ class EntropyMeasureV2:
 
     def paramsControlMulti(
         self,
-        configList: list[dict[str: any]] = [],
+        configList: list[dict[str, any]] = [],
         backend: Optional[Backend] = None,
         shots: int = 1024,
         saveLocation: Union[Path, str] = './',
@@ -1446,7 +1424,7 @@ class EntropyMeasureV2:
                 The list of configuration for each experiment. 
             backend (Backend): 
                 The quantum backend.
-                Defaults to Aer.get_backend('qasm_simulator').
+                Defaults to AerProvider().get_backend('qasm_simulator').
             shots (int, optional): 
                 Shots of the job.
                 Defaults to 1024.

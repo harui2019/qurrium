@@ -1,11 +1,10 @@
 from qiskit.visualization.counts_visualization import hamming_distance, VisualizationError
 from qiskit.quantum_info import random_unitary
-from qiskit.result import Result
+# from qiskit.result import Result
 
 import numpy as np
-from typing import Union, Optional, Callable, NamedTuple
+from typing import Callable, Literal, Union
 
-from .mori import Configuration
 # Haar Randomized Parts V0.3.0 - Qurrium
 
 RXmatrix = np.array([[0, 1], [1, 0]])
@@ -26,6 +25,7 @@ makeTwoBitStrOneLiner: Callable[[int, list[str]], list[str]] = (
 
 
 class haarBase:
+    randomized_tool_version = (0, 1, 0)
     """Basic function of Haar randomized measure
 
     - Reference:
@@ -55,6 +55,10 @@ class haarBase:
         VisualizationError: :func:`.hamming_distance` rasie when strings not same length
 
     """
+    @staticmethod
+    def random_unitary(*args, **kwargs):
+        return random_unitary(*args, **kwargs)
+    
     
     @staticmethod
     def hamming_distance(str1, str2):

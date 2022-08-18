@@ -5,36 +5,19 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.result import Result
 
 from typing import Union, Optional, NamedTuple, TypeVar, Generic
-
 import warnings
 
-from .mori import (
-    Configuration,
-    argdict,
-    syncControl,
-    jsonablize,
-    quickJSONExport,
-    keyTupleLoads,
-    TagMap,
-)
-
-T = TypeVar('T')
-
 Counts = Union[dict[str, int], list[dict[str, int]]]
-Quantity = dict[float]
-
-# TagsKey
-TagKeyAllowable = Union[str, int, float, bool]
-TagKeysAllowable = Union[tuple[TagKeyAllowable], TagKeyAllowable]
+Quantity = dict[str, float]
 
 # TagsValue
-TagMapBaseType = TagMap[T]
+T = TypeVar("T")
 
-TagMapExpsIDType = TagMapBaseType[str]
-TagMapIndexType = TagMapBaseType[Union[str, int]]
-TagMapQuantityType = TagMapBaseType[dict[float]]
-TagMapCountsType = TagMapBaseType[dict[Counts]]
-TagMapResultType = TagMapBaseType[Result]
+# TagMapExpsIDType = TagMapType[str]
+# TagMapIndexType = TagMapType[Union[str, int]]
+# TagMapQuantityType = TagMapType[Quantity]
+# TagMapCountsType = TagMapType[Counts]
+# TagMapResultType = TagMapType[Result]
 
 # waveGetter methods
 waveGetter = Union[list[T], T]

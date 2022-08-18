@@ -142,7 +142,7 @@ class backendWrapper:
         elif who in self.backend_ibmq:
             self.backend_ibmq_callsign[sign] = who
         else:
-            if sign == 'Galm 2' and who == 'solo_wing_pixy':
+            if sign == 'Galm 2' or who == 'solo_wing_pixy':
                 if random() <= 0.2:
                     print("Those who survive a long time on the battlefield start to think they're invincible. I bet you do, too, Buddy.")
                 sign = None

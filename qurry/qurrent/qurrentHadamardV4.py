@@ -1,21 +1,19 @@
-from qiskit import (
-    QuantumRegister, ClassicalRegister, QuantumCircuit)
-from qiskit.providers.ibmq.managed import ManagedResults, IBMQManagedResultDataNotAvailable
-from qiskit.visualization import *
-
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.result import Result
+from qiskit.providers.ibmq.managed import ManagedResults, IBMQManagedResultDataNotAvailable
 
 import numpy as np
 import warnings
-from typing import Union, Optional, Callable, List, NamedTuple
-from qiskit.visualization.counts_visualization import hamming_distance
+from typing import Hashable, Union, Optional, NamedTuple
 
-from .qurrech import EchoListen
-# EchoListen V0.3.0 - Measuring Loschmidt Echo - Qurrech
+from ..qurrium import QurryV4, qubitSelector, waveSelecter, Counts
+from ..mori import defaultConfig
+
+# EntropyMeasure V0.4.0 - Measuring Renyi Entropy - Qurrent
 
 
-class hadamardTest(EchoListen):
-    """hadamardTest V0.3.0 of qurrech
+class EntropyHadamardTestV4(QurryV4):
+    """HadamardTest V0.4.0 of qurrech
 
     - Reference:
         - Used in:
@@ -42,61 +40,71 @@ class hadamardTest(EchoListen):
 ```
     """
 
+    """ Configuration """
+
     class argsCore(NamedTuple):
-        expsName: str = 'exps',
-        wave1: Union[QuantumCircuit, any, None] = None,
-        wave2: Union[QuantumCircuit, any, None] = None,
+        expsName: str = None,
+        wave: Hashable = None
+        degree: tuple[int, int] = None
+
+    class expsCore(NamedTuple):
+        entropy: float
+        purity: float
 
     # Initialize
     def initialize(self) -> dict[str, any]:
-        """Configuration to Initialize Qurrech.
+        """Configuration to Initialize haarMeasure.
 
         Returns:
-            dict[str, any]: The basic configuration of `Qurrech`.
+            dict[str, any]: The basic configuration of `haarMeasure`.
         """
-
-        self._expsConfig = self.expsConfig(
-            name="qurrechConfig",
-        )
-        self._expsBase = self.expsBase(
-            name="qurrechBase",
-            defaultArg={
-                # Reault of experiment.
-                'echo': -100,
+        self._expsBase = defaultConfig(
+            name='QurrentHadamardBase',
+            default={
+                **self.argsMain()._asdict(),
+                **self.argsCore()._asdict(),
+                **self.expsMain()._asdict(),
             },
         )
-        self._expsHint = self.expsHint(
-            name='qurrechBaseHint',
-            hintContext={
-                'echo': 'The Loschmidt Echo.',
+        self._expsHint = {
+            **{k: f"sample: {v}" for k, v in self._expsBase},
+            "_basicHint": "This is a hint of QurryV4.",
+        }
+        self._expsMultiBase = defaultConfig(
+            name='QurrentHadamardMultiBase',
+            default={
+                **self.argsMultiMain()._asdict(),
+                **self.expsMultiMain()._asdict(),
             },
         )
-        self._expsMultiConfig = self.expsConfigMulti(
-            name="qurrentConfigMulti",
-        )
-        self.shortName = 'qurrech.hadamard'
-        self.__name__ = 'qurrech.hadamardTest'
 
-        return self._expsConfig, self._expsBase
-
-    """Arguments and Parameters control"""
-
+        self.shortName = 'qurrent_hadamard'
+        self.__name__ = 'qurrent_hadamardTest'
+        
     def paramsControlCore(
         self,
-        expsName: str = 'exps',
-        wave1: Union[QuantumCircuit, any, None] = None,
-        wave2: Union[QuantumCircuit, any, None] = None,
+        expsName: Optional[str] = None,
+        wave: Union[QuantumCircuit, any, None] = None,
+        degree: Union[int, tuple[int, int], None] = None,
         **otherArgs: any
     ) -> dict:
         """Handling all arguments and initializing a single experiment.
 
         Args:
-            wave1, wave2 (Union[QuantumCircuit, int, None], optional): 
+            wave (Union[QuantumCircuit, int, None], optional): 
                 The index of the wave function in `self.waves` or add new one to calaculation,
                 then choose one of waves as the experiment material.
                 If input is `QuantumCircuit`, then add and use it.
                 If input is the key in `.waves`, then use it.
                 If input is `None` or something illegal, then use `.lastWave'.
+                Defaults to None.
+
+            degree (Optional[int], optional): 
+                The degree of freedom.
+                If input is `None`, 
+                then use the number of half qubits for even number of qubits, 
+                or (the number of qubits + 1)/2 for odd number of qubits.
+                If input is illegal, then raise ValueError.
                 Defaults to None.
 
             expsName (str, optional):
@@ -116,44 +124,31 @@ class hadamardTest(EchoListen):
             tuple[str, dict[str, any]]: Current `expID` and arguments.
         """
 
-        # wave1
-        if isinstance(wave1, QuantumCircuit):
-            wave1 = self.addWave(wave1)
-            print(f"| Add new wave with key: {wave1}")
-        elif wave1 == None:
-            wave1 = self.lastWave
-            print(f"| Autofill will use '.lastWave' as key")
-        else:
-            try:
-                self.waves[wave1]
-            except KeyError as e:
-                warnings.warn(f"'{e}', use '.lastWave' as key")
-                wave1 = self.lastWave
+        # wave
+        wave = waveSelecter(self, wave)
 
-        # wave2
-        if isinstance(wave2, QuantumCircuit):
-            wave2 = self.addWave(wave2)
-            print(f"| Add new wave with key: {wave2}")
-        elif wave2 == None:
-            wave2 = self.lastWave
-            print(f"| Autofill will use '.lastWave' as key")
-        else:
-            try:
-                self.waves[wave2]
-            except KeyError as e:
-                warnings.warn(f"'{e}', use '.lastWave' as key")
-                wave2 = self.lastWave
+        # degree
+        numQubits = self.waves[wave].num_qubits
+        degree = qubitSelector(numQubits, degree=degree)
 
-        return {
-            'wave1': wave1,
-            'wave2': wave2,
-            'expsName': f"w1={wave1}-w2={wave2}.{self.shortName}",
-            **otherArgs,
-        }
+        # expsName
+        if expsName is None:
+            expsName = f"w={wave}-deg={degree[1]-degree[0]}.{self.shortName}"
 
-    """ Main Process: Circuit"""
+        return (
+            self.argsCore(**{
+                'wave': wave,
+                'degree': degree,
+                'expsName': expsName,
+            }),
+            {
+                k: v for k, v in otherArgs.items()
+                if k not in self.argsCore._fields
+            }
+        )
+        
 
-    def circuitMethod(
+    def method(
         self,
     ) -> Union[QuantumCircuit, list[QuantumCircuit]]:
         """The method to construct circuit.
@@ -163,11 +158,9 @@ class hadamardTest(EchoListen):
             Union[QuantumCircuit, list[QuantumCircuit]]: 
                 The quantum circuit of experiment.
         """
-        argsNow = self.now
-        if (self.waves[argsNow.wave1].num_qubits != self.waves[argsNow.wave2].num_qubits):
-            raise ValueError(
-                "Wave1 and Wave2 must be the same number of qubits.")
-        numQubits = self.waves[argsNow.wave1].num_qubits
+        argsNow: Union[QurryV4.argsMain,
+                       EntropyHadamardTestV4.argsCore] = self.now
+        numQubits = self.waves[argsNow.wave].num_qubits
 
         qAnc = QuantumRegister(1, 'ancilla')
         qFunc1 = QuantumRegister(numQubits, 'q1')
@@ -176,35 +169,34 @@ class hadamardTest(EchoListen):
         qcExp1 = QuantumCircuit(qAnc, qFunc1, qFunc2, cMeas1)
 
         qcExp1.append(self.waveInstruction(
-            wave=argsNow.wave1,
+            wave=argsNow.wave,
             runBy=argsNow.runBy,
             backend=argsNow.backend,
         ), [qFunc1[i] for i in range(numQubits)])
 
         qcExp1.append(self.waveInstruction(
-            wave=argsNow.wave2,
+            wave=argsNow.wave,
             runBy=argsNow.runBy,
             backend=argsNow.backend,
         ), [qFunc2[i] for i in range(numQubits)])
 
         qcExp1.barrier()
         qcExp1.h(qAnc)
-        for i in range(numQubits):
+        for i in range(*argsNow.degree):
             qcExp1.cswap(qAnc[0], qFunc1[i], qFunc2[i])
         qcExp1.h(qAnc)
         qcExp1.measure(qAnc, cMeas1)
 
         return [qcExp1]
-
+    
     @classmethod
-    def quantity(
+    def counts(
         cls,
-        shots: int,
         result: Union[Result, ManagedResults],
         resultIdxList: Optional[list[int]] = None,
         **otherArgs,
-    ) -> tuple[dict, dict]:
-        """Computing specific quantity.
+    ):
+        """Computing specific squantity.
         Where should be overwritten by each construction of new measurement.
 
         Returns:
@@ -221,58 +213,75 @@ class hadamardTest(EchoListen):
                     "The element number of 'resultIdxList' needs to 1 for 'hadamardTest'.")
         else:
             raise ValueError("'resultIdxList' needs to be 'list'.")
-
+        
         counts = []
-        onlyCount = None
-        purity = -100
+        for i in resultIdxList:
+            try:
+                allMeas = result.get_counts(i)
+                counts.append(allMeas)
+            except IBMQManagedResultDataNotAvailable as err:
+                counts.append({})
+                print("| Failed Job result skip, index:", i, err)
+                continue
 
-        try:
-            counts = [result.get_counts(i) for i in resultIdxList]
-            onlyCount = counts[0]
-        except IBMQManagedResultDataNotAvailable as err:
-            print("| Failed Job result skip, index:", resultIdxList, err)
-            return {}
+        return counts
+    
+    @classmethod
+    def quantities(
+        cls,
+        shots: int,
+        counts: list[Counts],
+        degree: tuple[int, int] = None,
+
+        run_log: dict[str] = {},
+        **otherArgs,
+    ) -> expsCore:
+
+        purity = -100
+        entropy = -100
+        onlyCount = counts[0]
+
+        if (1 == len(counts)):
+            ...
+        else:
+            warnings.warn(f"Hadamard test should only have one count, but there is '{len(counts)}'")
 
         isZeroInclude = '0' in onlyCount
         isOneInclude = '1' in onlyCount
         if isZeroInclude and isOneInclude:
-            echo = (onlyCount['0'] - onlyCount['1'])/shots
+            purity = (onlyCount['0'] - onlyCount['1'])/shots
         elif isZeroInclude:
-            echo = onlyCount['0']/shots
+            purity = onlyCount['0']/shots
         elif isOneInclude:
-            echo = onlyCount['1']/shots
+            purity = onlyCount['1']/shots
         else:
-            echo = None
+            purity = np.Nan
             raise Warning("Expected '0' and '1', but there is no such keys")
 
+        entropy = -np.log2(purity)
         quantity = {
-            'echo': echo,
+            'purity': purity,
+            'entropy': entropy,
         }
-        return counts, quantity
-
-    """ Main Process: Main Control"""
+        return quantity
 
     def measure(
         self,
-        wave1: Union[QuantumCircuit, any, None] = None,
-        wave2: Union[QuantumCircuit, any, None] = None,
+        wave: Union[QuantumCircuit, any, None] = None,
+        degree: Optional[int] = None,
         expsName: str = 'exps',
         **otherArgs: any
     ) -> dict:
-        """The measure function which is the customized version of `.output`.
+        """
 
         Args:
-            wave1, wave2 (Union[QuantumCircuit, int, None], optional): 
+            wave (Union[QuantumCircuit, int, None], optional):
                 The index of the wave function in `self.waves` or add new one to calaculation,
                 then choose one of waves as the experiment material.
                 If input is `QuantumCircuit`, then add and use it.
                 If input is the key in `.waves`, then use it.
                 If input is `None` or something illegal, then use `.lastWave'.
                 Defaults to None.
-
-            times (int, optional): 
-                The number of test to count ensemble average.
-                Defaults to `100`.
 
             expsName (str, optional):
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
@@ -286,8 +295,8 @@ class hadamardTest(EchoListen):
             dict: The output.
         """
         return self.output(
-            wave1=wave1,
-            wave2=wave2,
+            wave=wave,
+            degree=degree,
             expsName=expsName,
             **otherArgs,
         )

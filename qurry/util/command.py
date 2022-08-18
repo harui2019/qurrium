@@ -1,5 +1,7 @@
 import os
 
+from typing import Optional
+
 def cmdWrapper(
     cmd: str = ""
 ) -> None:
@@ -16,9 +18,11 @@ def cmdWrapper(
         os.system(cmd)
 
 
-def pytorchCUDACheck(
-) -> None:
+def pytorchCUDACheck() -> Optional[bool]:
     """Via pytorch to check Nvidia CUDA available.
+
+    Returns:
+        bool: Available of CUDA.
     """
     try:
         import torch
@@ -29,8 +33,10 @@ def pytorchCUDACheck(
             torch.cuda.get_device_properties(
                 0) if torch.cuda.is_available() else 'CPU'
         ))
+        return torch.cuda.is_available()
     except ImportError as e:
         print(
             e, "This checking method requires pytorch" +
             " which has been installed in this enviornment."
         )
+        return None
