@@ -198,20 +198,20 @@ class QurryV4:
         state: Literal["init", "pending", "completed"] = "init"
 
     class _tagMapStateDepending(NamedTuple):
-        tagMapQuantity: TagMapType[Quantity] = TagMap({}, 'tagMapQuantity')
-        tagMapCounts: TagMapType[Counts] = TagMap({}, 'tagMapCounts')
+        tagMapQuantity: TagMapType[Quantity]
+        tagMapCounts: TagMapType[Counts]
 
     class _tagMapUnexported(NamedTuple):
-        tagMapResult: TagMapType[Result] = TagMap({}, 'tagMapResult')
+        tagMapResult: TagMapType[Result]
 
     class _tagMapNeccessary(NamedTuple):
         # with Job.json file
-        tagMapExpsID: TagMapType[str] = TagMap({}, 'tagMapExpsID')
-        tagMapFiles: TagMapType[str] = TagMap({}, 'tagMapFiles')
-        tagMapIndex: TagMapType[Union[str, int]] = TagMap({}, 'tagMapIndex')
+        tagMapExpsID: TagMapType[str]
+        tagMapFiles: TagMapType[str]
+        tagMapIndex: TagMapType[Union[str, int]]
         # circuitsMap
-        circuitsMap: TagMapType[str] = TagMap({}, 'circuitsMap')
-        pendingPools: TagMapType[str] = TagMap({}, 'pendingPools')
+        circuitsMap: TagMapType[str]
+        pendingPools: TagMapType[str]
 
     _generalJobKeyRequired = ['state']
     _powerJobKeyRequired = ['powerJobID'] + _generalJobKeyRequired
@@ -1751,10 +1751,14 @@ class QurryV4:
                     )
                 )
             else:
-                tagMapStateDepending = self._tagMapStateDepending()
+                tagMapStateDepending = self._tagMapStateDepending(**{
+                    k: TagMap({}, k)
+                for k in self._tagMapStateDepending._fields})
 
             # tagMapUnexported
-            tagMapUnexported = self._tagMapUnexported()
+            tagMapUnexported = self._tagMapUnexported(**{
+                k: TagMap({}, k)
+            for k in self._tagMapUnexported._fields})
             # tagMapNeccessary
             tagMapNeccessary = self._tagMapNeccessary(**{
                 k: TagMap(dataDummyJobs[k]) if k in dataDummyJobs else TagMap.read(
@@ -1778,11 +1782,17 @@ class QurryV4:
         else:
             # Data Gen
             # tagMapStateDepending
-            tagMapStateDepending = self._tagMapStateDepending()
+            tagMapStateDepending = self._tagMapStateDepending(**{
+                k: TagMap({}, k)
+            for k in self._tagMapStateDepending._fields})
             # tagMapUnexported
-            tagMapUnexported = self._tagMapUnexported()
+            tagMapUnexported = self._tagMapUnexported(**{
+                k: TagMap({}, k)
+            for k in self._tagMapUnexported._fields})
             # tagMapUnexported
-            tagMapNeccessary = self._tagMapNeccessary()
+            tagMapNeccessary = self._tagMapNeccessary(**{
+                k: TagMap({}, k)
+            for k in self._tagMapNeccessary._fields})
 
             circuitsNum: dict[str, int] = {}
             gitignore: syncControl = syncControl()
