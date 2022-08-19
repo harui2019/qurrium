@@ -168,13 +168,13 @@ class EntropyHadamardTestV4(QurryV4):
         cMeas1 = ClassicalRegister(1, 'c1')
         qcExp1 = QuantumCircuit(qAnc, qFunc1, qFunc2, cMeas1)
 
-        qcExp1.append(self.waveInstruction(
+        qcExp1.append(self.waveCall(
             wave=argsNow.wave,
             runBy=argsNow.runBy,
             backend=argsNow.backend,
         ), [qFunc1[i] for i in range(numQubits)])
 
-        qcExp1.append(self.waveInstruction(
+        qcExp1.append(self.waveCall(
             wave=argsNow.wave,
             runBy=argsNow.runBy,
             backend=argsNow.backend,

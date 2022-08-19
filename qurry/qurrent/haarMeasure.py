@@ -246,7 +246,9 @@ class haarMeasureV3(EntropyMeasureV3, haarBase):
                 Counts, purity, entropy of experiment.
         """
 
-        if (times == len(counts)):
+        if counts is None:
+            counts = []
+        elif (times == len(counts)):
             ...
         else:
             times = len(counts)

@@ -292,6 +292,8 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
         purity = -100
         entropy = -100
         purityCellList = []
+        
+        subsystemSize = max(degree) - min(degree)
 
         if (times == len(counts)):
             ...
@@ -320,7 +322,7 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
             for sAi, sAiMeas in allMeasUnderDegree.items():
                 for sAj, sAjMeas in allMeasUnderDegree.items():
                     purityCell += cls.ensembleCell(
-                        sAi, sAiMeas, sAj, sAjMeas, degree, shots)
+                        sAi, sAiMeas, sAj, sAjMeas, subsystemSize, shots)
 
             purityCellList.append(purityCell)
             print(
