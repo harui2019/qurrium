@@ -161,41 +161,37 @@ class QurryV4:
     class argsMultiMain(NamedTuple):
         # defaultConfig of `IBMQJobManager().run`
         # Multiple jobs shared
-        shots: int = 1024
-        backend: Backend = AerProvider().get_backend('aer_simulator')
+        shots: int = None
+        backend: Backend = None
         provider: AccountProvider = None
 
         # IBMQJobManager() dedicated
-        managerRunArgs: dict = {
-            'max_experiments_per_job': 200,
-        }
-        powerJobID: Optional[str] = None
+        managerRunArgs: dict[str, any] = None
 
         # Other arguments of experiment
         # Multiple jobs shared
-        expsName: str = 'exps'
-        saveLocation: Union[Path, str] = Path('./')
-        exportLocation: Path = Path('./')
+        expsName: str = None
+        saveLocation: Union[Path, str] = None
+        exportLocation: Path = None
 
-        pendingStrategy: Literal['power', 'group', 'onetime'] = 'power'
-        jobsType: Literal["multiJobs", "powerJobs"] = "multiJobs"
-        isRetrieve: bool = False
-        isRead: bool = False
-        clear: bool = False
-        independentExports: list[str] = []
-        filetype: TagMap._availableFileType = 'json'
+        pendingStrategy: Literal['power', 'group', 'onetime'] = None
+        jobsType: Literal["multiJobs", "powerJobs"] = None
+        isRetrieve: bool = None
+        isRead: bool = None
+        clear: bool = None
+        independentExports: list[str] = None
+        filetype: TagMap._availableFileType = None
 
     class expsMultiMain(NamedTuple):
         # configList
         configList: list = []
         configDict: dict = {}
 
+        powerJobID: Union[str, list[str]] = []
         gitignore: syncControl = syncControl()
 
         circuitsNum: dict[str, int] = {}
-        pendingJobId: list[str] = []
-
-        state: Literal["init", "pending", "completed"] = "init"
+        state: Literal["init", "pending", "completed"] = 'init'
 
     class _tagMapStateDepending(NamedTuple):
         tagMapQuantity: TagMapType[Quantity]
@@ -1650,13 +1646,14 @@ class QurryV4:
         state: Literal["init", "pending", "completed"],
         isRead: bool = False,
         isRetrieve: bool = False,
-    ) -> Union[
+        overwrite: bool = False,
+    ) -> tuple[dict[str, any], argsMultiMain, Union[
         expsMultiMain,
         _tagMapNeccessary,
         _tagMapStateDepending,
         _tagMapUnexported,
         attributedDict
-    ]:
+    ]]:
         """The process of data generation or reading.
 
         >>> class _tagMapStateDepending(NamedTuple):
@@ -1724,12 +1721,12 @@ class QurryV4:
                 if k in self._v3MultiArgsMapping:
                     dataDummyJobs[self._v3MultiArgsMapping[k]
                                   ] = dataDummyJobs[k]
-            if "independentExports" in dataDummyJobs:
-                dataDummyJobs["independentExports"] = [
-                    'tagMapQuantity', 'tagMapCounts', 'tagMapResult'],
+            # if "independentExports" in dataDummyJobs:
+            #     dataDummyJobs["independentExports"] = [
+            #         'tagMapQuantity', 'tagMapCounts', 'tagMapResult'],
             if 'listFile' in dataDummyJobs:
                 dataDummyJobs['tagMapFiles'] = {
-                    'noTags': dataDummyJobs['listFile']}
+                    'power': dataDummyJobs['listFile']}
 
             # Data Read
             # state check
@@ -1738,8 +1735,22 @@ class QurryV4:
             else:
                 warnings.warn(f"'state' no found, use '{state}'.")
 
+            powerJobID = []
+            if 'powerJobID' in dataDummyJobs:
+                powerJobID = dataDummyJobs['powerJobID']
+            # powerJobID and handle v3
+            if isinstance(powerJobID, str):
+                powerJobID = [powerJobID]
+            elif powerJobID is None:
+                powerJobID = []
+            elif isinstance(powerJobID, list):
+                ...
+            else:
+                raise TypeError(
+                    f"Invalid type '{type(powerJobID)}' for 'powerJobID', only 'str', 'list[str]', or 'None' are available.")
+
             # tagMapStateDepending
-            if state == 'completed':
+            if state == 'completed' and not overwrite:
                 tagMapStateDepending = self._tagMapStateDepending(
                     tagMapQuantity=TagMap.read(
                         saveLocation=namingComplex.exportLocation,
@@ -1753,12 +1764,12 @@ class QurryV4:
             else:
                 tagMapStateDepending = self._tagMapStateDepending(**{
                     k: TagMap({}, k)
-                for k in self._tagMapStateDepending._fields})
+                    for k in self._tagMapStateDepending._fields})
 
             # tagMapUnexported
             tagMapUnexported = self._tagMapUnexported(**{
                 k: TagMap({}, k)
-            for k in self._tagMapUnexported._fields})
+                for k in self._tagMapUnexported._fields})
             # tagMapNeccessary
             tagMapNeccessary = self._tagMapNeccessary(**{
                 k: TagMap(dataDummyJobs[k]) if k in dataDummyJobs else TagMap.read(
@@ -1773,9 +1784,9 @@ class QurryV4:
 
             configDict = {}
             if os.path.exists(namingComplex.exportLocation /
-                              f"{namingComplex.expsName}.configList.json"):
+                              f"{namingComplex.expsName}.configDict.json"):
                 with open((
-                        namingComplex.exportLocation / f"{namingComplex.expsName}.configList.json"),
+                        namingComplex.exportLocation / f"{namingComplex.expsName}.configDict.json"),
                         'r', encoding='utf-8') as theData:
                     configDict = json.load(theData)
 
@@ -1784,17 +1795,18 @@ class QurryV4:
             # tagMapStateDepending
             tagMapStateDepending = self._tagMapStateDepending(**{
                 k: TagMap({}, k)
-            for k in self._tagMapStateDepending._fields})
+                for k in self._tagMapStateDepending._fields})
             # tagMapUnexported
             tagMapUnexported = self._tagMapUnexported(**{
                 k: TagMap({}, k)
-            for k in self._tagMapUnexported._fields})
+                for k in self._tagMapUnexported._fields})
             # tagMapUnexported
             tagMapNeccessary = self._tagMapNeccessary(**{
                 k: TagMap({}, k)
-            for k in self._tagMapNeccessary._fields})
+                for k in self._tagMapNeccessary._fields})
 
             circuitsNum: dict[str, int] = {}
+            powerJobID: dict[str, int] = []
             gitignore: syncControl = syncControl()
 
             configDict = {}
@@ -1811,20 +1823,20 @@ class QurryV4:
                         _isMulti=True,
                     )
 
-        return attributedDict(
+        tmpExpMultiPartial = self.expsMultiMain(**{
+            'configList': initedConfigList,
+            'configDict': configDict,
+
+            'powerJobID': powerJobID,
+            'gitignore': gitignore,
+
+            'circuitsNum': circuitsNum,
+            'state': state,
+        })
+
+        tmpExpMulti = attributedDict(
             params={
-                **dataDummyJobs,
-                # configList
-                'configList': initedConfigList,
-                'configDict': configDict,
-
-                'gitignore': gitignore,
-
-                'circuitsNum': circuitsNum,
-                'pendingJobId': [],
-
-                'state': state,
-
+                **tmpExpMultiPartial._asdict(),
                 # tagMapStateDepending
                 **tagMapStateDepending._asdict(),
                 # tagMapUnexported
@@ -1833,6 +1845,24 @@ class QurryV4:
                 **tagMapNeccessary._asdict(),
             }
         )
+
+        tmpArgsMulti = {}
+        for k in list(dataDummyJobs.keys()):
+            if k in self.expsMultiMain._fields:
+                del dataDummyJobs[k]
+            elif k in self._tagMapStateDepending._fields:
+                del dataDummyJobs[k]
+            elif k in self._tagMapUnexported._fields:
+                del dataDummyJobs[k]
+            elif k in self._tagMapNeccessary._fields:
+                del dataDummyJobs[k]
+            elif k in self.argsMultiMain._fields:
+                tmpArgsMulti[k] = dataDummyJobs[k]
+                del dataDummyJobs[k]
+
+        tmpArgsMulti = self.argsMultiMain(**tmpArgsMulti)
+
+        return dataDummyJobs, tmpArgsMulti, tmpExpMulti
 
     def paramsControlMulti(
         self,
@@ -1848,7 +1878,6 @@ class QurryV4:
         managerRunArgs: dict[str, any] = {
             'max_experiments_per_job': 200,
         },
-        powerJobID: Optional[Union[str, list[str]]] = None,
         # Other arguments of experiment
         # Multiple jobs shared
         expsName: str = 'exps',
@@ -1860,8 +1889,11 @@ class QurryV4:
         isRead: bool = False,
         clear: bool = False,
         # independentExports: list[str] = _independentExportDefault,
+        filetype: TagMap._availableFileType = 'json',
 
+        # powerJobID: Optional[Union[str, list[str]]] = None,
         state: Literal["init", "pending", "completed"] = "init",
+        overwrite: bool = False,
 
         **otherArgs: any,
     ) -> Union[
@@ -1984,6 +2016,9 @@ class QurryV4:
             saveLocation=saveLocation,
         )
 
+        if provider is None and hasattr(backend, 'provider'):
+            provider = backend.provider()
+
         # configList
         initedConfigList = []
         for expIndex, config in enumerate(configList):
@@ -2001,25 +2036,18 @@ class QurryV4:
             })
 
         # read or generate
-        dataGenerator = self._multiDataGenOrRead(
+        dataDummyJobs, readArgs, dataGenerator = self._multiDataGenOrRead(
             initedConfigList=initedConfigList,
             namingComplex=namingComplex,
 
             state=state,
             isRead=isRead,
             isRetrieve=isRetrieve,
+            overwrite=overwrite,
         )
 
-        # powerJobID and handle v3
-        if isinstance(powerJobID, str):
-            powerJobID = [powerJobID]
-        elif powerJobID is None:
-            powerJobID = []
-        elif isinstance(powerJobID, list):
-            ...
-        else:
-            raise TypeError(
-                f"Invalid type '{type(powerJobID)}' for 'powerJobID', only 'str', 'list[str]', or 'None' are available.")
+        if len(dataDummyJobs) > 0:
+            print("| The following are useless value:", dataDummyJobs)
 
         # config check
         for config, checker in [
@@ -2036,13 +2064,12 @@ class QurryV4:
         self.multiNow: QurryV4.argsMultiMain = self.argsMultiMain(**{
             # defaultConfig of `IBMQJobManager().run`
             # Multiple jobs shared
-            'shots': shots,
+            'shots': readArgs.shots if isRead else shots,
             'backend': backend,
             'provider': provider,
 
             # IBMQJobManager() dedicated
-            'managerRunArgs': managerRunArgs,
-            'powerJobID': powerJobID,
+            'managerRunArgs': readArgs.managerRunArgs if isRead else managerRunArgs,
 
             # Other arguments of experiment
             # Multiple jobs shared
@@ -2050,14 +2077,16 @@ class QurryV4:
             'saveLocation': namingComplex.saveLocation,
             'exportLocation': namingComplex.exportLocation,
 
-            'pendingStrategy': pendingStrategy,
-            'jobsType': jobsType,
+            'pendingStrategy': readArgs.pendingStrategy if isRead else pendingStrategy,
+            'jobsType': readArgs.jobsType if isRead else jobsType,
 
             'isRetrieve': isRetrieve,
             'isRead': isRead,
-            'clear': clear,
-            'independentExports': independentExports,
+            'clear': readArgs.clear if isRead else clear,
+            'independentExports': readArgs.independentExports if isRead else independentExports,
+            'filetype': readArgs.filetype if isRead else filetype,
         })
+
         self.expsMulti: Union[
             QurryV4.argsMultiMain,
             QurryV4.expsMultiMain,
@@ -2067,18 +2096,19 @@ class QurryV4:
             attributedDict
         ] = attributedDict(
             params={
+                **otherArgs,
                 **self.multiNow._asdict(),
                 **dataGenerator._asdict(),
-                **otherArgs,
+                **dataDummyJobs,
             }
         )
 
         return self.expsMulti
 
-    @staticmethod
+    @classmethod
     def _multiExport(
+        cls,
         expsMulti: Union[argsMultiMain, expsMultiMain],
-        _unexport: list = _unexport,
     ) -> None:
         """Data export.
 
@@ -2086,12 +2116,23 @@ class QurryV4:
             expsMulti (Union[argsMultiMain, expsMultiMain]): expsMulti.
         """
         print(f"| Export...")
+        for k in (
+            cls._tagMapStateDepending._fields +
+            cls._tagMapNeccessary._fields
+        ):
+            if k not in expsMulti.independentExports:
+                expsMulti.independentExports.append(k)
+
         expsMulti.gitignore.ignore('*.json')
         expsMulti.gitignore.sync(f"{expsMulti.jobsType}.json")
 
         dataMultiJobs = expsMulti._jsonize()
 
         for k in expsMulti.independentExports:
+            if k in cls._tagMapStateDepending._fields:
+                if expsMulti.state == 'pending':
+                    del dataMultiJobs[k]
+
             if hasattr(expsMulti[k], 'export'):
                 expsMulti[k].export(
                     saveLocation=expsMulti.exportLocation,
@@ -2100,7 +2141,8 @@ class QurryV4:
                     filetype=expsMulti.filetype
                 )
                 expsMulti.gitignore.sync(f'*.{k}.{expsMulti.filetype}')
-                del dataMultiJobs[k]
+                if k in dataMultiJobs:
+                    del dataMultiJobs[k]
 
             elif isinstance(expsMulti[k], (dict, list)):
                 quickJSONExport(
@@ -2115,10 +2157,9 @@ class QurryV4:
             else:
                 warnings.warn(
                     f"'{k}' is type '{type(expsMulti[k])}' which is not supported to export.")
-                
-        for k in _unexport:
+
+        for k in cls._unexport:
             del dataMultiJobs[k]
-            
 
         quickJSONExport(
             content=dataMultiJobs,
@@ -2246,7 +2287,7 @@ class QurryV4:
             expsName=expsName,
             saveLocation=saveLocation,
 
-            jobsType='multiJobs',
+            jobsType='powerJobs',
             isRetrieve=False,
             isRead=False,
             clear=clear,
@@ -2295,14 +2336,8 @@ class QurryV4:
 
         # Export
         expsMulti.state = 'completed'
-        for k in (
-            self._tagMapStateDepending._fields +
-            self._tagMapNeccessary._fields
-        ):
-            if k not in expsMulti.independentExports:
-                expsMulti.independentExports.append(k)
 
-        self._multiExport(expsMulti, self._unexport)
+        self._multiExport(expsMulti)
 
         gc.collect()
         print(
@@ -2326,7 +2361,6 @@ class QurryV4:
         saveLocation: Union[Path, str] = Path('./'),
 
         pendingStrategy: Literal['power', 'tag', 'onetime'] = 'power',
-
         _clear: bool = False,
 
         **allArgs: any,
@@ -2390,7 +2424,7 @@ class QurryV4:
             jobsType='powerJobs',
             isRetrieve=False,
             isRead=False,
-            _clear=_clear,
+            clear=_clear,
             **allArgs
         )
 
@@ -2492,7 +2526,7 @@ class QurryV4:
             if k not in expsMulti.independentExports:
                 expsMulti.independentExports.append(k)
 
-        self._multiExport(expsMulti, self._unexport)
+        self._multiExport(expsMulti)
 
         gc.collect()
         print(
@@ -2527,6 +2561,7 @@ class QurryV4:
             provider=provider,
             isRead=True,
             isRetrieve=True,
+            overwrite=overwrite,
             **allArgs,
         )
 
@@ -2538,9 +2573,11 @@ class QurryV4:
                 f"+"+"-"*20)
             return expsMulti
 
-        pendingMapping = {}
-        allCircuitCountsDict = {}
+        pendingMapping: dict[Union[str, tuple[str]],
+                             QurryV4.managedReturn] = {}
+        allCircuitCountsDict: dict[int, Counts] = {}
         expIDBaseCountsMapping = TagMap()
+
         if expsMulti.state == 'pending':
             print(f"| Retrieve result...")
             for pendingID, pk in expsMulti.powerJobID:
@@ -2570,7 +2607,7 @@ class QurryV4:
             if pk == 'all':
                 ...
             elif len(pcircs) > 0:
-                pJob: ManagedJobSet = pendingMapping[pk]['retrievedJob']
+                pJob: ManagedJobSet = pendingMapping[pk].managedJob
                 pResult = pJob.results()
                 counts = self.counts(
                     result=pResult,
@@ -2583,18 +2620,19 @@ class QurryV4:
                 if not pk == 'noTags':
                     warnings.warn('There is no circuits in', pk)
 
-        for expID, circIndex in expsMulti.circuitsMap.items():
-            expIDBaseCountsMapping[expID].append(
-                allCircuitCountsDict[circIndex])
+        for expID, circIndexList in expsMulti.circuitsMap.items():
+            for circIndex in circIndexList:
+                expIDBaseCountsMapping[expID].append(
+                    allCircuitCountsDict[circIndex])
 
         for tags, expIDList in expsMulti.tagMapExpsID.items():
             for expID in expIDList:
-                counts = expIDBaseCountsMapping[expID]
+                self.exps[expID]['counts'] = expIDBaseCountsMapping[expID]
                 expsMulti.tagMapCounts[tags].append(counts)
 
                 quantitiesWSideProduct = self.quantities(
                     **self.exps[expID],
-                    counts=counts,
+                    # counts=counts,
                 )
                 for k in quantitiesWSideProduct:
                     if k[0] == '_' and k != '_dummy':
@@ -2611,19 +2649,14 @@ class QurryV4:
                 expsMulti.tagMapQuantity[tags].append(quantity)
 
         expsMulti.state = 'completed'
-        for k in (
-            self._tagMapStateDepending._fields +
-            self._tagMapNeccessary._fields
-        ):
-            if k not in expsMulti.independentExports:
-                expsMulti.independentExports.append(k)
-
-        self._multiExport(expsMulti, self._unexport)
+        self._multiExport(expsMulti)
 
         gc.collect()
         print(
             f"| MultiRetrieve {self.__name__} End in {self._time_takes(start_time)} ...\n" +
             f"+"+"-"*20)
+
+        return expsMulti
 
     """Other"""
 
