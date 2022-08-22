@@ -9,10 +9,10 @@ from typing import Hashable, Union, Optional, NamedTuple
 from ..qurrium import QurryV4, qubitSelector, waveSelecter, Counts
 from ..mori import defaultConfig
 
-# EntropyMeasure V0.4.0 - Measuring Renyi Entropy - Qurrent
+# EchoListen V0.4.0 - Measuring Loschmidt Echo - Qurrech
 
 
-class EntropyHadamardTestV4(QurryV4):
+class EchoHadamardTestV4(QurryV4):
     """HadamardTest V0.4.0 of qurrech
 
     - Reference:
@@ -44,12 +44,12 @@ class EntropyHadamardTestV4(QurryV4):
 
     class argsCore(NamedTuple):
         expsName: str = None
-        wave: Hashable = None
+        wave1: Union[QuantumCircuit, any, None] = None
+        wave2: Union[QuantumCircuit, any, None] = None
         degree: tuple[int, int] = None
 
     class expsCore(NamedTuple):
-        entropy: float
-        purity: float
+        echo: float
 
     # Initialize
     def initialize(self) -> dict[str, any]:
@@ -59,7 +59,7 @@ class EntropyHadamardTestV4(QurryV4):
             dict[str, any]: The basic configuration of `haarMeasure`.
         """
         self._expsBase = defaultConfig(
-            name='QurrentHadamardBase',
+            name='QurrechHadamardBase',
             default={
                 **self.argsMain()._asdict(),
                 **self.argsCore()._asdict(),
@@ -71,20 +71,21 @@ class EntropyHadamardTestV4(QurryV4):
             "_basicHint": "This is a hint of QurryV4.",
         }
         self._expsMultiBase = defaultConfig(
-            name='QurrentHadamardMultiBase',
+            name='QurrechHadamardMultiBase',
             default={
                 **self.argsMultiMain()._asdict(),
                 **self.expsMultiMain()._asdict(),
             },
         )
 
-        self.shortName = 'qurrent_hadamard'
-        self.__name__ = 'qurrent_hadamardTest'
+        self.shortName = 'qurrech_hadamard'
+        self.__name__ = 'qurrech_hadamardTest'
         
     def paramsControlCore(
         self,
         expsName: Optional[str] = None,
-        wave: Union[QuantumCircuit, any, None] = None,
+        wave1: Union[QuantumCircuit, any, None] = None,
+        wave2: Union[QuantumCircuit, any, None] = None,
         degree: Union[int, tuple[int, int], None] = None,
         **otherArgs: any
     ) -> dict:
@@ -125,19 +126,29 @@ class EntropyHadamardTestV4(QurryV4):
         """
 
         # wave
-        wave = waveSelecter(self, wave)
+        wave1 = waveSelecter(self, wave1)
+        wave2 = waveSelecter(self, wave2)
 
         # degree
-        numQubits = self.waves[wave].num_qubits
+        numQubits1 = self.waves[wave1].num_qubits
+        numQubits2 = self.waves[wave2].num_qubits
+        if numQubits1 != numQubits2:
+            raise ValueError(
+                f"Wave1 with {numQubits1} qubits and Wave2 with {numQubits2} qubits are different system size.")
+        numQubits = numQubits1
+        
+        if degree is None:
+            degree = numQubits
         degree = qubitSelector(numQubits, degree=degree)
 
         # expsName
         if expsName is None:
-            expsName = f"w={wave}-deg={degree[1]-degree[0]}.{self.shortName}"
+            expsName = f"w1={wave1}-w2={wave2}-deg={degree[1]-degree[0]}.{self.shortName}"
 
         return (
             self.argsCore(**{
-                'wave': wave,
+                'wave1': wave1,
+                'wave2': wave2,
                 'degree': degree,
                 'expsName': expsName,
             }),
@@ -150,16 +161,17 @@ class EntropyHadamardTestV4(QurryV4):
 
     def method(
         self,
-    ) -> list[QuantumCircuit]:
+    ) -> Union[QuantumCircuit, list[QuantumCircuit]]:
         """The method to construct circuit.
         Where should be overwritten by each construction of new measurement.
 
         Returns:
-            list[QuantumCircuit]: The quantum circuit of experiment.
+            Union[QuantumCircuit, list[QuantumCircuit]]: 
+                The quantum circuit of experiment.
         """
         argsNow: Union[QurryV4.argsMain,
-                       EntropyHadamardTestV4.argsCore] = self.now
-        numQubits = self.waves[argsNow.wave].num_qubits
+                       EchoHadamardTestV4.argsCore] = self.now
+        numQubits = self.waves[argsNow.wave1].num_qubits
 
         qAnc = QuantumRegister(1, 'ancilla')
         qFunc1 = QuantumRegister(numQubits, 'q1')
@@ -168,13 +180,13 @@ class EntropyHadamardTestV4(QurryV4):
         qcExp1 = QuantumCircuit(qAnc, qFunc1, qFunc2, cMeas1)
 
         qcExp1.append(self.waveCall(
-            wave=argsNow.wave,
+            wave=argsNow.wave1,
             runBy=argsNow.runBy,
             backend=argsNow.backend,
         ), [qFunc1[i] for i in range(numQubits)])
 
         qcExp1.append(self.waveCall(
-            wave=argsNow.wave,
+            wave=argsNow.wave2,
             runBy=argsNow.runBy,
             backend=argsNow.backend,
         ), [qFunc2[i] for i in range(numQubits)])
@@ -266,7 +278,8 @@ class EntropyHadamardTestV4(QurryV4):
 
     def measure(
         self,
-        wave: Union[QuantumCircuit, any, None] = None,
+        wave1: Union[QuantumCircuit, any, None] = None,
+        wave2: Union[QuantumCircuit, any, None] = None,
         degree: Optional[int] = None,
         expsName: str = 'exps',
         **otherArgs: any
@@ -294,7 +307,8 @@ class EntropyHadamardTestV4(QurryV4):
             dict: The output.
         """
         return self.output(
-            wave=wave,
+            wave1=wave1,
+            wave2=wave2,
             degree=degree,
             expsName=expsName,
             **otherArgs,
