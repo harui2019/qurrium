@@ -24,7 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          token: ${{ secrets.CI_TOKEN }}
+#           token: ${{ secrets.CI_TOKEN }}
           submodules: true
 
       # Update references
@@ -32,13 +32,6 @@ jobs:
 #         run: |
 #           git pull --recurse-submodules
 #           git submodule update --remote --recursive
-
-      # - name: Commit update
-      #   run: |
-      #     git config --global user.name 'Git bot'
-      #     git config --global user.email 'bot@noreply.github.com'
-      #     git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
-      #     git commit -am "Auto updated submodule references" && git push || echo "No changes to commit"
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v3
