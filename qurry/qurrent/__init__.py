@@ -18,9 +18,14 @@ from .qurrentV2.hadamardTest import hadamardTestV2
 def EntropyMeasure(
     *args,
     method: Literal['randomized', 'hadamard', 'base'] = 'randomized',
-    version: Literal['v4', 'v3', 'v2'] = 'v3',
+    version: Literal['v4', 'v3', 'v2'] = 'v4',
     **kwargs,
-) -> Union[EntropyMeasureV2, EntropyMeasureV3, EntropyHadamardTestV4, EntropyHaarMeasureV4]:
+) -> Union[
+    EntropyMeasureV2,
+    EntropyMeasureV3,
+    EntropyHadamardTestV4,
+    EntropyHaarMeasureV4
+]:
     """Call `EntropyMeasure` methods.
 
     Args:
