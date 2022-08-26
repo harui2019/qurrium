@@ -1,7 +1,11 @@
-from typing import Literal
+from typing import Literal, Union
 import warnings
 
 from ..qurrium.exceptions import UnconfiguredWarning
+# v4
+from .qurrentHaarV4 import EchoHaarMeasureV4
+from .qurrentHadamardV4 import EchoHadamardTestV4
+# v3
 from .qurrech import EchoListen as EchoListenBase
 from .haarMeasure import haarMeasure
 from .hadamardTest import hadamardTest
@@ -10,8 +14,13 @@ from .hadamardTest import hadamardTest
 def EchoListen(
     *args,
     method: Literal['randomized', 'hadamard', 'base'] = 'randomized',
+    version: Literal['v4', 'v3'] = 'v4',
     **kwargs,
-) -> EchoListenBase:
+) -> Union[
+    EchoListenBase,
+    EchoHaarMeasureV4,
+    EchoHadamardTestV4
+]:
     """Call `EchoListen` methods.
 
     Args:
@@ -25,12 +34,18 @@ def EchoListen(
     Returns:
         EchoListenBase: method.
     """
-    if method == 'base':
-        warnings.warn(
-            "This method is a base of 'EchoListen' which cannot work before" +
-            " introduce measurement like haar randomized measure.", UnconfiguredWarning)
-        return EchoListenBase(*args, **kwargs)
-    elif method == 'hadamard':
-        return hadamardTest(*args, **kwargs)
+    if version == 'v4':
+        if method == 'hadamard':
+            return EchoHadamardTestV4(*args, **kwargs)
+        else:
+            return EchoHaarMeasureV4(*args, **kwargs)
     else:
-        return haarMeasure(*args, **kwargs)
+        if method == 'base':
+            warnings.warn(
+                "This method is a base of 'EchoListen' which cannot work before" +
+                " introduce measurement like haar randomized measure.", UnconfiguredWarning)
+            return EchoListenBase(*args, **kwargs)
+        elif method == 'hadamard':
+            return hadamardTest(*args, **kwargs)
+        else:
+            return haarMeasure(*args, **kwargs)

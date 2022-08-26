@@ -11,11 +11,11 @@ from typing import Union, Optional, NamedTuple, Hashable
 from ..qurrium import QurryV4, haarBase, qubitSelector, waveSelecter, Counts
 from ..mori import defaultConfig
 
-# EntropyMeasure V0.4.0 - Measuring Renyi Entropy - Qurrent
+# EchoListen V0.4.0 - Measuring Loschmidt Echo - Qurrech
 
 
-class EntropyHaarMeasureV4(QurryV4, haarBase):
-    """HaarMeasure V0.4.0 of qurrent
+class EchoHaarMeasureV4(QurryV4, haarBase):
+    """HaarMeasure V0.4.0 of qurrech
 
     - Reference:
         - Used in:
@@ -49,16 +49,16 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
 
     class argsCore(NamedTuple):
         expsName: str = None
-        wave: Hashable = None
+        wave1: Hashable = None
+        wave2: Hashable = None
         degree: tuple[int, int] = None
         times: int = 100
         measure: tuple[int, int] = None
         unitary_set: tuple[int, int] = None
 
     class expsCore(NamedTuple):
-        entropy: float
-        purity: float
-        puritySD: float
+        echo: float
+        echoSD: float
 
     # Initialize
     def initialize(self) -> dict[str, any]:
@@ -68,7 +68,7 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
             dict[str, any]: The basic configuration of `haarMeasure`.
         """
         self._expsBase = defaultConfig(
-            name='QurrentHaarBase',
+            name='QurrechHaarBase',
             default={
                 **self.argsMain()._asdict(),
                 **self.argsCore()._asdict(),
@@ -80,20 +80,21 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
             "_basicHint": "This is a hint of QurryV4.",
         }
         self._expsMultiBase = defaultConfig(
-            name='QurrentHaarMultiBase',
+            name='QurrechHaarMultiBase',
             default={
                 **self.argsMultiMain()._asdict(),
                 **self.expsMultiMain()._asdict(),
             },
         )
 
-        self.shortName = 'qurrent_haar'
-        self.__name__ = 'qurrent_haarMeasure'
+        self.shortName = 'qurrech_haar'
+        self.__name__ = 'qurrech_haarMeasure'
 
     def paramsControlCore(
         self,
         expsName: Optional[str] = None,
-        wave: Union[QuantumCircuit, any, None] = None,
+        wave1: Union[QuantumCircuit, any, None] = None,
+        wave2: Union[QuantumCircuit, any, None] = None,
         degree: Union[int, tuple[int, int], None] = None,
         times: int = 100,
         measure: Union[int, tuple[int, int]] = None,
@@ -147,10 +148,19 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
         """
 
         # wave
-        wave = waveSelecter(self, wave)
+        wave1 = waveSelecter(self, wave1)
+        wave2 = waveSelecter(self, wave2)
 
         # degree
-        numQubits = self.waves[wave].num_qubits
+        numQubits1 = self.waves[wave1].num_qubits
+        numQubits2 = self.waves[wave2].num_qubits
+        if numQubits1 != numQubits2:
+            raise ValueError(
+                f"Wave1 with {numQubits1} qubits and Wave2 with {numQubits2} qubits are different system size.")
+        numQubits = numQubits1
+
+        if degree is None:
+            degree = numQubits
         degree = qubitSelector(numQubits, degree=degree)
         if measure is None:
             measure = numQubits
@@ -176,11 +186,12 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
 
         # expsName
         if expsName is None:
-            expsName = f"w={wave}-deg={degree[1]-degree[0]}-at={times}.{self.shortName}"
+            expsName = f"w1={wave1}-w2={wave2}-deg={degree[1]-degree[0]}-at={times}.{self.shortName}"
 
         return (
             self.argsCore(**{
-                'wave': wave,
+                'wave1': wave1,
+                'wave2': wave2,
                 'degree': degree,
                 'times': times,
 
@@ -204,16 +215,16 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
             list[QuantumCircuit]: The quantum circuit of experiment.
         """
         argsNow: Union[QurryV4.argsMain,
-                       EntropyHaarMeasureV4.argsCore] = self.now
-        numQubits = self.waves[argsNow.wave].num_qubits
+                       EchoHaarMeasureV4.argsCore] = self.now
+        numQubits = self.waves[argsNow.wave1].num_qubits
 
-        qcList = []
+        qcList: list[QuantumCircuit] = []
         unitaryList = [
             [random_unitary(2) for j in range(numQubits)]
             for i in range(argsNow.times)]
 
         ABegin = time.time()
-        print(f"| Build circuit: {argsNow.wave}", end="\r")
+        print(f"| Build circuit A: {argsNow.wave1}", end="\r")
         for i in range(argsNow.times):
             qFunc1 = QuantumRegister(numQubits, 'q1')
             cMeas1 = ClassicalRegister(
@@ -221,7 +232,7 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
             qcExp1 = QuantumCircuit(qFunc1, cMeas1)
 
             qcExp1.append(self.waveCall(
-                wave=argsNow.wave,
+                wave=argsNow.wave1,
                 runBy=argsNow.runBy,
                 backend=argsNow.backend,
             ), [qFunc1[i] for i in range(numQubits)])
@@ -236,12 +247,43 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
 
             qcList.append(qcExp1)
             print(
-                f"| Build circuit: {argsNow.wave}" +
+                f"| Build circuit Add: {argsNow.wave1}" +
                 f" - {i+1}/{argsNow.times} - {round(time.time() - ABegin, 3)}s.", end="\r")
 
         print(
-            f"| Circuit completed: {argsNow.wave}" +
+            f"| Circuit A completed: {argsNow.wave1}" +
             f" - {i+1}/{argsNow.times} - {round(time.time() - ABegin, 3)}s." +
+            " "*30)
+
+        BBegin = time.time()
+        print(f"| Build circuit B: {argsNow.wave2}", end="\r")
+        for i in range(argsNow.times):
+            qFunc2 = QuantumRegister(numQubits, 'q2')
+            cMeas2 = ClassicalRegister(
+                argsNow.measure[1]-argsNow.measure[0], 'c2')
+            qcExp2 = QuantumCircuit(qFunc2, cMeas2)
+
+            qcExp2.append(self.waveCall(
+                wave=argsNow.wave2,
+                runBy=argsNow.runBy,
+                backend=argsNow.backend,
+            ), [qFunc2[i] for i in range(numQubits)])
+
+            qcExp2.barrier()
+
+            for j in range(*argsNow.unitary_set):
+                qcExp2.append(unitaryList[i][j], [j])
+
+            for j in range(*argsNow.measure):
+                qcExp2.measure(qFunc2[j], cMeas2[j-argsNow.measure[0]])
+
+            qcList.append(qcExp2)
+            print(
+                f"| Build circuit B: {argsNow.wave2}" +
+                f" - {i+1}/{argsNow.times} - {round(time.time() - BBegin, 3)}s.", end="\r")
+        print(
+            f"| Circuit completed B: {argsNow.wave2}" +
+            f" - {i+1}/{argsNow.times} - {round(time.time() - BBegin, 3)}s." +
             " "*30)
 
         self.exps[self.IDNow]['sideProduct']['randomized'] = {
@@ -264,16 +306,16 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
 
         Returns:
             tuple[dict, dict]:
-                Counts, purity, entropy of experiment.
+                Counts, echo, echo of experiment.
         """
         if resultIdxList == None:
-            resultIdxList = [i for i in range(times)]
+            resultIdxList = [i for i in range(times*2)]
         elif isinstance(resultIdxList, list):
             if len(resultIdxList) > 1:
                 ...
-            elif len(resultIdxList) != times:
+            elif len(resultIdxList) != times*2:
                 raise ValueError(
-                    f"The element number of 'resultIdxList': {len(resultIdxList)} is different with 'times': {times}.")
+                    f"The element number of 'resultIdxList': {len(resultIdxList)} is different with 'times x 2': {times*2}.")
             else:
                 raise ValueError(
                     f"The element number of 'resultIdxList': {len(resultIdxList)} needs to be more than 1 for 'haarMeasure'.")
@@ -298,15 +340,14 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
         shots: int,
         counts: list[Counts],
         times: int = 0,
-        degree: Union[tuple[int, int], int] = None,
+        degree: tuple[int, int] = None,
 
         run_log: dict[str] = {},
         **otherArgs,
     ) -> expsCore:
 
-        purity = -100
-        entropy = -100
-        purityCellList = []
+        echo = -100
+        echoCellList = []
 
         if isinstance(degree, int):
             subsystemSize = degree
@@ -314,10 +355,10 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
         else:
             subsystemSize = max(degree) - min(degree)
 
-        if (times == len(counts)):
+        if (times*2 == len(counts)):
             ...
         else:
-            times = len(counts)
+            times = len(counts)/2
             warnings.warn(
                 f"times: {times} and counts number: {len(counts)} are different, use counts number," +
                 "'times' = 0 is the default number.")
@@ -326,43 +367,50 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
 
         for i in range(times):
             allMeas1 = counts[i]
-            purityCell = 0
+            allMeas2 = counts[i+times]
+            echoCell = 0
 
-            allMeasUnderDegree = dict.fromkeys(
+            allMeasUnderDegree1 = dict.fromkeys(
                 [k[degree[0]:degree[1]] for k in allMeas1], 0)
             for kMeas in list(allMeas1):
-                allMeasUnderDegree[kMeas[degree[0]:degree[1]]] += allMeas1[kMeas]
-            numAllMeasUnderDegree = len(allMeasUnderDegree)
+                allMeasUnderDegree1[kMeas[degree[0]:degree[1]]] += allMeas1[kMeas]
+            
+            allMeasUnderDegree2 = dict.fromkeys(
+                [k[degree[0]:degree[1]] for k in allMeas2], 0)
+            for kMeas in list(allMeas2):
+                allMeasUnderDegree2[kMeas[degree[0]:degree[1]]] += allMeas2[kMeas]
+            
+            numAllMeasUnderDegree = len(allMeasUnderDegree1)
 
             print(
                 f"| Calculating overlap {i} and {i} " +
                 f"by summarize {numAllMeasUnderDegree**2} values - {i+1}/{times}" +
                 f" - {round(time.time() - Begin, 3)}s.", end="\r")
-            for sAi, sAiMeas in allMeasUnderDegree.items():
-                for sAj, sAjMeas in allMeasUnderDegree.items():
-                    purityCell += cls.ensembleCell(
+            for sAi, sAiMeas in allMeasUnderDegree1.items():
+                for sAj, sAjMeas in allMeasUnderDegree2.items():
+                    echoCell += cls.ensembleCell(
                         sAi, sAiMeas, sAj, sAjMeas, subsystemSize, shots)
 
-            purityCellList.append(purityCell)
+            echoCellList.append(echoCell)
             print(
                 f"| Calculating overlap end - {i+1}/{times}" +
                 f" - {round(time.time() - Begin, 3)}s." +
                 " "*30, end="\r")
 
-        purity = np.mean(purityCellList)
-        puritySD = np.std(purityCellList)
-        entropy = -np.log2(purity)
+        echo = np.mean(echoCellList)
+        echoSD = np.std(echoCellList)
+        
         quantity = {
-            'purity': purity,
-            'entropy': entropy,
-            'puritySD': puritySD,
-            '_purityCellList': purityCellList,
+            'echo': echo,
+            'echoSD': echoSD,
+            '_echoCellList': echoCellList,
         }
         return quantity
 
     def measure(
         self,
-        wave: Union[QuantumCircuit, any, None] = None,
+        wave1: Union[QuantumCircuit, any, None] = None,
+        wave2: Union[QuantumCircuit, any, None] = None,
         degree: Union[int, tuple[int, int], None] = None,
         times: int = 100,
         measure: Union[int, tuple[int, int], None] = None,
@@ -393,7 +441,8 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
             dict: The output.
         """
         return self.output(
-            wave=wave,
+            wave1=wave1,
+            wave2=wave2,
             degree=degree,
             times=times,
             measure=measure,
