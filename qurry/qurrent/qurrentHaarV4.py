@@ -298,7 +298,7 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
         shots: int,
         counts: list[Counts],
         times: int = 0,
-        degree: tuple[int, int] = None,
+        degree: Union[tuple[int, int], int] = None,
 
         run_log: dict[str] = {},
         **otherArgs,
@@ -308,7 +308,11 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
         entropy = -100
         purityCellList = []
 
-        subsystemSize = max(degree) - min(degree)
+        if isinstance(degree, int):
+            subsystemSize = degree
+            degree = qubitSelector(len(list(counts[0].keys())[0]), degree=degree)
+        else:
+            subsystemSize = max(degree) - min(degree)
 
         if (times == len(counts)):
             ...

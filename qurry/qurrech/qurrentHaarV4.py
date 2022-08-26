@@ -349,7 +349,11 @@ class EchoHaarMeasureV4(QurryV4, haarBase):
         echo = -100
         echoCellList = []
 
-        subsystemSize = max(degree) - min(degree)
+        if isinstance(degree, int):
+            subsystemSize = degree
+            degree = qubitSelector(len(list(counts[0].keys())[0]), degree=degree)
+        else:
+            subsystemSize = max(degree) - min(degree)
 
         if (times*2 == len(counts)):
             ...
