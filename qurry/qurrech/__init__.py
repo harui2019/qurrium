@@ -3,12 +3,12 @@ import warnings
 
 from ..qurrium.exceptions import UnconfiguredWarning
 # v4
-from .qurrentHaarV4 import EchoHaarMeasureV4
-from .qurrentHadamardV4 import EchoHadamardTestV4
+from .haarMeasure import EchoHaarMeasureV4
+from .hadamardTest import EchoHadamardTestV4
 # v3
-from .qurrech import EchoListen as EchoListenBase
-from .haarMeasure import haarMeasure
-from .hadamardTest import hadamardTest
+from .v3.qurrech import EchoListen as EchoListenBase
+from .v3.haarMeasure import haarMeasure
+from .v3.hadamardTest import hadamardTest
 
 
 def EchoListen(

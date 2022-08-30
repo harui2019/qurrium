@@ -3,16 +3,16 @@ import warnings
 
 from ..qurrium.exceptions import UnconfiguredWarning
 # v4
-from .qurrentHaarV4 import EntropyHaarMeasureV4
-from .qurrentHadamardV4 import EntropyHadamardTestV4
+from .haarMeasure import EntropyHaarMeasureV4
+from .hadamardTest import EntropyHadamardTestV4
 # v3
-from .qurrent import EntropyMeasureV3
-from .haarMeasure import haarMeasureV3
-from .hadamardTest import hadamardTestV3
+from .v3.qurrent import EntropyMeasureV3
+from .v3.haarMeasure import haarMeasureV3
+from .v3.hadamardTest import hadamardTestV3
 # v2
-from .qurrentV2.qurrentV2 import EntropyMeasureV2
-from .qurrentV2.haarMeasure import haarMeasureV2
-from .qurrentV2.hadamardTest import hadamardTestV2
+from .v2.qurrentV2 import EntropyMeasureV2
+from .v2.haarMeasure import haarMeasureV2
+from .v2.hadamardTest import hadamardTestV2
 
 
 def EntropyMeasure(

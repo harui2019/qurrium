@@ -1,6 +1,6 @@
 from typing import Literal
 
-from .qurmagsq import MagnetSquare as MagnetSquareOrigin
+from .v3.qurmagsq import MagnetSquare as MagnetSquareOrigin
 
 
 def MagnetSquare(

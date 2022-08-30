@@ -1595,10 +1595,6 @@ class QurryV4:
             raise TypeError(
                 f"The saveLocation '{saveLocation}' is not the type of 'str' or 'Path' but '{type(saveLocation)}'.")
 
-        if not os.path.exists(saveLocation):
-            raise FileNotFoundError(
-                f"Such location not found: '{saveLocation}'.")
-
         if isRead:
             immutableName = expsName
             exportLocation = saveLocation / immutableName

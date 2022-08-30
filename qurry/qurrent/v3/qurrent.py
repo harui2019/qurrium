@@ -11,7 +11,7 @@ import warnings
 from math import pi
 from typing import Union, Optional, NamedTuple
 
-from ..qurrium import Qurry
+from ...qurrium import Qurry
 
 # EntropyMeasure V0.3.0 - Measuring Renyi Entropy - Qurrent
 
