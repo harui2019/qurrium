@@ -46,7 +46,7 @@ def EntropyMeasure(
                 If you want check it, there is it: 
                 https://github.com/harui2019/qurry/tree/entropymeasureV1
 
-            Defaults to 'v3'.
+            Defaults to 'v4'.
 
     Returns:
         Union[EntropyMeasureBase, EntropyMeasureV2Base]: method.
@@ -62,17 +62,7 @@ def EntropyMeasure(
         else:
             return haarMeasureV2(*args, **kwargs)
 
-    elif version == 'v4':
-        if method == 'hadamard':
-            return EntropyHadamardTestV4(*args, **kwargs)
-        elif method == 'base':
-            warnings.warn(
-                "QurryV4 EntropyMeasure does not exist base method, replaced by 'randomized'.", UnconfiguredWarning)
-            return EntropyHaarMeasureV4(*args, **kwargs)
-        else:
-            return EntropyHaarMeasureV4(*args, **kwargs)
-
-    else:
+    elif version == 'v3':
         if method == 'base':
             warnings.warn(
                 "This method is a base of 'EntropyMeasureV3' which cannot work before" +
@@ -82,3 +72,12 @@ def EntropyMeasure(
             return hadamardTestV3(*args, **kwargs)
         else:
             return haarMeasureV3(*args, **kwargs)
+
+    else:
+        if method == 'hadamard':
+            return EntropyHadamardTestV4(*args, **kwargs)
+        else:
+            if method == 'base':
+                warnings.warn(
+                    "QurryV4 EntropyMeasure does not exist base method, replaced by 'randomized'.", UnconfiguredWarning)
+            return EntropyHaarMeasureV4(*args, **kwargs)

@@ -34,12 +34,7 @@ def EchoListen(
     Returns:
         EchoListenBase: method.
     """
-    if version == 'v4':
-        if method == 'hadamard':
-            return EchoHadamardTestV4(*args, **kwargs)
-        else:
-            return EchoHaarMeasureV4(*args, **kwargs)
-    else:
+    if version == 'v3':
         if method == 'base':
             warnings.warn(
                 "This method is a base of 'EchoListen' which cannot work before" +
@@ -49,3 +44,12 @@ def EchoListen(
             return hadamardTest(*args, **kwargs)
         else:
             return haarMeasure(*args, **kwargs)
+
+    else:
+        if method == 'hadamard':
+            return EchoHadamardTestV4(*args, **kwargs)
+        else:
+            if method == 'base':
+                warnings.warn(
+                    "QurryV4 EchoListen does not exist base method, replaced by 'randomized'.", UnconfiguredWarning)
+            return EchoHaarMeasureV4(*args, **kwargs)
