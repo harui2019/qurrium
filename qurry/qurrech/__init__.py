@@ -3,12 +3,12 @@ import warnings
 
 from ..qurrium.exceptions import UnconfiguredWarning
 # v4
-from .qurrentHaarV4 import EchoHaarMeasureV4
-from .qurrentHadamardV4 import EchoHadamardTestV4
+from .haarMeasure import EchoHaarMeasureV4
+from .hadamardTest import EchoHadamardTestV4
 # v3
-from .qurrech import EchoListen as EchoListenBase
-from .haarMeasure import haarMeasure
-from .hadamardTest import hadamardTest
+from .v3.qurrech import EchoListen as EchoListenBase
+from .v3.haarMeasure import haarMeasure
+from .v3.hadamardTest import hadamardTest
 
 
 def EchoListen(
@@ -34,12 +34,7 @@ def EchoListen(
     Returns:
         EchoListenBase: method.
     """
-    if version == 'v4':
-        if method == 'hadamard':
-            return EchoHadamardTestV4(*args, **kwargs)
-        else:
-            return EchoHaarMeasureV4(*args, **kwargs)
-    else:
+    if version == 'v3':
         if method == 'base':
             warnings.warn(
                 "This method is a base of 'EchoListen' which cannot work before" +
@@ -49,3 +44,12 @@ def EchoListen(
             return hadamardTest(*args, **kwargs)
         else:
             return haarMeasure(*args, **kwargs)
+
+    else:
+        if method == 'hadamard':
+            return EchoHadamardTestV4(*args, **kwargs)
+        else:
+            if method == 'base':
+                warnings.warn(
+                    "QurryV4 EchoListen does not exist base method, replaced by 'randomized'.", UnconfiguredWarning)
+            return EchoHaarMeasureV4(*args, **kwargs)

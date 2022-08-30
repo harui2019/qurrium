@@ -1,30 +1,35 @@
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.providers.ibmq.managed import ManagedResults, IBMQManagedResultDataNotAvailable
-from qiskit.quantum_info import random_unitary
 from qiskit.result import Result
+from qiskit.quantum_info import random_unitary
+from qiskit.providers.ibmq.managed import ManagedResults, IBMQManagedResultDataNotAvailable
 
 import numpy as np
 import warnings
-from typing import Union, Optional, NamedTuple
 import time
+from typing import Union, Optional, NamedTuple, Hashable
 
-from .qurrent import EntropyMeasureV3
-from ..qurrium import haarBase
-# EntropyMeasure V0.3.0 - Measuring Renyi Entropy - Qurrent
+from ..qurrium import QurryV4, haarBase, qubitSelector, waveSelecter, Counts
+from ..mori import defaultConfig
+
+# EntropyMeasure V0.4.0 - Measuring Renyi Entropy - Qurrent
 
 
-class haarMeasureV3(EntropyMeasureV3, haarBase):
-    """haarMeasure V0.3.0 of qurrent
+class EntropyHaarMeasureV4(QurryV4, haarBase):
+    """HaarMeasure V0.4.0 of qurrent
 
     - Reference:
         - Used in:
-            Statistical correlations between locally randomized measurements: A toolbox for probing entanglement in many-body quantum states - A. Elben, B. Vermersch, C. F. Roos, and P. Zoller, [PhysRevA.99.052323](https://doi.org/10.1103/PhysRevA.99.052323)
+            Statistical correlations between locally randomized measurements: 
+            A toolbox for probing entanglement in many-body quantum states - 
+            A. Elben, B. Vermersch, C. F. Roos, and P. Zoller, 
+            [PhysRevA.99.052323](https://doi.org/10.1103/PhysRevA.99.052323)
 
         - `bibtex`:
 
 ```bibtex
 @article{PhysRevA.99.052323,
-    title = {Statistical correlations between locally randomized measurements: A toolbox for probing entanglement in many-body quantum states},
+    title = {Statistical correlations between locally randomized measurements: 
+    A toolbox for probing entanglement in many-body quantum states},
     author = {Elben, A. and Vermersch, B. and Roos, C. F. and Zoller, P.},
     journal = {Phys. Rev. A},
     volume = {99},
@@ -43,10 +48,17 @@ class haarMeasureV3(EntropyMeasureV3, haarBase):
     """ Configuration """
 
     class argsCore(NamedTuple):
-        expsName: str = 'exps',
-        wave: Union[QuantumCircuit, any, None] = None,
-        degree: Optional[int] = None,
-        times: int = 100,
+        expsName: str = None
+        wave: Hashable = None
+        degree: tuple[int, int] = None
+        times: int = 100
+        measure: tuple[int, int] = None
+        unitary_set: tuple[int, int] = None
+
+    class expsCore(NamedTuple):
+        entropy: float
+        purity: float
+        puritySD: float
 
     # Initialize
     def initialize(self) -> dict[str, any]:
@@ -55,41 +67,37 @@ class haarMeasureV3(EntropyMeasureV3, haarBase):
         Returns:
             dict[str, any]: The basic configuration of `haarMeasure`.
         """
-
-        self._expsConfig = self.expsConfig(
-            name="qurrentConfig",
-        )
-        self._expsBase = self.expsBase(
-            name="qurrentBase",
-            defaultArg={
-                # Reault of experiment.
-                'entropy': -100,
-                'purity': -100,
+        self._expsBase = defaultConfig(
+            name='QurrentHaarBase',
+            default={
+                **self.argsMain()._asdict(),
+                **self.argsCore()._asdict(),
+                **self.expsMain()._asdict(),
             },
         )
-        self._expsHint = self.expsHint(
-            name='qurrechBaseHint',
-            hintContext={
-                'entropy': 'The Renyi Entropy.',
-                'purity': '',
+        self._expsHint = {
+            **{k: f"sample: {v}" for k, v in self._expsBase},
+            "_basicHint": "This is a hint of QurryV4.",
+        }
+        self._expsMultiBase = defaultConfig(
+            name='QurrentHaarMultiBase',
+            default={
+                **self.argsMultiMain()._asdict(),
+                **self.expsMultiMain()._asdict(),
             },
         )
-        self._expsMultiConfig = self.expsConfigMulti(
-            name="qurrentConfigMulti",
-        )
-        self.shortName = 'qurrent.haar'
-        self.__name__ = 'qurrent.haarMeasure'
 
-        return self._expsConfig, self._expsBase
-
-    """Arguments and Parameters control"""
+        self.shortName = 'qurrent_haar'
+        self.__name__ = 'qurrent_haarMeasure'
 
     def paramsControlCore(
         self,
-        expsName: str = 'exps',
+        expsName: Optional[str] = None,
         wave: Union[QuantumCircuit, any, None] = None,
-        degree: Optional[int] = None,
+        degree: Union[int, tuple[int, int], None] = None,
         times: int = 100,
+        measure: Union[int, tuple[int, int]] = None,
+        unitary_set: Union[int, tuple[int, int]] = None,
         **otherArgs: any
     ) -> dict:
         """Handling all arguments and initializing a single experiment.
@@ -120,6 +128,12 @@ class haarMeasureV3(EntropyMeasureV3, haarBase):
                 This name is also used for creating a folder to store the exports.
                 Defaults to `'exps'`.
 
+            measure (tuple[int, int], optional):
+                The range of the qubits will be measured.
+
+            unitary_set (tuple[int, int], optional):
+                The range of the qubits will be setted random unitary.
+
             otherArgs (any):
                 Other arguments.
 
@@ -133,27 +147,26 @@ class haarMeasureV3(EntropyMeasureV3, haarBase):
         """
 
         # wave
-        if isinstance(wave, QuantumCircuit):
-            wave = self.addWave(wave)
-            print(f"| Add new wave with key: {wave}")
-        elif wave == None:
-            wave = self.lastWave
-            print(f"| Autofill will use '.lastWave' as key")
-        else:
-            try:
-                self.waves[wave]
-            except KeyError as e:
-                warnings.warn(f"'{e}', use '.lastWave' as key")
-                wave = self.lastWave
+        wave = waveSelecter(self, wave)
 
         # degree
         numQubits = self.waves[wave].num_qubits
-        if degree > numQubits:
+        degree = qubitSelector(numQubits, degree=degree)
+        if measure is None:
+            measure = numQubits
+        measure = qubitSelector(
+            numQubits, degree=measure, as_what='measure range')
+        if unitary_set is None:
+            unitary_set = numQubits
+        unitary_set = qubitSelector(
+            numQubits, degree=unitary_set, as_what='unitary_set')
+
+        if (min(degree) < min(measure)) or (max(degree) > max(measure)):
             raise ValueError(
-                f"The subsystem A includes {degree} qubits beyond {numQubits} which the wave function has.")
-        elif degree < 0:
+                f"Measure range '{measure}' does not contain subsystem '{degree}'.")
+        if (min(measure) < min(unitary_set)) or (max(measure) > max(unitary_set)):
             raise ValueError(
-                f"The number of qubits of subsystem A has to be natural number.")
+                f"Unitary_set range '{unitary_set}' does not contain measure range '{measure}'.")
 
         # times
         if not isinstance(times, int):
@@ -161,28 +174,37 @@ class haarMeasureV3(EntropyMeasureV3, haarBase):
         elif times <= 0:
             raise ValueError("'times' must be larger than 0.")
 
-        return {
-            'wave': wave,
-            'degree': degree,
-            'times': times,
-            'numQubit': numQubits,
-            'expsName': f"w={wave}-deg={degree}-at={times}.{self.shortName}",
-            **otherArgs,
-        }
+        # expsName
+        if expsName is None:
+            expsName = f"w={wave}-deg={degree[1]-degree[0]}-at={times}.{self.shortName}"
 
-    """ Main Process: Circuit"""
+        return (
+            self.argsCore(**{
+                'wave': wave,
+                'degree': degree,
+                'times': times,
 
-    def circuitMethod(
+                'measure': measure,
+                'unitary_set': unitary_set,
+                'expsName': expsName,
+            }),
+            {
+                k: v for k, v in otherArgs.items()
+                if k not in self.argsCore._fields
+            }
+        )
+
+    def method(
         self,
-    ) -> Union[QuantumCircuit, list[QuantumCircuit]]:
+    ) -> list[QuantumCircuit]:
         """The method to construct circuit.
         Where should be overwritten by each construction of new measurement.
 
         Returns:
-            Union[QuantumCircuit, list[QuantumCircuit]]: 
-                The quantum circuit of experiment.
+            list[QuantumCircuit]: The quantum circuit of experiment.
         """
-        argsNow: EntropyMeasureV3.argsMain = self.now
+        argsNow: Union[QurryV4.argsMain,
+                       EntropyHaarMeasureV4.argsCore] = self.now
         numQubits = self.waves[argsNow.wave].num_qubits
 
         qcList = []
@@ -194,20 +216,23 @@ class haarMeasureV3(EntropyMeasureV3, haarBase):
         print(f"| Build circuit: {argsNow.wave}", end="\r")
         for i in range(argsNow.times):
             qFunc1 = QuantumRegister(numQubits, 'q1')
-            cMeas1 = ClassicalRegister(numQubits, 'c1')
+            cMeas1 = ClassicalRegister(
+                argsNow.measure[1]-argsNow.measure[0], 'c1')
             qcExp1 = QuantumCircuit(qFunc1, cMeas1)
 
-            qcExp1.append(self.waveInstruction(
+            qcExp1.append(self.waveCall(
                 wave=argsNow.wave,
                 runBy=argsNow.runBy,
                 backend=argsNow.backend,
             ), [qFunc1[i] for i in range(numQubits)])
 
             qcExp1.barrier()
-            for j in range(numQubits):
+
+            for j in range(*argsNow.unitary_set):
                 qcExp1.append(unitaryList[i][j], [j])
-            for j in range(numQubits):
-                qcExp1.measure(qFunc1[j], cMeas1[j])
+
+            for j in range(*argsNow.measure):
+                qcExp1.measure(qFunc1[j], cMeas1[j-argsNow.measure[0]])
 
             qcList.append(qcExp1)
             print(
@@ -221,41 +246,26 @@ class haarMeasureV3(EntropyMeasureV3, haarBase):
 
         self.exps[self.IDNow]['sideProduct']['randomized'] = {
             i: [self.qubitOpToPauliCoeff(unitaryList[i][j])
-                for j in range(numQubits)]
+                for j in range(*argsNow.unitary_set)]
             for i in range(argsNow.times)}
 
         return qcList
 
     @classmethod
-    def quantity(
+    def counts(
         cls,
-        shots: int,
-        result: Optional[Union[Result, ManagedResults]] = None,
+        result: Union[Result, ManagedResults],
         resultIdxList: Optional[list[int]] = None,
         times: int = 0,
-        degree: int = None,
-
-        counts: list[dict[str, int]] = [],
         **otherArgs,
-    ) -> tuple[dict, dict]:
-        """Computing specific quantity.
+    ):
+        """Computing specific squantity.
         Where should be overwritten by each construction of new measurement.
 
         Returns:
             tuple[dict, dict]:
                 Counts, purity, entropy of experiment.
         """
-
-        if counts is None:
-            counts = []
-        elif (times == len(counts)):
-            ...
-        else:
-            times = len(counts)
-            warnings.warn(
-                f"times: {times} and counts number: {len(counts)} are different, use counts number," +
-                "'times' = 0 is the default number.")
-
         if resultIdxList == None:
             resultIdxList = [i for i in range(times)]
         elif isinstance(resultIdxList, list):
@@ -270,47 +280,68 @@ class haarMeasureV3(EntropyMeasureV3, haarBase):
         else:
             raise ValueError("'resultIdxList' needs to be 'list'.")
 
+        counts = []
+        for i in resultIdxList:
+            try:
+                allMeas = result.get_counts(i)
+                counts.append(allMeas)
+            except IBMQManagedResultDataNotAvailable as err:
+                counts.append({})
+                print("| Failed Job result skip, index:", i, err)
+                continue
+
+        return counts
+
+    @classmethod
+    def quantities(
+        cls,
+        shots: int,
+        counts: list[Counts],
+        times: int = 0,
+        degree: Union[tuple[int, int], int] = None,
+
+        run_log: dict[str] = {},
+        **otherArgs,
+    ) -> expsCore:
+
         purity = -100
         entropy = -100
         purityCellList = []
 
+        if isinstance(degree, int):
+            subsystemSize = degree
+            degree = qubitSelector(len(list(counts[0].keys())[0]), degree=degree)
+        else:
+            subsystemSize = max(degree) - min(degree)
+
+        if (times == len(counts)):
+            ...
+        else:
+            times = len(counts)
+            warnings.warn(
+                f"times: {times} and counts number: {len(counts)} are different, use counts number," +
+                "'times' = 0 is the default number.")
+
         Begin = time.time()
-
-        print(f"| Calculating overlap ...", end="\r")
-        if len(counts) < 1:
-            for i in range(times):
-                t1 = resultIdxList[i]
-                print(
-                    f"| Calculating overlap {t1} and {t1}" +
-                    f" - {i+1}/{times} - {round(time.time() - Begin, 3)}s.", end="\r")
-
-                try:
-                    allMeas1 = result.get_counts(t1)
-                    counts.append(allMeas1)
-                except IBMQManagedResultDataNotAvailable as err:
-                    counts.append(None)
-                    print("| Failed Job result skip, index:", i, err)
-                    continue
 
         for i in range(times):
             allMeas1 = counts[i]
-            t1 = resultIdxList[i]
             purityCell = 0
 
             allMeasUnderDegree = dict.fromkeys(
-                [k[:degree] for k in allMeas1], 0)
+                [k[degree[0]:degree[1]] for k in allMeas1], 0)
             for kMeas in list(allMeas1):
-                allMeasUnderDegree[kMeas[:degree]] += allMeas1[kMeas]
+                allMeasUnderDegree[kMeas[degree[0]:degree[1]]] += allMeas1[kMeas]
             numAllMeasUnderDegree = len(allMeasUnderDegree)
 
             print(
-                f"| Calculating overlap {t1} and {t1} " +
+                f"| Calculating overlap {i} and {i} " +
                 f"by summarize {numAllMeasUnderDegree**2} values - {i+1}/{times}" +
                 f" - {round(time.time() - Begin, 3)}s.", end="\r")
             for sAi, sAiMeas in allMeasUnderDegree.items():
                 for sAj, sAjMeas in allMeasUnderDegree.items():
                     purityCell += cls.ensembleCell(
-                        sAi, sAiMeas, sAj, sAjMeas, degree, shots)
+                        sAi, sAiMeas, sAj, sAjMeas, subsystemSize, shots)
 
             purityCellList.append(purityCell)
             print(
@@ -319,21 +350,23 @@ class haarMeasureV3(EntropyMeasureV3, haarBase):
                 " "*30, end="\r")
 
         purity = np.mean(purityCellList)
+        puritySD = np.std(purityCellList)
         entropy = -np.log2(purity)
         quantity = {
             'purity': purity,
             'entropy': entropy,
+            'puritySD': puritySD,
             '_purityCellList': purityCellList,
         }
-        return counts, quantity
-
-    """ Main Process: Main Control"""
+        return quantity
 
     def measure(
         self,
         wave: Union[QuantumCircuit, any, None] = None,
-        degree: Optional[int] = None,
+        degree: Union[int, tuple[int, int], None] = None,
         times: int = 100,
+        measure: Union[int, tuple[int, int], None] = None,
+        unitary_set: Union[int, tuple[int, int], None] = None,
         expsName: str = 'exps',
         **otherArgs: any
     ) -> dict:
@@ -363,6 +396,8 @@ class haarMeasureV3(EntropyMeasureV3, haarBase):
             wave=wave,
             degree=degree,
             times=times,
+            measure=measure,
             expsName=expsName,
+            unitary_set=unitary_set,
             **otherArgs,
         )

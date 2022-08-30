@@ -3,16 +3,16 @@ import warnings
 
 from ..qurrium.exceptions import UnconfiguredWarning
 # v4
-from .qurrentHaarV4 import EntropyHaarMeasureV4
-from .qurrentHadamardV4 import EntropyHadamardTestV4
+from .haarMeasure import EntropyHaarMeasureV4
+from .hadamardTest import EntropyHadamardTestV4
 # v3
-from .qurrent import EntropyMeasureV3
-from .haarMeasure import haarMeasureV3
-from .hadamardTest import hadamardTestV3
+from .v3.qurrent import EntropyMeasureV3
+from .v3.haarMeasure import haarMeasureV3
+from .v3.hadamardTest import hadamardTestV3
 # v2
-from .qurrentV2.qurrentV2 import EntropyMeasureV2
-from .qurrentV2.haarMeasure import haarMeasureV2
-from .qurrentV2.hadamardTest import hadamardTestV2
+from .v2.qurrentV2 import EntropyMeasureV2
+from .v2.haarMeasure import haarMeasureV2
+from .v2.hadamardTest import hadamardTestV2
 
 
 def EntropyMeasure(
@@ -46,7 +46,7 @@ def EntropyMeasure(
                 If you want check it, there is it: 
                 https://github.com/harui2019/qurry/tree/entropymeasureV1
 
-            Defaults to 'v3'.
+            Defaults to 'v4'.
 
     Returns:
         Union[EntropyMeasureBase, EntropyMeasureV2Base]: method.
@@ -62,17 +62,7 @@ def EntropyMeasure(
         else:
             return haarMeasureV2(*args, **kwargs)
 
-    elif version == 'v4':
-        if method == 'hadamard':
-            return EntropyHadamardTestV4(*args, **kwargs)
-        elif method == 'base':
-            warnings.warn(
-                "QurryV4 EntropyMeasure does not exist base method, replaced by 'randomized'.", UnconfiguredWarning)
-            return EntropyHaarMeasureV4(*args, **kwargs)
-        else:
-            return EntropyHaarMeasureV4(*args, **kwargs)
-
-    else:
+    elif version == 'v3':
         if method == 'base':
             warnings.warn(
                 "This method is a base of 'EntropyMeasureV3' which cannot work before" +
@@ -82,3 +72,12 @@ def EntropyMeasure(
             return hadamardTestV3(*args, **kwargs)
         else:
             return haarMeasureV3(*args, **kwargs)
+
+    else:
+        if method == 'hadamard':
+            return EntropyHadamardTestV4(*args, **kwargs)
+        else:
+            if method == 'base':
+                warnings.warn(
+                    "QurryV4 EntropyMeasure does not exist base method, replaced by 'randomized'.", UnconfiguredWarning)
+            return EntropyHaarMeasureV4(*args, **kwargs)

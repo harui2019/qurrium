@@ -1,30 +1,35 @@
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.providers.ibmq.managed import ManagedResults, IBMQManagedResultDataNotAvailable
-from qiskit.quantum_info import random_unitary
 from qiskit.result import Result
+from qiskit.quantum_info import random_unitary
+from qiskit.providers.ibmq.managed import ManagedResults, IBMQManagedResultDataNotAvailable
 
 import numpy as np
 import warnings
-from typing import Union, Optional, NamedTuple
 import time
+from typing import Union, Optional, NamedTuple, Hashable
 
-from .qurrech import EchoListen
-from ..qurrium import haarBase
-# EchoListen V0.3.0 - Measuring Loschmidt Echo - Qurrech
+from ..qurrium import QurryV4, haarBase, qubitSelector, waveSelecter, Counts
+from ..mori import defaultConfig
+
+# EchoListen V0.4.0 - Measuring Loschmidt Echo - Qurrech
 
 
-class haarMeasure(EchoListen, haarBase):
-    """haarMeasure V0.3.0 of qurrech
+class EchoHaarMeasureV4(QurryV4, haarBase):
+    """HaarMeasure V0.4.0 of qurrech
 
     - Reference:
         - Used in:
-            Statistical correlations between locally randomized measurements: A toolbox for probing entanglement in many-body quantum states - A. Elben, B. Vermersch, C. F. Roos, and P. Zoller, [PhysRevA.99.052323](https://doi.org/10.1103/PhysRevA.99.052323)
+            Statistical correlations between locally randomized measurements: 
+            A toolbox for probing entanglement in many-body quantum states - 
+            A. Elben, B. Vermersch, C. F. Roos, and P. Zoller, 
+            [PhysRevA.99.052323](https://doi.org/10.1103/PhysRevA.99.052323)
 
         - `bibtex`:
 
 ```bibtex
 @article{PhysRevA.99.052323,
-    title = {Statistical correlations between locally randomized measurements: A toolbox for probing entanglement in many-body quantum states},
+    title = {Statistical correlations between locally randomized measurements: 
+    A toolbox for probing entanglement in many-body quantum states},
     author = {Elben, A. and Vermersch, B. and Roos, C. F. and Zoller, P.},
     journal = {Phys. Rev. A},
     volume = {99},
@@ -41,11 +46,19 @@ class haarMeasure(EchoListen, haarBase):
     """
 
     """ Configuration """
+
     class argsCore(NamedTuple):
-        expsName: str = 'exps',
-        wave1: Union[QuantumCircuit, any, None] = None,
-        wave2: Union[QuantumCircuit, any, None] = None,
-        times: int = 100,
+        expsName: str = None
+        wave1: Hashable = None
+        wave2: Hashable = None
+        degree: tuple[int, int] = None
+        times: int = 100
+        measure: tuple[int, int] = None
+        unitary_set: tuple[int, int] = None
+
+    class expsCore(NamedTuple):
+        echo: float
+        echoSD: float
 
     # Initialize
     def initialize(self) -> dict[str, any]:
@@ -54,50 +67,57 @@ class haarMeasure(EchoListen, haarBase):
         Returns:
             dict[str, any]: The basic configuration of `haarMeasure`.
         """
-
-        self._expsConfig = self.expsConfig(
-            name="qurrechConfig",
-        )
-        self._expsBase = self.expsBase(
-            name="qurrechBase",
-            defaultArg={
-                # Reault of experiment.
-                'echo': -100,
+        self._expsBase = defaultConfig(
+            name='QurrechHaarBase',
+            default={
+                **self.argsMain()._asdict(),
+                **self.argsCore()._asdict(),
+                **self.expsMain()._asdict(),
             },
         )
-        self._expsHint = self.expsHint(
-            name='qurrechBaseHint',
-            hintContext={
-                'echo': 'The Loschmidt Echo.',
+        self._expsHint = {
+            **{k: f"sample: {v}" for k, v in self._expsBase},
+            "_basicHint": "This is a hint of QurryV4.",
+        }
+        self._expsMultiBase = defaultConfig(
+            name='QurrechHaarMultiBase',
+            default={
+                **self.argsMultiMain()._asdict(),
+                **self.expsMultiMain()._asdict(),
             },
         )
-        self._expsMultiConfig = self.expsConfigMulti(
-            name="qurrentConfigMulti",
-        )
-        self.shortName = 'qurrech.haar'
-        self.__name__ = 'qurrech.haarMeasure'
 
-        return self._expsConfig, self._expsBase
-
-    """Arguments and Parameters control"""
+        self.shortName = 'qurrech_haar'
+        self.__name__ = 'qurrech_haarMeasure'
 
     def paramsControlCore(
         self,
-        expsName: str = 'exps',
+        expsName: Optional[str] = None,
         wave1: Union[QuantumCircuit, any, None] = None,
         wave2: Union[QuantumCircuit, any, None] = None,
+        degree: Union[int, tuple[int, int], None] = None,
         times: int = 100,
+        measure: Union[int, tuple[int, int]] = None,
+        unitary_set: Union[int, tuple[int, int]] = None,
         **otherArgs: any
     ) -> dict:
         """Handling all arguments and initializing a single experiment.
 
         Args:
-            wave1, wave2 (Union[QuantumCircuit, int, None], optional): 
+            wave (Union[QuantumCircuit, int, None], optional): 
                 The index of the wave function in `self.waves` or add new one to calaculation,
                 then choose one of waves as the experiment material.
                 If input is `QuantumCircuit`, then add and use it.
                 If input is the key in `.waves`, then use it.
                 If input is `None` or something illegal, then use `.lastWave'.
+                Defaults to None.
+
+            degree (Optional[int], optional): 
+                The degree of freedom.
+                If input is `None`, 
+                then use the number of half qubits for even number of qubits, 
+                or (the number of qubits + 1)/2 for odd number of qubits.
+                If input is illegal, then raise ValueError.
                 Defaults to None.
 
             times (int, optional): 
@@ -108,6 +128,12 @@ class haarMeasure(EchoListen, haarBase):
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
                 This name is also used for creating a folder to store the exports.
                 Defaults to `'exps'`.
+
+            measure (tuple[int, int], optional):
+                The range of the qubits will be measured.
+
+            unitary_set (tuple[int, int], optional):
+                The range of the qubits will be setted random unitary.
 
             otherArgs (any):
                 Other arguments.
@@ -121,33 +147,36 @@ class haarMeasure(EchoListen, haarBase):
             tuple[str, dict[str, any]]: Current `expID` and arguments.
         """
 
-        # wave1
-        if isinstance(wave1, QuantumCircuit):
-            wave1 = self.addWave(wave1)
-            print(f"| Add new wave with key: {wave1}")
-        elif wave1 == None:
-            wave1 = self.lastWave
-            print(f"| Autofill will use '.lastWave' as key")
-        else:
-            try:
-                self.waves[wave1]
-            except KeyError as e:
-                warnings.warn(f"'{e}', use '.lastWave' as key")
-                wave1 = self.lastWave
+        # wave
+        wave1 = waveSelecter(self, wave1)
+        wave2 = waveSelecter(self, wave2)
 
-        # wave2
-        if isinstance(wave2, QuantumCircuit):
-            wave2 = self.addWave(wave2)
-            print(f"| Add new wave with key: {wave2}")
-        elif wave2 == None:
-            wave2 = self.lastWave
-            print(f"| Autofill will use '.lastWave' as key")
-        else:
-            try:
-                self.waves[wave2]
-            except KeyError as e:
-                warnings.warn(f"'{e}', use '.lastWave' as key")
-                wave2 = self.lastWave
+        # degree
+        numQubits1 = self.waves[wave1].num_qubits
+        numQubits2 = self.waves[wave2].num_qubits
+        if numQubits1 != numQubits2:
+            raise ValueError(
+                f"Wave1 with {numQubits1} qubits and Wave2 with {numQubits2} qubits are different system size.")
+        numQubits = numQubits1
+
+        if degree is None:
+            degree = numQubits
+        degree = qubitSelector(numQubits, degree=degree)
+        if measure is None:
+            measure = numQubits
+        measure = qubitSelector(
+            numQubits, degree=measure, as_what='measure range')
+        if unitary_set is None:
+            unitary_set = numQubits
+        unitary_set = qubitSelector(
+            numQubits, degree=unitary_set, as_what='unitary_set')
+
+        if (min(degree) < min(measure)) or (max(degree) > max(measure)):
+            raise ValueError(
+                f"Measure range '{measure}' does not contain subsystem '{degree}'.")
+        if (min(measure) < min(unitary_set)) or (max(measure) > max(unitary_set)):
+            raise ValueError(
+                f"Unitary_set range '{unitary_set}' does not contain measure range '{measure}'.")
 
         # times
         if not isinstance(times, int):
@@ -155,83 +184,98 @@ class haarMeasure(EchoListen, haarBase):
         elif times <= 0:
             raise ValueError("'times' must be larger than 0.")
 
-        return {
-            'wave1': wave1,
-            'wave2': wave2,
-            'times': times,
-            'expsName': f"w1={wave1}-w2={wave2}-at={times}.{self.shortName}",
-            **otherArgs,
-        }
+        # expsName
+        if expsName is None:
+            expsName = f"w1={wave1}-w2={wave2}-deg={degree[1]-degree[0]}-at={times}.{self.shortName}"
 
-    """ Main Process: Circuit"""
+        return (
+            self.argsCore(**{
+                'wave1': wave1,
+                'wave2': wave2,
+                'degree': degree,
+                'times': times,
 
-    def circuitMethod(
+                'measure': measure,
+                'unitary_set': unitary_set,
+                'expsName': expsName,
+            }),
+            {
+                k: v for k, v in otherArgs.items()
+                if k not in self.argsCore._fields
+            }
+        )
+
+    def method(
         self,
-    ) -> Union[QuantumCircuit, list[QuantumCircuit]]:
+    ) -> list[QuantumCircuit]:
         """The method to construct circuit.
         Where should be overwritten by each construction of new measurement.
 
         Returns:
-            Union[QuantumCircuit, list[QuantumCircuit]]: 
-                The quantum circuit of experiment.
+            list[QuantumCircuit]: The quantum circuit of experiment.
         """
-        argsNow = self.now
-        if (self.waves[argsNow.wave1].num_qubits != self.waves[argsNow.wave2].num_qubits):
-            raise ValueError(
-                "Wave1 and Wave2 must be the same number of qubits.")
+        argsNow: Union[QurryV4.argsMain,
+                       EchoHaarMeasureV4.argsCore] = self.now
         numQubits = self.waves[argsNow.wave1].num_qubits
 
-        qcList = []
+        qcList: list[QuantumCircuit] = []
         unitaryList = [
-            [random_unitary(2) for _ in range(numQubits)]
+            [random_unitary(2) for j in range(numQubits)]
             for i in range(argsNow.times)]
 
         ABegin = time.time()
         print(f"| Build circuit A: {argsNow.wave1}", end="\r")
         for i in range(argsNow.times):
             qFunc1 = QuantumRegister(numQubits, 'q1')
-            cMeas1 = ClassicalRegister(numQubits, 'c1')
+            cMeas1 = ClassicalRegister(
+                argsNow.measure[1]-argsNow.measure[0], 'c1')
             qcExp1 = QuantumCircuit(qFunc1, cMeas1)
 
-            qcExp1.append(self.waveInstruction(
+            qcExp1.append(self.waveCall(
                 wave=argsNow.wave1,
                 runBy=argsNow.runBy,
                 backend=argsNow.backend,
             ), [qFunc1[i] for i in range(numQubits)])
 
             qcExp1.barrier()
-            for j in range(numQubits):
+
+            for j in range(*argsNow.unitary_set):
                 qcExp1.append(unitaryList[i][j], [j])
-            for j in range(numQubits):
-                qcExp1.measure(qFunc1[j], cMeas1[j])
+
+            for j in range(*argsNow.measure):
+                qcExp1.measure(qFunc1[j], cMeas1[j-argsNow.measure[0]])
 
             qcList.append(qcExp1)
             print(
-                f"| Build circuit A: {argsNow.wave1}" +
+                f"| Build circuit Add: {argsNow.wave1}" +
                 f" - {i+1}/{argsNow.times} - {round(time.time() - ABegin, 3)}s.", end="\r")
+
         print(
-            f"| Circuit completed A: {argsNow.wave1}" +
+            f"| Circuit A completed: {argsNow.wave1}" +
             f" - {i+1}/{argsNow.times} - {round(time.time() - ABegin, 3)}s." +
             " "*30)
 
         BBegin = time.time()
         print(f"| Build circuit B: {argsNow.wave2}", end="\r")
         for i in range(argsNow.times):
-            qFunc2 = QuantumRegister(numQubits, 'q1')
-            cMeas2 = ClassicalRegister(numQubits, 'c1')
+            qFunc2 = QuantumRegister(numQubits, 'q2')
+            cMeas2 = ClassicalRegister(
+                argsNow.measure[1]-argsNow.measure[0], 'c2')
             qcExp2 = QuantumCircuit(qFunc2, cMeas2)
 
-            qcExp2.append(self.waveInstruction(
+            qcExp2.append(self.waveCall(
                 wave=argsNow.wave2,
                 runBy=argsNow.runBy,
                 backend=argsNow.backend,
             ), [qFunc2[i] for i in range(numQubits)])
 
             qcExp2.barrier()
-            for j in range(numQubits):
+
+            for j in range(*argsNow.unitary_set):
                 qcExp2.append(unitaryList[i][j], [j])
-            for j in range(numQubits):
-                qcExp2.measure(qFunc2[j], cMeas2[j])
+
+            for j in range(*argsNow.measure):
+                qcExp2.measure(qFunc2[j], cMeas2[j-argsNow.measure[0]])
 
             qcList.append(qcExp2)
             print(
@@ -244,26 +288,25 @@ class haarMeasure(EchoListen, haarBase):
 
         self.exps[self.IDNow]['sideProduct']['randomized'] = {
             i: [self.qubitOpToPauliCoeff(unitaryList[i][j])
-                for j in range(numQubits)]
+                for j in range(*argsNow.unitary_set)]
             for i in range(argsNow.times)}
 
         return qcList
 
     @classmethod
-    def quantity(
+    def counts(
         cls,
-        shots: int,
         result: Union[Result, ManagedResults],
         resultIdxList: Optional[list[int]] = None,
         times: int = 0,
         **otherArgs,
-    ) -> tuple[dict, dict]:
-        """Computing specific quantity.
+    ):
+        """Computing specific squantity.
         Where should be overwritten by each construction of new measurement.
 
         Returns:
             tuple[dict, dict]:
-                Counts, purity, entropy of experiment.
+                Counts, echo, echo of experiment.
         """
         if resultIdxList == None:
             resultIdxList = [i for i in range(times*2)]
@@ -280,87 +323,111 @@ class haarMeasure(EchoListen, haarBase):
             raise ValueError("'resultIdxList' needs to be 'list'.")
 
         counts = []
-        counts01, counts02 = [], []
+        for i in resultIdxList:
+            try:
+                allMeas = result.get_counts(i)
+                counts.append(allMeas)
+            except IBMQManagedResultDataNotAvailable as err:
+                counts.append({})
+                print("| Failed Job result skip, index:", i, err)
+                continue
+
+        return counts
+
+    @classmethod
+    def quantities(
+        cls,
+        shots: int,
+        counts: list[Counts],
+        times: int = 0,
+        degree: tuple[int, int] = None,
+
+        run_log: dict[str] = {},
+        **otherArgs,
+    ) -> expsCore:
+
         echo = -100
         echoCellList = []
 
+        if isinstance(degree, int):
+            subsystemSize = degree
+            degree = qubitSelector(len(list(counts[0].keys())[0]), degree=degree)
+        else:
+            subsystemSize = max(degree) - min(degree)
+
+        if (times*2 == len(counts)):
+            ...
+        else:
+            times = len(counts)/2
+            warnings.warn(
+                f"times: {times} and counts number: {len(counts)} are different, use counts number," +
+                "'times' = 0 is the default number.")
+
         Begin = time.time()
-        print(f"| Calculating overlap ...", end="\r")
+
         for i in range(times):
+            allMeas1 = counts[i]
+            allMeas2 = counts[i+times]
             echoCell = 0
-            t1 = resultIdxList[i]
-            t2 = resultIdxList[i+times]
-            print(
-                f"| Calculating overlap {t1} and {t2}" +
-                f" - {i+1}/{times} - {round(time.time() - Begin, 3)}s.", end="\r")
 
-            try:
-                allMeas1 = result.get_counts(t1)
-                allMeas2 = result.get_counts(t2)
-                counts01.append(allMeas1)
-                counts02.append(allMeas2)
-            except IBMQManagedResultDataNotAvailable as err:
-                counts01.append(None)
-                counts02.append(None)
-                print("| Failed Job result skip, index:", t1, err)
-                continue
-
-            numAllMeas1 = len(allMeas1)
-            numAllMeas2 = len(allMeas2)
-            aNum = len(list(allMeas1.keys())[0])
+            allMeasUnderDegree1 = dict.fromkeys(
+                [k[degree[0]:degree[1]] for k in allMeas1], 0)
+            for kMeas in list(allMeas1):
+                allMeasUnderDegree1[kMeas[degree[0]:degree[1]]] += allMeas1[kMeas]
+            
+            allMeasUnderDegree2 = dict.fromkeys(
+                [k[degree[0]:degree[1]] for k in allMeas2], 0)
+            for kMeas in list(allMeas2):
+                allMeasUnderDegree2[kMeas[degree[0]:degree[1]]] += allMeas2[kMeas]
+            
+            numAllMeasUnderDegree = len(allMeasUnderDegree1)
 
             print(
-                f"| Calculating overlap {t1} and {t2} " +
-                f"by summarize {numAllMeas1*numAllMeas2} values - {i+1}/{times}" +
+                f"| Calculating overlap {i} and {i} " +
+                f"by summarize {numAllMeasUnderDegree**2} values - {i+1}/{times}" +
                 f" - {round(time.time() - Begin, 3)}s.", end="\r")
-            for sAi, sAiMeas in allMeas1.items():
-                for sAj, sAjMeas in allMeas2.items():
+            for sAi, sAiMeas in allMeasUnderDegree1.items():
+                for sAj, sAjMeas in allMeasUnderDegree2.items():
                     echoCell += cls.ensembleCell(
-                        sAi, sAiMeas, sAj, sAjMeas, aNum, shots)
+                        sAi, sAiMeas, sAj, sAjMeas, subsystemSize, shots)
 
             echoCellList.append(echoCell)
             print(
                 f"| Calculating overlap end - {i+1}/{times}" +
                 f" - {round(time.time() - Begin, 3)}s." +
                 " "*30, end="\r")
-        print(
-            f"| Calculating overlap end - {i+1}/{times}" +
-            f" - {round(time.time() - Begin, 3)}s.")
 
         echo = np.mean(echoCellList)
-        counts = counts01 + counts02
-
+        echoSD = np.std(echoCellList)
+        
         quantity = {
             'echo': echo,
+            'echoSD': echoSD,
             '_echoCellList': echoCellList,
         }
-        return counts, quantity
-
-    """ Main Process: Main Control"""
+        return quantity
 
     def measure(
         self,
         wave1: Union[QuantumCircuit, any, None] = None,
         wave2: Union[QuantumCircuit, any, None] = None,
+        degree: Union[int, tuple[int, int], None] = None,
         times: int = 100,
+        measure: Union[int, tuple[int, int], None] = None,
+        unitary_set: Union[int, tuple[int, int], None] = None,
         expsName: str = 'exps',
         **otherArgs: any
     ) -> dict:
-        """The measure function which is the customized version of `.output`.
+        """
 
         Args:
             wave (Union[QuantumCircuit, int, None], optional):
-            wave1, wave2 (Union[QuantumCircuit, int, None], optional): 
                 The index of the wave function in `self.waves` or add new one to calaculation,
                 then choose one of waves as the experiment material.
                 If input is `QuantumCircuit`, then add and use it.
                 If input is the key in `.waves`, then use it.
                 If input is `None` or something illegal, then use `.lastWave'.
                 Defaults to None.
-
-            times (int, optional): 
-                The number of test to count ensemble average.
-                Defaults to `100`.
 
             expsName (str, optional):
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
@@ -376,7 +443,10 @@ class haarMeasure(EchoListen, haarBase):
         return self.output(
             wave1=wave1,
             wave2=wave2,
+            degree=degree,
             times=times,
+            measure=measure,
             expsName=expsName,
+            unitary_set=unitary_set,
             **otherArgs,
         )

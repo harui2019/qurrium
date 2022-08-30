@@ -11,7 +11,7 @@ import warnings
 from math import pi
 from typing import Union, Optional, NamedTuple
 
-from ..qurrium import Qurry
+from ...qurrium import Qurry
 
 # EchoCounting V0.3.0 - Measuring Loschmidt Echo - Qurrech
 
