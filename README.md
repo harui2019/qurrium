@@ -10,6 +10,12 @@ Using `git clone https://github.com/harui2019/qurry-tutorial.git --recurse-submo
 
 ---
 
+## Acknowledgments
+
+_It's a great thanks for [National Center for Theoretical Sciences, Physics Division](https://phys.ncts.ntu.edu.tw/) located [National Taiwan University](https://www.ntu.edu.tw/), which funded the development of this tool during the author @harui2019 worked at this institution as Research Assistiant, and i also a great thanks for [IBM Quantum Hub at National Taiwan University](https://quantum.ntu.edu.tw/) providing the access right of [IBM Quantum](https://quantum-computing.ibm.com/), let us can fully test this tool and execute our experiments._
+
+---
+
 ## Configurate Environment
 
 - **`Python 3.9.7+` installed by Anaconda**
