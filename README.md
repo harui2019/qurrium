@@ -14,9 +14,9 @@ Using `git clone https://github.com/harui2019/qurry-tutorial.git --recurse-submo
 
 _It's a great thanks for [National Center for Theoretical Sciences, Physics Division](https://phys.ncts.ntu.edu.tw/) located [National Taiwan University](https://www.ntu.edu.tw/), which funded the development of this tool during the author @harui2019 worked at this institution as Research Assistiant, and i also a great thanks for [IBM Quantum Hub at National Taiwan University](https://quantum.ntu.edu.tw/) providing the access right of [IBM Quantum](https://quantum-computing.ibm.com/), let us can fully test this tool and execute our experiments._
 
-- ![National Center for Theoretical Sciences, Physics Division](https://phys.ncts.ntu.edu.tw/uploads/site/site_logo/607fe6dd1d41c87eae000023/logo%E6%A9%98_%E7%B6%B2%E9%A0%812.png)
+![National Center for Theoretical Sciences, Physics Division](https://phys.ncts.ntu.edu.tw/uploads/site/site_logo/607fe6dd1d41c87eae000023/logo%E6%A9%98_%E7%B6%B2%E9%A0%812.png)
 
-- ![IBM Quantum Hub at National Taiwan University](https://quantum.ntu.edu.tw/wp-content/uploads/elementor/thumbs/NTU-IBMQ_LOGO1-p9ym8ap0ujw64l3clhzokyfcks6gk8jqq8h148kjk6.png)
+![IBM Quantum Hub at National Taiwan University](https://quantum.ntu.edu.tw/wp-content/uploads/elementor/thumbs/NTU-IBMQ_LOGO1-p9ym8ap0ujw64l3clhzokyfcks6gk8jqq8h148kjk6.png)
 
 ---
 
