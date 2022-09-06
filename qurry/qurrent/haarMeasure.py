@@ -59,6 +59,9 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
         entropy: float
         purity: float
         puritySD: float
+            
+        sp_entropySD: float
+        sp_entropy: float
 
     # Initialize
     def initialize(self) -> dict[str, any]:
@@ -299,6 +302,7 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
         counts: list[Counts],
         times: int = 0,
         degree: Union[tuple[int, int], int] = None,
+        measure: tuple[int, int] = None,
 
         run_log: dict[str] = {},
         **otherArgs,
@@ -313,6 +317,10 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
             degree = qubitSelector(len(list(counts[0].keys())[0]), degree=degree)
         else:
             subsystemSize = max(degree) - min(degree)
+            
+        measureSize = max(measure) - min(measure)
+        bitStringRange = (min(measure) - min(degree), max(degree) - min(degree))
+        
 
         if (times == len(counts)):
             ...
@@ -329,9 +337,9 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
             purityCell = 0
 
             allMeasUnderDegree = dict.fromkeys(
-                [k[degree[0]:degree[1]] for k in allMeas1], 0)
+                [k[bitStringRange[0]:bitStringRange[1]] for k in allMeas1], 0)
             for kMeas in list(allMeas1):
-                allMeasUnderDegree[kMeas[degree[0]:degree[1]]] += allMeas1[kMeas]
+                allMeasUnderDegree[kMeas[bitStringRange[0]:bitStringRange[1]]] += allMeas1[kMeas]
             numAllMeasUnderDegree = len(allMeasUnderDegree)
 
             print(
@@ -351,12 +359,22 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
 
         purity = np.mean(purityCellList)
         puritySD = np.std(purityCellList)
+        
         entropy = -np.log2(purity)
+        sp_entropyCellList = [-np.log2(X) for X in purityCellList]
+        sp_entropySD = np.std(sp_entropyCellList)
+        sp_entropy = np.mean(sp_entropyCellList)
+        
         quantity = {
             'purity': purity,
             'entropy': entropy,
-            'puritySD': puritySD,
+            
             '_purityCellList': purityCellList,
+            'puritySD': puritySD,
+            
+            '_sp_entropyCellList': sp_entropyCellList,
+            'sp_entropySD': sp_entropySD,
+            'sp_entropy': sp_entropy,
         }
         return quantity
 

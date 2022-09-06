@@ -31,6 +31,9 @@ def qubitSelector(
     subsystem = [i for i in range(num_qubits)]
     item_range = ()
 
+    if degree is None:
+        degree = num_qubits
+
     if isinstance(degree, int):
         if degree > num_qubits:
             raise ValueError(
