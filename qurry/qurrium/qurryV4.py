@@ -2698,7 +2698,7 @@ class QurryV4:
                     # legacy writer
                     legacy = self.writeLegacy(
                         saveLocation=expsMulti.exportLocation,
-                        expID=self.IDNow,
+                        expID=expID,
                         _isMulti=True,
                     )
 
