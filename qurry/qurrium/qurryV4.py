@@ -2691,7 +2691,7 @@ class QurryV4:
                                 for k in quantitiesWSideProduct if k[0] != '_'}
                     self.exps[expID] = {
                         **self.exps[expID],
-                        **quantity,
+                        **quantitiesWSideProduct,
                         'counts': counts,
                     }
 
