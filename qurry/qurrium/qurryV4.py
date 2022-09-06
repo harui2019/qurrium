@@ -1805,7 +1805,7 @@ class QurryV4:
                         'r', encoding='utf-8') as theData:
                     configDict = json.load(theData)
             if 'configList' in dataDummyJobs:
-                for config in dataDummyJobs['configDict']:
+                for config in dataDummyJobs['configList']:
                     configDict[dataDummyJobs['listFile']
                                [config['expIndex']]] = config
 
@@ -2694,6 +2694,13 @@ class QurryV4:
                         **quantity,
                         'counts': counts,
                     }
+
+                    # legacy writer
+                    legacy = self.writeLegacy(
+                        saveLocation=expsMulti.exportLocation,
+                        expID=self.IDNow,
+                        _isMulti=True,
+                    )
 
                     # TODO: update gajima
                     try:
