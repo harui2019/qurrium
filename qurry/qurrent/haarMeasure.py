@@ -372,9 +372,9 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
             '_purityCellList': purityCellList,
             'puritySD': puritySD,
             
-            '_sp_entropyCellList': sp_entropyCellList,
-            'sp_entropySD': sp_entropySD,
-            'sp_entropy': sp_entropy,
+            # '_sp_entropyCellList': sp_entropyCellList,
+            # 'sp_entropySD': sp_entropySD,
+            # 'sp_entropy': sp_entropy,
         }
         return quantity
 
