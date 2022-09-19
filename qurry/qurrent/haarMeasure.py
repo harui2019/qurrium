@@ -6,10 +6,11 @@ from qiskit.providers.ibmq.managed import ManagedResults, IBMQManagedResultDataN
 import numpy as np
 import warnings
 import time
-from typing import Union, Optional, NamedTuple, Hashable
+from typing import Union, Optional, NamedTuple, Hashable, Literal
+from pathlib import Path
 
 from ..qurrium import QurryV4, haarBase, qubitSelector, waveSelecter, Counts
-from ..mori import defaultConfig
+from ..mori import defaultConfig, TagMap
 
 # EntropyMeasure V0.4.0 - Measuring Renyi Entropy - Qurrent
 
@@ -300,7 +301,7 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
         cls,
         shots: int,
         counts: list[Counts],
-        times: int = 0,
+        times: int = 100,
         degree: Union[tuple[int, int], int] = None,
         measure: tuple[int, int] = None,
 
@@ -318,8 +319,15 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
         else:
             subsystemSize = max(degree) - min(degree)
             
+        if measure is None:
+            measure = qubitSelector(len(list(counts[0].keys())[0]))
+
+        if (min(degree) < min(measure)) or (max(degree) > max(measure)):
+            raise ValueError(
+                f"Measure range '{measure}' does not contain subsystem '{degree}'.")
+            
         measureSize = max(measure) - min(measure)
-        bitStringRange = (min(measure) - min(degree), max(degree) - min(degree))
+        bitStringRange = (min(degree) - min(measure), max(degree) - min(measure))
         
 
         if (times == len(counts)):
@@ -371,6 +379,11 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
             
             '_purityCellList': purityCellList,
             'puritySD': puritySD,
+            '_range': {
+                'degree': degree,
+                'measure': measure,
+                'onBitString': bitStringRange,
+            }
             
             # '_sp_entropyCellList': sp_entropyCellList,
             # 'sp_entropySD': sp_entropySD,
@@ -419,3 +432,72 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
             unitary_set=unitary_set,
             **otherArgs,
         )
+        
+    def multiRecalculate(
+        self,
+        exportName: Union[Path, str],
+        saveLocation: Union[Path, str] = './',
+        isRetrieve: bool = False,
+        select: Union[list[Hashable], Literal['all']] = None,
+        
+        degree: Union[tuple[int, int], int] = None,
+        
+        **allArgs: any,
+    ) -> dict[any]:
+        """Require to read the file exported by `.powerJobsPending`.
+
+        Args:
+            exportName (Union[Path, str]):
+                The folder name of the job wanted to import.
+
+
+            powerJobID (str, optional):
+                Job Id. Defaults to ''.
+
+            provider (Optional[AccountProvider], optional):
+                :cls:`AccountProvider` of current backend for running :cls:`IBMQJobManager`.
+                Defaults to `None`.
+
+            saveLocation (Optional[Union[Path, str]], optional):
+                Where to save the export content as `json` file.
+                If `saveLocation == None`, then cancelled the file to be exported.
+                Defaults to `None`.
+
+            allArgs: all arguments will handle by `.paramsControlMulti()` and export as specific format.
+
+        Raises:
+            ValueError: When file is broken.
+
+        Returns:
+            dict[any]: All result of jobs.
+        """
+        print("| It's a temporarily feature to fulfill recalculating before completed version finished.")
+
+        expsMulti = self.paramsControlMulti(
+            saveLocation=saveLocation,
+            expsName=exportName,
+            isRead=True,
+            isRetrieve=isRetrieve,
+            **allArgs,
+        )
+        
+        tagMapQuantity = TagMap()
+        if select == 'all':        
+            for k, v in expsMulti.tagMapCounts.items():
+                newV = [
+                    self.quantities(
+                        shots = expsMulti.shots,
+                        counts=c,
+                        times=len(c),
+                        degree=degree,
+                    )
+                    for c in v
+                ]
+                if isinstance(k, tuple):
+                    tagMapQuantity[k+(f're-{degree}')] = newV
+                else:
+                    tagMapQuantity[(k, f're-{degree}')] = newV
+        else:
+            print("| Invalid select.")
+        
+        return expsMulti
