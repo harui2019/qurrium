@@ -1,6 +1,6 @@
 from qiskit import (
     execute, transpile,
-    QuantumRegister, ClassicalRegister, QuantumCircuit
+    QuantumRegister, QuantumCircuit
 )
 from qiskit.providers.aer import AerProvider
 from qiskit.quantum_info import Operator
@@ -17,10 +17,6 @@ from qiskit.providers.ibmq.managed import (
     # IBMQJobManagerUnknownJobSet
 )
 
-import matplotlib.pyplot as plt
-from matplotlib.figure import Figure
-
-import numpy as np
 import glob
 import json
 import gc
@@ -32,7 +28,8 @@ from uuid import uuid4
 from pathlib import Path
 from typing import Literal, Union, Optional, NamedTuple, Hashable, overload
 from abc import abstractmethod, abstractclassmethod
-from collections import Counter, namedtuple
+from collections import namedtuple
+from matplotlib.figure import Figure
 
 from ..mori import (
     defaultConfig,
@@ -41,7 +38,6 @@ from ..mori import (
     syncControl,
     jsonablize,
     quickJSONExport,
-    keyTupleLoads,
     sortHashableAhead,
     TagMap,
 )
@@ -55,6 +51,7 @@ from .runargs import (
     ResoureWatchConfig,
     containChecker,
 )
+from .extend import decomposer
 from .exceptions import (
     UnconfiguredWarning,
     InvalidConfiguratedWarning,
@@ -260,6 +257,7 @@ class QurryV4:
     def __init__(
         self,
         waves: Union[QuantumCircuit, list[QuantumCircuit]] = defaultCircuit(4),
+        resourceWatch: ResoureWatch = ResoureWatch(),
     ) -> None:
         """The initialization of QurryV4.
 
@@ -308,9 +306,6 @@ class QurryV4:
             params=self.expsMultiMain()._asdict()
         )  # reresh per execution.
 
-        # TODO: add params control
-        self.resourceWatch = ResoureWatch()
-
         # namedtuple prototype
         self.namedtupleNow = namedtuple(
             typename='qurryArguments',
@@ -326,27 +321,8 @@ class QurryV4:
         self.IDNow = ''
         self.multiNow: QurryV4.argsMultiMain = self.argsMultiMain()
 
-    """Wave Function"""
-    @staticmethod
-    def decomposer(
-        qc: QuantumCircuit,
-        decompose: int = 2,
-    ) -> QuantumCircuit:
-        """Decompose the circuit with giving times.
-
-        Args:
-            qc (QuantumCircuit): The circuit wanted to be decomposed.
-            decompose (int, optional):  Decide the times of decomposing the circuit.
-                Draw quantum circuit with composed circuit. Defaults to 2.
-
-        Returns:
-            QuantumCircuit: The decomposed circuit.
-        """
-
-        qcResult = qc
-        for t in range(decompose):
-            qcResult = qcResult.decompose()
-        return qcResult
+        self.resourceWatch = ResoureWatch() if isinstance(
+            resourceWatch, ResoureWatch) else resourceWatch
 
     @overload
     def addWave(
@@ -580,7 +556,7 @@ class QurryV4:
 
         qcDummy.append(self.waveGate(wave), [
             qDummy[i] for i in range(self.waves[wave].num_qubits)])
-        qcDummy = self.decomposer(qcDummy, decompose)
+        qcDummy = decomposer(qcDummy, decompose)
 
         return qcDummy.draw(drawMethod)
 
@@ -909,11 +885,11 @@ class QurryV4:
             return None
 
         if isinstance(circuitSet, QuantumCircuit):
-            circuit = self.decomposer(circuitSet, decompose)
+            circuit = decomposer(circuitSet, decompose)
             return circuit.draw(drawMethod)
 
         elif isinstance(circuitSet, list):
-            circuit = self.decomposer(
+            circuit = decomposer(
                 circuitSet[whichCircuit], decompose)
             return circuit.draw(drawMethod)
 
@@ -1639,7 +1615,6 @@ class QurryV4:
 
         state: Literal["init", "pending", "completed"],
         isRead: bool = False,
-        isRetrieve: bool = False,
         overwrite: bool = False,
     ) -> tuple[dict[str, any], argsMultiMain, Union[
         expsMultiMain,
@@ -2164,6 +2139,7 @@ class QurryV4:
                     del dataMultiJobs[k]
 
             elif isinstance(expsMulti[k], (dict, list)):
+                expsMulti.gitignore.sync(f'*.{k}.json')
                 quickJSONExport(
                     content=dataMultiJobs[k],
                     filename=expsMulti.exportLocation /
@@ -2347,7 +2323,7 @@ class QurryV4:
             numCirc = len(self.exps[self.IDNow]['circuit'])
             expsMulti.circuitsNum[self.IDNow] = numCirc
             expsMulti.configDict[self.IDNow] = config
-            
+
             expsMulti.circuitsMap[self.IDNow].append(
                 [c for c in range(numCirc)])
 

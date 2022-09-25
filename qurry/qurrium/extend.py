@@ -3,8 +3,8 @@ from qiskit import QuantumCircuit
 import warnings
 from typing import Callable, Literal, Union, Hashable
 
-from .qurryV4 import QurryV4
-from .qurryV3 import QurryV3
+# from .qurryV4 import QurryV4
+# from .qurryV3 import QurryV3
 
 
 def qubitSelector(
@@ -64,7 +64,7 @@ def qubitSelector(
 
 
 def waveSelecter(
-    qurry: Union[QurryV4, QurryV3],
+    qurry,
     wave: Union[QuantumCircuit, any, None] = None,
 ) -> Hashable:
     """Select wave.
@@ -97,3 +97,23 @@ def waveSelecter(
             wave = qurry.lastWave
 
     return wave
+
+def decomposer(
+    qc: QuantumCircuit,
+    decompose: int = 2,
+) -> QuantumCircuit:
+    """Decompose the circuit with giving times.
+
+    Args:
+        qc (QuantumCircuit): The circuit wanted to be decomposed.
+        decompose (int, optional):  Decide the times of decomposing the circuit.
+            Draw quantum circuit with composed circuit. Defaults to 2.
+
+    Returns:
+        QuantumCircuit: The decomposed circuit.
+    """
+
+    qcResult = qc
+    for t in range(decompose):
+        qcResult = qcResult.decompose()
+    return qcResult

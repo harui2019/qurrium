@@ -13,6 +13,8 @@ requirement = [
     "qiskit-aer-gpu;platform_system=='Linux';python_version<='3.9'",
 ]
 
+__author__ = "Huai-Chung Chang (harui2019@proton.me)"
+
 setup(
     name='qurry',
     version=__version__,
@@ -22,7 +24,7 @@ setup(
     
     url='https://github.com/harui2019/qurry/qurry',
     author='Huai-Chung Chang',
-    author_email='james880818@gmail.com',
+    author_email='harui2019@proton.me',
     
     packages=find_packages(exclude=['tests']),
     include_package_data=True,
