@@ -8,14 +8,17 @@ from qiskit.circuit import Gate, Instruction
 from qiskit.result import Result
 from qiskit.providers import Backend, JobError, JobStatus
 from qiskit.providers.ibmq import IBMQBackend, IBMQJobManager, AccountProvider
+from qiskit.providers.ibmq.job import IBMQJobApiError
 from qiskit.providers.ibmq.managed import (
     ManagedJobSet,
     # ManagedJob,
     ManagedResults,
     IBMQManagedResultDataNotAvailable,
-    # IBMQJobManagerInvalidStateError,
+    IBMQJobManagerInvalidStateError,
+    IBMQJobManagerJobNotFound,
     # IBMQJobManagerUnknownJobSet
 )
+from qiskit.providers.ibmq.exceptions import IBMQError
 
 import glob
 import json
@@ -1257,7 +1260,7 @@ class QurryV4:
     @classmethod
     def counts(
         cls,
-        result: Union[Result, ManagedResults],
+        result: Union[Result, ManagedResults, None],
         resultIdxList: Optional[list[int]] = None,
         num: int = 1,
         **otherArgs,
@@ -1276,10 +1279,18 @@ class QurryV4:
 
         counts = []
         for i in resultIdxList:
+            if result is None:
+                counts.append({})
+                print("| Failed Job result skip, index:", i, err)
+                continue
             try:
                 allMeas = result.get_counts(i)
                 counts.append(allMeas)
             except IBMQManagedResultDataNotAvailable as err:
+                counts.append({})
+                print("| Failed Job result skip, index:", i, err)
+                continue
+            except IBMQJobManagerJobNotFound as err:
                 counts.append({})
                 print("| Failed Job result skip, index:", i, err)
                 continue
@@ -1501,14 +1512,27 @@ class QurryV4:
             ManagedResults: _description_
         """
 
-        retrievedJob = self.jobManager.retrieve_job_set(
-            job_set_id=jobID,
-            provider=provider,
-            refresh=refresh,
-        )
-        jobID = retrievedJob.job_set_id()
-        report = retrievedJob.report()
-        name = retrievedJob.name()
+        try:
+            retrievedJob = self.jobManager.retrieve_job_set(
+                job_set_id=jobID,
+                provider=provider,
+                refresh=refresh,
+            )
+            jobID = retrievedJob.job_set_id()
+            report = retrievedJob.report()
+            name = retrievedJob.name()
+
+        except IBMQJobManagerInvalidStateError as e:
+            retrievedJob = None
+            jobID = jobID
+            report = f"Job unreachable, '{e}'."
+            name = name
+            
+        except IBMQError as e:
+            retrievedJob = None
+            jobID = jobID
+            report = f"Job fully corrupted, '{e}'."
+            name = name
 
         return self.managedReturn(
             managedJob=retrievedJob,
@@ -2036,7 +2060,6 @@ class QurryV4:
 
             state=state,
             isRead=isRead,
-            isRetrieve=isRetrieve,
             overwrite=overwrite,
         )
 
@@ -2620,18 +2643,24 @@ class QurryV4:
                 if pk == 'all':
                     ...
                 elif len(pcircs) > 0:
-                    pJob: ManagedJobSet = pendingMapping[pk].managedJob
-                    pResult = pJob.results()
-                    counts = self.counts(
-                        result=pResult,
-                        resultIdxList=[rk-pcircs[0] for rk in pcircs]
-                    )
+                    pJob: Optional[ManagedJobSet] = pendingMapping[pk].managedJob
+                    if pJob is not None:
+                        pResult = pJob.results()
+                        counts = self.counts(
+                            result=pResult,
+                            resultIdxList=[rk-pcircs[0] for rk in pcircs]
+                            )
+                    else:
+                        counts = self.counts(
+                            result=None,
+                            resultIdxList=[rk-pcircs[0] for rk in pcircs]
+                            )
                     for rk in pcircs:
                         allCircuitCountsDict[rk] = counts[rk-pcircs[0]]
 
                 else:
-                    if not pk == 'noTags':
-                        warnings.warn('There is no circuits in', pk)
+                    if not pk == 'noTags' or not pk == ():
+                        warnings.warn(f"There is no circuits in '{pk}'")
 
             gajima.gprint(
                 "| Distributing all circuits to their original experimemts.")

@@ -1,7 +1,11 @@
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.result import Result
 from qiskit.quantum_info import random_unitary
-from qiskit.providers.ibmq.managed import ManagedResults, IBMQManagedResultDataNotAvailable
+from qiskit.providers.ibmq.managed import (
+    ManagedResults, 
+    IBMQManagedResultDataNotAvailable,
+    IBMQJobManagerJobNotFound
+)
 
 import numpy as np
 import warnings
@@ -286,6 +290,10 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
 
         counts = []
         for i in resultIdxList:
+            if result is None:
+                counts.append({})
+                print("| Failed Job result skip, index:", i, err)
+                continue
             try:
                 allMeas = result.get_counts(i)
                 counts.append(allMeas)
@@ -293,6 +301,11 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
                 counts.append({})
                 print("| Failed Job result skip, index:", i, err)
                 continue
+            except IBMQJobManagerJobNotFound as err:
+                counts.append({})
+                print("| Failed Job result skip, index:", i, err)
+                continue
+
 
         return counts
 
