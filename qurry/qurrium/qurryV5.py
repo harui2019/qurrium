@@ -66,11 +66,11 @@ def defaultCircuit(numQubit: int) -> QuantumCircuit:
         numQubit, numQubit, name=f'qurry_default_{numQubit}')
 
 
-class QurryV4:
-    """Qurry V0.4.0
+class QurryV5:
+    """Qurry V0.5.0
     The qiskit job tool
     """
-    __version__ = (0, 4, 0)
+    __version__ = (0, 5, 0)
 
     """ defaultConfig for single experiment. """
 
