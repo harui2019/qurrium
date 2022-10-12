@@ -292,7 +292,7 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
         for i in resultIdxList:
             if result is None:
                 counts.append({})
-                print("| Failed Job result skip, index:", i, err)
+                print("| Failed Job result skip, index:", i)
                 continue
             try:
                 allMeas = result.get_counts(i)

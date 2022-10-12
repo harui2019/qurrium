@@ -1281,7 +1281,7 @@ class QurryV4:
         for i in resultIdxList:
             if result is None:
                 counts.append({})
-                print("| Failed Job result skip, index:", i, err)
+                print("| Failed Job result skip, index:", i)
                 continue
             try:
                 allMeas = result.get_counts(i)
@@ -2540,8 +2540,8 @@ class QurryV4:
                     gajima.gprint(f"| name: {pJobs.name}")
 
                 else:
-                    if not pk == 'noTags':
-                        warnings.warn('There is no circuits in', pk)
+                    if not pk == 'noTags' or not pk == ():
+                        warnings.warn(f"There is no circuits in '{pk}'")
 
         # Export
         expsMulti.state = 'pending'
