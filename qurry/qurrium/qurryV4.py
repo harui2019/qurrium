@@ -2193,7 +2193,6 @@ class QurryV4:
         self,
         exportName: Union[Path, str],
         saveLocation: Union[Path, str] = './',
-        isRetrieve: bool = False,
         **allArgs: any,
     ) -> dict[any]:
         """Require to read the file exported by `.powerJobsPending`.
@@ -2228,7 +2227,6 @@ class QurryV4:
             saveLocation=saveLocation,
             expsName=exportName,
             isRead=True,
-            isRetrieve=isRetrieve,
             **allArgs,
         )
 

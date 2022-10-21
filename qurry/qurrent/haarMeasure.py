@@ -65,8 +65,8 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
         purity: float
         puritySD: float
             
-        sp_entropySD: float
-        sp_entropy: float
+        # sp_entropySD: float
+        # sp_entropy: float
 
     # Initialize
     def initialize(self) -> dict[str, any]:
@@ -308,22 +308,17 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
 
 
         return counts
-
+    
     @classmethod
-    def quantities(
+    def _quantityCore(
         cls,
         shots: int,
         counts: list[Counts],
         times: int = 100,
         degree: Union[tuple[int, int], int] = None,
         measure: tuple[int, int] = None,
-
-        run_log: dict[str] = {},
-        **otherArgs,
-    ) -> expsCore:
-
-        purity = -100
-        entropy = -100
+    ) -> tuple[list[float], tuple[int]]:
+        
         purityCellList = []
 
         if isinstance(degree, int):
@@ -377,9 +372,46 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
                 f"| Calculating overlap end - {i+1}/{times}" +
                 f" - {round(time.time() - Begin, 3)}s." +
                 " "*30, end="\r")
+            
+        return purityCellList, bitStringRange
+
+    @classmethod
+    def quantities(
+        cls,
+        shots: int,
+        counts: list[Counts],
+        times: int = 100,
+        degree: Union[tuple[int, int], int] = None,
+        measure: tuple[int, int] = None,
+
+        run_log: dict[str] = {},
+        **otherArgs,
+    ) -> expsCore:
+
+        purity = -100
+        entropy = -100
+        
+        purityCellList, bitStringRange = cls._quantityCore(
+            shots=shots,
+            counts=counts,
+            times=times,
+            degree=degree,
+            measure=measure,
+        )
+        
+        purityCellListAllSys, bitStringRangeAllSys = cls._quantityCore(
+            shots=shots,
+            counts=counts,
+            times=times,
+            degree=None,
+            measure=measure,
+        )
+
 
         purity = np.mean(purityCellList)
+        purityAllSys = np.mean(purityCellListAllSys)
         puritySD = np.std(purityCellList)
+        puritySDAllSys = np.std(purityCellListAllSys)
         
         entropy = -np.log2(purity)
         sp_entropyCellList = [-np.log2(X) for X in purityCellList]
@@ -392,6 +424,11 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
             
             '_purityCellList': purityCellList,
             'puritySD': puritySD,
+            
+            'purityAllSys': purityAllSys,
+            '_purityCellListAllSys': purityCellListAllSys,
+            'puritySDAllSys': puritySDAllSys,
+            
             '_range': {
                 'degree': degree,
                 'measure': measure,
@@ -446,15 +483,12 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
             **otherArgs,
         )
         
-    def multiRecalculate(
+    def multBackground(
         self,
         exportName: Union[Path, str],
         saveLocation: Union[Path, str] = './',
-        isRetrieve: bool = False,
-        select: Union[list[Hashable], Literal['all']] = None,
         
         degree: Union[tuple[int, int], int] = None,
-        
         **allArgs: any,
     ) -> dict[any]:
         """Require to read the file exported by `.powerJobsPending`.
@@ -490,27 +524,11 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
             saveLocation=saveLocation,
             expsName=exportName,
             isRead=True,
-            isRetrieve=isRetrieve,
+            isRetrieve=False,
             **allArgs,
         )
         
-        tagMapQuantity = TagMap()
-        if select == 'all':        
-            for k, v in expsMulti.tagMapCounts.items():
-                newV = [
-                    self.quantities(
-                        shots = expsMulti.shots,
-                        counts=c,
-                        times=len(c),
-                        degree=degree,
-                    )
-                    for c in v
-                ]
-                if isinstance(k, tuple):
-                    tagMapQuantity[k+(f're-{degree}')] = newV
-                else:
-                    tagMapQuantity[(k, f're-{degree}')] = newV
-        else:
-            print("| Invalid select.")
+        tagMapQuantityAllsys = TagMap()
+
         
         return expsMulti
