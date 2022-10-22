@@ -2,7 +2,7 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.result import Result
 from qiskit.quantum_info import random_unitary
 from qiskit.providers.ibmq.managed import (
-    ManagedResults, 
+    ManagedResults,
     IBMQManagedResultDataNotAvailable,
     IBMQJobManagerJobNotFound
 )
@@ -64,7 +64,7 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
         entropy: float
         purity: float
         puritySD: float
-            
+
         # sp_entropySD: float
         # sp_entropy: float
 
@@ -306,9 +306,8 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
                 print("| Failed Job result skip, index:", i, err)
                 continue
 
-
         return counts
-    
+
     @classmethod
     def _quantityCore(
         cls,
@@ -318,25 +317,34 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
         degree: Union[tuple[int, int], int] = None,
         measure: tuple[int, int] = None,
     ) -> tuple[list[float], tuple[int]]:
-        
+
         purityCellList = []
+
+        if degree is None:
+            degree = qubitSelector(len(list(counts[0].keys())[0]))
 
         if isinstance(degree, int):
             subsystemSize = degree
-            degree = qubitSelector(len(list(counts[0].keys())[0]), degree=degree)
-        else:
+            degree = qubitSelector(
+                len(list(counts[0].keys())[0]), degree=degree)
+
+        elif isinstance(degree, (tuple, list)):
             subsystemSize = max(degree) - min(degree)
-            
+
+        else:
+            raise ValueError(
+                f"'degree' must be 'int' or 'tuple[int, int]', but get '{degree}'.")
+
         if measure is None:
             measure = qubitSelector(len(list(counts[0].keys())[0]))
 
         if (min(degree) < min(measure)) or (max(degree) > max(measure)):
             raise ValueError(
                 f"Measure range '{measure}' does not contain subsystem '{degree}'.")
-            
+
         measureSize = max(measure) - min(measure)
-        bitStringRange = (min(degree) - min(measure), max(degree) - min(measure))
-        
+        bitStringRange = (min(degree) - min(measure),
+                          max(degree) - min(measure))
 
         if (times == len(counts)):
             ...
@@ -355,7 +363,8 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
             allMeasUnderDegree = dict.fromkeys(
                 [k[bitStringRange[0]:bitStringRange[1]] for k in allMeas1], 0)
             for kMeas in list(allMeas1):
-                allMeasUnderDegree[kMeas[bitStringRange[0]:bitStringRange[1]]] += allMeas1[kMeas]
+                allMeasUnderDegree[kMeas[bitStringRange[0]
+                    :bitStringRange[1]]] += allMeas1[kMeas]
             numAllMeasUnderDegree = len(allMeasUnderDegree)
 
             print(
@@ -372,7 +381,7 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
                 f"| Calculating overlap end - {i+1}/{times}" +
                 f" - {round(time.time() - Begin, 3)}s." +
                 " "*30, end="\r")
-            
+
         return purityCellList, bitStringRange
 
     @classmethod
@@ -390,7 +399,7 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
 
         purity = -100
         entropy = -100
-        
+
         purityCellList, bitStringRange = cls._quantityCore(
             shots=shots,
             counts=counts,
@@ -398,7 +407,7 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
             degree=degree,
             measure=measure,
         )
-        
+
         purityCellListAllSys, bitStringRangeAllSys = cls._quantityCore(
             shots=shots,
             counts=counts,
@@ -407,34 +416,33 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
             measure=measure,
         )
 
-
         purity = np.mean(purityCellList)
         purityAllSys = np.mean(purityCellListAllSys)
         puritySD = np.std(purityCellList)
         puritySDAllSys = np.std(purityCellListAllSys)
-        
+
         entropy = -np.log2(purity)
         sp_entropyCellList = [-np.log2(X) for X in purityCellList]
         sp_entropySD = np.std(sp_entropyCellList)
         sp_entropy = np.mean(sp_entropyCellList)
-        
+
         quantity = {
             'purity': purity,
             'entropy': entropy,
-            
+
             '_purityCellList': purityCellList,
             'puritySD': puritySD,
-            
+
             'purityAllSys': purityAllSys,
             '_purityCellListAllSys': purityCellListAllSys,
             'puritySDAllSys': puritySDAllSys,
-            
+
             '_range': {
                 'degree': degree,
                 'measure': measure,
                 'onBitString': bitStringRange,
             }
-            
+
             # '_sp_entropyCellList': sp_entropyCellList,
             # 'sp_entropySD': sp_entropySD,
             # 'sp_entropy': sp_entropy,
@@ -482,12 +490,12 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
             unitary_set=unitary_set,
             **otherArgs,
         )
-        
+
     def multBackground(
         self,
         exportName: Union[Path, str],
         saveLocation: Union[Path, str] = './',
-        
+
         degree: Union[tuple[int, int], int] = None,
         **allArgs: any,
     ) -> dict[any]:
@@ -527,8 +535,7 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
             isRetrieve=False,
             **allArgs,
         )
-        
+
         tagMapQuantityAllsys = TagMap()
 
-        
         return expsMulti
