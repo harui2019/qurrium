@@ -2,7 +2,7 @@
 isQurecipe = False
 try:
     isQurecipe = True
-    from .qurecipe import *
+    from ..qurecipe import *
 except ImportError as e:
     isQurecipe = False
     from .paramagnet import *
