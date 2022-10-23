@@ -46,8 +46,8 @@ from ..mori import (
     singleColCSV,
 )
 from ..mori.type import TagMapType
-from .exceptions import UnconfiguredWarning
-from .type import (
+from ..exceptions import UnconfiguredWarning
+from .declare.type import (
     Quantity,
     Counts,
     waveGetter,

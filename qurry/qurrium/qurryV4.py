@@ -47,19 +47,19 @@ from ..mori import (
 from ..mori.type import TagMapType
 from ..util import Gajima, ResoureWatch
 
-from .runargs import (
+from .declare.default import (
     transpileConfig,
     managerRunConfig,
     runConfig,
     ResoureWatchConfig,
     containChecker,
 )
-from .extend import decomposer
-from .exceptions import (
+from .construct import decomposer
+from ..exceptions import (
     UnconfiguredWarning,
     InvalidConfiguratedWarning,
 )
-from .type import Quantity, Counts, waveGetter, waveReturn
+from .declare.type import Quantity, Counts, waveGetter, waveReturn
 
 # Qurry V0.4.0 - a Qiskit Macro
 
@@ -327,28 +327,12 @@ class QurryV4:
         self.resourceWatch = ResoureWatch() if isinstance(
             resourceWatch, ResoureWatch) else resourceWatch
 
-    @overload
-    def addWave(
-        self,
-        waveCircuit: list[QuantumCircuit],
-        key=None,
-    ) -> list[Optional[Hashable]]:
-        ...
-
-    @overload
-    def addWave(
-        self,
-        waveCircuit: QuantumCircuit,
-        key=None,
-    ) -> Optional[Hashable]:
-        ...
-
     def addWave(
         self,
         waveCircuit: Union[QuantumCircuit, list[QuantumCircuit]],
         key: Optional[waveGetter[Hashable]] = None,
         replace: Literal[True, False, 'duplicate'] = False,
-    ):
+    ) -> Optional[Union[Hashable, list[Hashable]]]:
         """Add new wave function to measure.
 
         Args:

@@ -3,7 +3,7 @@ import warnings
 from typing import NamedTuple
 from collections import namedtuple
 
-from ..qurrium.exceptions import (
+from ..exceptions import (
     QurryMemoryOverAllocationWarning,
     InvalidConfiguratedWarning,
 )

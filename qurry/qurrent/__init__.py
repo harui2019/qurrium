@@ -1,7 +1,7 @@
 from typing import Literal, Union
 import warnings
 
-from ..qurrium.exceptions import UnconfiguredWarning
+from ..exceptions import UnconfiguredWarning
 # v4
 from .haarMeasure import EntropyHaarMeasureV4
 from .hadamardTest import EntropyHadamardTestV4

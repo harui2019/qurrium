@@ -13,12 +13,6 @@ Quantity = dict[str, float]
 # TagsValue
 T = TypeVar("T")
 
-# TagMapExpsIDType = TagMapType[str]
-# TagMapIndexType = TagMapType[Union[str, int]]
-# TagMapQuantityType = TagMapType[Quantity]
-# TagMapCountsType = TagMapType[Counts]
-# TagMapResultType = TagMapType[Result]
-
 # waveGetter methods
 waveGetter = Union[list[T], T]
 waveReturn = Union[Gate, Operator, Instruction, QuantumCircuit]

@@ -3,16 +3,12 @@ from qiskit import QuantumCircuit
 import warnings
 from typing import Callable, Literal, Union, Hashable
 
-# from .qurryV4 import QurryV4
-# from .qurryV3 import QurryV3
-
-
 def qubitSelector(
     num_qubits: int,
     degree: Union[int, tuple[int, int], None] = None,
     as_what: Literal['degree', 'unitary_set', 'measure range'] = 'degree',
 ) -> tuple[int]:
-    """_summary_
+    """Determint the qubits to be used.
 
     Args:
         num_qubits (int): Number of qubits.

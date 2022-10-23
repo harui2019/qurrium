@@ -1,9 +1,9 @@
 from typing import Optional
 import warnings
 
-from .exceptions import InvalidConfiguratedWarning
-from ..mori import defaultConfig
-from ..util.watch import ResoureWatch
+from ...exceptions import InvalidConfiguratedWarning
+from ...mori import defaultConfig
+from ...util.watch import ResoureWatch
 
 transpileConfig = defaultConfig(
     name='transpileArgs',
