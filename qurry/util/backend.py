@@ -1,4 +1,3 @@
-from qiskit import Aer
 from qiskit.providers import Backend
 from qiskit.providers.ibmq import AccountProvider
 from qiskit.providers.aer import AerProvider
@@ -104,16 +103,19 @@ class backendWrapper:
             'aer_density_gpu': 'aer_density_matrix_gpu',
         }
         self.backend_aer: dict[str, Backend] = {
-            self._shorten_name(b.name(), ['_simulator']): b for b in self._AerOwnedBackends
+            self._shorten_name(b.name(), ['_simulator']): b for b in self._AerOwnedBackends if b.name() not in [
+                'qasm_simulator', 'statevector_simulator', 'unitary_simulator' #NOTE: Deprecated backend
+            ]
         }
-        self.backend_aer = {
-            'aer_gpu': Aer.get_backend('aer_simulator'),
-            **self.backend_aer,
-        }
-        self.backend_aer["aer_gpu"].set_options(device='GPU')
-        # for k in self.backend_sim:
-        #     if 'gpu' in k:
-        #         self.backend_sim[k].set_option(device='GPU')
+        if self.isAerGPU:
+            self.backend_aer = {
+                "aer_gpu": self._AerOwnedBackends[0],
+                **self.backend_aer,
+            }
+            self.backend_aer["aer_gpu"].set_options(device='GPU')
+            # for k in self.backend_sim:
+            #     if 'gpu' in k:
+            #         self.backend_sim[k].set_option(device='GPU')
         
         self.backend_ibmq_callsign = {}
         self.backend_ibmq = {}
