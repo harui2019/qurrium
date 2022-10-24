@@ -5,7 +5,6 @@ from qiskit.providers.ibmq import AccountProvider
 from qiskit.providers.aer import AerProvider
 
 from typing import Optional, Hashable
-import warnings
 
 class backendWrapper:
     """The quicker method to call a backend.
@@ -118,7 +117,9 @@ class backendWrapper:
         
         self.backend_ibmq_callsign = {}
         self.backend_ibmq = {}
+        self._RealProvider = None
         if not realProvider is None:
+            self._RealProvider = realProvider
             self.backend_ibmq = {
                 b.name(): b for b in realProvider.backends()
             }
@@ -131,23 +132,28 @@ class backendWrapper:
             
         self._update_callsign()
         self._update_backend()
+        
+    def __repr__(self):
+        if self._RealProvider is None:
+            return f'<BackendWrapper with AerProvider>'
+        else:
+            return f'<BackendWrapper with AerProvider and {self._RealProvider.__repr__()[1:-1]}>'
                 
     def make_callsign(
         self,
         sign: Hashable = 'Galm 2',
         who: str = 'solo_wing_pixy',
     ) -> None:
+        
+        if sign == 'Galm 2' or who == 'solo_wing_pixy':
+            if random() <= 0.2:
+                print("Those who survive a long time on the battlefield start to think they're invincible. I bet you do, too, Buddy.")
+                    
         if who in self.backend_aer:
             self.backend_aer_callsign[sign] = who
         elif who in self.backend_ibmq:
             self.backend_ibmq_callsign[sign] = who
         else:
-            if sign == 'Galm 2' or who == 'solo_wing_pixy':
-                if random() <= 0.2:
-                    print("Those who survive a long time on the battlefield start to think they're invincible. I bet you do, too, Buddy.")
-                sign = None
-                who = None
-            
             raise ValueError(f"'{who}' unknown backend.")
         
         self._update_callsign()
