@@ -1,9 +1,9 @@
-from random import random
 from qiskit import Aer
 from qiskit.providers import Backend
 from qiskit.providers.ibmq import AccountProvider
 from qiskit.providers.aer import AerProvider
 
+from random import random
 from typing import Optional, Hashable
 
 class backendWrapper:
