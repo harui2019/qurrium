@@ -256,6 +256,10 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
             i: [self.qubitOpToPauliCoeff(unitaryList[i][j])
                 for j in range(*argsNow.unitary_set)]
             for i in range(argsNow.times)}
+        self.exps[self.IDNow]['sideProduct']['unitaryOP'] = {
+            i: [unitaryList[i][j].data
+                for j in range(*argsNow.unitary_set)]
+            for i in range(argsNow.times)}
 
         return qcList
 
