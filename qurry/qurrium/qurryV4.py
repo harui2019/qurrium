@@ -2,7 +2,7 @@ from qiskit import (
     execute, transpile,
     QuantumRegister, QuantumCircuit
 )
-from qiskit.providers.aer import AerProvider
+from qiskit.providers.aer import AerProvider, AerSimulator
 from qiskit.quantum_info import Operator
 from qiskit.circuit import Gate, Instruction
 from qiskit.result import Result
@@ -93,7 +93,7 @@ class QurryV4:
         # Qiskit argument of experiment.
         # Multiple jobs shared
         shots: int = 1024
-        backend: Backend = AerProvider().get_backend('aer_simulator')
+        backend: Backend = AerSimulator()
         provider: Optional[AccountProvider] = None
         runArgs: dict[str, any] = {}
 
@@ -1511,7 +1511,7 @@ class QurryV4:
             jobID = jobID
             report = f"Job unreachable, '{e}'."
             name = name
-            
+
         except IBMQError as e:
             retrievedJob = None
             jobID = jobID
@@ -2631,12 +2631,12 @@ class QurryV4:
                         counts = self.counts(
                             result=pResult,
                             resultIdxList=[rk-pcircs[0] for rk in pcircs]
-                            )
+                        )
                     else:
                         counts = self.counts(
                             result=None,
                             resultIdxList=[rk-pcircs[0] for rk in pcircs]
-                            )
+                        )
                     for rk in pcircs:
                         allCircuitCountsDict[rk] = counts[rk-pcircs[0]]
 

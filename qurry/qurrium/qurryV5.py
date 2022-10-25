@@ -51,6 +51,7 @@ from .declare.default import (
     ResoureWatchConfig,
     containChecker,
 )
+from .declare.container import argsCore, argsMain, expsCore, expsMain
 from .construct import decomposer
 from ..exceptions import (
     UnconfiguredWarning,
@@ -61,7 +62,7 @@ from .declare.type import Quantity, Counts, waveGetter, waveReturn
 # Qurry V0.5.0 - a Qiskit Macro
 
 
-def defaultCircuit(numQubit: int) -> QuantumCircuit:
+def defaultCircuit(numQubit: int) -> QuantumCircuit:\
     return QuantumCircuit(
         numQubit, numQubit, name=f'qurry_default_{numQubit}')
 
@@ -72,87 +73,10 @@ class QurryV5:
     """
     __version__ = (0, 5, 0)
 
-    """ defaultConfig for single experiment. """
-
-    @abstractmethod
-    class argsCore(NamedTuple):
-        """Construct the experiment's parameters."""
-
-    class argsCore(NamedTuple):
-        expsName: str = 'exps'
-        wave: Union[QuantumCircuit, any, None] = None
-        sampling: int = 1
-
-    class argsMain(NamedTuple):
-        # ID of experiment.
-        expID: Optional[str] = None
-
-        # Qiskit argument of experiment.
-        # Multiple jobs shared
-        shots: int = 1024
-        backend: Backend = AerProvider().get_backend('aer_simulator')
-        provider: Optional[AccountProvider] = None
-        runArgs: dict[str, any] = {}
-
-        # Single job dedicated
-        runBy: str = "gate"
-        decompose: Optional[int] = 2
-        transpileArgs: dict[str, any] = {}
-
-        # Other arguments of experiment
-        drawMethod: str = 'text'
-        resultKeep: bool = False
-        tags: tuple[str] = ()
-        resoureControl: dict[str, any] = {}
-
-        saveLocation: Union[Path, str] = Path('./')
-        exportLocation: Path = Path('./')
-
-        expIndex: Optional[int] = None
-        
-    @abstractmethod
-    class expsCore(NamedTuple):
-        """Construct the experiment's output."""
-    class expsCore(NamedTuple):
-        ...
-
-    class expsMain(NamedTuple):
-        # Measurement result
-        circuit: list[QuantumCircuit] = []
-        figRaw: list[str] = []
-        figTranspile: list[str] = []
-        result: list[Result] = []
-        counts: list[dict[str, int]] = []
-
-        # Export data
-        jobID: str = ''
-        expsName: str = 'exps'
-
-        # side product
-        sideProduct: dict = {}
-
     _expsBaseExceptKeys = ['sideProduct', 'result']
     _v3ArgsMapping = {
         'runConfig': 'runArgs',
     }
-
-    def expsBaseExcepts(
-        self,
-        excepts: list[str] = _expsBaseExceptKeys,
-    ) -> dict:
-        """The exception when export.
-
-        Args:
-            excepts (list[str], optional):
-                Key of value wanted to be excluded.
-                Defaults to ['sideProduct'].
-
-        Returns:
-            dict: The value will be excluded.
-        """
-        return self._expsBase.make(partial=excepts)
-
-    """ defaultConfig for multiple experiments. """
 
     class argsMultiMain(NamedTuple):
         # defaultConfig of `IBMQJobManager().run`
