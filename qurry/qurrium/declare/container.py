@@ -1,8 +1,8 @@
 from qiskit import QuantumCircuit
 from qiskit.result import Result
 from qiskit.providers import Backend
-from qiskit.providers.aer import AerSimulator
 from qiskit.providers.ibmq import AccountProvider
+from qiskit_aer import AerSimulator
 
 from pathlib import Path
 from typing import Literal, Union, Optional, NamedTuple, Hashable, overload
@@ -10,20 +10,27 @@ from abc import abstractmethod, abstractstaticmethod
 from collections import namedtuple
 import gc
 
-from ...mori import jsonablize
+from ...mori import jsonablize, TagMap, syncControl
+from ...mori.type import TagMapType
+from .type import Quantity, Counts, waveGetter, waveReturn
 
+# argument
+class QurryExperiment:
 
-class QurryArgs:
-    __name__ = 'QurryArgs'
+    __name__ = 'QurryExperiment'
 
     @abstractstaticmethod
-    class argsCore(NamedTuple):
+    class arguments(NamedTuple):
         """Construct the experiment's parameters."""
+        
+    class arguments(NamedTuple):
+        expsName: str = 'exps'
+        wave: Union[QuantumCircuit, any, None] = None
+        sampling: int = 1
 
-    @staticmethod
-    class argsMain(NamedTuple):
-        # ID of experiment.
+    class commonparams(NamedTuple):
         expID: Optional[str] = None
+        expID.__doc__ = "ID of experiment."
 
         # Qiskit argument of experiment.
         # Multiple jobs shared
@@ -31,198 +38,294 @@ class QurryArgs:
         backend: Backend = AerSimulator()
         provider: Optional[AccountProvider] = None
         runArgs: dict[str, any] = {}
+        shots.__doc__ = "Number of shots to run the program (default: 1024)."
+        backend.__doc__ = "Backend to execute the circuits on."
+        provider.__doc__ = "Provider to execute the backend on."
+        runArgs.__doc__ = "Arguments of `IBMQJobManager().run`."
 
         # Single job dedicated
-        runBy: str = "gate"
+        runBy: Literal['gate', 'operator'] = "gate"
         decompose: Optional[int] = 2
         transpileArgs: dict[str, any] = {}
+        runBy.__doc__ = "Run circuits by gate or operator."
+        decompose.__doc__ = "Decompose the circuit in given times."
+        transpileArgs.__doc__ = "Arguments of `qiskit.compiler.transpile`."
 
         # Other arguments of experiment
         drawMethod: str = 'text'
         tags: tuple[str] = ()
         resoureControl: dict[str, any] = {}
+        drawMethod.__doc__ = "Method of drawing circuit."
+        tags.__doc__ = "Tags of experiment."
+        resoureControl.__doc__ = "Arguments of `ResoureWatch`."
 
         saveLocation: Union[Path, str] = Path('./')
         exportLocation: Path = Path('./')
+        saveLocation.__doc__ = "Location of saving experiment."
+        exportLocation.__doc__ = "Location of exporting experiment, exportLocation is the final result decided by experiment."
 
         expIndex: Optional[int] = None
+        expIndex.__doc__ = "Index of experiment in a multiOutput."
 
     _v3ArgsMapping = {
         'runConfig': 'runArgs',
     }
+    
+    @abstractmethod
+    class analysis(NamedTuple):
+        """Construct the experiment's output."""
+        
+    class analysis(NamedTuple):
+        lucky: int = 0
 
-    class argsExport(NamedTuple):
-        expsID: str = ''
-        args: dict[str, any] = {}
-        outfields: dict[str, any] = {}
+    class before(NamedTuple):
+        # Experiment Preparation
+        circuit: list[QuantumCircuit] = []
+        figRaw: list[str] = []
+        figTranspile: list[str] = []
+        circuit.__doc__ = "Circuits of experiment."
+        figRaw.__doc__ = "Raw circuit figures which is the circuit before transpile."
+        figTranspile.__doc__ = "Transpile circuit figures which is the circuit after transpile and the actual one would be executed."
+        
+        # Export data
+        jobID: str = ''
+        expsName: str = 'exps'
+        jobID.__doc__ = "ID of job for pending on real machine (IBMQBackend)."
+        expsName.__doc__ = "Name of experiment which is also showed on IBM Quantum Computing quene."
+        
+        # side product
+        sideProduct: dict = {}
+        sideProduct.__doc__ = "The data of experiment will be independently exported in the folder 'tales'."
+
+    class after(NamedTuple):
+        # Measurement Result
+        result: list[Result] = []
+        counts: list[dict[str, int]] = []
+        result.__doc__ = "Results of experiment."
+        counts.__doc__ = "Counts of experiment."
+
+        # side product
+        sideProduct: dict = {}
+        sideProduct.__doc__ = "The data of experiment will be independently exported in the folder 'tales'."
+
+    _unexports = ['sideProduct', 'result']
 
     @classmethod
-    def corefilter(cls, *args, **kwargs) -> tuple[argsCore, dict[str, any]]:
+    def argsFilter(cls, *args, **kwargs) -> tuple[arguments, dict[str, any]]:
+        """Filter the arguments of experiment.
+
+        Raises:
+            ValueError: When input arguments are not positional arguments.
+
+        Returns:
+            tuple[argsCore, dict[str, any]]: argsCore, outfields for other unused arguments.
+        """        
         if len(args) > 0:
             raise ValueError(
                 "argsCore filter can't be initialized with positional arguments.")
         infields = {}
         outfields = {}
         for k in kwargs:
-            if k in cls.argsMain._fields:
+            if k in cls.arguments._fields:
                 infields[k] = kwargs[k]
             else:
                 outfields[k] = kwargs[k]
 
-        return cls.argsCore(**infields), outfields
-
-    def __init__(self, *args, **kwargs) -> None:
-
-        if len(args) > 0:
-            raise ValueError(
-                f"{self.__name__} can't be initialized with positional arguments.")
-
-        self.combined = namedtuple(
-            typename=QurryArgs.__name__+'Combined',
-            field_names=self.argsMain._fields+self.argsCore._fields,
-            defaults=list(self.argsMain._field_defaults.values()) +
-            list(self.argsCore._field_defaults.values()),
-        )
-
-        infields = {}
-        outfields = {}
-        for k in kwargs:
-            if k in self.combined._fields:
-                infields[k] = kwargs[k]
-            else:
-                outfields[k] = kwargs[k]
-
-        self.main: Union[QurryArgs.argsMain,
-                         QurryArgs.argsCore] = self.combined(*args, **kwargs)
-        self.outfields: dict[str, any] = outfields
-
-    def export(self) -> argsExport:
-
-        args = jsonablize(self.main._asdict())
-
-        return self.argsExport(
-            expsID=self.main.expsID,
-            args=args,
-            outfields=jsonablize(self.outfields)
-        )
-
-    def __repr__(self) -> str:
-        return f"<{self.__name__} with {self.main.__repr__()} and {len(self.outfields)} unused arguments>"
-
-
-class QurriumArgs(QurryArgs):
-    __name__ = 'QurriumArgs'
-
-    class argsCore(NamedTuple):
-        expsName: str = 'exps'
-        wave: Union[QuantumCircuit, any, None] = None
-        sampling: int = 1
-
-
-class QurryExpsData:
-    __name__ = 'QurryExpsData'
-
-    @abstractmethod
-    class expsCore(NamedTuple):
-        """Construct the experiment's output."""
-
-    class expsMain(NamedTuple):
-        # Measurement result
-        circuit: list[QuantumCircuit] = []
-        figRaw: list[str] = []
-        figTranspile: list[str] = []
-        result: list[Result] = []
-        counts: list[dict[str, int]] = []
-
-        # Export data
-        jobID: str = ''
-        expsName: str = 'exps'
-
-        # side product
-        sideProduct: dict = {}
-
-    _expExceptKeys = ['sideProduct', 'result']
-
-    class expsExport(NamedTuple):
-        expsName: str = 'exps'
-        legacy: dict[str, any] = {}
-        tales: dict[str, any] = {}
-        outfields: dict[str, any] = {}
-
+        return cls.arguments(**infields), outfields
+    
     @classmethod
-    def corefilter(cls, *args, **kwargs) -> tuple[expsCore, dict[str, any]]:
+    def analysisFilter(cls, *args, **kwargs) -> tuple[analysis, dict[str, any]]:
         if len(args) > 0:
             raise ValueError(
                 "expsCore filter can't be initialized with positional arguments.")
         infields = {}
         outfields = {}
         for k in kwargs:
-            if k in cls.expsMain._fields:
+            if k in cls.analysis._fields:
                 infields[k] = kwargs[k]
             else:
                 outfields[k] = kwargs[k]
 
-        return cls.expsCore(**infields), outfields
+        return cls.analysis(**infields), outfields
 
     def __init__(self, *args, **kwargs) -> None:
 
         if len(args) > 0:
             raise ValueError(
                 f"{self.__name__} can't be initialized with positional arguments.")
+            
+        self.args = self.arguments(**kwargs)
 
-        self.combined = namedtuple(
-            typename=QurryArgs.__name__+'Combined',
-            field_names=self.expsMain._fields+self.expsCore._fields,
-            defaults=list(self.expsMain._field_defaults.values()) +
-            list(self.expsCore._field_defaults.values()),
-        )
-
-        infields = {}
+        params = {}
+        commons = {}
         outfields = {}
         for k in kwargs:
-            if k in self.combined._fields:
-                infields[k] = kwargs[k]
+            if k in self.arguments._fields:
+                params[k] = kwargs[k]
+            elif k in self.commonparams._fields:
+                commons[k] = kwargs[k]
             else:
                 outfields[k] = kwargs[k]
 
-        self.main: Union[QurryExpsData.expsMain,
-                         QurryExpsData.expsCore] = self.combined(*args, **kwargs)
+        self.args = self.arguments(**params)
+        self.commons = self.commonparams(**commons)
         self.outfields: dict[str, any] = outfields
+        self.beforewards = self.before()
+        self.afterwards = self.after()
+        self.reports = []
+        
+    class Export(NamedTuple):
+        expID: str = ''
+        expsName: str = 'exps'
+        expIndex: Optional[int] = None
+        filename: str = ''
+        
+        args: dict[str, any] = {}
+        args.__doc__ = "Construct the experiment's parameters."
+        commons: dict[str, any] = {}
+        commons.__doc__ = "Construct the experiment's common parameters."
+        outfields: dict[str, any] = {}
+        outfields.__doc__ = "Recording the data of other unused arguments."
+        adventures: dict[str, any] = {}
+        adventures.__doc__ = "Recording the data of 'beforeward'. ~A Great Adventure begins~"
+        legacy: dict[str, any] = {}
+        legacy.__doc__ = "Recording the data of 'afterward'. ~The Legacy remains from the achievement of ancestors~"
+        tales: dict[str, any] = {}
+        tales.__doc__ = "Recording the data of 'sideProduct' in 'afterward' and 'befosrewards' for API. ~Tales of braves circulate~"
+        
+        reports: list[dict[str, any]] = []
+        reports.__doc__ = "Recording the data of 'reports'. ~The guild concludes the results.~"
 
-    def export(self) -> expsExport:
+    def export(self) -> Export:
 
-        # for writeLegacy, or new name poet
-        # for readLegacy, or new name read
-        rawData = self.main._asdict()
+        expID = self.arguments.expID
+        expIndex = self.arguments.expIndex
+        args: dict[str, any] = jsonablize(self.arguments._asdict())
+        
+        rawData = self.exps._asdict()
         legacy = {}
         tales = {}
-        expsName = self.main.expsName
+        expsName = self.exps.expsName
         for k, v in rawData.items():
             if k == 'sideProduct':
                 tales = v
-            elif k in self._expExceptKeys:
+            elif k in self._exportsExceptKeys:
                 ...
             else:
                 legacy[k] = v
         legacy = jsonablize(legacy)
         tales = jsonablize(tales)
+        
+        filename = f"{expsName}.id={expID}"
+        if expIndex is not None:
+            filename += f".index={expIndex}"
 
-        return self.expsExport(expsName=expsName, legacy=legacy, tales=tales, outfields=jsonablize(self.outfields))
+        outfields = {
+            'args': self.outfields,
+            'exps': self.outfieldsExps,
+        }
+
+        return self.Export(
+            expID=expID,
+            expsName=expsName,
+            expIndex=expIndex,
+            args=args,
+            legacy=legacy, 
+            tales=tales, 
+            outfields=jsonablize(outfields)
+        )
 
     def __setitem__(self, key, value) -> None:
-        if key in self.combined._fields:
-            self.main = self.main._replace(**{key: value})
+        if key in self.expsCombined._fields:
+            self.exps = self.exps._replace(**{key: value})
             gc.collect()
         else:
             raise ValueError(
-                f"{key} is not a valid field of {self.combined.__name__}")
+                f"{key} is not a valid field of {self.expsCombined.__name__}")
 
     def __repr__(self) -> str:
-        return f"<{self.__name__} with {len(self.combined._fields)} datasets and {len(self.outfields)} extra datasets>"
+        return f"<{self.__name__} with {self.arguments.__repr__()}, {len(self.expsCombined._fields)} datasets, {len(self.outfields)} unused arguments, and {len(self.outfieldsExps)} extra datasets>"
 
 
-class QurriumExpsData(QurryExpsData):
-    __name__ = 'QurriumExpsData'
 
-    class expsCore(NamedTuple):
-        ...
+"""
+exps structure:
+
+```py
+exps['someID'] = {
+    args: QurryArgs(),
+    data: QurryExpsData(),
+}
+```
+
+"""
+
+
+class QurryMultiExps:
+    
+    class argsMultiMain(NamedTuple):
+        # defaultConfig of `IBMQJobManager().run`
+        # Multiple jobs shared
+        shots: int = None
+        backend: Backend = None
+        provider: AccountProvider = None
+
+        # IBMQJobManager() dedicated
+        managerRunArgs: dict[str, any] = None
+
+        # Other arguments of experiment
+        # Multiple jobs shared
+        expsName: str = None
+        saveLocation: Union[Path, str] = None
+        exportLocation: Path = None
+
+        pendingStrategy: Literal['power', 'tags', 'each'] = None
+        jobsType: Literal["multiJobs", "powerJobs"] = None
+        isRetrieve: bool = None
+        isRead: bool = None
+        clear: bool = None
+        independentExports: list[str] = None
+        filetype: TagMap._availableFileType = None
+        
+    class expsMultiMain(NamedTuple):
+        # configList
+        configList: list = []
+        configDict: dict = {}
+
+        powerJobID: Union[str, list[str]] = []
+        gitignore: syncControl = syncControl()
+
+        circuitsNum: dict[str, int] = {}
+        state: Literal["init", "pending", "completed"] = 'init'
+        
+    class dataStateDepending(NamedTuple):
+        tagMapQuantity: TagMapType[Quantity]
+        tagMapCounts: TagMapType[Counts]
+
+    class dataUnexported(NamedTuple):
+        tagMapResult: TagMapType[Result]
+
+    class dataNeccessary(NamedTuple):
+        # with Job.json file
+        tagMapExpsID: TagMapType[str]
+        tagMapFiles: TagMapType[str]
+        tagMapIndex: TagMapType[Union[str, int]]
+        # circuitsMap
+        circuitsMap: TagMapType[str]
+        pendingPools: TagMapType[str]
+        
+    _v3ArgsMapping = {
+        'circuitsMap': 'circuitsMap',
+    }
+    _exportsExceptKeys = ['configList']+[i for i in dataUnexported._fields]
+    _powerJobKeyRequired = ['powerJobID', 'state']
+    _multiJobKeyRequired = ['state']
+    _independentExport = ['configDict']
+    
+    def __init__(self, *args, **kwargs) -> None:
+        
+        self.args = self.argsMultiMain(*args, **kwargs)
+        self.exps = self.expsMultiMain()
+        self.stateDepending = self.dataStateDepending()
+        self.unexported = self.dataUnexported()
+        self.neccessary = self.dataNeccessary()

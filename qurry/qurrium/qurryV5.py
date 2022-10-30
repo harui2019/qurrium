@@ -2,7 +2,7 @@ from qiskit import (
     execute, transpile,
     QuantumRegister, QuantumCircuit
 )
-from qiskit.providers.aer import AerProvider
+from qiskit_aer import AerProvider
 from qiskit.quantum_info import Operator
 from qiskit.circuit import Gate, Instruction
 from qiskit.result import Result
@@ -69,74 +69,10 @@ def defaultCircuit(numQubit: int) -> QuantumCircuit:\
 
 class QurryV5:
     """Qurry V0.5.0
-    The qiskit job tool
+    The qiskit Macro.
+    ~Create countless adventure, legacy and tales.~
     """
     __version__ = (0, 5, 0)
 
-    _expsBaseExceptKeys = ['sideProduct', 'result']
-    _v3ArgsMapping = {
-        'runConfig': 'runArgs',
-    }
-
-    class argsMultiMain(NamedTuple):
-        # defaultConfig of `IBMQJobManager().run`
-        # Multiple jobs shared
-        shots: int = None
-        backend: Backend = None
-        provider: AccountProvider = None
-
-        # IBMQJobManager() dedicated
-        managerRunArgs: dict[str, any] = None
-
-        # Other arguments of experiment
-        # Multiple jobs shared
-        expsName: str = None
-        saveLocation: Union[Path, str] = None
-        exportLocation: Path = None
-
-        pendingStrategy: Literal['power', 'tags', 'each'] = None
-        jobsType: Literal["multiJobs", "powerJobs"] = None
-        isRetrieve: bool = None
-        isRead: bool = None
-        clear: bool = None
-        independentExports: list[str] = None
-        filetype: TagMap._availableFileType = None
-
-    class expsMultiMain(NamedTuple):
-        # configList
-        configList: list = []
-        configDict: dict = {}
-
-        powerJobID: Union[str, list[str]] = []
-        gitignore: syncControl = syncControl()
-
-        circuitsNum: dict[str, int] = {}
-        state: Literal["init", "pending", "completed"] = 'init'
-
-    class _tagMapStateDepending(NamedTuple):
-        tagMapQuantity: TagMapType[Quantity]
-        tagMapCounts: TagMapType[Counts]
-
-    class _tagMapUnexported(NamedTuple):
-        tagMapResult: TagMapType[Result]
-
-    class _tagMapNeccessary(NamedTuple):
-        # with Job.json file
-        tagMapExpsID: TagMapType[str]
-        tagMapFiles: TagMapType[str]
-        tagMapIndex: TagMapType[Union[str, int]]
-        # circuitsMap
-        circuitsMap: TagMapType[str]
-        pendingPools: TagMapType[str]
-
-    _generalJobKeyRequired = ['state']
-    _powerJobKeyRequired = ['powerJobID'] + _generalJobKeyRequired
-    _multiJobKeyRequired = [] + _generalJobKeyRequired
-    _independentExportDefault = ['configDict']
-    _unexport = ['configList']+[i for i in _tagMapUnexported._fields]
-
-    _v3MultiArgsMapping = {
-        'circuitsMap': 'circuitsMap',
-    }
     
     
