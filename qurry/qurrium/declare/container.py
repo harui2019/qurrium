@@ -30,7 +30,7 @@ class QurryExperiment:
 
     class commonparams(NamedTuple):
         expID: Optional[str] = None
-        expID.__doc__ = "ID of experiment."
+        expID.__doc__ = "ID of e                  xperiment."
 
         # Qiskit argument of experiment.
         # Multiple jobs shared
@@ -172,7 +172,7 @@ class QurryExperiment:
         self.outfields: dict[str, any] = outfields
         self.beforewards = self.before()
         self.afterwards = self.after()
-        self.reports = []
+        self.reports: list[QurryExperiment.analysis] = []
         
     class Export(NamedTuple):
         expID: str = ''
@@ -186,6 +186,7 @@ class QurryExperiment:
         commons.__doc__ = "Construct the experiment's common parameters."
         outfields: dict[str, any] = {}
         outfields.__doc__ = "Recording the data of other unused arguments."
+        
         adventures: dict[str, any] = {}
         adventures.__doc__ = "Recording the data of 'beforeward'. ~A Great Adventure begins~"
         legacy: dict[str, any] = {}
@@ -197,55 +198,84 @@ class QurryExperiment:
         reports.__doc__ = "Recording the data of 'reports'. ~The guild concludes the results.~"
 
     def export(self) -> Export:
+        """Export the data of experiment.
 
-        expID = self.arguments.expID
-        expIndex = self.arguments.expIndex
-        args: dict[str, any] = jsonablize(self.arguments._asdict())
+        Returns:
+            Export: A namedtuple containing the data of experiment.
+        """
         
-        rawData = self.exps._asdict()
-        legacy = {}
+        # independent values
+        expID = self.args.expID
+        expIndex = self.args.expIndex
+        expsName = self.beforewards.expsName
+        # args, commons, outfields
+        args: dict[str, any] = jsonablize(self.args._asdict())
+        commons: dict[str, any] = jsonablize(self.commons._asdict())
+        outfields = jsonablize(self.outfields)
+        # adventures, legacy, tales
         tales = {}
-        expsName = self.exps.expsName
-        for k, v in rawData.items():
+        adventures_wunex = self.beforewards._asdict()
+        adventures = {}
+        for k, v in adventures_wunex.items():
             if k == 'sideProduct':
-                tales = v
-            elif k in self._exportsExceptKeys:
+                tales = { **tales, **v }
+            elif k in self._unexports:
                 ...
             else:
-                legacy[k] = v
-        legacy = jsonablize(legacy)
-        tales = jsonablize(tales)
-        
+                adventures[k] = jsonablize(v)
+                
+        legacy_wunex = self.afterwards._asdict()
+        legacy = {}
+        for k, v in legacy_wunex.items():
+            if k == 'sideProduct':
+                tales = { **tales, **v }
+            elif k in self._unexports:
+                ...
+            else:
+                adventures[k] = jsonablize(v)
+        tales: dict[str, any]= jsonablize(tales)
+        # filename
         filename = f"{expsName}.id={expID}"
         if expIndex is not None:
             filename += f".index={expIndex}"
-
-        outfields = {
-            'args': self.outfields,
-            'exps': self.outfieldsExps,
-        }
+        # reports
+        reports: list[dict[str, any]] = [jsonablize(al._asdict()) for al in self.reports]
 
         return self.Export(
             expID=expID,
             expsName=expsName,
             expIndex=expIndex,
+            filename=filename,
+            
             args=args,
+            commons=commons,
+            outfields=outfields,
+            adventures=adventures,
             legacy=legacy, 
-            tales=tales, 
-            outfields=jsonablize(outfields)
+            tales=tales,
+            
+            reports=reports
         )
 
     def __setitem__(self, key, value) -> None:
-        if key in self.expsCombined._fields:
-            self.exps = self.exps._replace(**{key: value})
+        if key in self.before._fields:
+            self.beforewards = self.beforewards._replace(**{key: value})
             gc.collect()
+        elif key in self.after._fields:
+            self.afterwards = self.afterwards._replace(**{key: value})
         else:
             raise ValueError(
-                f"{key} is not a valid field of {self.expsCombined.__name__}")
+                f"{key} is not a valid field of '{self.before.__name__}' and '{self.after.__name__}'.")
 
     def __repr__(self) -> str:
-        return f"<{self.__name__} with {self.arguments.__repr__()}, {len(self.expsCombined._fields)} datasets, {len(self.outfields)} unused arguments, and {len(self.outfieldsExps)} extra datasets>"
-
+        return (
+            f"<{self.__name__} with "+
+            f"{self.args.__repr__()}, "+
+            f"{self.commons.__repr__()}, "+
+            f"{len(self.outfields)} unused arguments, "+
+            f"{len(self.before._fields)} preparing dates, "+
+            f"{len(self.after._fields)} experiment result datasets, "+
+            f"and {len(self.reports)} analysis>")
 
 
 """
