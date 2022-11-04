@@ -329,11 +329,13 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
 
         if isinstance(degree, int):
             subsystemSize = degree
+            print('quantity core: int', degree)
             degree = qubitSelector(
                 len(list(counts[0].keys())[0]), degree=degree)
 
         elif isinstance(degree, (tuple, list)):
             subsystemSize = max(degree) - min(degree)
+            print('quantity core: tuple, list', degree)
 
         else:
             raise ValueError(
@@ -411,6 +413,7 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
             degree=degree,
             measure=measure,
         )
+        print('purity', degree)
 
         purityCellListAllSys, bitStringRangeAllSys = cls._quantityCore(
             shots=shots,
@@ -422,6 +425,7 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
 
         purity = np.mean(purityCellList)
         purityAllSys = np.mean(purityCellListAllSys)
+        
         puritySD = np.std(purityCellList)
         puritySDAllSys = np.std(purityCellListAllSys)
 
@@ -433,13 +437,14 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
         quantity = {
             'purity': purity,
             'entropy': entropy,
-
             '_purityCellList': purityCellList,
             'puritySD': puritySD,
+            'bitsStringRange': bitStringRange,
 
             'purityAllSys': purityAllSys,
             '_purityCellListAllSys': purityCellListAllSys,
             'puritySDAllSys': puritySDAllSys,
+            'bitsStringRangeAllSys': bitStringRangeAllSys,
 
             '_range': {
                 'degree': degree,

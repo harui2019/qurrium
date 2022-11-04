@@ -2,7 +2,7 @@ from qiskit import (
     execute, transpile,
     QuantumRegister, QuantumCircuit
 )
-from qiskit.providers.aer import AerProvider, AerSimulator
+from qiskit_aer import AerProvider, AerSimulator
 from qiskit.quantum_info import Operator
 from qiskit.circuit import Gate, Instruction
 from qiskit.result import Result
@@ -45,7 +45,8 @@ from ..mori import (
     TagMap,
 )
 from ..mori.type import TagMapType
-from ..util import Gajima, ResoureWatch
+from ..util import ResoureWatch, Gajima
+from tqdm import tqdm
 
 from .declare.default import (
     transpileConfig,
