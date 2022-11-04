@@ -2,7 +2,7 @@ from qiskit import (
     execute, transpile,
     QuantumRegister, ClassicalRegister, QuantumCircuit
 )
-from qiskit.providers.aer import AerProvider
+from qiskit_aer import AerProvider, AerSimulator
 from qiskit.quantum_info import Operator
 from qiskit.circuit import Gate, Instruction
 from qiskit.result import Result
@@ -33,8 +33,8 @@ from typing import Literal, Union, Optional, NamedTuple, Hashable, overload
 from abc import abstractmethod, abstractclassmethod
 from collections import Counter
 
-from ..util import Gajima, ResoureWatch
-from ..mori import (
+from ...util import Gajima, ResoureWatch
+from ...mori import (
     defaultConfig,
     attributedDict,
     syncControl,
@@ -45,9 +45,9 @@ from ..mori import (
     TagMap,
     singleColCSV,
 )
-from ..mori.type import TagMapType
-from ..exceptions import UnconfiguredWarning
-from .declare.type import (
+from ...mori.type import TagMapType
+from ...exceptions import UnconfiguredWarning
+from ..declare.type import (
     Quantity,
     Counts,
     waveGetter,
