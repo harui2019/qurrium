@@ -15,6 +15,12 @@ class QurryError(Exception):
         """Return the message."""
         return repr(self.message)
 
+class QurryInvalidInherition(QurryError):
+    """Invalid inherition class making by Qurry."""
+    
+class QurryExperimentCountsNotCompleted(QurryError):
+    """Experiment is not completed."""
+
 
 # General Warning
 class QurryWarning(Warning):
@@ -41,3 +47,6 @@ class InvalidConfiguratedWarning(QurryWarning):
 
 class QurryMemoryOverAllocationWarning(QurryWarning):
     "Automatically shutdown experiment to protect RAM for preventing crashing."
+    
+class QurryImportWarning(QurryWarning):
+    "Warning for qurry trying to import something."
