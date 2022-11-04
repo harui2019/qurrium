@@ -1,4 +1,4 @@
-from .qurryV3 import QurryV3 as Qurry
+from .v3.qurryV3 import QurryV3
 from .qurryV4 import QurryV4
 from .declare.type import (
     Quantity,
