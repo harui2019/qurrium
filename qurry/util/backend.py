@@ -1,15 +1,108 @@
-from qiskit.version import __qiskit_version__
+from qiskit import __qiskit_version__
 from qiskit.providers import Backend
 from qiskit.providers.ibmq import AccountProvider
 from qiskit_aer import AerProvider
 from qiskit_aer.version import get_version_info as get_version_info_aer
 
 import requests
+import asyncio
+import pkg_resources
 from random import random
 from typing import Optional, Hashable
 
 from .command import cmdWrapper, pytorchCUDACheck
 from ..hoshi import Hoshi
+
+
+def _local_version() -> dict[str, dict[str, any]]:
+    installed_packages = pkg_resources.working_set
+    local_version_dict = {}
+    for i in installed_packages:
+        if i.key == 'qiskit':
+            local_version_dict[i.key] = {
+                'dist': i,
+                'local_version': i.version,
+            }
+        elif i.key == 'qiskit-aer-gpu':
+            local_version_dict[i.key] = {
+                'dist': i,
+                'local_version': i.version,
+            }
+    return local_version_dict
+
+
+def _version_check():
+    """Version check to remind user to update qiskit if needed.
+    """
+
+    check_msg = Hoshi([
+        ('divider', 60),
+        ('h3', 'Qiskit version outdated warning'),
+        ('txt', "Please keep mind on your qiskit version, a very outdated version may cause some problems.")
+    ], ljust_describe_len=40)
+    local_version_dict = _local_version()
+    for k, v in local_version_dict.items():
+        try:
+            response = requests.get(f'https://pypi.org/pypi/{k}/json')
+            latest_version = response.json()['info']['version']
+            latest_version_tuple = tuple(map(int, latest_version.split('.')))
+            local_version_tuple = tuple(
+                map(int, v['local_version'].split('.')))
+
+            if latest_version_tuple > local_version_tuple:
+                check_msg.newline({
+                    'type': 'itemize',
+                    'description': f'{k}',
+                    'value': f"{v['local_version']}/{latest_version}",
+                    'hint': 'The Local version/The Latest version on PyPI.',
+                })
+        except Exception as e:
+            check_msg.newline({
+                'type': 'itemize',
+                'description': f"Request error due to '{e}'",
+                'value': None,
+            })
+
+    for k, v in __qiskit_version__.items():
+        check_msg.newline({
+            'type': 'itemize',
+            'description': f'{k}',
+            'value': str(v),
+            'listing_level': 2
+        })
+
+    if 'qiskit-aer-gpu' in local_version_dict:
+        check_msg.newline(
+            ('txt', "If version of 'qiskit-aer' is not same with 'qiskit-aer-gpu', it may cause GPU backend not working."))
+        check_msg.newline({
+            'type': 'itemize',
+            'description': 'qiskit-aer',
+            'value': get_version_info_aer(),
+        })
+        check_msg.newline({
+            'type': 'itemize',
+            'description': 'qiskit-aer-gpu',
+            'value': local_version_dict['qiskit-aer-gpu']['local_version'],
+        })
+
+    pytorchCUDACheck()
+
+    return check_msg
+
+
+def version_check():
+    """Version check to remind user to update qiskit if needed.
+    """
+    check_msg = _version_check()
+    print(check_msg)
+    return check_msg
+
+
+async def _async_version_check():
+    """Version check to remind user to update qiskit if needed.
+    """
+    check_msg = _version_check()
+    return check_msg
 
 
 class backendWrapper:
@@ -95,38 +188,22 @@ class backendWrapper:
         realProvider: Optional[AccountProvider] = None,
     ) -> None:
 
-        try:
-            package = 'qiskit'  # replace with the package you want to check
-            response = requests.get(f'https://pypi.org/pypi/{package}/json')
-            latest_version = response.json()['info']['version']
-            latest_version_tuple = tuple(map(int, latest_version.split('.')))
-            local_version = tuple(
-                map(int, __qiskit_version__['qiskit'].split('.')))
+        # version check
+        # try:
+        #     loop = asyncio.get_running_loop()
+        # except RuntimeError:  # 'RuntimeError: There is no current event loop...'
+        #     loop = None
 
-            if latest_version_tuple > local_version:
-                check_msg = Hoshi([
-                    ('divider', 60),
-                    ('h3', 'Qiskit version outdated warning'),
-                    ('txt', "Please keep mind on your qiskit version, a very outdated version may cause some problems."),
-                    (
-                        'itemize',
-                        'Local Qiskit version',
-                        __qiskit_version__['qiskit'],
-                        'The version on this environment.',
-                    ),
-                    {
-                        'type': 'itemize',
-                        'description': 'Latest Qiskit version',
-                        'value': latest_version,
-                        'hint': 'The latest version on PyPI.',
-                        
-                    }
-                ],
-                    ljust_describe_len=40,
-                )
-                print(check_msg)
-        finally:
-            ...
+        # if loop and loop.is_running():
+        #     print('Async event loop already running. Adding coroutine to the event loop.')
+        #     tsk = loop.create_task(_async_version_check())
+        #     # ^-- https://docs.python.org/3/library/asyncio-task.html#task-object
+        #     # Optionally, a callback function can be executed when the coroutine completes
+        #     tsk.add_done_callback(lambda t: [print('eeeee'), t.result().print()])
+        # else:
+        #     print('Starting new event loop')
+        #     result = asyncio.run(_async_version_check())
+        #     print(result)
 
         self._AerProvider = AerProvider()
         self._AerOwnedBackends = self._AerProvider.backends()
@@ -233,18 +310,3 @@ class backendWrapper:
                 f"'{backend_name}' unknown backend or backend callsign.")
 
         return self.backend[backend_name]
-
-    def aer_gpu_installed_check(self):
-
-        print(f" - Qiskit version:")
-        for k, v in __qiskit_version__.items():
-            print(f"   - {k}: {v}")
-        print(f" - Aer version: {get_version_info_aer()}")
-        print(" - Installed state:")
-        print("   - If version of 'qiskit-aer' is not same with 'qiskit-aer-gpu, it may cause GPU backend not working.'")
-        print('-'*30)
-        cmdWrapper("pip show qiskit")
-        print('-'*30)
-        cmdWrapper("pip show qiskit-aer-gpu")
-        print('-'*30)
-        pytorchCUDACheck()
