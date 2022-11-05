@@ -62,11 +62,6 @@ from ..declare.type import Quantity, Counts, waveGetter, waveReturn
 # Qurry V0.5.0 - a Qiskit Macro
 
 
-def defaultCircuit(numQubit: int) -> QuantumCircuit:\
-    return QuantumCircuit(
-        numQubit, numQubit, name=f'qurry_default_{numQubit}')
-
-
 class QurryV5:
     """Qurry V0.5.0
     The qiskit Macro.

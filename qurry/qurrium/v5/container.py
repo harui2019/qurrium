@@ -12,7 +12,9 @@ from uuid import uuid4
 from datetime import datetime
 import gc
 import warnings
+import json
 
+from ...hoshi import Hoshi
 from ...mori import jsonablize, TagMap, syncControl
 from ...mori.type import TagMapType
 from ...exceptions import QurryInvalidInherition, QurryExperimentCountsNotCompleted
@@ -32,7 +34,7 @@ class QurryExperiment:
         """Construct the experiment's parameters for specific options."""
 
     class arguments(NamedTuple):
-        expsName: str = 'exps'
+        expName: str = 'exps'
         wave: Union[QuantumCircuit, any, None] = None
         sampling: int = 1
 
@@ -59,20 +61,24 @@ class QurryExperiment:
         transpileArgs: dict[str, any] = {}
         """Arguments of `qiskit.compiler.transpile`."""
         decompose: Optional[int] = 2
-        """Decompose the circuit in given times to show the circuit figures."""
+        """Decompose the circuit in given times to show the circuit figures in :property:`.before.figOriginal`."""
 
-        # Other arguments of experiment
+        # Arguments for exportation
         tags: tuple[str] = ()
         """Tags of experiment."""
-        resoureControl: dict[str, any] = {}
-        """Arguments of `ResoureWatch`."""
         saveLocation: Union[Path, str] = Path('./')
-        """Location of saving experiment."""
+        """Location of saving experiment. 
+        If this experiment is called by :cls:`QurryMultiManager`,
+        then `adventure`, `legacy`, `tales`, and `reports` will be exported to their dedicated folders in this location respectively."""
 
+        # Arguments for multi-experiment
         serial: Optional[int] = None
         """Index of experiment in a multiOutput."""
         summoner: Optional[Hashable] = None
         """ID of experiment of the multiManager."""
+
+        # header
+        datetime: str = ''
 
     class before(NamedTuple):
         # Experiment Preparation
@@ -144,7 +150,7 @@ class QurryExperiment:
         """Header of analysis."""
         sideProduct: dict[str, any] = {}
         """The data of experiment will be independently exported in the folder 'tales'."""
-        
+
         def __repr__(self):
             return f'<analysis(serial={self.header.serial} ,sampling={self.sampling})>'
 
@@ -212,8 +218,6 @@ class QurryExperiment:
                     f" The standard analysis namedtuple requires {self._analysisrequried}."
                 )
 
-        self.args = self.arguments(**kwargs)
-
         params = {}
         commons = {}
         outfields = {}
@@ -227,96 +231,15 @@ class QurryExperiment:
             else:
                 outfields[k] = kwargs[k]
 
+        if 'datetime' not in commons:
+            commons['datetime'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
         self.args = self.arguments(**params)
         self.commons = self.commonparams(expID=expID, **commons)
         self.outfields: dict[str, any] = outfields
         self.beforewards = self.before()
         self.afterwards = self.after()
         self.reports: list[QurryExperiment.analysis] = []
-
-    class Export(NamedTuple):
-        expID: str = ''
-        expsName: str = 'exps'
-        expIndex: Optional[int] = None
-        filename: str = ''
-
-        args: dict[str, any] = {}
-        """Construct the experiment's parameters."""
-        commons: dict[str, any] = {}
-        """Construct the experiment's common parameters."""
-        outfields: dict[str, any] = {}
-        """Recording the data of other unused arguments."""
-
-        adventures: dict[str, any] = {}
-        """Recording the data of 'beforeward'. ~A Great Adventure begins~"""
-        legacy: dict[str, any] = {}
-        """Recording the data of 'afterward'. ~The Legacy remains from the achievement of ancestors~"""
-        tales: dict[str, any] = {}
-        """Recording the data of 'sideProduct' in 'afterward' and 'befosrewards' for API. ~Tales of braves circulate~"""
-
-        reports: list[dict[str, any]] = []
-        """Recording the data of 'reports'. ~The guild concludes the results.~"""
-
-    def export(self) -> Export:
-        """Export the data of experiment.
-
-        Returns:
-            Export: A namedtuple containing the data of experiment.
-        """
-
-        # independent values
-        expID = self.commons.expID
-        expIndex = self.commons.expIndex
-        expsName = self.beforewards.expsName
-        # args, commons, outfields
-        args: dict[str, any] = jsonablize(self.args._asdict())
-        commons: dict[str, any] = jsonablize(self.commons._asdict())
-        outfields = jsonablize(self.outfields)
-        # adventures, legacy, tales
-        tales = {}
-        adventures_wunex = self.beforewards._asdict()
-        adventures = {}
-        for k, v in adventures_wunex.items():
-            if k == 'sideProduct':
-                tales = {**tales, **v}
-            elif k in self._unexports:
-                ...
-            else:
-                adventures[k] = jsonablize(v)
-
-        legacy_wunex = self.afterwards._asdict()
-        legacy = {}
-        for k, v in legacy_wunex.items():
-            if k == 'sideProduct':
-                tales = {**tales, **v}
-            elif k in self._unexports:
-                ...
-            else:
-                adventures[k] = jsonablize(v)
-        tales: dict[str, any] = jsonablize(tales)
-        # filename
-        filename = f"{expsName}.id={expID}"
-        if expIndex is not None:
-            filename += f".index={expIndex}"
-        # reports
-        reports: list[dict[str, any]] = [
-            jsonablize(al._asdict()) for al in self.reports]
-
-        return self.Export(
-            expID=expID,
-            expsName=expsName,
-            expIndex=expIndex,
-            filename=filename,
-
-            args=args,
-            commons=commons,
-            outfields=outfields,
-            adventures=adventures,
-            legacy=legacy,
-            tales=tales,
-
-            reports=reports
-        )
 
     def __setitem__(self, key, value) -> None:
         if key in self.before._fields:
@@ -327,7 +250,7 @@ class QurryExperiment:
         else:
             raise ValueError(
                 f"{key} is not a valid field of '{self.before.__name__}' and '{self.after.__name__}'.")
-            
+
     def __getitem__(self, key) -> any:
         if key in self.before._fields:
             return getattr(self.beforewards, key)
@@ -425,77 +348,176 @@ class QurryExperiment:
             f"{len(self.after._fields)} experiment result datasets, " +
             f"and {len(self.reports)} analysis>")
 
+    def sheet(
+        self,
+        reportExpanded: bool = False,
 
-class QurryMultiManager:
+        hoshi: bool = False,
+    ) -> Hoshi:
+        info = Hoshi(
+            [
+                ('h1', f"{self.__name__} with expID={self.commons.expID}"),
+            ],
+            name='Hoshi' if hoshi else 'QurryExperimentSheet',
+        )
+        info.newline(('itemize', 'arguments'))
+        for k, v in self.args._asdict().items():
+            info.newline(('itemize', str(k), str(v), '', 2))
+        info.newline(('itemize', 'commonparams'))
+        for k, v in self.commons._asdict().items():
+            info.newline(('itemize', str(k), str(v), 'test', 2))
+        info.newline(('itemize', 'outfields', len(self.outfields),
+                     'Number of unused arguments.', 1))
+        for k, v in self.outfields.items():
+            info.newline(('itemize', str(k), str(v), '', 2))
+        info.newline(('itemize', 'beforewards', len(
+            self.before._fields), 'Number of preparing dates.', 1))
+        info.newline(('itemize', 'afterwards', len(
+            self.after._fields), 'Number of experiment result datasets.', 1))
+        info.newline(('itemize', 'reports', len(
+            self.reports), 'Number of analysis.', 1))
+        if reportExpanded:
+            for item in self.reports:
+                info.newline(
+                    ('itemize', 'serial', None, item.header.serial, 2))
+                info.newline(('txt', item, 3))
 
-    class treatyparams(NamedTuple):
-        """Multiple jobs shared. `argsMultiMain` in V4 format.
+        return info
+
+    class Export(NamedTuple):
+        expID: str = ''
+        expName: str = 'exps'
+        serial: Optional[int] = None
+        filename: str = ''
+        """The name of file to be exported, Warning, this is not the actual name of files
+        for the `.write` function actually exports 4 different files
+        respecting to `adventure`, `legacy`, `tales`, and `reports` like:
+        
+        ```txt
+        blabla_experiment.adventure.json
+        blabla_experiment.legacy.json
+        blabla_experiment.{tales_fields}.tales.json
+        blabla_experiment.report.json
+        ```
+        
+        which `blabla_experiment` is the example filename.
         """
 
-        shots: int = 1024
-        """Number of shots to run the program (default: 1024), which multiple experiments shared."""
-        backend: Backend = AerSimulator()
-        """Backend to execute the circuits on, which multiple experiments shared."""
-        provider: Optional[AccountProvider] = None
-        """Provider to execute the backend on, which multiple experiments shared."""
+        args: dict[str, any] = {}
+        """Construct the experiment's parameters."""
+        commons: dict[str, any] = {}
+        """Construct the experiment's common parameters."""
+        outfields: dict[str, any] = {}
+        """Recording the data of other unused arguments."""
 
-        managerRunArgs: dict[str, any] = None
-        """Other arguments will be passed to `IBMQJobManager()`"""
+        adventures: dict[str, any] = {}
+        """Recording the data of 'beforeward'. ~A Great Adventure begins~"""
+        legacy: dict[str, any] = {}
+        """Recording the data of 'afterward'. ~The Legacy remains from the achievement of ancestors~"""
+        tales: dict[str, any] = {}
+        """Recording the data of 'sideProduct' in 'afterward' and 'befosrewards' for API. ~Tales of braves circulate~"""
 
-        expsName: str = None
-        saveLocation: Union[Path, str] = Path('./')
-        """Location of saving experiment."""
-        exportLocation: Path = Path('./')
-        """Location of exporting experiment, exportLocation is the final result decided by experiment."""
+        reports: list[dict[str, any]] = []
+        """Recording the data of 'reports'. ~The guild concludes the results.~"""
 
-        pendingStrategy: Literal['power', 'tags', 'each'] = None
-        jobsType: Literal["local", "IBMQ", "AWS_Bracket",
-                          "Azure_Q", "multiJobs", "powerJobs"] = None
-        clear: bool = None
-        independentExports: list[str] = None
-        filetype: TagMap._availableFileType = None
+    def export(self) -> Export:
+        """Export the data of experiment.
 
-    class treatypreparation(NamedTuple):
-        """`expsMultiMain` in V4 format."""
+        Returns:
+            Export: A namedtuple containing the data of experiment.
+        """
 
-        powerJobID: Union[str, list[str]] = []
-        gitignore: syncControl = syncControl()
+        # independent values
+        expID = self.commons.expID
+        serial = self.commons.serial
+        expName = self.beforewards.expName
+        # args, commons, outfields
+        args: dict[str, any] = jsonablize(self.args._asdict())
+        commons: dict[str, any] = jsonablize(self.commons._asdict())
+        outfields = jsonablize(self.outfields)
+        # adventures, legacy, tales
+        tales = {}
+        adventures_wunex = self.beforewards._asdict()
+        adventures = {}
+        for k, v in adventures_wunex.items():
+            if k == 'sideProduct':
+                tales = {**tales, **v}
+            elif k in self._unexports:
+                ...
+            else:
+                adventures[k] = jsonablize(v)
+        
+        legacy_wunex = self.afterwards._asdict()
+        legacy_wunex.__doc__ = "Legacy with unexported data."
+        
+        legacy = {}
+        for k, v in legacy_wunex.items():
+            if k == 'sideProduct':
+                tales = {**tales, **v}
+            elif k in self._unexports:
+                ...
+            else:
+                adventures[k] = jsonablize(v)
+        tales: dict[str, any] = jsonablize(tales)
+        # filename
+        filename = f"{expName}.id={expID}"
+        if serial is not None:
+            filename += f".index={serial}"
+        # reports
+        reports: list[dict[str, any]] = [
+            jsonablize(al._asdict()) for al in self.reports]
 
-        circuitsNum: dict[str, int] = {}
-        state: Literal["init", "pending", "completed"] = 'init'
+        return self.Export(
+            expID=expID,
+            expName=expName,
+            serial=serial,
+            filename=filename,
 
-    class before(NamedTuple):
-        """`dataNeccessary` and `expsMultiMain` in V4 format."""
-        configDict: dict
-        # with Job.json file
-        tagMapExpsID: TagMapType[str]
-        tagMapFiles: TagMapType[str]
-        tagMapIndex: TagMapType[Union[str, int]]
-        # circuitsMap
-        circuitsMap: TagMapType[str]
-        pendingPools: TagMapType[str]
+            args=args,
+            commons=commons,
+            outfields=outfields,
+            adventures=adventures,
+            legacy=legacy,
+            tales=tales,
 
-    _v3ArgsMapping = {
-        'circuitsMap': 'circuitsMap',
-    }
+            reports=reports
+        )
+        
+    def write(
+        self,
+        saveLocation: Optional[Union[Path, str]] = None,
+        excepts: list = [],
+        _isMulti: bool = False,
+        _clear: bool = False,
+    ) -> dict[str, any]:
+        """Export the experiment data, if there is a previous export, then will overwrite.
+        Replacement of :func:`QurryV4().writeLegacy`
 
-    class after(NamedTuple):
-        """`dataStateDepending` and `dataNeccessary` in V4 format."""
-        tagMapQuantity: TagMapType[Quantity]
-        tagMapCounts: TagMapType[Counts]
+        - example of file.name:
 
-        tagMapResult: TagMapType[Result]
+            >>> {name}.{self.exps[expID]['expsName']}.expId={expID}.json
 
-    _unexports = ['configList', 'tagMapResult']
-    _exportsExceptKeys = ['configList']
-    _powerJobKeyRequired = ['powerJobID', 'state']
-    _multiJobKeyRequired = ['state']
-    _independentExport = ['configDict']
+            In `self.exps`,
+            >>> filename = ((
+                Path(f"{self.exps[legacyId]['expsName']}.expId={legacyId}.json")
+            )
+            >>> self.exps[legacyId]['filename'] = filename
 
-    def __init__(self, *args, **kwargs) -> None:
+        Args:
+            expID (Optional[str], optional):
+                The id of the experiment will be exported.
+                If `expID == None`, then export the experiment which id is`.IDNow`.
+                Defaults to `None`.
 
-        self.args = self.argsMultiMain(*args, **kwargs)
-        self.exps = self.expsMultiMain()
-        self.stateDepending = self.dataStateDepending()
-        self.unexported = self.dataUnexported()
-        self.neccessary = self.dataNeccessary()
+            saveLocation (Optional[Union[Path, str]], optional):
+                Where to save the export content as `json` file.
+                If `saveLocation == None`, then cancelled the file to be exported.
+                Defaults to `None`.
+
+            name (str, optional):
+                The first name of the file.
+                Export as showing in example.
+
+        Returns:
+            dict[any]: the export content.
+        """
