@@ -1,6 +1,6 @@
 from typing import Literal
 
-from .qurstrop import StringOperator as StringOperatorOrigin
+from .qurstrop import StringOperatorV3 as StringOperatorOrigin
 
 
 def StringOperator(
