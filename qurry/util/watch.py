@@ -5,7 +5,7 @@ from collections import namedtuple
 
 from ..exceptions import (
     QurryMemoryOverAllocationWarning,
-    InvalidConfiguratedWarning,
+    QurryInheritionNoEffect,
 )
 
 
@@ -34,7 +34,7 @@ class ResoureWatch:
         if len(arg) > 0:
             warnings.warn(
                 "Please specify at least arguments to configure.",
-                InvalidConfiguratedWarning
+                QurryInheritionNoEffect
             )
 
         self.ALLOW_LIMIT = self.RESOURCE_LIMIT(

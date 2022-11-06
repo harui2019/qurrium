@@ -58,7 +58,7 @@ from .declare.default import (
 from .construct import decomposer
 from ..exceptions import (
     UnconfiguredWarning,
-    InvalidConfiguratedWarning,
+    QurryInheritionNoEffect,
 )
 from .declare.type import Quantity, Counts, waveGetter, waveReturn
 
@@ -788,7 +788,7 @@ class QurryV4:
                 f"The following keys are not recognized as arguments for main process of experiment: " +
                 f"{list(otherParams.keys())}'" +
                 ', but are still kept in experiment record.',
-                InvalidConfiguratedWarning
+                QurryInheritionNoEffect
             )
 
         self.now: Union[QurryV4.argsMain, QurryV4.argsCore] = self.namedtupleNow(**{

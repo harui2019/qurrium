@@ -42,7 +42,7 @@ class QurryWarning(Warning):
 class UnconfiguredWarning(QurryWarning):
     "For dummy function in qurrium has been activated."
 
-class InvalidConfiguratedWarning(QurryWarning):
+class QurryInheritionNoEffect(QurryWarning):
     "This configuration method has no effect."
 
 class QurryMemoryOverAllocationWarning(QurryWarning):
@@ -50,3 +50,9 @@ class QurryMemoryOverAllocationWarning(QurryWarning):
     
 class QurryImportWarning(QurryWarning):
     "Warning for qurry trying to import something."
+
+class QurryResetSecurityActivate(QurryWarning):
+    "Warning for reset class security."
+    
+class QurryResetAccomplished(QurryWarning):
+    "Warning for class reset."

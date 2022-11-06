@@ -55,7 +55,7 @@ from .container import argsCore, argsMain, expsCore, expsMain
 from ..construct import decomposer
 from ...exceptions import (
     UnconfiguredWarning,
-    InvalidConfiguratedWarning,
+    QurryInheritionNoEffect,
 )
 from ..declare.type import Quantity, Counts, waveGetter, waveReturn
 
