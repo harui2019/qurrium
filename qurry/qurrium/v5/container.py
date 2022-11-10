@@ -13,12 +13,13 @@ from datetime import datetime
 import gc
 import warnings
 import json
+import os
 
 from ...hoshi import Hoshi
 from ...mori import jsonablize, quickJSON
 from ...exceptions import (
-    QurryInvalidInherition, 
-    QurryExperimentCountsNotCompleted, 
+    QurryInvalidInherition,
+    QurryExperimentCountsNotCompleted,
     QurryResetSecurityActivate,
     QurryResetAccomplished
 )
@@ -67,16 +68,67 @@ class QurryExperiment:
         decompose: Optional[int] = 2
         """Decompose the circuit in given times to show the circuit figures in :property:`.before.figOriginal`."""
 
-        # Arguments for exportation
         tags: tuple[str] = ()
         """Tags of experiment."""
+
+        # Arguments for exportation
         saveLocation: Union[Path, str] = Path('./')
         """Location of saving experiment. 
         If this experiment is called by :cls:`QurryMultiManager`,
         then `adventure`, `legacy`, `tales`, and `reports` will be exported to their dedicated folders in this location respectively.
         This location is the default location for it's not specific where to save when call :meth:`.write()`, if does, then will be overwriten and update."""
+        filename: str = ''
+        """The name of file to be exported, it will be decided by the :meth:`.export` when it's called.
+        More info in the pydoc of :prop:`files` or :meth:`.export`.
+        """
         files: dict[str, Path] = {}
-        """The atually location of exporting experiment of each exported files, exportLocation is the final result decided by experiment."""
+        """The list of file to be exported.
+        For the `.write` function actually exports 4 different files
+        respecting to `adventure`, `legacy`, `tales`, and `reports` like:
+        
+        ```python
+        files = {
+            'folder': './blabla_experiment/',
+            
+            'arguments': './blabla_experiment/args/blabla_experiment.id={expID}.args.json',
+            'adventure': './blabla_experiment/advent/blabla_experiment.id={expID}.advent.json',
+            'legacy': './blabla_experiment/legacy/blabla_experiment.id={expID}.legacy.json',
+            'tales.dummyx1': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyx1.json',
+            'tales.dummyx2': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyx2.json',
+            ...
+            'tales.dummyxn': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyxn.json',
+            'reports': './blabla_experiment/reports/blabla_experiment.id={expID}.reports.json',
+            'reports.tales.dummyz1': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyz1.reports.json',
+            'reports.tales.dummyz2': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyz2.reports.json',
+            ...
+            'reports.tales.dummyzm': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyzm.reports.json',
+        }
+        ```
+        which `blabla_experiment` is the example filename.
+        If this experiment is called by :cls:`multimanager`, then the it will be named after `summonerName` as known as the name of :cls:`multimanager`.
+        
+        ```python
+        files = {
+            'folder': './BLABLA_project/',
+            
+            'arguments': './BLABLA_project/args/index={serial}.id={expID}.args.json',
+            'adventure': './BLABLA_project/advent/index={serial}.id={expID}.advent.json',
+            'legacy': './BLABLA_project/legacy/index={serial}.id={expID}.legacy.json',
+            'tales.dummyx1': './BLABLA_project/tales/index={serial}.id={expID}.dummyx1.json',
+            'tales.dummyx2': './BLABLA_project/tales/index={serial}.id={expID}.dummyx2.json',
+            ...
+            'tales.dummyxn': './BLABLA_project/tales/index={serial}.id={expID}.dummyxn.json',
+            'reports': './BLABLA_project/reports/index={serial}.id={expID}.reports.json',
+            'reports.tales.dummyz1': './BLABLA_project/tales/index={serial}.id={expID}.dummyz1.reports.json',
+            'reports.tales.dummyz2': './BLABLA_project/tales/index={serial}.id={expID}.dummyz2.reports.json',
+            ...
+            'reports.tales.dummyzm': './BLABLA_project/tales/index={serial}.id={expID}.dummyzm.reports.json',
+        }
+        ```
+        which `BLBLA_project` is the example :cls:`multimanager` name stored at :prop:`commonparams.summonerName`.
+        At this senerio, the `expName` will never apply as filename.
+        
+        """
 
         # Arguments for multi-experiment
         serial: Optional[int] = None
@@ -128,7 +180,7 @@ class QurryExperiment:
         """Serial Number of analysis."""
         datetime: str
         """Written time of analysis."""
-        summoner: Optional[str] = None
+        summoner: Optional[tuple[any, str]] = None
         """Which multiManager makes this analysis. If it's an independent one, then usr the default 'None'."""
         log: dict[str] = {}
         """Other info will be recorded."""
@@ -154,18 +206,42 @@ class QurryExperiment:
         header: NamedTuple = None
         """Header of analysis."""
         sideProduct: dict[str, any] = {
-            'bla': 'bla'
+            'number_between_3_and_4': 'bleem (it\'s a joke)'
         }
         """The data of experiment will be independently exported in the folder 'tales'."""
 
-        def __repr__(self):
-            return f'<analysis(serial={self.header.serial} ,sampling={self.sampling})>'
-        
-        def _jsonable(self):
+        def __repr__(self) -> str:
+            return f'<analysis(serial={self.header.serial}, sampling={self.sampling})>'
+
+        def _jsonable(self) -> dict[str, any]:
+            """Return a jsonable dict.
+
+            Returns:
+                dict[str, any]: jsonable dict of analysis.
+            """
             jsonized = jsonablize(self._asdict())
             jsonized['header'] = jsonablize(self.header._asdict())
             jsonized['input'] = jsonablize(self.input._asdict())
             return jsonized
+
+        def _export(self) -> tuple[dict[str, any], dict[str, any]]:
+            """Export the analysis as main and side product dict.
+
+            ```python
+            main = { ...quantities, 'input': { ... }, 'header': { ... }, }
+            side = { 'dummyz1': ..., 'dummyz2': ..., ..., 'dummyzm': ... }
+
+            ```
+
+            Returns:
+                tuple[dict[str, any], dict[str, any]]: `main` and `side` product dict.
+
+            """
+
+            jsonized = self._jsonable()
+            main = {k: v for k, v in jsonized.items() if k != 'sideProduct'}
+            tales = jsonized['sideProduct']
+            return main, tales
 
     _analysisrequried = ['header', 'input', 'sideProduct']
 
@@ -239,8 +315,6 @@ class QurryExperiment:
                 params[k] = kwargs[k]
             elif k in self.commonparams._fields:
                 commons[k] = kwargs[k]
-            elif k in self._v3ArgsMapping:
-                commons[self._v3ArgsMapping[k]] = kwargs[k]
             else:
                 outfields[k] = kwargs[k]
 
@@ -252,7 +326,7 @@ class QurryExperiment:
         self.outfields: dict[str, any] = outfields
         self.beforewards = self.before()
         self.afterwards = self.after()
-        self.reports: list[QurryExperiment.analysis] = []
+        self.reports: dict[str, QurryExperiment.analysis] = {}
 
     def __setitem__(self, key, value) -> None:
         if key in self.before._fields:
@@ -335,17 +409,17 @@ class QurryExperiment:
         header = self.analysisheader(
             serial=len(self.reports),
             datetime=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            summoner=self.commons.summoner,
+            summoner=(self.commons.summonerID, self.commons.summonerName),
             log={'blabla': 'nothing'}
         )
         report = report._replace(
             sideProduct={**report.sideProduct, 'bla': 'nothing'},
             header=header
         )
-        self.reports.append(report)
+        self.reports[header.serial] = report
         return report
-    
-    def clear_analysis(self, *args, security: bool = False, mute: bool=False) -> None:
+
+    def clear_analysis(self, *args, security: bool = False, mute: bool = False) -> None:
         """Reset the measurement and release memory.
 
         Args:
@@ -358,13 +432,13 @@ class QurryExperiment:
             gc.collect()
             if not mute:
                 warnings.warn(
-                    "The measurement has reset and release memory allocating.", 
-                category=QurryResetAccomplished)
+                    "The measurement has reset and release memory allocating.",
+                    category=QurryResetAccomplished)
         else:
             warnings.warn(
                 "Reset does not execute to prevent executing accidentally, " +
                 "if you are sure to do this, then use '.reset(security=True)'.",
-            category=QurryResetSecurityActivate)
+                category=QurryResetSecurityActivate)
 
     # show info
     def __hash__(self) -> int:
@@ -407,7 +481,7 @@ class QurryExperiment:
             ), 2))
 
         info.newline(('itemize', 'outfields', len(self.outfields),
-            'Number of unused arguments.', 1))
+                      'Number of unused arguments.', 1))
         for k, v in self.outfields.items():
             info.newline(('itemize', str(k), str(v), '', 2))
 
@@ -431,18 +505,21 @@ class QurryExperiment:
         info.newline(('itemize', 'reports', len(
             self.reports), 'Number of analysis.', 1))
         if reportExpanded:
-            for item in self.reports:
+            for ser, item in self.reports.items():
                 info.newline(
-                    ('itemize', 'serial', None, item.header.serial, 2))
+                    ('itemize', 'serial', None, f"k={ser}, serial={item.header.serial}", 2))
                 info.newline(('txt', item, 3))
 
         return info
 
     # Export
     class Export(NamedTuple):
+        """Data-stored namedtuple with all experiments data which is jsonable."""
+
         expID: str = ''
+        """ID of experiment."""
         expName: str = 'exps'
-        """Name of the experiment. If this experiment is called by multimanager, then this name will never apply."""
+        """Name of the experiment. If this experiment is called by multimanager, then this name will never apply as filename."""
         # Arguments for multi-experiment
         serial: Optional[int] = None
         """Index of experiment in a multiOutput."""
@@ -450,24 +527,28 @@ class QurryExperiment:
         """ID of experiment of the multiManager."""
         summonerName: Optional[str] = None
         """Name of experiment of the multiManager."""
-        
+
         filename: str = ''
-        
+        """The name of file to be exported, it will be decided by the :meth:`.export` when it's called.
+        More info in the pydoc of :prop:`files` or :meth:`.export`.
+        """
         files: dict[str, Path] = {}
-        """The name of file to be exported, Warning, this is not the actual name of files
-        for the `.write` function actually exports 4 different files
+        """The list of file to be exported.
+        For the `.write` function actually exports 4 different files
         respecting to `adventure`, `legacy`, `tales`, and `reports` like:
         
         ```python
         files = {
-            'argumets': './blabla_experiment/args/blabla_experiment.id={expID}.args.json',
+            'folder': './blabla_experiment/',
+            
+            'arguments': './blabla_experiment/args/blabla_experiment.id={expID}.args.json',
             'adventure': './blabla_experiment/advent/blabla_experiment.id={expID}.advent.json',
             'legacy': './blabla_experiment/legacy/blabla_experiment.id={expID}.legacy.json',
             'tales.dummyx1': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyx1.json',
             'tales.dummyx2': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyx2.json',
             ...
             'tales.dummyxn': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyxn.json',
-            'reports': ./blabla_experiment/reports/blabla_experiment.id={expID}.reports.json,
+            'reports': './blabla_experiment/reports/blabla_experiment.id={expID}.reports.json',
             'reports.tales.dummyz1': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyz1.reports.json',
             'reports.tales.dummyz2': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyz2.reports.json',
             ...
@@ -475,6 +556,29 @@ class QurryExperiment:
         }
         ```
         which `blabla_experiment` is the example filename.
+        If this experiment is called by :cls:`multimanager`, then the it will be named after `summonerName` as known as the name of :cls:`multimanager`.
+        
+        ```python
+        files = {
+            'folder': './BLABLA_project/',
+            
+            'arguments': './BLABLA_project/args/index={serial}.id={expID}.args.json',
+            'adventure': './BLABLA_project/advent/index={serial}.id={expID}.advent.json',
+            'legacy': './BLABLA_project/legacy/index={serial}.id={expID}.legacy.json',
+            'tales.dummyx1': './BLABLA_project/tales/index={serial}.id={expID}.dummyx1.json',
+            'tales.dummyx2': './BLABLA_project/tales/index={serial}.id={expID}.dummyx2.json',
+            ...
+            'tales.dummyxn': './BLABLA_project/tales/index={serial}.id={expID}.dummyxn.json',
+            'reports': './BLABLA_project/reports/index={serial}.id={expID}.reports.json',
+            'reports.tales.dummyz1': './BLABLA_project/tales/index={serial}.id={expID}.dummyz1.reports.json',
+            'reports.tales.dummyz2': './BLABLA_project/tales/index={serial}.id={expID}.dummyz2.reports.json',
+            ...
+            'reports.tales.dummyzm': './BLABLA_project/tales/index={serial}.id={expID}.dummyzm.reports.json',
+        }
+        ```
+        which `BLBLA_project` is the example :cls:`multimanager` name stored at :prop:`commonparams.summonerName`.
+        At this senerio, the `expName` will never apply as filename.
+        
         """
 
         args: dict[str, any] = {}
@@ -491,21 +595,72 @@ class QurryExperiment:
         tales: dict[str, any] = {}
         """Recording the data of 'sideProduct' in 'afterward' and 'befosrewards' for API. ~Tales of braves circulate~"""
 
-        reports: list[dict[str, any]] = []
+        reports: dict[str, dict[str, any]] = {}
         """Recording the data of 'reports'. ~The guild concludes the results.~"""
+
+    _rjustLen = 3
 
     def export(self) -> Export:
         """Export the data of experiment.
 
+        For the `.write` function actually exports 4 different files
+        respecting to `adventure`, `legacy`, `tales`, and `reports` like:
+
+        ```python
+        files = {
+            'folder': './blabla_experiment/',
+
+            'arguments': './blabla_experiment/args/blabla_experiment.id={expID}.args.json',
+            'adventure': './blabla_experiment/advent/blabla_experiment.id={expID}.advent.json',
+            'legacy': './blabla_experiment/legacy/blabla_experiment.id={expID}.legacy.json',
+            'tales.dummyx1': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyx1.json',
+            'tales.dummyx2': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyx2.json',
+            ...
+            'tales.dummyxn': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyxn.json',
+            'reports': ./blabla_experiment/reports/blabla_experiment.id={expID}.reports.json,
+            'reports.tales.dummyz1': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyz1.reports.json',
+            'reports.tales.dummyz2': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyz2.reports.json',
+            ...
+            'reports.tales.dummyzm': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyzm.reports.json',
+        }
+        ```
+        which `blabla_experiment` is the example filename.
+        If this experiment is called by :cls:`multimanager`, then the it will be named after `summonerName` as known as the name of :cls:`multimanager`.
+
+        ```python
+        files = {
+            'folder': './BLABLA_project/',
+
+            'arguments': './BLABLA_project/args/index={serial}.id={expID}.args.json',
+            'adventure': './BLABLA_project/advent/index={serial}.id={expID}.advent.json',
+            'legacy': './BLABLA_project/legacy/index={serial}.id={expID}.legacy.json',
+            'tales.dummyx1': './BLABLA_project/tales/index={serial}.id={expID}.dummyx1.json',
+            'tales.dummyx2': './BLABLA_project/tales/index={serial}.id={expID}.dummyx2.json',
+            ...
+            'tales.dummyxn': './BLABLA_project/tales/index={serial}.id={expID}.dummyxn.json',
+            'reports': ./BLABLA_project/reports/index={serial}.id={expID}.reports.json,
+            'reports.tales.dummyz1': './BLABLA_project/tales/index={serial}.id={expID}.dummyz1.reports.json',
+            'reports.tales.dummyz2': './BLABLA_project/tales/index={serial}.id={expID}.dummyz2.reports.json',
+            ...
+            'reports.tales.dummyzm': './BLABLA_project/tales/index={serial}.id={expID}.dummyzm.reports.json',
+        }
+        ```
+        which `BLBLA_project` is the example :cls:`multimanager` name stored at :prop:`commonparams.summonerName`.
+        At this senerio, the `expName` will never apply as filename.
+
         Returns:
-            Export: A namedtuple containing the data of experiment.
+            Export: A namedtuple containing the data of experiment which can be more easily to export as json file.
         """
 
         # independent values
         expID = self.commons.expID
-        serial = self.commons.serial
         expName = self.beforewards.expName
+        # multimanager values
+        serial = self.commons.serial
+        summonerID = self.commons.summonerID
+        summonerName = self.commons.summonerName
         # args, commons, outfields
+
         args: dict[str, any] = jsonablize(self.args._asdict())
         commons: dict[str, any] = jsonablize(self.commons._asdict())
         outfields = jsonablize(self.outfields)
@@ -532,23 +687,91 @@ class QurryExperiment:
                 ...
             else:
                 adventures[k] = jsonablize(v)
+
         tales: dict[str, any] = jsonablize(tales)
+
+        # reports
+        reports: dict[str, dict[str, any]] = {}
+        """reports formats.
+        ```
+        reports = {
+            1: { ...quantities, 'input': { ... }, 'header': { ... }, },
+            2: { ...quantities, 'input': { ... }, 'header': { ... }, },
+            ...
+            {serial}: { ...quantities, 'input': { ... }, 'header': { ... }, },
+        }
+        ```
+        """
+        tales_reports: dict[str, dict[str, dict[str, any]]] = {}
+        """tales_reports formats.
+        ```
+        tales_reports = {
+            'dummyz1': { 
+                1: { ... },
+                2: { ... },
+                ...
+                {serial}: { ... },
+            }, 
+            'dummyz2': { 
+                1: { ... },
+                2: { ... },
+                ...
+                {serial}: { ... },
+            }, 
+            ...
+            'dummyz': { 
+                1: { ... },
+                2: { ... },
+                ...
+                {serial}: { ... },
+            }, 
+        }
+        ```
+        """
+        for k, al in self.reports.items():
+            main, tales = al._export()
+            reports[k] = main
+            for tk, tv in tales.items():
+                if tv not in tales_reports:
+                    tales_reports[tk] = {}
+                tales_reports[tk][k] = tv
+
         # filename
         filename = ''
+        folder = ''
+        files = {}
         if serial is not None:
-            filename += f".index={serial}.id={expID}"
+            folder += f'./{summonerName}/'
+            filename += f"index={serial}.id={expID}"
         else:
-            filename += f"{filename}.id={expID}"
-        
-        # reports
-        reports: list[dict[str, any]] = [
-            jsonablize(al._jsonable()) for al in self.reports]
+            repeat_times = 1
+            tmp = folder + f"./{expName}.{str(repeat_times).rjust(self._rjustLen, '0')}/"
+            while os.path.exists(tmp):
+                repeat_times += 1
+                folder = tmp
+                tmp = folder + f"./{expName}.{str(repeat_times).rjust(self._rjustLen, '0')}/"
+            folder = tmp
+            filename += f"{expName}.{str(repeat_times).rjust(self._rjustLen, '0')}.id={expID}"
+        files['folder'] = folder
+        files['arguments'] = folder + f'args/{filename}.args.json'
+        files['adventure'] = folder + f'advent/{filename}.advent.json'
+        files['legacy'] = folder + f'legacy/{filename}.legacy.json'
+        for k in tales.keys():
+            files[f'tales.{k}'] = folder + f'tales/{filename}.{k}.json'
+        files['reports'] = folder + f'reports/{filename}.reports.json'
+        for k in tales_reports.keys():
+            files[f'reports.tales.{k}'] = folder + \
+                f'tales/{filename}.{k}.reports.json'
 
         return self.Export(
             expID=expID,
             expName=expName,
             serial=serial,
+            summonerID=summonerID,
+            summonerName=summonerName,
+
             filename=filename,
+            files=files,
 
             args=args,
             commons=commons,
