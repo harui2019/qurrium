@@ -12,7 +12,6 @@ from uuid import uuid4
 from datetime import datetime
 import gc
 import warnings
-import json
 import os
 
 from ...hoshi import Hoshi
@@ -90,8 +89,8 @@ class QurryExperiment:
         files = {
             'folder': './blabla_experiment/',
             
-            'arguments': './blabla_experiment/args/blabla_experiment.id={expID}.args.json',
-            'adventure': './blabla_experiment/advent/blabla_experiment.id={expID}.advent.json',
+            'args': './blabla_experiment/args/blabla_experiment.id={expID}.args.json',
+            'advent': './blabla_experiment/advent/blabla_experiment.id={expID}.advent.json',
             'legacy': './blabla_experiment/legacy/blabla_experiment.id={expID}.legacy.json',
             'tales.dummyx1': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyx1.json',
             'tales.dummyx2': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyx2.json',
@@ -111,8 +110,8 @@ class QurryExperiment:
         files = {
             'folder': './BLABLA_project/',
             
-            'arguments': './BLABLA_project/args/index={serial}.id={expID}.args.json',
-            'adventure': './BLABLA_project/advent/index={serial}.id={expID}.advent.json',
+            'args': './BLABLA_project/args/index={serial}.id={expID}.args.json',
+            'advent': './BLABLA_project/advent/index={serial}.id={expID}.advent.json',
             'legacy': './BLABLA_project/legacy/index={serial}.id={expID}.legacy.json',
             'tales.dummyx1': './BLABLA_project/tales/index={serial}.id={expID}.dummyx1.json',
             'tales.dummyx2': './BLABLA_project/tales/index={serial}.id={expID}.dummyx2.json',
@@ -157,7 +156,9 @@ class QurryExperiment:
         """Name of experiment which is also showed on IBM Quantum Computing quene."""
 
         # side product
-        sideProduct: dict = {}
+        sideProduct: dict = {
+            'number_between_3_and_4': ['bleem', '(it\'s a joke)']
+        }
         """The data of experiment will be independently exported in the folder 'tales'."""
 
     class after(NamedTuple):
@@ -205,9 +206,7 @@ class QurryExperiment:
         """Input of analyze."""
         header: NamedTuple = None
         """Header of analysis."""
-        sideProduct: dict[str, any] = {
-            'number_between_3_and_4': 'bleem (it\'s a joke)'
-        }
+        sideProduct: dict[str, any] = {}
         """The data of experiment will be independently exported in the folder 'tales'."""
 
         def __repr__(self) -> str:
@@ -327,6 +326,29 @@ class QurryExperiment:
         self.beforewards = self.before()
         self.afterwards = self.after()
         self.reports: dict[str, QurryExperiment.analysis] = {}
+        
+        _summon_check = {
+            'serial': self.commons.serial, 
+            'summonerID': self.commons.summonerID, 
+            'summonerName': self.commons.summonerName
+        }
+        _summon_detect = any((not v is None) for v in _summon_check.values())
+        _summon_fulfill = all((not v is None) for v in _summon_check.values())
+        if _summon_detect:
+            if _summon_fulfill:
+                ...
+            else:
+                summon_msg = Hoshi(ljust_description_len=20)
+                summon_msg.newline(('divider', ))
+                summon_msg.newline(('h3', 'Summoner Info Incompletion'))
+                summon_msg.newline(('itemize', 'Summoner info detect.', _summon_detect))
+                summon_msg.newline(('itemize', 'Summoner info fulfilled.', _summon_fulfill))
+                for k, v in _summon_check.items():
+                    summon_msg.newline(('itemize', k, str(v), f'fulfulled: {not v is None}', 2))
+                warnings.warn(
+                    "Summoner data is not completed, it will export in single experiment mode.")
+                summon_msg.print()
+        
 
     def __setitem__(self, key, value) -> None:
         if key in self.before._fields:
@@ -507,7 +529,7 @@ class QurryExperiment:
         if reportExpanded:
             for ser, item in self.reports.items():
                 info.newline(
-                    ('itemize', 'serial', None, f"k={ser}, serial={item.header.serial}", 2))
+                    ('itemize', 'serial', f"k={ser}, serial={item.header.serial}", None, 2))
                 info.newline(('txt', item, 3))
 
         return info
@@ -541,8 +563,8 @@ class QurryExperiment:
         files = {
             'folder': './blabla_experiment/',
             
-            'arguments': './blabla_experiment/args/blabla_experiment.id={expID}.args.json',
-            'adventure': './blabla_experiment/advent/blabla_experiment.id={expID}.advent.json',
+            'args': './blabla_experiment/args/blabla_experiment.id={expID}.args.json',
+            'advent': './blabla_experiment/advent/blabla_experiment.id={expID}.advent.json',
             'legacy': './blabla_experiment/legacy/blabla_experiment.id={expID}.legacy.json',
             'tales.dummyx1': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyx1.json',
             'tales.dummyx2': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyx2.json',
@@ -562,8 +584,8 @@ class QurryExperiment:
         files = {
             'folder': './BLABLA_project/',
             
-            'arguments': './BLABLA_project/args/index={serial}.id={expID}.args.json',
-            'adventure': './BLABLA_project/advent/index={serial}.id={expID}.advent.json',
+            'args': './BLABLA_project/args/index={serial}.id={expID}.args.json',
+            'advent': './BLABLA_project/advent/index={serial}.id={expID}.advent.json',
             'legacy': './BLABLA_project/legacy/index={serial}.id={expID}.legacy.json',
             'tales.dummyx1': './BLABLA_project/tales/index={serial}.id={expID}.dummyx1.json',
             'tales.dummyx2': './BLABLA_project/tales/index={serial}.id={expID}.dummyx2.json',
@@ -593,12 +615,17 @@ class QurryExperiment:
         legacy: dict[str, any] = {}
         """Recording the data of 'afterward'. ~The Legacy remains from the achievement of ancestors~"""
         tales: dict[str, any] = {}
-        """Recording the data of 'sideProduct' in 'afterward' and 'befosrewards' for API. ~Tales of braves circulate~"""
+        """Recording the data of 'sideProduct' in 'afterward' and 'beforewards' for API. ~Tales of braves circulate~"""
 
         reports: dict[str, dict[str, any]] = {}
         """Recording the data of 'reports'. ~The guild concludes the results.~"""
+        tales_reports: dict[str, dict[str, any]] = {}
+        """Recording the data of 'sideProduct' in 'reports' for API. ~Tales of braves circulate~"""
 
     _rjustLen = 3
+    """The length of the string to be right-justified for serial number when :prop:`expName` is duplicated."""
+    _required_folder = ['args', 'advent', 'legacy', 'tales', 'reports']
+    """Folder for saving exported files."""
 
     def export(self) -> Export:
         """Export the data of experiment.
@@ -610,8 +637,8 @@ class QurryExperiment:
         files = {
             'folder': './blabla_experiment/',
 
-            'arguments': './blabla_experiment/args/blabla_experiment.id={expID}.args.json',
-            'adventure': './blabla_experiment/advent/blabla_experiment.id={expID}.advent.json',
+            'args': './blabla_experiment/args/blabla_experiment.id={expID}.args.json',
+            'advent': './blabla_experiment/advent/blabla_experiment.id={expID}.advent.json',
             'legacy': './blabla_experiment/legacy/blabla_experiment.id={expID}.legacy.json',
             'tales.dummyx1': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyx1.json',
             'tales.dummyx2': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyx2.json',
@@ -631,8 +658,8 @@ class QurryExperiment:
         files = {
             'folder': './BLABLA_project/',
 
-            'arguments': './BLABLA_project/args/index={serial}.id={expID}.args.json',
-            'adventure': './BLABLA_project/advent/index={serial}.id={expID}.advent.json',
+            'args': './BLABLA_project/args/index={serial}.id={expID}.args.json',
+            'advent': './BLABLA_project/advent/index={serial}.id={expID}.advent.json',
             'legacy': './BLABLA_project/legacy/index={serial}.id={expID}.legacy.json',
             'tales.dummyx1': './BLABLA_project/tales/index={serial}.id={expID}.dummyx1.json',
             'tales.dummyx2': './BLABLA_project/tales/index={serial}.id={expID}.dummyx2.json',
@@ -659,6 +686,7 @@ class QurryExperiment:
         serial = self.commons.serial
         summonerID = self.commons.summonerID
         summonerName = self.commons.summonerName
+        _summon = all((not v is None) for v in [serial, summonerID, summonerID])
         # args, commons, outfields
 
         args: dict[str, any] = jsonablize(self.args._asdict())
@@ -686,7 +714,7 @@ class QurryExperiment:
             elif k in self._unexports:
                 ...
             else:
-                adventures[k] = jsonablize(v)
+                legacy[k] = jsonablize(v)
 
         tales: dict[str, any] = jsonablize(tales)
 
@@ -729,10 +757,10 @@ class QurryExperiment:
         ```
         """
         for k, al in self.reports.items():
-            main, tales = al._export()
-            reports[k] = main
-            for tk, tv in tales.items():
-                if tv not in tales_reports:
+            report_main, report_tales = al._export()
+            reports[k] = report_main
+            for tk, tv in report_tales.items():
+                if tk not in tales_reports:
                     tales_reports[tk] = {}
                 tales_reports[tk][k] = tv
 
@@ -740,7 +768,7 @@ class QurryExperiment:
         filename = ''
         folder = ''
         files = {}
-        if serial is not None:
+        if _summon:
             folder += f'./{summonerName}/'
             filename += f"index={serial}.id={expID}"
         else:
@@ -748,13 +776,14 @@ class QurryExperiment:
             tmp = folder + f"./{expName}.{str(repeat_times).rjust(self._rjustLen, '0')}/"
             while os.path.exists(tmp):
                 repeat_times += 1
-                folder = tmp
                 tmp = folder + f"./{expName}.{str(repeat_times).rjust(self._rjustLen, '0')}/"
             folder = tmp
             filename += f"{expName}.{str(repeat_times).rjust(self._rjustLen, '0')}.id={expID}"
+            
+        self.commons = self.commons._replace(filename=filename)
         files['folder'] = folder
-        files['arguments'] = folder + f'args/{filename}.args.json'
-        files['adventure'] = folder + f'advent/{filename}.advent.json'
+        files['args'] = folder + f'args/{filename}.args.json'
+        files['advent'] = folder + f'advent/{filename}.advent.json'
         files['legacy'] = folder + f'legacy/{filename}.legacy.json'
         for k in tales.keys():
             files[f'tales.{k}'] = folder + f'tales/{filename}.{k}.json'
@@ -762,6 +791,10 @@ class QurryExperiment:
         for k in tales_reports.keys():
             files[f'reports.tales.{k}'] = folder + \
                 f'tales/{filename}.{k}.reports.json'
+        
+        files = {
+            k: str(Path(v)) for k, v in files.items()
+        }
 
         return self.Export(
             expID=expID,
@@ -780,41 +813,131 @@ class QurryExperiment:
             legacy=legacy,
             tales=tales,
 
-            reports=reports
+            reports=reports,
+            tales_reports=tales_reports
         )
 
     def write(
         self,
-        saveLocation: Optional[Union[Path, str]] = None,
+        saveLocation: Union[Path, str] = Path('./'),
+        
+        mode: str = 'w+',
+        indent: int = 2,
+        encoding: str = 'utf-8',
+        jsonablize: bool = False,
     ) -> Export:
         """Export the experiment data, if there is a previous export, then will overwrite.
         Replacement of :func:`QurryV4().writeLegacy`
 
-        - example of file.name:
+        - example of filename:
 
-            >>> {name}.{self.exps[expID]['expsName']}.expId={expID}.json
+        ```python
+        files = {
+            'folder': './blabla_experiment/',
 
-            In `self.exps`,
-            >>> filename = ((
-                Path(f"{self.exps[legacyId]['expsName']}.expId={legacyId}.json")
-            )
-            >>> self.exps[legacyId]['filename'] = filename
+            'args': './blabla_experiment/args/blabla_experiment.id={expID}.args.json',
+            'advent': './blabla_experiment/advent/blabla_experiment.id={expID}.advent.json',
+            'legacy': './blabla_experiment/legacy/blabla_experiment.id={expID}.legacy.json',
+            'tales.dummyx1': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyx1.json',
+            'tales.dummyx2': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyx2.json',
+            ...
+            'tales.dummyxn': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyxn.json',
+            'reports': ./blabla_experiment/reports/blabla_experiment.id={expID}.reports.json,
+            'reports.tales.dummyz1': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyz1.reports.json',
+            'reports.tales.dummyz2': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyz2.reports.json',
+            ...
+            'reports.tales.dummyzm': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyzm.reports.json',
+        }
+        ```
 
         Args:
-            expID (Optional[str], optional):
-                The id of the experiment will be exported.
-                If `expID == None`, then export the experiment which id is`.IDNow`.
-                Defaults to `None`.
-
             saveLocation (Optional[Union[Path, str]], optional):
                 Where to save the export content as `json` file.
                 If `saveLocation == None`, then cancelled the file to be exported.
                 Defaults to `None`.
 
-            name (str, optional):
-                The first name of the file.
-                Export as showing in example.
-
+            mode (str): 
+                Mode for :func:`open` function, for :func:`mori.quickJSON`. Defaults to 'w+'.
+            indent (int, optional): 
+                Indent length for json, for :func:`mori.quickJSON`. Defaults to 2.
+            encoding (str, optional): 
+                Encoding method, for :func:`mori.quickJSON`. Defaults to 'utf-8'.
+            jsonablize (bool, optional): 
+                Whether to transpile all object to jsonable via :func:`mori.jsonablize`, for :func:`mori.quickJSON`. Defaults to False.
+            
         Returns:
             dict[any]: the export content.
         """
+        
+        if isinstance(saveLocation, Path):
+            ...
+        elif isinstance(saveLocation, str):
+            saveLocation = Path(saveLocation)
+        else:
+            raise TypeError(f"saveLocation must be Path or str, not {type(saveLocation)}")
+        
+        export_material = self.export()
+        export_set = {}
+        # args ...............  # arguments, commonparams, outfields, files
+        export_set['args'] = {
+            'expID': export_material.expID,
+            'expName': export_material.expName,
+            'serial': export_material.serial,
+            'summonerID': export_material.summonerID,
+            'summonerName': export_material.summonerName,
+            'filename': export_material.filename,
+            
+            'arguments': export_material.args,
+            'commonparams': export_material.commons,
+            'outfields': export_material.outfields,
+            'files': export_material.files,
+        }
+        # advent .............  # adventures
+        export_set['advent'] = {
+            'files': export_material.files,
+            'adventures': export_material.adventures
+        }
+        # legacy .............  # legacy
+        export_set['legacy'] = {
+            'files': export_material.files,
+            'legacy': export_material.legacy
+        }
+        # tales ..............  # tales
+        for tk, tv in export_material.tales.items():
+            if isinstance(tv, (dict, list, tuple)):
+                export_set[f'tales.{tk}'] = tv
+            else:
+                export_set[f'tales.{tk}'] = [tv]
+            if f'reports.tales.{tk}' not in export_material.files:
+                warnings.warn(f"tales.{tk} is not in export_names, it's not exported.")
+        # reports ............  # reports
+        export_set['reports'] = {
+            'files': export_material.files,
+            'reports': export_material.reports
+        }
+        # reports.tales ......  # tales_reports
+        for tk, tv in export_material.tales_reports.items():
+            if isinstance(tv, (dict, list, tuple)):
+                export_set[f'reports.tales.{tk}'] = tv
+            else:
+                export_set[f'reports.tales.{tk}'] = [tv]
+            if f'reports.tales.{tk}' not in export_material.files:
+                warnings.warn(f"reports.tales.{tk} is not in export_names, it's not exported.")
+                
+        folder = saveLocation / Path(export_material.files['folder']) 
+        if not os.path.exists(folder):
+            os.mkdir(folder)
+        for k in self._required_folder:
+            if not os.path.exists(folder / k):
+                os.mkdir(folder / k)
+                
+        for filekey, content in export_set.items():
+            quickJSON(
+                content=content, 
+                filename=saveLocation / export_material.files[filekey],
+                mode=mode,
+                indent=indent,
+                encoding=encoding,
+                jsonablize=jsonablize,
+            )
+                
