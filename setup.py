@@ -1,7 +1,7 @@
 import os
 from setuptools import setup, find_packages
 
-from qurry import __version__
+from qurry.version import __version__
 
 README_PATH = os.path.join(
     os.path.abspath(os.path.dirname(__file__)), 'README.md')
