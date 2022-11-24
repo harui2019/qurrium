@@ -6,14 +6,25 @@ README_PATH = os.path.join(
 with open(README_PATH) as readme_file:
     README = readme_file.read()
     
-requirement = [
-    "qiskit",
-    "qiskit-aer-gpu; platform_system=='Linux' and python_version<='3.9'",
+qiskit_main = [
+    "qiskit==0.39.2",
+    "qiskit-terra==0.22.2",
+    "qiskit-aer==0.11.1",
+    "qiskit-ibmq-provider==0.19.2",
+]
+qiskit_gpu = [
+    "qiskit-aer-gpu; platform_system=='Linux' and python_version<='3.9'", # https://peps.python.org/pep-0508/
+]
+bugfix = [
+    "urllib3==1.22",
+]
+dependencies = [
     "tqdm",
     "dask",
-    "urllib3==1.22"
+    "matplotlib",
 ]
-# https://peps.python.org/pep-0508/
+
+requirement = qiskit_main + qiskit_gpu + bugfix + dependencies
 
 __author__ = "Huai-Chung Chang (harui2019@proton.me)"
 

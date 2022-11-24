@@ -1,4 +1,10 @@
-qiskit
+# qiskit main
+qiskit==0.39.2
+qiskit-terra==0.22.2
+qiskit-aer==0.11.1
+qiskit-ibmq-provider==0.19.2
+    
 qiskit-aer-gpu ; platform_system=='Linux' and python_version<='3.9'
 tqdm
 dask
+matplotlib

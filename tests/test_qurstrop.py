@@ -1,8 +1,8 @@
 import pytest
-import qiskit
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 
 from qurry.qurstrop import StringOperator
+from qurry.util import backendWrapper
 
 expDemo01 = StringOperator()
 try:
@@ -28,7 +28,7 @@ except:
     ]
 
 
-backend = qiskit.Aer.get_backend('qasm_simulator')
+backend = backendWrapper()('aer')
 
 @pytest.mark.parametrize("tgt, ", wave_adds)
 def test_quantity(

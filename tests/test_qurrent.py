@@ -1,8 +1,8 @@
 import pytest
-import qiskit
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 
 from qurry.qurrent import EntropyMeasure
+from qurry.util import backendWrapper
 
 expDemo01 = EntropyMeasure()
 try:
@@ -28,7 +28,7 @@ except:
     ]
 
 
-backend = qiskit.Aer.get_backend('qasm_simulator')
+backend = backendWrapper()('aer')
 
 
 @pytest.mark.parametrize("tgt, ", wave_adds)
@@ -37,4 +37,4 @@ def test_quantity(
 ) -> bool:
     
     quantity = expDemo01.measure(wave=tgt[0], backend=backend)
-    assert all('entropy' in quantity, 'purity' in quantity)
+    assert all(['entropy' in quantity, 'purity' in quantity])
