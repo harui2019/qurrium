@@ -51,9 +51,9 @@ jobs:
           python -m pip install flake8 pytest
           python -m pip install --upgrade setuptools
           python -c "print('### Preparing setup.py')"
-          if !${{[ -f requirements.txt ]}}; then python setup.py install
-          python -c "print('### Preparing requirements.txt')"
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          python setup.py install
+          # python -c "print('### Preparing requirements.txt')"
+          # if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           python -c "print('### Dependencies are ready to go.')"
 
       - name: Lint with flake8
