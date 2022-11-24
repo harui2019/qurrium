@@ -48,7 +48,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pipenv wheel pip
-          python -m pip install flake8 pytest
+          python -m pip install flake8 pytest qiskit
           pip install --upgrade urllib3
           # python -m pip install --upgrade setuptools
           # A bug waiting for fixing, https://github.com/pypa/setuptools/issues/3278
