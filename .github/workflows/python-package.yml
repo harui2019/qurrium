@@ -47,8 +47,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pipenv wheel
-          python -m pip install flake8 pytest qiskit matplotlib
+          python -m pip install --upgrade pipenv wheel pip
+          python -m pip install flake8 pytest
           python -m pip install --upgrade setuptools
           python -c "print('### Preparing setup.py')"
           python setup.py install
