@@ -8,7 +8,7 @@ with open(README_PATH) as readme_file:
     
 requirement = [
     "qiskit>=0.35.0",
-    "qiskit-aer-gpu; platform_system=='Linux'",
+    "qiskit-aer-gpu; platform_system=='Linux' and python_version<='3.9'",
     "tqdm",
     "dask",
     "matplotlib",
