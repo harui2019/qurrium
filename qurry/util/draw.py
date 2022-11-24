@@ -121,7 +121,7 @@ def drawResultPlot(
     ax = demoPlotFig.add_subplot(1, 1, 1)
 
     ax.set_xlabel(
-        f'evolution ($\Delta t = {beta/pi} \pi$)', size=drawConfig["fontSize"])
+        'evolution ($\\Delta t = {} \\pi$)'.format(beta/pi), size=drawConfig["fontSize"])
     ax.set_ylabel(f'{demoPlotDataName}', size=drawConfig["fontSize"])
 
     (plt.ylim(drawConfig['yLim']) if bool(drawConfig['yLim']) else None)
@@ -288,7 +288,7 @@ def drawEntropyPlot(
     ax: Union[SubplotBase, Axes] = PlotFig.add_subplot(1, 1, 1)
 
     ax.set_xlabel(
-        f"evolution ($\Delta t = {PiNumBeta} \pi$)", size=drawConfig["fontSize"])
+        "evolution ($\\Delta t = {} \\pi$)".format(PiNumBeta), size=drawConfig["fontSize"])
     ax.set_ylabel(f"{plotName}", size=drawConfig["fontSize"])
 
     if isinstance(drawConfig['yLim'], Callable):
@@ -602,9 +602,9 @@ def drawPurityErrorAnalysis(
     axes01: Union[SubplotBase, Axes] = axes
 
     figTitle = fig.suptitle(f"{plotName}", y=1, size=drawConfig["fontSize"]+2)
-    axes01.set_xlabel("$\log_{2}{N_U}$", size=drawConfig["fontSize"])
+    axes01.set_xlabel("$\\log_{2}{N_U}$", size=drawConfig["fontSize"])
     axes01.set_ylabel(
-        "$\log_{2}{|| {Tr}({\\rho_A}^2)_e - {Tr}({\\rho_A}^2)_t ||}$",
+        "$\\log_{2}{|| {Tr}({\\rho_A}^2)_e - {Tr}({\\rho_A}^2)_t ||}$",
         size=drawConfig["fontSize"]
     )
     axes01.set_title(f"Purity error analysis", size=drawConfig["fontSize"])
