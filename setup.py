@@ -11,7 +11,7 @@ requirement = [
     "qiskit-aer-gpu; platform_system=='Linux' and python_version<='3.9'",
     "tqdm",
     "dask",
-    "matplotlib",
+    "urllib3==1.22"
 ]
 # https://peps.python.org/pep-0508/
 

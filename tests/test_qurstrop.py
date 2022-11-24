@@ -1,7 +1,8 @@
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 import pytest
+import qiskit
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+
 from qurry.qurstrop import StringOperator
-from qurry.util import backendWrapper
 
 expDemo01 = StringOperator()
 try:
@@ -27,13 +28,12 @@ except:
     ]
 
 
-backend = backendWrapper()
-
+backend = qiskit.Aer.get_backend('qasm_simulator')
 
 @pytest.mark.parametrize("tgt, ", wave_adds)
 def test_quantity(
     tgt,
 ) -> bool:
     
-    quantity = expDemo01.measure(wave=tgt[0], backend=backend('aer'))
+    quantity = expDemo01.measure(wave=tgt[0], backend=backend)
     assert 'order' in quantity
