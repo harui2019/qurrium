@@ -1,5 +1,5 @@
 qiskit
-# qiskit-aer-gpu ; platform_system=='Linux' and python_version<='3.9'
+qiskit-aer-gpu ; platform_system=='Linux' and python_version<='3.9'
 matplotlib
 tqdm
 dask
