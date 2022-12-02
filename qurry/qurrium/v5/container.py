@@ -5,14 +5,15 @@ from qiskit.providers.ibmq import AccountProvider
 from qiskit_aer import AerSimulator
 
 from pathlib import Path
-from typing import Literal, Union, Optional, NamedTuple, Hashable, overload
-from abc import abstractmethod, abstractstaticmethod, abstractclassmethod
-from collections import namedtuple
+from typing import Literal, Union, Optional, NamedTuple, Hashable, Any
+from abc import abstractmethod, abstractclassmethod, ABCMeta
 from uuid import uuid4
 from datetime import datetime
 import gc
 import warnings
 import os
+import json
+import glob
 
 from ...hoshi import Hoshi
 from ...mori import jsonablize, quickJSON
@@ -27,19 +28,21 @@ from ..declare.type import Quantity, Counts, waveGetter, waveReturn
 # argument
 
 
-class QurryExperiment:
+class QurryExperiment(metaclass=ABCMeta):
 
     __name__ = 'QurryExperiment'
     """Name of the QurryExperiment which could be overwritten."""
 
     # Experiment Property
+    # @abstractmethod
+    # class arguments(NamedTuple):
+    #     """Construct the experiment's parameters for specific options."""
+
     @abstractmethod
     class arguments(NamedTuple):
         """Construct the experiment's parameters for specific options."""
-
-    class arguments(NamedTuple):
         expName: str = 'exps'
-        wave: Union[QuantumCircuit, any, None] = None
+        wave: Union[QuantumCircuit, None] = None
         sampling: int = 1
 
     class commonparams(NamedTuple):
@@ -56,18 +59,18 @@ class QurryExperiment:
         """Backend to execute the circuits on."""
         provider: Optional[AccountProvider] = None
         """Provider to execute the backend on."""
-        runArgs: dict[str, any] = {}
+        runArgs: dict = {}
         """Arguments of `IBMQJobManager().run`."""
 
         # Single job dedicated
         runBy: Literal['gate', 'operator'] = "gate"
         """Run circuits by gate or operator."""
-        transpileArgs: dict[str, any] = {}
+        transpileArgs: dict = {}
         """Arguments of `qiskit.compiler.transpile`."""
         decompose: Optional[int] = 2
         """Decompose the circuit in given times to show the circuit figures in :property:`.before.figOriginal`."""
 
-        tags: tuple[str] = ()
+        tags: tuple = ()
         """Tags of experiment."""
 
         # Arguments for exportation
@@ -177,20 +180,21 @@ class QurryExperiment:
         for more information storing. If it does not contain will raise `QurryInvalidInherition`.
         """
 
-        serial: str
+        serial: int
         """Serial Number of analysis."""
         datetime: str
         """Written time of analysis."""
-        summoner: Optional[tuple[any, str]] = None
+        summoner: Optional[tuple] = None
         """Which multiManager makes this analysis. If it's an independent one, then usr the default 'None'."""
-        log: dict[str] = {}
+        log: dict = {}
         """Other info will be recorded."""
 
+    # @abstractmethod
+    # class analysisinput(NamedTuple):
+    #     """To set the analysis."""
     @abstractmethod
     class analysisinput(NamedTuple):
         """To set the analysis."""
-
-    class analysisinput(NamedTuple):
         utlmatic_answer: int
         """~answer to the ultimate question of life the universe and everything.~"""
 
@@ -206,24 +210,24 @@ class QurryExperiment:
         """Input of analyze."""
         header: NamedTuple = None
         """Header of analysis."""
-        sideProduct: dict[str, any] = {}
+        sideProduct: dict = {}
         """The data of experiment will be independently exported in the folder 'tales'."""
 
         def __repr__(self) -> str:
             return f'<analysis(serial={self.header.serial}, sampling={self.sampling})>'
 
-        def _jsonable(self) -> dict[str, any]:
+        def _jsonable(self) -> dict:
             """Return a jsonable dict.
 
             Returns:
-                dict[str, any]: jsonable dict of analysis.
+                dict[str, Any]: jsonable dict of analysis.
             """
             jsonized = jsonablize(self._asdict())
             jsonized['header'] = jsonablize(self.header._asdict())
             jsonized['input'] = jsonablize(self.input._asdict())
             return jsonized
 
-        def _export(self) -> tuple[dict[str, any], dict[str, any]]:
+        def _export(self) -> tuple[dict[str, Any], dict[str, Any]]:
             """Export the analysis as main and side product dict.
 
             ```python
@@ -233,7 +237,7 @@ class QurryExperiment:
             ```
 
             Returns:
-                tuple[dict[str, any], dict[str, any]]: `main` and `side` product dict.
+                tuple[dict[str, Any], dict[str, Any]]: `main` and `side` product dict.
 
             """
 
@@ -245,14 +249,14 @@ class QurryExperiment:
     _analysisrequried = ['header', 'input', 'sideProduct']
 
     @classmethod
-    def argsFilter(cls, *args, **kwargs) -> tuple[arguments, dict[str, any]]:
+    def argsFilter(cls, *args, **kwargs) -> tuple[arguments, dict[str, Any]]:
         """Filter the arguments of experiment.
 
         Raises:
             ValueError: When input arguments are not positional arguments.
 
         Returns:
-            tuple[argsCore, dict[str, any]]: argsCore, outfields for other unused arguments.
+            tuple[argsCore, dict[str, Any]]: argsCore, outfields for other unused arguments.
         """
         if len(args) > 0:
             raise ValueError(
@@ -268,7 +272,7 @@ class QurryExperiment:
         return cls.arguments(**infields), outfields
 
     @classmethod
-    def analysisFilter(cls, *args, **kwargs) -> tuple[analysis, dict[str, any]]:
+    def analysisFilter(cls, *args, **kwargs) -> tuple[analysis, dict[str, Any]]:
         if len(args) > 0:
             raise ValueError(
                 "analysis filter can't be initialized with positional arguments.")
@@ -322,7 +326,7 @@ class QurryExperiment:
 
         self.args = self.arguments(**params)
         self.commons = self.commonparams(expID=expID, **commons)
-        self.outfields: dict[str, any] = outfields
+        self.outfields: dict[str, Any] = outfields
         self.beforewards = self.before()
         self.afterwards = self.after()
         self.reports: dict[str, QurryExperiment.analysis] = {}
@@ -332,7 +336,7 @@ class QurryExperiment:
             'summonerID': self.commons.summonerID, 
             'summonerName': self.commons.summonerName
         }
-        _summon_detect = any((not v is None) for v in _summon_check.values())
+        _summon_detect = Any((not v is None) for v in _summon_check.values())
         _summon_fulfill = all((not v is None) for v in _summon_check.values())
         if _summon_detect:
             if _summon_fulfill:
@@ -360,7 +364,7 @@ class QurryExperiment:
             raise ValueError(
                 f"{key} is not a valid field of '{self.before.__name__}' and '{self.after.__name__}'.")
 
-    def __getitem__(self, key) -> any:
+    def __getitem__(self, key) -> Any:
         if key in self.before._fields:
             return getattr(self.beforewards, key)
         elif key in self.after._fields:
@@ -370,15 +374,16 @@ class QurryExperiment:
                 f"{key} is not a valid field of '{self.before.__name__}' and '{self.after.__name__}'.")
 
     # analysis
+    # @abstractclassmethod
+    # def quantities(cls, *args, **kwargs) -> analysis:
+    #     """Computing specific squantity.
+    #     Where should be overwritten by each construction of new measurement.
+
+    #     Returns:
+    #         dict[str, float]: Counts, purity, entropy of experiment.
+    #     """
+
     @abstractclassmethod
-    def quantities(cls, *args, **kwargs) -> analysis:
-        """Computing specific squantity.
-        Where should be overwritten by each construction of new measurement.
-
-        Returns:
-            dict[str, float]: Counts, purity, entropy of experiment.
-        """
-
     @classmethod
     def quantities(
         cls,
@@ -389,7 +394,13 @@ class QurryExperiment:
         utlmatic_answer: int = 42,
 
         **otherArgs
-    ):
+    ) -> analysis:
+        """Computing specific squantity.
+        Where should be overwritten by each construction of new measurement.
+
+        Returns:
+            dict[str, float]: Counts, purity, entropy of experiment.
+        """
 
         dummy = -100
         return cls.analysis(
@@ -406,7 +417,7 @@ class QurryExperiment:
 
     def analyze(
         self,
-        **allArgs: any,
+        **allArgs: Any,
     ) -> analysis:
         """Analyzing the example circuit results in specific method.
 
@@ -554,7 +565,7 @@ class QurryExperiment:
         """The name of file to be exported, it will be decided by the :meth:`.export` when it's called.
         More info in the pydoc of :prop:`files` or :meth:`.export`.
         """
-        files: dict[str, Path] = {}
+        files: dict[str, str] = {}
         """The list of file to be exported.
         For the `.write` function actually exports 4 different files
         respecting to `adventure`, `legacy`, `tales`, and `reports` like:
@@ -562,6 +573,7 @@ class QurryExperiment:
         ```python
         files = {
             'folder': './blabla_experiment/',
+            'qurryinfo': './blabla_experiment/qurryinfo',
             
             'args': './blabla_experiment/args/blabla_experiment.id={expID}.args.json',
             'advent': './blabla_experiment/advent/blabla_experiment.id={expID}.advent.json',
@@ -583,6 +595,7 @@ class QurryExperiment:
         ```python
         files = {
             'folder': './BLABLA_project/',
+            'qurryinfo': './BLABLA_project/qurryinfo',
             
             'args': './BLABLA_project/args/index={serial}.id={expID}.args.json',
             'advent': './BLABLA_project/advent/index={serial}.id={expID}.advent.json',
@@ -603,23 +616,23 @@ class QurryExperiment:
         
         """
 
-        args: dict[str, any] = {}
+        args: dict[str, Any] = {}
         """Construct the experiment's parameters."""
-        commons: dict[str, any] = {}
+        commons: dict[str, Any] = {}
         """Construct the experiment's common parameters."""
-        outfields: dict[str, any] = {}
+        outfields: dict[str, Any] = {}
         """Recording the data of other unused arguments."""
 
-        adventures: dict[str, any] = {}
+        adventures: dict[str, Any] = {}
         """Recording the data of 'beforeward'. ~A Great Adventure begins~"""
-        legacy: dict[str, any] = {}
+        legacy: dict[str, Any] = {}
         """Recording the data of 'afterward'. ~The Legacy remains from the achievement of ancestors~"""
-        tales: dict[str, any] = {}
+        tales: dict[str, Any] = {}
         """Recording the data of 'sideProduct' in 'afterward' and 'beforewards' for API. ~Tales of braves circulate~"""
 
-        reports: dict[str, dict[str, any]] = {}
+        reports: dict[str, dict[str, Any]] = {}
         """Recording the data of 'reports'. ~The guild concludes the results.~"""
-        tales_reports: dict[str, dict[str, any]] = {}
+        tales_reports: dict[str, dict[str, Any]] = {}
         """Recording the data of 'sideProduct' in 'reports' for API. ~Tales of braves circulate~"""
 
     _rjustLen = 3
@@ -636,6 +649,7 @@ class QurryExperiment:
         ```python
         files = {
             'folder': './blabla_experiment/',
+            'qurryinfo': './blabla_experiment/qurryinfo',
 
             'args': './blabla_experiment/args/blabla_experiment.id={expID}.args.json',
             'advent': './blabla_experiment/advent/blabla_experiment.id={expID}.advent.json',
@@ -657,6 +671,7 @@ class QurryExperiment:
         ```python
         files = {
             'folder': './BLABLA_project/',
+            'qurryinfo': './BLABLA_project/qurryinfo',
 
             'args': './BLABLA_project/args/index={serial}.id={expID}.args.json',
             'advent': './BLABLA_project/advent/index={serial}.id={expID}.advent.json',
@@ -689,8 +704,8 @@ class QurryExperiment:
         _summon = all((not v is None) for v in [serial, summonerID, summonerID])
         # args, commons, outfields
 
-        args: dict[str, any] = jsonablize(self.args._asdict())
-        commons: dict[str, any] = jsonablize(self.commons._asdict())
+        args: dict[str, Any] = jsonablize(self.args._asdict())
+        commons: dict[str, Any] = jsonablize(self.commons._asdict())
         outfields = jsonablize(self.outfields)
         # adventures, legacy, tales
         tales = {}
@@ -716,10 +731,10 @@ class QurryExperiment:
             else:
                 legacy[k] = jsonablize(v)
 
-        tales: dict[str, any] = jsonablize(tales)
+        tales = jsonablize(tales)
 
         # reports
-        reports: dict[str, dict[str, any]] = {}
+        reports: dict[str, dict[str, Any]] = {}
         """reports formats.
         ```
         reports = {
@@ -730,7 +745,7 @@ class QurryExperiment:
         }
         ```
         """
-        tales_reports: dict[str, dict[str, dict[str, any]]] = {}
+        tales_reports: dict[str, dict[str, dict[str, Any]]] = {}
         """tales_reports formats.
         ```
         tales_reports = {
@@ -782,6 +797,7 @@ class QurryExperiment:
             
         self.commons = self.commons._replace(filename=filename)
         files['folder'] = folder
+        files['qurryinfo'] = folder + 'qurryinfo'
         files['args'] = folder + f'args/{filename}.args.json'
         files['advent'] = folder + f'advent/{filename}.advent.json'
         files['legacy'] = folder + f'legacy/{filename}.legacy.json'
@@ -834,6 +850,7 @@ class QurryExperiment:
         ```python
         files = {
             'folder': './blabla_experiment/',
+            'qurrtinfo': './blabla_experiment/qurrtinfo',
 
             'args': './blabla_experiment/args/blabla_experiment.id={expID}.args.json',
             'advent': './blabla_experiment/advent/blabla_experiment.id={expID}.advent.json',
@@ -878,6 +895,10 @@ class QurryExperiment:
         
         export_material = self.export()
         export_set = {}
+        # qurryinfo ..........  # file location, dedicated hash
+        qurryinfo = {
+            export_material.expID: export_material.files,
+        }
         # args ...............  # arguments, commonparams, outfields, files
         export_set['args'] = {
             'expID': export_material.expID,
@@ -923,7 +944,7 @@ class QurryExperiment:
                 export_set[f'reports.tales.{tk}'] = [tv]
             if f'reports.tales.{tk}' not in export_material.files:
                 warnings.warn(f"reports.tales.{tk} is not in export_names, it's not exported.")
-                
+        # Exportation
         folder = saveLocation / Path(export_material.files['folder']) 
         if not os.path.exists(folder):
             os.mkdir(folder)
@@ -932,12 +953,81 @@ class QurryExperiment:
                 os.mkdir(folder / k)
                 
         for filekey, content in export_set.items():
+            if filekey == 'qurryinfo':
+                continue
             quickJSON(
                 content=content, 
-                filename=saveLocation / export_material.files[filekey],
+                filename=str(saveLocation / export_material.files[filekey]),
                 mode=mode,
                 indent=indent,
                 encoding=encoding,
                 jsonablize=jsonablize,
             )
-                
+        # Exportation of qurryinfo
+        if os.path.exists(saveLocation / export_material.files['qurryinfo']):
+            with open(saveLocation / export_material.files['qurryinfo'], 'r', encoding='utf-8') as f:
+                qurryinfoFound: dict[str, dict[str, str]] = json.load(f)
+            qurryinfo = {**qurryinfoFound, **qurryinfo}
+        
+        quickJSON(
+            content=qurryinfo,
+            filename=saveLocation / export_material.files['qurryinfo'],
+            mode=mode,
+            indent=indent,
+            encoding=encoding,
+            jsonablize=jsonablize,
+        )
+    
+    @classmethod
+    def read(
+        cls,
+        name: Union[Path, str],
+        saveLocation: Union[Path, str] = Path('./'),
+        
+        encoding: str = 'utf-8',
+    ):
+        """Read the experiment from file.
+        Replacement of :func:`QurryV4().readLegacy`
+
+        Args:
+            name_or_id (Union[Path, str]): 
+                The name or id of the experiment to be read.
+            saveLocation (Union[Path, str], optional):
+                The location of the experiment to be read.
+                Defaults to Path('./').
+            indent (int, optional): 
+                Indent length for json, for :func:`mori.quickJSON`. Defaults to 2.
+            encoding (str, optional): 
+                Encoding method, for :func:`mori.quickJSON`. Defaults to 'utf-8'.
+
+        Raises:
+            ValueError: 'saveLocation' needs to be the type of 'str' or 'Path'.
+            FileNotFoundError: When `saveLocation` is not available.
+            
+        """
+
+        if isinstance(saveLocation, (Path, str)):
+            saveLocation = Path(saveLocation)
+        else:
+            raise ValueError(
+                "'saveLocation' needs to be the type of 'str' or 'Path'.")
+        if not os.path.exists(saveLocation):
+            raise FileNotFoundError(f"'SaveLoaction' does not exist, '{saveLocation}'.")
+        
+        exportLocation = saveLocation / name
+        if not os.path.exists(exportLocation):
+            raise FileNotFoundError(f"'ExportLoaction' does not exist, '{exportLocation}'.")
+        
+        qurryinfo = {}
+        if not os.path.exists(exportLocation / 'qurryinfo'):
+            raise FileNotFoundError(f"'qurryinfo' does not exist at '{saveLocation}'. It's required for loading.")
+        
+        with open(exportLocation / 'qurryinfo', 'r', encoding=encoding) as f:
+            qurryinfoFound: dict[str, dict[str, str]] = json.load(f)
+            qurryinfo = {**qurryinfoFound, **qurryinfo}
+        
+        expQuene = []
+        for expID, fileIndex in qurryinfo.items():
+            # tmpQurryExp = cls()
+            if fileIndex['expName'] == name:
+                break
