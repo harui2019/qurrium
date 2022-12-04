@@ -13,13 +13,14 @@ import time
 from typing import Union, Optional, NamedTuple, Hashable, Literal
 from pathlib import Path
 
-from ..qurrium import QurryV4, haarBase, qubitSelector, waveSelecter, Counts
+from ..qurrium import QurryV4, qubitSelector, waveSelecter, Counts
+from ..qurrium.randomized import ensembleCell, qubitOpToPauliCoeff
 from ..mori import defaultConfig, TagMap
 
 # EntropyMeasure V0.4.0 - Measuring Renyi Entropy - Qurrent
 
 
-class EntropyHaarMeasureV4(QurryV4, haarBase):
+class EntropyHaarMeasureV4(QurryV4):
     """HaarMeasure V0.4.0 of qurrent
 
     - Reference:
@@ -159,7 +160,8 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
 
         # degree
         numQubits = self.waves[wave].num_qubits
-        degree = qubitSelector(numQubits, degree=degree)
+        degree: tuple = qubitSelector(numQubits, degree=degree)
+        
         if measure is None:
             measure = numQubits
         measure = qubitSelector(
@@ -249,11 +251,11 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
 
         print(
             f"| Circuit completed: {argsNow.wave}" +
-            f" - {i+1}/{argsNow.times} - {round(time.time() - ABegin, 3)}s." +
+            f" - {argsNow.times}/{argsNow.times} - {round(time.time() - ABegin, 3)}s." +
             " "*30)
 
         self.exps[self.IDNow]['sideProduct']['randomized'] = {
-            i: [self.qubitOpToPauliCoeff(unitaryList[i][j])
+            i: [qubitOpToPauliCoeff(unitaryList[i][j])
                 for j in range(*argsNow.unitary_set)]
             for i in range(argsNow.times)}
         self.exps[self.IDNow]['sideProduct']['unitaryOP'] = {
@@ -379,7 +381,7 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
                 f" - {round(time.time() - Begin, 3)}s.", end="\r")
             for sAi, sAiMeas in allMeasUnderDegree.items():
                 for sAj, sAjMeas in allMeasUnderDegree.items():
-                    purityCell += cls.ensembleCell(
+                    purityCell += ensembleCell(
                         sAi, sAiMeas, sAj, sAjMeas, subsystemSize, shots)
 
             purityCellList.append(purityCell)
@@ -437,12 +439,12 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
         quantity = {
             'purity': purity,
             'entropy': entropy,
-            '_purityCellList': purityCellList,
+            'purityCellList': purityCellList,
             'puritySD': puritySD,
             'bitsStringRange': bitStringRange,
 
             'purityAllSys': purityAllSys,
-            '_purityCellListAllSys': purityCellListAllSys,
+            'purityCellListAllSys': purityCellListAllSys,
             'puritySDAllSys': puritySDAllSys,
             'bitsStringRangeAllSys': bitStringRangeAllSys,
 
