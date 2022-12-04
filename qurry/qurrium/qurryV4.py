@@ -1511,13 +1511,13 @@ class QurryV4:
             retrievedJob = None
             jobID = jobID
             report = f"Job unreachable, '{e}'."
-            name = name
+            name = ''
 
         except IBMQError as e:
             retrievedJob = None
             jobID = jobID
             report = f"Job fully corrupted, '{e}'."
-            name = name
+            name = ''
 
         return self.managedReturn(
             managedJob=retrievedJob,
@@ -2614,6 +2614,7 @@ class QurryV4:
         print(
             f"| Retrieved all result to distribute - {time.time() - start_time} sec ...")
 
+        counts = []
         with Gajima(
             carousel=[('dots', 20, 6), 'basic'],
             prefix="| ",
@@ -2624,7 +2625,7 @@ class QurryV4:
             gajima.gprint("| Listing all circuits")
             for pk, pcircs in expsMulti.pendingPools.items():
                 if pk == 'all':
-                    ...
+                    counts = [pendingMapping[pk].result.get_counts()]
                 elif len(pcircs) > 0:
                     pJob: Optional[ManagedJobSet] = pendingMapping[pk].managedJob
                     if pJob is not None:
@@ -2642,6 +2643,7 @@ class QurryV4:
                         allCircuitCountsDict[rk] = counts[rk-pcircs[0]]
 
                 else:
+                    counts = []
                     if not pk == 'noTags' or not pk == ():
                         warnings.warn(f"There is no circuits in '{pk}'")
 
