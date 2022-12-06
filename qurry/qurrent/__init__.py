@@ -73,9 +73,23 @@ def EntropyMeasure(
         else:
             return haarMeasureV3(*args, **kwargs)
 
-    else:
+    elif version == 'v4':
         if method == 'hadamard':
             return EntropyHadamardTestV4(*args, **kwargs)
+        elif method == 'haar':
+            return EntropyHaarMeasureV4(*args, **kwargs)
+        else:
+            if method == 'base':
+                warnings.warn(
+                    "QurryV4 EntropyMeasure does not exist base method, replaced by 'randomized'.", UnconfiguredWarning)
+            return EntropyHaarMeasureV4(*args, **kwargs)
+    else:
+        warnings.warn(
+            f"Invalid version {version}, replaced by 'v4'.", UnconfiguredWarning)
+        if method == 'hadamard':
+            return EntropyHadamardTestV4(*args, **kwargs)
+        elif method == 'haar':
+            return EntropyHaarMeasureV4(*args, **kwargs)
         else:
             if method == 'base':
                 warnings.warn(
