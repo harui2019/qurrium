@@ -56,3 +56,9 @@ class QurryResetSecurityActivate(QurryWarning):
     
 class QurryResetAccomplished(QurryWarning):
     "Warning for class reset."
+    
+class QurryProtectContent(QurryWarning):
+    "Warning for protect content."
+
+class QurrySummonerInfoIncompletion(QurryWarning):
+    "Warning for summoner info incompletion. The summoner is the instance of :cls:`QurryMultiManager`."
