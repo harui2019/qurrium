@@ -6,7 +6,7 @@ import numpy as np
 import warnings
 from typing import Hashable, Union, Optional, NamedTuple
 
-from ..qurrium import QurryV4, qubitSelector, waveSelecter, Counts
+from ..qurrium import QurryV4, qubit_selector, wave_selector, Counts
 from ..mori import defaultConfig
 
 # EchoListen V0.4.0 - Measuring Loschmidt Echo - Qurrech
@@ -126,8 +126,8 @@ class EchoHadamardTestV4(QurryV4):
         """
 
         # wave
-        wave1 = waveSelecter(self, wave1)
-        wave2 = waveSelecter(self, wave2)
+        wave1 = wave_selector(self, wave1)
+        wave2 = wave_selector(self, wave2)
 
         # degree
         numQubits1 = self.waves[wave1].num_qubits
@@ -139,7 +139,7 @@ class EchoHadamardTestV4(QurryV4):
         
         if degree is None:
             degree = numQubits
-        degree = qubitSelector(numQubits, degree=degree)
+        degree = qubit_selector(numQubits, degree=degree)
 
         # expsName
         if expsName is None:

@@ -6,7 +6,7 @@ import numpy as np
 import warnings
 from typing import Hashable, Union, Optional, NamedTuple
 
-from ..qurrium import QurryV4, qubitSelector, waveSelecter, Counts
+from ..qurrium import QurryV4, qubit_selector, wave_selector, Counts
 from ..mori import defaultConfig
 
 # EntropyMeasure V0.4.0 - Measuring Renyi Entropy - Qurrent
@@ -125,11 +125,11 @@ class EntropyHadamardTestV4(QurryV4):
         """
 
         # wave
-        wave = waveSelecter(self, wave)
+        wave = wave_selector(self, wave)
 
         # degree
         numQubits = self.waves[wave].num_qubits
-        degree = qubitSelector(numQubits, degree=degree)
+        degree = qubit_selector(numQubits, degree=degree)
 
         # expsName
         if expsName is None:

@@ -1,9 +1,9 @@
 from qiskit import QuantumCircuit
 
 import warnings
-from typing import Callable, Literal, Union, Hashable
+from typing import Literal, Union, Hashable
 
-def qubitSelector(
+def qubit_selector(
     num_qubits: int,
     degree: Union[int, tuple[int, int], None] = None,
     as_what: Literal['degree', 'unitary_set', 'measure range'] = 'degree',
@@ -61,7 +61,7 @@ def qubitSelector(
     return item_range
 
 
-def waveSelecter(
+def wave_selector(
     qurry,
     wave: Union[QuantumCircuit, any, None] = None,
 ) -> Hashable:

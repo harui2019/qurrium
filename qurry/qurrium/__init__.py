@@ -9,7 +9,7 @@ from .randomized import (
     RXmatrix, RYmatrix, RZmatrix,
     makeTwoBitStr, makeTwoBitStrOneLiner, haarBase
 )
-from .construct import qubitSelector, waveSelecter
+from .construct import qubit_selector, wave_selector
 
 
 pauliMatrix = {

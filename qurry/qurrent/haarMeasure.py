@@ -13,7 +13,7 @@ import time
 from typing import Union, Optional, NamedTuple, Hashable, Literal
 from pathlib import Path
 
-from ..qurrium import QurryV4, qubitSelector, waveSelecter, Counts
+from ..qurrium import QurryV4, qubit_selector, wave_selector, Counts
 from ..qurrium.randomized import ensembleCell, qubitOpToPauliCoeff
 from ..mori import defaultConfig, TagMap
 
@@ -156,19 +156,19 @@ class EntropyHaarMeasureV4(QurryV4):
         """
 
         # wave
-        wave = waveSelecter(self, wave)
+        wave = wave_selector(self, wave)
 
         # degree
         numQubits = self.waves[wave].num_qubits
-        degree: tuple = qubitSelector(numQubits, degree=degree)
+        degree: tuple = qubit_selector(numQubits, degree=degree)
         
         if measure is None:
             measure = numQubits
-        measure = qubitSelector(
+        measure = qubit_selector(
             numQubits, degree=measure, as_what='measure range')
         if unitary_set is None:
             unitary_set = numQubits
-        unitary_set = qubitSelector(
+        unitary_set = qubit_selector(
             numQubits, degree=unitary_set, as_what='unitary_set')
 
         if (min(degree) < min(measure)) or (max(degree) > max(measure)):
@@ -327,12 +327,12 @@ class EntropyHaarMeasureV4(QurryV4):
         purityCellList = []
 
         if degree is None:
-            degree = qubitSelector(len(list(counts[0].keys())[0]))
+            degree = qubit_selector(len(list(counts[0].keys())[0]))
 
         if isinstance(degree, int):
             subsystemSize = degree
             print('quantity core: int', degree)
-            degree = qubitSelector(
+            degree = qubit_selector(
                 len(list(counts[0].keys())[0]), degree=degree)
 
         elif isinstance(degree, (tuple, list)):
@@ -344,7 +344,7 @@ class EntropyHaarMeasureV4(QurryV4):
                 f"'degree' must be 'int' or 'tuple[int, int]', but get '{degree}'.")
 
         if measure is None:
-            measure = qubitSelector(len(list(counts[0].keys())[0]))
+            measure = qubit_selector(len(list(counts[0].keys())[0]))
 
         if (min(degree) < min(measure)) or (max(degree) > max(measure)):
             raise ValueError(
