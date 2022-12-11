@@ -1,6 +1,6 @@
 import psutil
 import warnings
-from typing import NamedTuple
+from typing import NamedTuple, Union
 from collections import namedtuple
 
 from ..exceptions import (
@@ -10,6 +10,7 @@ from ..exceptions import (
 
 
 class ResoureWatch:
+    __version__ = (0, 0, 2)
     """Preventing some experiments have very large allocating of memory
     making computer crashing.
     """
@@ -93,14 +94,19 @@ class ResoureWatch:
 
         return Judge()
 
-    def check(self, *message) -> None:
+    def check(self, *message, return_stop_sign: bool = False) -> Union[Exception, bool]:
         if self.judge():
             self.message = " ".join(message)
-            raise QurryMemoryOverAllocationWarning(
-                "Resource usage breaks limit.",
-                self.message,
-                self.__repr__()
-            )
+            if return_stop_sign:
+                raise QurryMemoryOverAllocationWarning(
+                    "Resource usage breaks limit.",
+                    self.message,
+                    self.__repr__()
+                )
+            else:
+                return False
+        else:
+            return True
 
     def __repr__(self) -> str:
         repr_items = {
@@ -111,8 +117,8 @@ class ResoureWatch:
         repr_tmp = namedtuple('ResoureWatch', repr_items)
         return repr_tmp(**repr_items).__repr__()
 
-    def __call__(self, *message: str) -> None:
-        return self.check(message)
+    def __call__(self, *message: str, return_stop_sign: bool = False) -> Union[Exception, bool]:
+        return self.check(message, return_stop_sign=return_stop_sign)
 
     @staticmethod
     def report() -> None:

@@ -5,7 +5,6 @@ from qiskit_aer import AerProvider
 from qiskit_aer.version import get_version_info as get_version_info_aer
 
 import requests
-import asyncio
 import pkg_resources
 from random import random
 from typing import Optional, Hashable
