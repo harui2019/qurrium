@@ -7,22 +7,23 @@ from qiskit_aer import AerProvider
 
 from typing import Literal, Union, Optional, Hashable, MutableMapping
 
-from .waves_dynamic import _add
+from .waves_dynamic import _add, _remove
+
 
 class StaticWaveContainer(dict):
 
     @property
     def lastWave(self) -> Optional[QuantumCircuit]:
-        """The last wave function be called.
+        """The last wave function be called or used.
         Replace the property :prop:`waveNow`. in :cls:`QurryV4`"""
-        if self.lastWaveID == None:
+        if self.lastWaveKey == None:
             return None
         else:
-            return self[self.lastWaveID]
+            return self[self.lastWaveKey]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.lastWaveID = None
+        self.lastWaveKey = None
 
     def add(
         self: MutableMapping[Hashable, QuantumCircuit],
@@ -31,8 +32,14 @@ class StaticWaveContainer(dict):
         replace: Literal[True, False, 'duplicate'] = False,
     ) -> Hashable:
 
-        self.lastWaveID = _add(self, wave, key, replace)
-        return self.lastWaveID
+        self.lastWaveKey = _add(self, wave, key, replace)
+        return self.lastWaveKey
+    
+    def remove(
+        self: MutableMapping[Hashable, QuantumCircuit],
+        key: Hashable,
+    ) -> None:
+        _remove(self, key)
 
     def get_wave(
         self: MutableMapping[Hashable, QuantumCircuit],
@@ -65,6 +72,9 @@ class StaticWaveContainer(dict):
             wave = self.lastWave
         elif isinstance(wave, list):
             return [self.get_wave(w, runBy, backend) for w in wave]
+        
+        if wave not in self:
+            raise KeyError(f"Wave {wave} not found in {self}")
 
         if isinstance(backend, IBMQBackend):
             return self[wave].to_instruction()
@@ -77,6 +87,7 @@ class StaticWaveContainer(dict):
         elif runBy == 'copy':
             return self[wave].copy()
         elif runBy == 'call':
+            self.lastWaveKey = wave
             return self[wave]
         else:
             return self[wave].to_gate()
@@ -100,6 +111,13 @@ class StaticWaveContainer(dict):
             wave=wave,
             runBy='call',
         )
+
+    def __call__(
+        self: MutableMapping[Hashable, QuantumCircuit],
+        wave: Union[list[Hashable], Hashable, None] = None,
+    ) -> Union[list[QuantumCircuit], QuantumCircuit]:
+
+        return self.call(wave=wave)
 
     def operator(
         self: MutableMapping[Hashable, QuantumCircuit],

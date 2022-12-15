@@ -25,16 +25,16 @@ def wave_container_maker(
 
     @property
     def lastWave(self) -> Optional[QuantumCircuit]:
-        """The last wave function be called.
+        """The last wave function be called or used..
         Replace the property :prop:`waveNow`. in :cls:`QurryV4`"""
-        if self.lastWaveID == None:
+        if self.lastWaveKey == None:
             return None
         else:
-            return self[self.lastWaveID]
+            return self[self.lastWaveKey]
 
     def constructor(self, *args, **kwargs):
         super(base_type, self).__init__(*args, **kwargs)
-        self.lastWaveID = None
+        self.lastWaveKey = None
 
     def add(
         self: MutableMapping[Hashable, QuantumCircuit],
@@ -43,8 +43,11 @@ def wave_container_maker(
         replace: Literal[True, False, 'duplicate'] = False,
     ) -> Hashable:
 
-        self.lastWaveID = _add(self, wave, key, replace)
-        return self.lastWaveID
+        self.lastWaveKey = _add(self, wave, key, replace)
+        return self.lastWaveKey
+
+    def remove(self, key: Hashable):
+        return _remove(self, key)
 
     def get_wave(
         self: MutableMapping[Hashable, QuantumCircuit],
@@ -89,6 +92,7 @@ def wave_container_maker(
         elif runBy == 'copy':
             return self[wave].copy()
         elif runBy == 'call':
+            self.lastWaveKey = wave
             return self[wave]
         else:
             return self[wave].to_gate()
@@ -113,6 +117,12 @@ def wave_container_maker(
             runBy='call',
         )
 
+    def __call__(
+        self: MutableMapping[Hashable, QuantumCircuit],
+        wave: Union[list[Hashable], Hashable, None] = None,
+    ) -> Union[list[QuantumCircuit], QuantumCircuit]:
+
+        return self.call(wave=wave)
 
     def operator(
         self: MutableMapping[Hashable, QuantumCircuit],
@@ -213,9 +223,11 @@ def wave_container_maker(
 
     class_namespace = {
         '__init__': constructor,
+        '__call__': __call__,
 
         'lastWave': lastWave,
         'add': add,
+        'remove': remove,
         'get_wave': get_wave,
         'call': call,
         'operator': operator,
@@ -297,3 +309,11 @@ def _add(
             category=TypeError)
 
     return key
+
+
+def _remove(
+    _wave_container: MutableMapping[Hashable, QuantumCircuit],
+    key: Optional[Hashable] = None,
+) -> None:
+    
+    del _wave_container[key]
