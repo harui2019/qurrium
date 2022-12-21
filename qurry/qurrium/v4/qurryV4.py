@@ -34,7 +34,7 @@ from abc import abstractmethod, abstractclassmethod
 from collections import namedtuple
 from matplotlib.figure import Figure
 
-from ..mori import (
+from ...mori import (
     defaultConfig,
     attributedDict,
     defaultConfig,
@@ -44,23 +44,23 @@ from ..mori import (
     sortHashableAhead,
     TagMap,
 )
-from ..mori.type import TagMapType
-from ..util import ResoureWatch, Gajima
+from ...mori.type import TagMapType
+from ...tools import ResoureWatch, Gajima
 from tqdm import tqdm
 
-from .declare.default import (
+from ..declare.default import (
     transpileConfig,
     managerRunConfig,
     runConfig,
     ResoureWatchConfig,
     containChecker,
 )
-from .construct import decomposer
-from ..exceptions import (
+from ..declare.type import Quantity, Counts, waveGetter, waveReturn
+from ..utils import decomposer
+from ...exceptions import (
     UnconfiguredWarning,
     QurryInheritionNoEffect,
 )
-from .declare.type import Quantity, Counts, waveGetter, waveReturn
 
 # Qurry V0.4.0 - a Qiskit Macro
 

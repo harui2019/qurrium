@@ -30,7 +30,7 @@ from typing import Literal, Union, Optional, NamedTuple, Hashable, Iterable, Typ
 from abc import abstractmethod, abstractclassmethod, abstractproperty
 from matplotlib.figure import Figure
 
-from ...mori import (
+from ..mori import (
     defaultConfig,
     attributedDict,
     syncControl,
@@ -39,25 +39,25 @@ from ...mori import (
     sortHashableAhead,
     TagMap,
 )
-from ...mori.type import TagMapType
-from ...util import Gajima, ResoureWatch
+from ..mori.type import TagMapType
+from ..tools import Gajima, ResoureWatch
 
-from ..declare.default import (
+from .declare.default import (
     transpileConfig,
     managerRunConfig,
     runConfig,
     ResoureWatchConfig,
     containChecker,
 )
+from .declare.type import waveContainerType
 from .experiment import ExperimentPrototype, QurryExperiment
 from .container import WaveContainer, ExperimentContainer
 
-from ..construct import decomposer
-from ...exceptions import (
+from .utils import decomposer
+from ..exceptions import (
     UnconfiguredWarning,
     QurryInheritionNoEffect,
 )
-from ..declare.type import waveContainerType
 
 # Qurry V0.5.0 - a Qiskit Macro
 
@@ -281,6 +281,8 @@ class QurryV5Prototype:
 
         **otherArgs: any
     ) -> Hashable:
+        
+        # TODO: If given a existing expID, then just used its existing parameter except `redo` is given.
 
         # wave
         if isinstance(wave, QuantumCircuit):
@@ -555,6 +557,11 @@ class QurryV5Prototype:
         )
         for _c in counts:
             self.lastExp.afterwards.counts.append(_c)
+            
+        # default analysis
+        if len(self.lastExp.commons.defaultAnalysis) > 0:
+            for _analysis in self.lastExp.commons.defaultAnalysis:
+                self.lastExp.analyze(**_analysis)
 
         if isinstance(saveLocation, (Path, str)):
             self.lastExp.write(

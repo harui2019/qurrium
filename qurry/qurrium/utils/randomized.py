@@ -70,7 +70,7 @@ def ensembleCell(
             float: the value of two counts from qubits in ensemble average.
 
     """
-    diff = sum(s1 != s2 for s1, s2 in zip(sAi, sAj))
+    diff = sum(s1 != s2 for s1, s2 in zip(sAi, sAj)) # hamming_distance(sAi, sAj)
     tmp = (
         np.float_power(2, aNum)*np.float_power(-2, -diff)
     )*(
@@ -117,7 +117,7 @@ def qubitOpToPauliCoeff(
 
 class haarBase:
     randomized_tool_version = (0, 1, 0)
-    """Basic function of Haar randomized measure
+    """(Deprecated) Basic function of Haar randomized measure
 
     - Reference:
         - Used in:

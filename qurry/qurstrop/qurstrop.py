@@ -7,7 +7,7 @@ import warnings
 from typing import Union, Optional, NamedTuple, Literal
 
 from ..qurrium import QurryV3
-from ..util import Gajima
+from ..tools import Gajima
 
 # StringOperator V0.3.0 - Measuring Topological Phase - Qurstrop
 

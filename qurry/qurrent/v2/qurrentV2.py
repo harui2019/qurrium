@@ -2,7 +2,7 @@ from qiskit import (
     execute, transpile,
     QuantumRegister, ClassicalRegister, QuantumCircuit
 )
-from qiskit.providers.aer import AerProvider
+from qiskit_aer import AerProvider
 from qiskit.quantum_info import Operator
 from qiskit.circuit import Gate, Instruction
 from qiskit.result import Result

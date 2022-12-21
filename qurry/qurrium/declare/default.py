@@ -3,7 +3,7 @@ import warnings
 
 from ...exceptions import QurryInheritionNoEffect
 from ...mori import defaultConfig
-from ...util.watch import ResoureWatch
+from ...tools.watch import ResoureWatch
 
 transpileConfig = defaultConfig(
     name='transpileArgs',

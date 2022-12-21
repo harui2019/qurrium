@@ -2,7 +2,7 @@ import pytest
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 
 from qurry.qurstrop import StringOperator
-from qurry.util import backendWrapper
+from qurry.tools import backendWrapper
 
 expDemo01 = StringOperator()
 try:

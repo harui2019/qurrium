@@ -2,7 +2,7 @@ from typing import Optional, NamedTuple, Iterable, Any
 from abc import abstractmethod, abstractproperty
 from datetime import datetime
 
-from ...mori import jsonablize
+from ..mori import jsonablize
 
 
 class AnalysisPrototype():

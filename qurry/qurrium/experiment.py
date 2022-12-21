@@ -14,9 +14,9 @@ import warnings
 import os
 import json
 
-from ...hoshi import Hoshi
-from ...mori import jsonablize, quickJSON
-from ...exceptions import (
+from ..hoshi import Hoshi
+from ..mori import jsonablize, quickJSON
+from ..exceptions import (
     QurryInvalidInherition,
     QurryExperimentCountsNotCompleted,
     QurryResetSecurityActivate,
@@ -24,7 +24,7 @@ from ...exceptions import (
     QurryProtectContent,
     QurrySummonerInfoIncompletion
 )
-from ..declare.type import Counts
+from .declare.type import Counts
 from .analysis import AnalysisPrototype, QurryAnalysis
 
 

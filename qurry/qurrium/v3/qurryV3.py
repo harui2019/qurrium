@@ -33,7 +33,7 @@ from typing import Literal, Union, Optional, NamedTuple, Hashable, overload
 from abc import abstractmethod, abstractclassmethod
 from collections import Counter
 
-from ...util import Gajima, ResoureWatch
+from ...tools import Gajima, ResoureWatch
 from ...mori import (
     defaultConfig,
     attributedDict,

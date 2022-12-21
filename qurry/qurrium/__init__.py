@@ -1,16 +1,18 @@
 from .v3.qurryV3 import QurryV3
-from .qurryV4 import QurryV4
+from .v4.qurryV4 import QurryV4
+
 from .declare.type import (
     Quantity,
     Counts,
 )
 from ..exceptions import *
-from .randomized import (
+from .utils import (
     RXmatrix, RYmatrix, RZmatrix,
-    makeTwoBitStr, makeTwoBitStrOneLiner, haarBase
+    makeTwoBitStr, makeTwoBitStrOneLiner, haarBase,
+    hamming_distance, ensembleCell, densityMatrixToBloch, qubitOpToPauliCoeff,
+    qubit_selector, wave_selector, decomposer,
+    levenshtein_distance
 )
-from .construct import qubit_selector, wave_selector
-
 
 pauliMatrix = {
     'rx': RXmatrix,

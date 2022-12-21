@@ -3,8 +3,8 @@ import warnings
 
 from ..exceptions import UnconfiguredWarning
 # v4
-from .haarMeasure import EntropyHaarMeasureV4
-from .hadamardTest import EntropyHadamardTestV4
+from .v4.haarMeasure import EntropyHaarMeasureV4
+from .v4.hadamardTest import EntropyHadamardTestV4
 # v3
 from .v3.qurrent import EntropyMeasureV3
 from .v3.haarMeasure import haarMeasureV3

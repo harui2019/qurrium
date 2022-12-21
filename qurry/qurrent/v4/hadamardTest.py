@@ -6,8 +6,8 @@ import numpy as np
 import warnings
 from typing import Hashable, Union, Optional, NamedTuple
 
-from ..qurrium import QurryV4, qubit_selector, wave_selector, Counts
-from ..mori import defaultConfig
+from ...qurrium import QurryV4, qubit_selector, wave_selector, Counts
+from ...mori import defaultConfig
 
 # EntropyMeasure V0.4.0 - Measuring Renyi Entropy - Qurrent
 
