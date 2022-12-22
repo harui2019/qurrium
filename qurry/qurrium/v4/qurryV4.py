@@ -4,11 +4,10 @@ from qiskit import (
 )
 from qiskit_aer import AerProvider, AerSimulator
 from qiskit.quantum_info import Operator
-from qiskit.circuit import Gate, Instruction
+from qiskit.circuit import Gate
 from qiskit.result import Result
-from qiskit.providers import Backend, JobError, JobStatus
+from qiskit.providers import Backend
 from qiskit.providers.ibmq import IBMQBackend, IBMQJobManager, AccountProvider
-from qiskit.providers.ibmq.job import IBMQJobApiError
 from qiskit.providers.ibmq.managed import (
     ManagedJobSet,
     # ManagedJob,
@@ -2625,7 +2624,7 @@ class QurryV4:
             gajima.gprint("| Listing all circuits")
             for pk, pcircs in expsMulti.pendingPools.items():
                 if pk == 'all':
-                    counts = [pendingMapping[pk].result.get_counts()]
+                    ...
                 elif len(pcircs) > 0:
                     pJob: Optional[ManagedJobSet] = pendingMapping[pk].managedJob
                     if pJob is not None:
@@ -2643,7 +2642,6 @@ class QurryV4:
                         allCircuitCountsDict[rk] = counts[rk-pcircs[0]]
 
                 else:
-                    counts = []
                     if not pk == 'noTags' or not pk == ():
                         warnings.warn(f"There is no circuits in '{pk}'")
 
