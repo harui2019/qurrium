@@ -1097,6 +1097,9 @@ class ExperimentPrototype():
         return queue
 
 
+class DummyExperiment(ExperimentPrototype):
+    """The dummy experiment for testing and before first experiment runs."""
+
 class QurryExperiment(ExperimentPrototype):
 
     __name__ = 'QurryExperiment'
@@ -1104,7 +1107,6 @@ class QurryExperiment(ExperimentPrototype):
     class arguments(NamedTuple):
         """Construct the experiment's parameters for specific options, which is overwritable by the inherition class."""
         expName: str = 'exps'
-        wave: QuantumCircuit = None
         sampling: int = 1
 
     @classmethod

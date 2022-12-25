@@ -18,6 +18,3 @@ VT = TypeVar("VT")
 # waveGetter methods
 waveGetter = Union[list[T], T]
 waveReturn = Union[Gate, Operator, Instruction, QuantumCircuit]
-
-# WaveContainer
-waveContainerType = MutableMapping[Hashable, QuantumCircuit]

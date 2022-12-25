@@ -10,14 +10,14 @@ from typing import Literal, Union, Optional, Hashable, MutableMapping
 from .waves_dynamic import _add, _remove
 
 
-class StaticWaveContainer(dict):
+class StaticWaveContainer(dict[Hashable, QuantumCircuit]):
 
     @property
-    def lastWave(self) -> Optional[QuantumCircuit]:
+    def lastWave(self) -> QuantumCircuit:
         """The last wave function be called or used.
         Replace the property :prop:`waveNow`. in :cls:`QurryV4`"""
         if self.lastWaveKey == None:
-            return None
+            raise KeyError("No wave function added yet.")
         else:
             return self[self.lastWaveKey]
 

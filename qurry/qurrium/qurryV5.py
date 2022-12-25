@@ -29,8 +29,7 @@ from .declare.default import (
     runConfig,
     containChecker,
 )
-from .declare.type import waveContainerType
-from .experiment import ExperimentPrototype, QurryExperiment
+from .experiment import ExperimentPrototype, QurryExperiment, DummyExperiment
 from .container import WaveContainer, ExperimentContainer
 
 from .utils import decomposer
@@ -195,7 +194,7 @@ class QurryV5Prototype:
             raise TypeError(
                 f"resourceWatch must be a ResoureWatch instance, not {type(resourceWatch)}")
 
-        self.waves: waveContainerType = WaveContainer()
+        self.waves: WaveContainer = WaveContainer()
         """The wave functions container."""
         for w in waves:
             if isinstance(w, QuantumCircuit):
@@ -223,10 +222,20 @@ class QurryV5Prototype:
         return self.exps.lastID
 
     @property
-    def lastExp(self) -> Optional[ExperimentPrototype]:
+    def lastExp(self) -> ExperimentPrototype:
         """The last experiment be executed.
         Replace the property :prop:`now`. in :cls:`QurryV4`"""
         return self.exps.lastExp
+
+    @property
+    def lastWave(self) -> QuantumCircuit:
+        """The last wave be added."""
+        return self.waves.lastWave
+
+    @property
+    def lastWaveKey(self) -> Hashable:
+        """The key of the last wave be added."""
+        return self.waves.lastWaveKey
 
     @abstractmethod
     def paramsControl(self) -> tuple[ExperimentPrototype.arguments, ExperimentPrototype.commonparams, dict[str, Any]]:
@@ -258,7 +267,7 @@ class QurryV5Prototype:
 
         **otherArgs: any
     ) -> Hashable:
-        
+
         # TODO: If given a existing expID, then just used its existing parameter except `redo` is given.
 
         # wave
@@ -274,13 +283,11 @@ class QurryV5Prototype:
         else:
             raise TypeError(
                 f"'{wave}' is a '{type(wave)}' instead of 'QuantumCircuit' or 'Hashable'")
-        wave = self.waves[waveKey]
 
         ctrlArgs: ExperimentPrototype.arguments
         commons: ExperimentPrototype.commonparams
         outfields: dict[str, Any]
         ctrlArgs, commons, outfields = self.paramsControl(
-            wave=wave,
             waveKey=waveKey,
             expID=expID,
             shots=shots,
@@ -310,6 +317,18 @@ class QurryV5Prototype:
                     ', but are still kept in experiment record.',
                     QurryInheritionNoEffect
                 )
+
+        if len(commons.defaultAnalysis) > 0:
+            for index, analyze_input in enumerate(commons.defaultAnalysis):
+                if not isinstance(analyze_input, dict):
+                    raise TypeError(
+                        f"Each element of 'defaultAnalysis' must be a dict, not {type(analyze_input)}, for index {index} in 'defaultAnalysis'")
+                try:
+                    self.experiment.analysis_container.input_filter(
+                        **analyze_input)
+                except TypeError as e:
+                    raise ValueError(
+                        f'analysis input filter found index {index} in "defaultAnalysis" failed: {e}')
 
         # config check
         containChecker(commons.transpileArgs, transpileConfig)
@@ -445,7 +464,7 @@ class QurryV5Prototype:
         # afterwards
         result = execution.result()
         self.lastExp.unlock_afterward(mute_auto_lock=True)
-        self.lastExp['result'] = result
+        self.lastExp['result'].append(result)
 
         if isinstance(saveLocation, (Path, str)):
             self.lastExp.write(
@@ -462,8 +481,8 @@ class QurryV5Prototype:
     def get_counts(
         cls,
         result: Union[Result, ManagedResults, None],
+        num: Optional[int] = None,
         resultIdxList: Optional[list[int]] = None,
-        num: int = 1,
     ) -> list[dict[str, int]]:
         """Computing specific squantity.
         Where should be overwritten by each construction of new measurement.
@@ -472,28 +491,33 @@ class QurryV5Prototype:
             tuple[dict, dict]:
                 Counts, purity, entropy of experiment.
         """
-        if resultIdxList == None:
-            resultIdxList = [i for i in range(num)]
-        else:
-            ...
+        counts: list[dict[str, int]] = []
+        if result is None:
+            counts.append({})
+            print("| Failed Job result skip, Job ID:", result.job_id)
+            return counts
 
-        counts = []
-        for i in resultIdxList:
-            if result is None:
-                counts.append({})
-                print("| Failed Job result skip, index:", i)
-                continue
-            try:
-                allMeas = result.get_counts(i)
-                counts.append(allMeas)
-            except IBMQManagedResultDataNotAvailable as err:
-                counts.append({})
-                print("| Failed Job result skip, index:", i, err)
-                continue
-            except IBMQJobManagerJobNotFound as err:
-                counts.append({})
-                print("| Failed Job result skip, index:", i, err)
-                continue
+        try:
+            if num is None:
+                get: Union[list[dict[str, int]],
+                           dict[str, int]] = result.get_counts()
+                if isinstance(get, list):
+                    counts: list[dict[str, int]] = get
+                else:
+                    counts.append(get)
+            else:
+                if resultIdxList is None:
+                    resultIdxList = [i for i in range(num)]
+                for i in resultIdxList:
+                    allMeas = result.get_counts(i)
+                    counts.append(allMeas)
+
+        except IBMQManagedResultDataNotAvailable as err:
+            counts.append({})
+            print("| Failed Job result skip, Job ID:", result.job_id, err)
+        except IBMQJobManagerJobNotFound as err:
+            counts.append({})
+            print("| Failed Job result skip, Job ID:", result.job_id, err)
 
         return counts
 
@@ -523,18 +547,21 @@ class QurryV5Prototype:
         )
         assert IDNow == self.lastID
         assert self.lastExp is not None
+        assert len(self.lastExp.afterwards.result) == 1, "Result should be only one."
 
         if len(args) > 0:
             raise ValueError(
                 f"{self.__name__} can't be initialized with positional arguments.")
 
         # afterwards
+        num = len(self.lastExp.beforewards.circuit)
         counts = self.get_counts(
-            result=self.lastExp.afterwards.result,
+            result=self.lastExp.afterwards.result[0],
+            num=num,
         )
         for _c in counts:
             self.lastExp.afterwards.counts.append(_c)
-            
+
         # default analysis
         if len(self.lastExp.commons.defaultAnalysis) > 0:
             for _analysis in self.lastExp.commons.defaultAnalysis:
@@ -615,7 +642,7 @@ class QurryV5(QurryV5Prototype):
     def paramsControl(
         self,
         expName: str = 'exps',
-        wave: Optional[QuantumCircuit] = None,
+        waveKey: Hashable = None,
         sampling: int = 1,
         **otherArgs: any
     ) -> tuple[QurryExperiment.arguments, QurryExperiment.commonparams, dict[str, Any]]:
@@ -650,7 +677,7 @@ class QurryV5(QurryV5Prototype):
 
         return self.experiment.filter(
             expName=expName,
-            wave=wave,
+            waveKey=waveKey,
             sampling=sampling,
             **otherArgs,
         )
@@ -659,7 +686,8 @@ class QurryV5(QurryV5Prototype):
 
         assert self.lastExp is not None
         args: QurryExperiment.arguments = self.lastExp.args
-        circuit = args.wave
+        commons: QurryExperiment.commonparams = self.lastExp.commons
+        circuit = self.waves[commons.waveKey]
         numQubits = circuit.num_qubits
 
         self.lastExp['expName'] = f"{args.expName}-{self.lastExp.commons.waveKey}-x{args.sampling}"

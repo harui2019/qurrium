@@ -4,11 +4,11 @@ from typing import Union, Optional, Hashable, MutableMapping
 class ExperimentContainer(dict):
     
     @property
-    def lastExp(self) -> Optional[ExperimentPrototype]:
+    def lastExp(self) -> ExperimentPrototype:
         """The last experiment be called or used.
         Replace the property :prop:`waveNow`. in :cls:`QurryV4`"""
         if self.lastID == None:
-            return None
+            raise ValueError("No experiment has been created.")
         else:
             return self[self.lastID]
         
