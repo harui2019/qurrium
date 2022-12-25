@@ -239,6 +239,10 @@ class ExperimentPrototype():
         if not 'expName' in self.arguments._fields:
             raise QurryInvalidInherition(
                 f"{self.__name__}.arguments should have 'expName'.")
+        duplicate_fields = set(self.arguments._fields) & set(self.commonparams._fields)
+        if len(duplicate_fields) > 0:
+            raise QurryInvalidInherition(
+                f"{self.__name__}.arguments and {self.__name__}.commonparams should not have same fields: {duplicate_fields}.")
 
         params = {}
         commons = {}
