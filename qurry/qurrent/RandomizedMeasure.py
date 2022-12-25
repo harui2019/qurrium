@@ -59,7 +59,7 @@ def _entangled_entropy_core(
     counts: list[dict[str, int]],
     degree: Union[tuple[int, int], int],
     measure: tuple[int, int] = None,
-    _worker_num: Optional[int] = None,
+    _workers_num: Optional[int] = None,
 ) -> tuple[list[float], tuple[int, int], tuple[int, int]]:
     """The core function of entangled entropy.
 
@@ -68,7 +68,7 @@ def _entangled_entropy_core(
         counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
         degree (Union[tuple[int, int], int]): Degree of the subsystem.
         measure (tuple[int, int], optional): Measuring range on quantum circuits. Defaults to None.
-        _worker_num (Optional[int], optional): 
+        _workers_num (Optional[int], optional): 
             Number of multi-processing workers, 
             if sets to 1, then disable to using multi-processing;
             if not specified, the use 3/4 of cpu counts by `round(cpu_count*3/4)`.
@@ -87,19 +87,19 @@ def _entangled_entropy_core(
     assert sample_shots == shots, f"shots {shots} does not match sample_shots {sample_shots}"
 
     # Determine worker number
-    if _worker_num is None:
+    if _workers_num is None:
         launch_worker = int(cpu_count()/4*3)
     else:
-        if _worker_num > cpu_count():
+        if _workers_num > cpu_count():
             warnings.warn(
-                f"Worker number {_worker_num} is larger than cpu count {cpu_count()}.")
+                f"Worker number {_workers_num} is larger than cpu count {cpu_count()}.")
             launch_worker = int(cpu_count()-4)
-        elif _worker_num < 1:
+        elif _workers_num < 1:
             warnings.warn(
-                f"Worker number {_worker_num} is smaller than 1. Use single worker.")
+                f"Worker number {_workers_num} is smaller than 1. Use single worker.")
             launch_worker = 1
         else:
-            launch_worker = _worker_num
+            launch_worker = _workers_num
 
     # Determine degree
     if degree is None:
@@ -108,13 +108,11 @@ def _entangled_entropy_core(
     # Determine subsystem size
     if isinstance(degree, int):
         subsystemSize = degree
-        print('quantity core: int', degree)
         degree = qubit_selector(
             len(list(counts[0].keys())[0]), degree=degree)
 
     elif isinstance(degree, (tuple, list)):
         subsystemSize = max(degree) - min(degree)
-        print('quantity core: tuple, list', degree)
 
     else:
         raise ValueError(
@@ -176,7 +174,7 @@ def entangled_entropy(
         counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
         degree (Union[tuple[int, int], int]): Degree of the subsystem.
         measure (tuple[int, int], optional): Measuring range on quantum circuits. Defaults to None.
-        _worker_num (Optional[int], optional): 
+        _workers_num (Optional[int], optional): 
             Number of multi-processing workers, 
             if sets to 1, then disable to using multi-processing;
             if not specified, the use 3/4 of cpu counts by `round(cpu_count*3/4)`.
@@ -227,7 +225,7 @@ def entangled_entropy_complex(
         counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
         degree (Union[tuple[int, int], int]): Degree of the subsystem.
         measure (tuple[int, int], optional): Measuring range on quantum circuits. Defaults to None.
-        _worker_num (Optional[int], optional): 
+        _workers_num (Optional[int], optional): 
             Number of multi-processing workers, 
             if sets to 1, then disable to using multi-processing;
             if not specified, the use 3/4 of cpu counts by `round(cpu_count*3/4)`.
@@ -273,9 +271,9 @@ def entangled_entropy_complex(
         # target system
         'purity': purity,
         'entropy': entropy,
-        'entropy': entropy,
         'purityCellList': purityCellList,
         'puritySD': puritySD,
+        'bitStringRange': bitStringRange,
         # all system
         'purityAllSys': purityAllSys,
         'entropyAllSys': entropyAllSys,
@@ -292,7 +290,6 @@ def entangled_entropy_complex(
         'measure': measureInfo,
         'measureActually': measureRange,
         'measureActuallyAllSys': measureRangeAllSys,
-        'bitStringRange': bitStringRange,
     }
     return quantity
 
@@ -305,14 +302,16 @@ class EntropyRandomizedAnalysis(AnalysisPrototype):
         """To set the analysis."""
 
         degree: tuple[int, int]
+        shots: int
+        unitary_loc: tuple[int, int]
 
     class analysisContent(NamedTuple):
         """The content of the analysis."""
 
-        purtiy: float
+        purity: float
         """The purity of the system."""
         entropy: float
-        purtiySD: float
+        puritySD: float
         purityCellList: list[float]
         bitStringRange: tuple[int, int]
 
@@ -327,8 +326,9 @@ class EntropyRandomizedAnalysis(AnalysisPrototype):
         # errorMitigatedPuritySD: float
         # errorMitigatedPurityCellList: list[float]
 
-        degree: tuple[int, int]
         measure: tuple[int, int]
+        measureActually: tuple[int, int]
+        measureActuallyAllSys: tuple[int, int]
 
     @property
     def default_side_product_fields(self) -> Iterable[str]:
@@ -355,7 +355,7 @@ class EntropyRandomizedAnalysis(AnalysisPrototype):
             counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
             degree (Union[tuple[int, int], int]): Degree of the subsystem.
             measure (tuple[int, int], optional): Measuring range on quantum circuits. Defaults to None.
-            _worker_num (Optional[int], optional): 
+            _workers_num (Optional[int], optional): 
                 Number of multi-processing workers, 
                 if sets to 1, then disable to using multi-processing;
                 if not specified, the use 3/4 of cpu counts by `round(cpu_count*3/4)`.
@@ -373,7 +373,7 @@ class EntropyRandomizedAnalysis(AnalysisPrototype):
             counts=counts,
             degree=degree,
             measure=measure,
-            _worker_num=_workers_num,
+            _workers_num=_workers_num,
         )
 
 
@@ -396,8 +396,88 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
         """
         return EntropyRandomizedAnalysis
     
-    
+    @classmethod
+    def quantities(
+        cls,
+        shots: int,
+        counts: list[dict[str, int]],
+        degree: Union[tuple[int, int], int],
+        measure: tuple[int, int] = None,
+        _workers_num: Optional[int] = None,
+    ) -> dict[str, float]:
+        """Calculate entangled entropy with more information combined.
 
+        Args:
+            shots (int): Shots of the experiment on quantum machine.
+            counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
+            degree (Union[tuple[int, int], int]): Degree of the subsystem.
+            measure (tuple[int, int], optional): Measuring range on quantum circuits. Defaults to None.
+            _workers_num (Optional[int], optional): 
+                Number of multi-processing workers, 
+                if sets to 1, then disable to using multi-processing;
+                if not specified, the use 3/4 of cpu counts by `round(cpu_count*3/4)`.
+                Defaults to None.
+
+        Returns:
+            dict[str, float]: A dictionary contains 
+                purity, entropy, a list of each overlap, puritySD, 
+                purity of all system, entropy of all system, a list of each overlap in all system, puritySD of all system,
+                degree, actual measure range, actual measure range in all system, bitstring range.
+        """
+        
+        return entangled_entropy_complex(
+            shots=shots,
+            counts=counts,
+            degree=degree,
+            measure=measure,
+            _workers_num=_workers_num,
+        )
+        
+    def analyze(
+        self,
+        degree: Union[tuple[int, int], int],
+        _workers_num: Optional[int] = None
+    ) -> AnalysisPrototype:
+        """Calculate entangled entropy with more information combined.
+
+        Args:
+            degree (Union[tuple[int, int], int]): Degree of the subsystem.
+            _workers_num (Optional[int], optional): 
+                Number of multi-processing workers, 
+                if sets to 1, then disable to using multi-processing;
+                if not specified, the use 3/4 of cpu counts by `round(cpu_count*3/4)`.
+                Defaults to None.
+
+        Returns:
+            dict[str, float]: A dictionary contains 
+                purity, entropy, a list of each overlap, puritySD, 
+                purity of all system, entropy of all system, a list of each overlap in all system, puritySD of all system,
+                degree, actual measure range, actual measure range in all system, bitstring range.
+        """
+        
+        shots = self.commons.shots
+        measure = self.args.measure
+        unitary_loc = self.args.unitary_loc
+        counts = self.afterwards.counts
+        
+        qs = self.quantities(
+            shots=shots,
+            counts=counts,
+            degree=degree,
+            measure=measure,
+            _workers_num=_workers_num,
+        )
+        print(qs.keys(), 'qqq')
+        serial = len(self.reports)
+        analysis = self.analysis_container(
+            serial=serial,
+            shots=shots,
+            unitary_loc=unitary_loc,
+            **qs,
+        )
+
+        self.reports[serial] = analysis
+        return analysis
 
 class EntropyRandomizedMeasure(QurryV5Prototype):
 
@@ -457,6 +537,10 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
             unitary_loc = numQubits
         unitary_loc = qubit_selector(
             numQubits, degree=unitary_loc, as_what='unitary_set')
+        
+        if (min(measure) < min(unitary_loc)) or (max(measure) > max(unitary_loc)):
+            raise ValueError(
+                f"Unitary_set range '{unitary_loc}' does not contain measure range '{measure}'.")
 
         expName = f"w={waveKey}-at={times}.{self.shortName}"
 
