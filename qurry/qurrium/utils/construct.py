@@ -3,6 +3,7 @@ from qiskit import QuantumCircuit
 import warnings
 from typing import Literal, Union, Hashable
 
+
 def qubit_selector(
     num_qubits: int,
     degree: Union[int, tuple[int, int], None] = None,

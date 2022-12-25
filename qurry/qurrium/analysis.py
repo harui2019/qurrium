@@ -5,6 +5,7 @@ from datetime import datetime
 from ..mori import jsonablize
 from ..exceptions import QurryInvalidInherition
 
+
 class AnalysisPrototype():
     """The container for the analysis of :cls:`QurryExperiment`."""
 
@@ -87,8 +88,9 @@ class AnalysisPrototype():
         self.content, self.outfields = self.content_filter(**outfields)
         self.side_product_fields = (
             self.default_side_product_fields if side_product_fields is None else side_product_fields)
-        
-        duplicate_fields = set(self.analysisInput._fields) & set(self.analysisContent._fields)
+
+        duplicate_fields = set(self.analysisInput._fields) & set(
+            self.analysisContent._fields)
         if len(duplicate_fields) > 0:
             raise QurryInvalidInherition(
                 f"{self.__name__}.analysisInput and {self.__name__}.analysisContent should not have same fields: {duplicate_fields}.")

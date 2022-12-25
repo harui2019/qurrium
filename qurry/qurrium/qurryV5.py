@@ -547,7 +547,8 @@ class QurryV5Prototype:
         )
         assert IDNow == self.lastID
         assert self.lastExp is not None
-        assert len(self.lastExp.afterwards.result) == 1, "Result should be only one."
+        assert len(
+            self.lastExp.afterwards.result) == 1, "Result should be only one."
 
         if len(args) > 0:
             raise ValueError(

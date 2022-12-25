@@ -239,7 +239,8 @@ class ExperimentPrototype():
         if not 'expName' in self.arguments._fields:
             raise QurryInvalidInherition(
                 f"{self.__name__}.arguments should have 'expName'.")
-        duplicate_fields = set(self.arguments._fields) & set(self.commonparams._fields)
+        duplicate_fields = set(self.arguments._fields) & set(
+            self.commonparams._fields)
         if len(duplicate_fields) > 0:
             raise QurryInvalidInherition(
                 f"{self.__name__}.arguments and {self.__name__}.commonparams should not have same fields: {duplicate_fields}.")
@@ -257,7 +258,8 @@ class ExperimentPrototype():
 
         # Dealing special arguments
         if 'datetimes' not in commons:
-            commons.datetimes['bulid'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            commons.datetimes['bulid'] = datetime.now().strftime(
+                "%Y-%m-%d %H:%M:%S")
         if 'defaultAnalysis' in commons:
             filted_analysis = []
             for raw_input_analysis in commons['defaultAnalysis']:
@@ -1103,6 +1105,7 @@ class ExperimentPrototype():
 
 class DummyExperiment(ExperimentPrototype):
     """The dummy experiment for testing and before first experiment runs."""
+
 
 class QurryExperiment(ExperimentPrototype):
 

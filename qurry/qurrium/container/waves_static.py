@@ -34,7 +34,7 @@ class StaticWaveContainer(dict[Hashable, QuantumCircuit]):
 
         self.lastWaveKey = _add(self, wave, key, replace)
         return self.lastWaveKey
-    
+
     def remove(
         self: MutableMapping[Hashable, QuantumCircuit],
         key: Hashable,
@@ -72,7 +72,7 @@ class StaticWaveContainer(dict[Hashable, QuantumCircuit]):
             wave = self.lastWave
         elif isinstance(wave, list):
             return [self.get_wave(w, runBy, backend) for w in wave]
-        
+
         if wave not in self:
             raise KeyError(f"Wave {wave} not found in {self}")
 

@@ -43,7 +43,8 @@ def _purityCell(
     singleCountsUnderDegree = dict.fromkeys(
         [k[bitStringRange[0]:bitStringRange[1]] for k in singleCounts], 0)
     for bitString in list(singleCounts):
-        singleCountsUnderDegree[bitString[bitStringRange[0]:bitStringRange[1]]] += singleCounts[bitString]
+        singleCountsUnderDegree[bitString[bitStringRange[0]
+            :bitStringRange[1]]] += singleCounts[bitString]
 
     purityCell = 0
     for sAi, sAiMeas in singleCountsUnderDegree.items():
@@ -307,6 +308,8 @@ class EntropyRandomizedAnalysis(AnalysisPrototype):
 
     class analysisContent(NamedTuple):
         """The content of the analysis."""
+        # TODO: args hint
+        # TODO: add error mitigated purity
 
         purity: float
         """The purity of the system."""
@@ -329,6 +332,9 @@ class EntropyRandomizedAnalysis(AnalysisPrototype):
         measure: tuple[int, int]
         measureActually: tuple[int, int]
         measureActuallyAllSys: tuple[int, int]
+
+        def __repr__(self):
+            return f"analysisContent(purity={self.purity}, entropy={self.entropy}, and others)"
 
     @property
     def default_side_product_fields(self) -> Iterable[str]:
@@ -395,7 +401,7 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
         """The container class responding to this QurryV5 class.
         """
         return EntropyRandomizedAnalysis
-    
+
     @classmethod
     def quantities(
         cls,
@@ -424,7 +430,7 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
                 purity of all system, entropy of all system, a list of each overlap in all system, puritySD of all system,
                 degree, actual measure range, actual measure range in all system, bitstring range.
         """
-        
+
         return entangled_entropy_complex(
             shots=shots,
             counts=counts,
@@ -432,7 +438,7 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
             measure=measure,
             _workers_num=_workers_num,
         )
-        
+
     def analyze(
         self,
         degree: Union[tuple[int, int], int],
@@ -454,12 +460,12 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
                 purity of all system, entropy of all system, a list of each overlap in all system, puritySD of all system,
                 degree, actual measure range, actual measure range in all system, bitstring range.
         """
-        
+
         shots = self.commons.shots
         measure = self.args.measure
         unitary_loc = self.args.unitary_loc
         counts = self.afterwards.counts
-        
+
         qs = self.quantities(
             shots=shots,
             counts=counts,
@@ -478,6 +484,7 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
 
         self.reports[serial] = analysis
         return analysis
+
 
 class EntropyRandomizedMeasure(QurryV5Prototype):
 
@@ -537,7 +544,7 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
             unitary_loc = numQubits
         unitary_loc = qubit_selector(
             numQubits, degree=unitary_loc, as_what='unitary_set')
-        
+
         if (min(measure) < min(unitary_loc)) or (max(measure) > max(unitary_loc)):
             raise ValueError(
                 f"Unitary_set range '{unitary_loc}' does not contain measure range '{measure}'.")

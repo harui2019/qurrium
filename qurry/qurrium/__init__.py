@@ -23,5 +23,3 @@ pauliMatrix = {
     'ry': RYmatrix,
     'rz': RZmatrix
 }
-
-
