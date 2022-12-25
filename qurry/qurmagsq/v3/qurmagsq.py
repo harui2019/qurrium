@@ -9,12 +9,12 @@ from itertools import permutations
 import time
 from typing import Union, Optional, NamedTuple
 
-from ...qurrium import Qurry
+from ...qurrium import QurryV3
 
 # MagnetSquare V0.3.0 - Measuring Magnetization Squared - Qurmagsq
 
 
-class MagnetSquare(Qurry):
+class MagnetSquare(QurryV3):
     """MagnetSquare V0.3.0 of qurmagsq
     """
 

@@ -1,10 +1,10 @@
 import pytest
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 
-from qurry.qurstrop import StringOperator
+from qurry.qurrent import EntropyMeasure
 from qurry.tools import backendWrapper
 
-expDemo01 = StringOperator()
+expDemo01 = EntropyMeasure()
 try:
     from qurry.case import trivialParamagnet
 
@@ -30,10 +30,11 @@ except:
 
 backend = backendWrapper()('aer')
 
+
 @pytest.mark.parametrize("tgt, ", wave_adds)
 def test_quantity(
     tgt,
 ) -> bool:
     
     quantity = expDemo01.measure(wave=tgt[0], backend=backend)
-    assert 'order' in quantity
+    assert all(['entropy' in quantity, 'purity' in quantity])

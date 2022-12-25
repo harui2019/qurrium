@@ -1,35 +1,36 @@
 from qiskit import QuantumCircuit
 
 import warnings
-from typing import Callable, Literal, Union, Hashable
-
-from .qurryV4 import QurryV4
-from .qurryV3 import QurryV3
+from typing import Literal, Union, Hashable
 
 
-def qubitSelector(
+def qubit_selector(
     num_qubits: int,
     degree: Union[int, tuple[int, int], None] = None,
     as_what: Literal['degree', 'unitary_set', 'measure range'] = 'degree',
 ) -> tuple[int]:
-    """_summary_
+    """Determint the qubits to be used.
 
     Args:
-        num_qubits (int): _description_
-        degree (Union[int, tuple[int, int], None], optional): _description_. Defaults to None.
-        as_what (Literal[&#39;degree&#39;, &#39;unitary_set&#39;, &#39;measure range&#39;], optional): _description_. Defaults to 'degree'.
+        num_qubits (int): Number of qubits.
+        degree (Union[int, tuple[int, int], None], optional): 
+            Degree of freedom or specific subsystem range. Defaults to None then will use number of qubits as degree.
+        as_what (Literal[&#39;degree&#39;, &#39;unitary_set&#39;, &#39;measure range&#39;], optional): For what is qubit range. Defaults to 'degree'.
 
     Raises:
-        ValueError: _description_
-        ValueError: _description_
-        ValueError: _description_
-        ValueError: _description_
+        ValueError: The specific degree of subsystem qubits beyond number of qubits which the wave function has.
+        ValueError: The number of qubits of subsystem A is not a natural number.
+        ValueError: Invalid input for subsystem range defined by only two integers.
+        ValueError: Degree of freedom is not given.
 
     Returns:
         tuple[int]: _description_
     """
     subsystem = [i for i in range(num_qubits)]
     item_range = ()
+
+    if degree is None:
+        degree = num_qubits
 
     if isinstance(degree, int):
         if degree > num_qubits:
@@ -41,6 +42,7 @@ def qubitSelector(
 
         item_range = (num_qubits-degree, num_qubits)
         subsystem = subsystem[num_qubits-degree:num_qubits]
+
     elif isinstance(degree, (tuple, list)):
         if len(degree) == 2:
             degParsed = [(d % num_qubits if d !=
@@ -60,8 +62,8 @@ def qubitSelector(
     return item_range
 
 
-def waveSelecter(
-    qurry: Union[QurryV4, QurryV3],
+def wave_selector(
+    qurry,
     wave: Union[QuantumCircuit, any, None] = None,
 ) -> Hashable:
     """Select wave.
@@ -94,3 +96,24 @@ def waveSelecter(
             wave = qurry.lastWave
 
     return wave
+
+
+def decomposer(
+    qc: QuantumCircuit,
+    decompose: int = 2,
+) -> QuantumCircuit:
+    """Decompose the circuit with giving times.
+
+    Args:
+        qc (QuantumCircuit): The circuit wanted to be decomposed.
+        decompose (int, optional):  Decide the times of decomposing the circuit.
+            Draw quantum circuit with composed circuit. Defaults to 2.
+
+    Returns:
+        QuantumCircuit: The decomposed circuit.
+    """
+
+    qcResult = qc
+    for t in range(decompose):
+        qcResult = qcResult.decompose()
+    return qcResult

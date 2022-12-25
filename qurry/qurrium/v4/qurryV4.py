@@ -1,26 +1,24 @@
 from qiskit import (
     execute, transpile,
-    QuantumRegister, ClassicalRegister, QuantumCircuit
+    QuantumRegister, QuantumCircuit
 )
-from qiskit.providers.aer import AerProvider
+from qiskit_aer import AerProvider, AerSimulator
 from qiskit.quantum_info import Operator
-from qiskit.circuit import Gate, Instruction
+from qiskit.circuit import Gate
 from qiskit.result import Result
-from qiskit.providers import Backend, JobError, JobStatus
+from qiskit.providers import Backend
 from qiskit.providers.ibmq import IBMQBackend, IBMQJobManager, AccountProvider
 from qiskit.providers.ibmq.managed import (
     ManagedJobSet,
     # ManagedJob,
     ManagedResults,
     IBMQManagedResultDataNotAvailable,
-    # IBMQJobManagerInvalidStateError,
+    IBMQJobManagerInvalidStateError,
+    IBMQJobManagerJobNotFound,
     # IBMQJobManagerUnknownJobSet
 )
+from qiskit.providers.ibmq.exceptions import IBMQError
 
-import matplotlib.pyplot as plt
-from matplotlib.figure import Figure
-
-import numpy as np
 import glob
 import json
 import gc
@@ -32,34 +30,36 @@ from uuid import uuid4
 from pathlib import Path
 from typing import Literal, Union, Optional, NamedTuple, Hashable, overload
 from abc import abstractmethod, abstractclassmethod
-from collections import Counter, namedtuple
+from collections import namedtuple
+from matplotlib.figure import Figure
 
-from ..mori import (
+from ...mori import (
     defaultConfig,
     attributedDict,
     defaultConfig,
     syncControl,
     jsonablize,
     quickJSONExport,
-    keyTupleLoads,
     sortHashableAhead,
     TagMap,
 )
-from ..mori.type import TagMapType
-from ..util import Gajima, ResoureWatch
+from ...mori.type import TagMapType
+from ...tools import ResoureWatch, Gajima
+from tqdm import tqdm
 
-from .runargs import (
+from ..declare.default import (
     transpileConfig,
     managerRunConfig,
     runConfig,
     ResoureWatchConfig,
     containChecker,
 )
-from .exceptions import (
+from ..declare.type import Quantity, Counts, waveGetter, waveReturn
+from ..utils import decomposer
+from ...exceptions import (
     UnconfiguredWarning,
-    InvalidConfiguratedWarning,
+    QurryInheritionNoEffect,
 )
-from .type import Quantity, Counts, waveGetter, waveReturn
 
 # Qurry V0.4.0 - a Qiskit Macro
 
@@ -93,7 +93,7 @@ class QurryV4:
         # Qiskit argument of experiment.
         # Multiple jobs shared
         shots: int = 1024
-        backend: Backend = AerProvider().get_backend('aer_simulator')
+        backend: Backend = AerSimulator()
         provider: Optional[AccountProvider] = None
         runArgs: dict[str, any] = {}
 
@@ -260,6 +260,7 @@ class QurryV4:
     def __init__(
         self,
         waves: Union[QuantumCircuit, list[QuantumCircuit]] = defaultCircuit(4),
+        resourceWatch: ResoureWatch = ResoureWatch(),
     ) -> None:
         """The initialization of QurryV4.
 
@@ -308,9 +309,6 @@ class QurryV4:
             params=self.expsMultiMain()._asdict()
         )  # reresh per execution.
 
-        # TODO: add params control
-        self.resourceWatch = ResoureWatch()
-
         # namedtuple prototype
         self.namedtupleNow = namedtuple(
             typename='qurryArguments',
@@ -326,50 +324,15 @@ class QurryV4:
         self.IDNow = ''
         self.multiNow: QurryV4.argsMultiMain = self.argsMultiMain()
 
-    """Wave Function"""
-    @staticmethod
-    def decomposer(
-        qc: QuantumCircuit,
-        decompose: int = 2,
-    ) -> QuantumCircuit:
-        """Decompose the circuit with giving times.
-
-        Args:
-            qc (QuantumCircuit): The circuit wanted to be decomposed.
-            decompose (int, optional):  Decide the times of decomposing the circuit.
-                Draw quantum circuit with composed circuit. Defaults to 2.
-
-        Returns:
-            QuantumCircuit: The decomposed circuit.
-        """
-
-        qcResult = qc
-        for t in range(decompose):
-            qcResult = qcResult.decompose()
-        return qcResult
-
-    @overload
-    def addWave(
-        self,
-        waveCircuit: list[QuantumCircuit],
-        key=None,
-    ) -> list[Optional[Hashable]]:
-        ...
-
-    @overload
-    def addWave(
-        self,
-        waveCircuit: QuantumCircuit,
-        key=None,
-    ) -> Optional[Hashable]:
-        ...
+        self.resourceWatch = ResoureWatch() if isinstance(
+            resourceWatch, ResoureWatch) else resourceWatch
 
     def addWave(
         self,
         waveCircuit: Union[QuantumCircuit, list[QuantumCircuit]],
         key: Optional[waveGetter[Hashable]] = None,
         replace: Literal[True, False, 'duplicate'] = False,
-    ):
+    ) -> Optional[Union[Hashable, list[Hashable]]]:
         """Add new wave function to measure.
 
         Args:
@@ -580,7 +543,7 @@ class QurryV4:
 
         qcDummy.append(self.waveGate(wave), [
             qDummy[i] for i in range(self.waves[wave].num_qubits)])
-        qcDummy = self.decomposer(qcDummy, decompose)
+        qcDummy = decomposer(qcDummy, decompose)
 
         return qcDummy.draw(drawMethod)
 
@@ -824,7 +787,7 @@ class QurryV4:
                 f"The following keys are not recognized as arguments for main process of experiment: " +
                 f"{list(otherParams.keys())}'" +
                 ', but are still kept in experiment record.',
-                InvalidConfiguratedWarning
+                QurryInheritionNoEffect
             )
 
         self.now: Union[QurryV4.argsMain, QurryV4.argsCore] = self.namedtupleNow(**{
@@ -909,11 +872,11 @@ class QurryV4:
             return None
 
         if isinstance(circuitSet, QuantumCircuit):
-            circuit = self.decomposer(circuitSet, decompose)
+            circuit = decomposer(circuitSet, decompose)
             return circuit.draw(drawMethod)
 
         elif isinstance(circuitSet, list):
-            circuit = self.decomposer(
+            circuit = decomposer(
                 circuitSet[whichCircuit], decompose)
             return circuit.draw(drawMethod)
 
@@ -1281,7 +1244,7 @@ class QurryV4:
     @classmethod
     def counts(
         cls,
-        result: Union[Result, ManagedResults],
+        result: Union[Result, ManagedResults, None],
         resultIdxList: Optional[list[int]] = None,
         num: int = 1,
         **otherArgs,
@@ -1300,10 +1263,18 @@ class QurryV4:
 
         counts = []
         for i in resultIdxList:
+            if result is None:
+                counts.append({})
+                print("| Failed Job result skip, index:", i)
+                continue
             try:
                 allMeas = result.get_counts(i)
                 counts.append(allMeas)
             except IBMQManagedResultDataNotAvailable as err:
+                counts.append({})
+                print("| Failed Job result skip, index:", i, err)
+                continue
+            except IBMQJobManagerJobNotFound as err:
                 counts.append({})
                 print("| Failed Job result skip, index:", i, err)
                 continue
@@ -1525,14 +1496,27 @@ class QurryV4:
             ManagedResults: _description_
         """
 
-        retrievedJob = self.jobManager.retrieve_job_set(
-            job_set_id=jobID,
-            provider=provider,
-            refresh=refresh,
-        )
-        jobID = retrievedJob.job_set_id()
-        report = retrievedJob.report()
-        name = retrievedJob.name()
+        try:
+            retrievedJob = self.jobManager.retrieve_job_set(
+                job_set_id=jobID,
+                provider=provider,
+                refresh=refresh,
+            )
+            jobID = retrievedJob.job_set_id()
+            report = retrievedJob.report()
+            name = retrievedJob.name()
+
+        except IBMQJobManagerInvalidStateError as e:
+            retrievedJob = None
+            jobID = jobID
+            report = f"Job unreachable, '{e}'."
+            name = ''
+
+        except IBMQError as e:
+            retrievedJob = None
+            jobID = jobID
+            report = f"Job fully corrupted, '{e}'."
+            name = ''
 
         return self.managedReturn(
             managedJob=retrievedJob,
@@ -1639,7 +1623,6 @@ class QurryV4:
 
         state: Literal["init", "pending", "completed"],
         isRead: bool = False,
-        isRetrieve: bool = False,
         overwrite: bool = False,
     ) -> tuple[dict[str, any], argsMultiMain, Union[
         expsMultiMain,
@@ -1805,7 +1788,7 @@ class QurryV4:
                         'r', encoding='utf-8') as theData:
                     configDict = json.load(theData)
             if 'configList' in dataDummyJobs:
-                for config in dataDummyJobs['configDict']:
+                for config in dataDummyJobs['configList']:
                     configDict[dataDummyJobs['listFile']
                                [config['expIndex']]] = config
 
@@ -2061,7 +2044,6 @@ class QurryV4:
 
             state=state,
             isRead=isRead,
-            isRetrieve=isRetrieve,
             overwrite=overwrite,
         )
 
@@ -2164,6 +2146,7 @@ class QurryV4:
                     del dataMultiJobs[k]
 
             elif isinstance(expsMulti[k], (dict, list)):
+                expsMulti.gitignore.sync(f'*.{k}.json')
                 quickJSONExport(
                     content=dataMultiJobs[k],
                     filename=expsMulti.exportLocation /
@@ -2194,7 +2177,6 @@ class QurryV4:
         self,
         exportName: Union[Path, str],
         saveLocation: Union[Path, str] = './',
-        isRetrieve: bool = False,
         **allArgs: any,
     ) -> dict[any]:
         """Require to read the file exported by `.powerJobsPending`.
@@ -2229,7 +2211,6 @@ class QurryV4:
             saveLocation=saveLocation,
             expsName=exportName,
             isRead=True,
-            isRetrieve=isRetrieve,
             **allArgs,
         )
 
@@ -2347,7 +2328,7 @@ class QurryV4:
             numCirc = len(self.exps[self.IDNow]['circuit'])
             expsMulti.circuitsNum[self.IDNow] = numCirc
             expsMulti.configDict[self.IDNow] = config
-            
+
             expsMulti.circuitsMap[self.IDNow].append(
                 [c for c in range(numCirc)])
 
@@ -2541,8 +2522,8 @@ class QurryV4:
                     gajima.gprint(f"| name: {pJobs.name}")
 
                 else:
-                    if not pk == 'noTags':
-                        warnings.warn('There is no circuits in', pk)
+                    if not pk == 'noTags' or not pk == ():
+                        warnings.warn(f"There is no circuits in '{pk}'")
 
         # Export
         expsMulti.state = 'pending'
@@ -2632,6 +2613,7 @@ class QurryV4:
         print(
             f"| Retrieved all result to distribute - {time.time() - start_time} sec ...")
 
+        counts = []
         with Gajima(
             carousel=[('dots', 20, 6), 'basic'],
             prefix="| ",
@@ -2644,18 +2626,27 @@ class QurryV4:
                 if pk == 'all':
                     ...
                 elif len(pcircs) > 0:
-                    pJob: ManagedJobSet = pendingMapping[pk].managedJob
-                    pResult = pJob.results()
-                    counts = self.counts(
-                        result=pResult,
-                        resultIdxList=[rk-pcircs[0] for rk in pcircs]
-                    )
+                    pJob: Optional[ManagedJobSet] = pendingMapping[pk].managedJob
+                    if pJob is not None:
+                        pResult = pJob.results()
+                        counts = self.counts(
+                            result=pResult,
+                            resultIdxList=[rk-pcircs[0] for rk in pcircs]
+                        )
+                        gajima.gprint("| Getting Counts length:", len(counts))
+                    else:
+                        counts = self.counts(
+                            result=None,
+                            resultIdxList=[rk-pcircs[0] for rk in pcircs]
+                        )
+                        gajima.gprint("| Getting Counts length:", len(counts))
                     for rk in pcircs:
                         allCircuitCountsDict[rk] = counts[rk-pcircs[0]]
+                        gajima.gprint(f"| Packing Counts of {rk} length:", len(counts[rk-pcircs[0]]))
 
                 else:
-                    if not pk == 'noTags':
-                        warnings.warn('There is no circuits in', pk)
+                    if not pk == 'noTags' or not pk == ():
+                        warnings.warn(f"There is no circuits in '{pk}'")
 
             gajima.gprint(
                 "| Distributing all circuits to their original experimemts.")
@@ -2694,6 +2685,13 @@ class QurryV4:
                         **quantity,
                         'counts': counts,
                     }
+
+                    # legacy writer
+                    legacy = self.writeLegacy(
+                        saveLocation=expsMulti.exportLocation,
+                        expID=expID,
+                        _isMulti=True,
+                    )
 
                     # TODO: update gajima
                     try:

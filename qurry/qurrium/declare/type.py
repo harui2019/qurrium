@@ -4,7 +4,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.instruction import Instruction
 from qiskit.result import Result
 
-from typing import Union, Optional, NamedTuple, TypeVar, Generic
+from typing import Union, Hashable, TypeVar, Generic, MutableMapping
 import warnings
 
 Counts = Union[dict[str, int], list[dict[str, int]]]
@@ -12,12 +12,8 @@ Quantity = dict[str, float]
 
 # TagsValue
 T = TypeVar("T")
-
-# TagMapExpsIDType = TagMapType[str]
-# TagMapIndexType = TagMapType[Union[str, int]]
-# TagMapQuantityType = TagMapType[Quantity]
-# TagMapCountsType = TagMapType[Counts]
-# TagMapResultType = TagMapType[Result]
+KT = TypeVar("KT")
+VT = TypeVar("VT")
 
 # waveGetter methods
 waveGetter = Union[list[T], T]

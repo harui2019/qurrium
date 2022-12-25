@@ -6,13 +6,13 @@ import numpy as np
 import warnings
 from typing import Union, Optional, NamedTuple, Literal
 
-from ..qurrium import Qurry
-from ..util import Gajima
+from ..qurrium import QurryV3
+from ..tools import Gajima
 
 # StringOperator V0.3.0 - Measuring Topological Phase - Qurstrop
 
 
-class StringOperator(Qurry):
+class StringOperatorV3(QurryV3):
     """StringOperator V0.3.0 of qurstrop
 
     - Reference:

@@ -1,20 +1,25 @@
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.result import Result
 from qiskit.quantum_info import random_unitary
-from qiskit.providers.ibmq.managed import ManagedResults, IBMQManagedResultDataNotAvailable
+from qiskit.providers.ibmq.managed import (
+    ManagedResults,
+    IBMQManagedResultDataNotAvailable,
+    IBMQJobManagerJobNotFound
+)
 
 import numpy as np
 import warnings
 import time
-from typing import Union, Optional, NamedTuple, Hashable
+from typing import Union, Optional, NamedTuple, Hashable, Literal
+from pathlib import Path
 
-from ..qurrium import QurryV4, haarBase, qubitSelector, waveSelecter, Counts
-from ..mori import defaultConfig
+from ...qurrium import QurryV4, qubit_selector, wave_selector, Counts, ensembleCell, qubitOpToPauliCoeff
+from ...mori import defaultConfig, TagMap
 
 # EntropyMeasure V0.4.0 - Measuring Renyi Entropy - Qurrent
 
 
-class EntropyHaarMeasureV4(QurryV4, haarBase):
+class EntropyHaarMeasureV4(QurryV4):
     """HaarMeasure V0.4.0 of qurrent
 
     - Reference:
@@ -59,6 +64,9 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
         entropy: float
         purity: float
         puritySD: float
+
+        # sp_entropySD: float
+        # sp_entropy: float
 
     # Initialize
     def initialize(self) -> dict[str, any]:
@@ -147,18 +155,19 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
         """
 
         # wave
-        wave = waveSelecter(self, wave)
+        wave = wave_selector(self, wave)
 
         # degree
         numQubits = self.waves[wave].num_qubits
-        degree = qubitSelector(numQubits, degree=degree)
+        degree: tuple = qubit_selector(numQubits, degree=degree)
+        
         if measure is None:
             measure = numQubits
-        measure = qubitSelector(
+        measure = qubit_selector(
             numQubits, degree=measure, as_what='measure range')
         if unitary_set is None:
             unitary_set = numQubits
-        unitary_set = qubitSelector(
+        unitary_set = qubit_selector(
             numQubits, degree=unitary_set, as_what='unitary_set')
 
         if (min(degree) < min(measure)) or (max(degree) > max(measure)):
@@ -241,11 +250,15 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
 
         print(
             f"| Circuit completed: {argsNow.wave}" +
-            f" - {i+1}/{argsNow.times} - {round(time.time() - ABegin, 3)}s." +
+            f" - {argsNow.times}/{argsNow.times} - {round(time.time() - ABegin, 3)}s." +
             " "*30)
 
         self.exps[self.IDNow]['sideProduct']['randomized'] = {
-            i: [self.qubitOpToPauliCoeff(unitaryList[i][j])
+            i: [qubitOpToPauliCoeff(unitaryList[i][j])
+                for j in range(*argsNow.unitary_set)]
+            for i in range(argsNow.times)}
+        self.exps[self.IDNow]['sideProduct']['unitaryOP'] = {
+            i: [unitaryList[i][j].data
                 for j in range(*argsNow.unitary_set)]
             for i in range(argsNow.times)}
 
@@ -282,6 +295,10 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
 
         counts = []
         for i in resultIdxList:
+            if result is None:
+                counts.append({})
+                print("| Failed Job result skip, index:", i)
+                continue
             try:
                 allMeas = result.get_counts(i)
                 counts.append(allMeas)
@@ -289,30 +306,52 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
                 counts.append({})
                 print("| Failed Job result skip, index:", i, err)
                 continue
+            except IBMQJobManagerJobNotFound as err:
+                counts.append({})
+                print("| Failed Job result skip, index:", i, err)
+                continue
 
         return counts
 
     @classmethod
-    def quantities(
+    def _quantityCore(
         cls,
         shots: int,
         counts: list[Counts],
-        times: int = 0,
+        times: int = 100,
         degree: Union[tuple[int, int], int] = None,
+        measure: tuple[int, int] = None,
+    ) -> tuple[list[float], tuple[int]]:
 
-        run_log: dict[str] = {},
-        **otherArgs,
-    ) -> expsCore:
-
-        purity = -100
-        entropy = -100
         purityCellList = []
+
+        if degree is None:
+            degree = qubit_selector(len(list(counts[0].keys())[0]))
 
         if isinstance(degree, int):
             subsystemSize = degree
-            degree = qubitSelector(len(list(counts[0].keys())[0]), degree=degree)
-        else:
+            print('quantity core: int', degree)
+            degree = qubit_selector(
+                len(list(counts[0].keys())[0]), degree=degree)
+
+        elif isinstance(degree, (tuple, list)):
             subsystemSize = max(degree) - min(degree)
+            print('quantity core: tuple, list', degree)
+
+        else:
+            raise ValueError(
+                f"'degree' must be 'int' or 'tuple[int, int]', but get '{degree}'.")
+
+        if measure is None:
+            measure = qubit_selector(len(list(counts[0].keys())[0]))
+
+        if (min(degree) < min(measure)) or (max(degree) > max(measure)):
+            raise ValueError(
+                f"Measure range '{measure}' does not contain subsystem '{degree}'.")
+
+        measureSize = max(measure) - min(measure)
+        bitStringRange = (min(degree) - min(measure),
+                          max(degree) - min(measure))
 
         if (times == len(counts)):
             ...
@@ -329,9 +368,10 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
             purityCell = 0
 
             allMeasUnderDegree = dict.fromkeys(
-                [k[degree[0]:degree[1]] for k in allMeas1], 0)
+                [k[bitStringRange[0]:bitStringRange[1]] for k in allMeas1], 0)
             for kMeas in list(allMeas1):
-                allMeasUnderDegree[kMeas[degree[0]:degree[1]]] += allMeas1[kMeas]
+                allMeasUnderDegree[kMeas[bitStringRange[0]
+                    :bitStringRange[1]]] += allMeas1[kMeas]
             numAllMeasUnderDegree = len(allMeasUnderDegree)
 
             print(
@@ -340,7 +380,7 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
                 f" - {round(time.time() - Begin, 3)}s.", end="\r")
             for sAi, sAiMeas in allMeasUnderDegree.items():
                 for sAj, sAjMeas in allMeasUnderDegree.items():
-                    purityCell += cls.ensembleCell(
+                    purityCell += ensembleCell(
                         sAi, sAiMeas, sAj, sAjMeas, subsystemSize, shots)
 
             purityCellList.append(purityCell)
@@ -349,14 +389,73 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
                 f" - {round(time.time() - Begin, 3)}s." +
                 " "*30, end="\r")
 
+        return purityCellList, bitStringRange
+
+    @classmethod
+    def quantities(
+        cls,
+        shots: int,
+        counts: list[Counts],
+        times: int = 100,
+        degree: Union[tuple[int, int], int] = None,
+        measure: tuple[int, int] = None,
+
+        run_log: dict[str] = {},
+        **otherArgs,
+    ) -> expsCore:
+
+        purity = -100
+        entropy = -100
+
+        purityCellList, bitStringRange = cls._quantityCore(
+            shots=shots,
+            counts=counts,
+            times=times,
+            degree=degree,
+            measure=measure,
+        )
+        print('purity', degree)
+
+        purityCellListAllSys, bitStringRangeAllSys = cls._quantityCore(
+            shots=shots,
+            counts=counts,
+            times=times,
+            degree=None,
+            measure=measure,
+        )
+
         purity = np.mean(purityCellList)
+        purityAllSys = np.mean(purityCellListAllSys)
+        
         puritySD = np.std(purityCellList)
+        puritySDAllSys = np.std(purityCellListAllSys)
+
         entropy = -np.log2(purity)
+        sp_entropyCellList = [-np.log2(X) for X in purityCellList]
+        sp_entropySD = np.std(sp_entropyCellList)
+        sp_entropy = np.mean(sp_entropyCellList)
+
         quantity = {
             'purity': purity,
             'entropy': entropy,
+            'purityCellList': purityCellList,
             'puritySD': puritySD,
-            '_purityCellList': purityCellList,
+            'bitsStringRange': bitStringRange,
+
+            'purityAllSys': purityAllSys,
+            'purityCellListAllSys': purityCellListAllSys,
+            'puritySDAllSys': puritySDAllSys,
+            'bitsStringRangeAllSys': bitStringRangeAllSys,
+
+            '_range': {
+                'degree': degree,
+                'measure': measure,
+                'onBitString': bitStringRange,
+            }
+
+            # '_sp_entropyCellList': sp_entropyCellList,
+            # 'sp_entropySD': sp_entropySD,
+            # 'sp_entropy': sp_entropy,
         }
         return quantity
 
@@ -401,3 +500,52 @@ class EntropyHaarMeasureV4(QurryV4, haarBase):
             unitary_set=unitary_set,
             **otherArgs,
         )
+
+    def multBackground(
+        self,
+        exportName: Union[Path, str],
+        saveLocation: Union[Path, str] = './',
+
+        degree: Union[tuple[int, int], int] = None,
+        **allArgs: any,
+    ) -> dict[any]:
+        """Require to read the file exported by `.powerJobsPending`.
+
+        Args:
+            exportName (Union[Path, str]):
+                The folder name of the job wanted to import.
+
+
+            powerJobID (str, optional):
+                Job Id. Defaults to ''.
+
+            provider (Optional[AccountProvider], optional):
+                :cls:`AccountProvider` of current backend for running :cls:`IBMQJobManager`.
+                Defaults to `None`.
+
+            saveLocation (Optional[Union[Path, str]], optional):
+                Where to save the export content as `json` file.
+                If `saveLocation == None`, then cancelled the file to be exported.
+                Defaults to `None`.
+
+            allArgs: all arguments will handle by `.paramsControlMulti()` and export as specific format.
+
+        Raises:
+            ValueError: When file is broken.
+
+        Returns:
+            dict[any]: All result of jobs.
+        """
+        print("| It's a temporarily feature to fulfill recalculating before completed version finished.")
+
+        expsMulti = self.paramsControlMulti(
+            saveLocation=saveLocation,
+            expsName=exportName,
+            isRead=True,
+            isRetrieve=False,
+            **allArgs,
+        )
+
+        tagMapQuantityAllsys = TagMap()
+
+        return expsMulti

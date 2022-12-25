@@ -1,6 +1,8 @@
 import os
-
+import warnings
 from typing import Optional
+
+from ..exceptions import QurryImportWarning
 
 def cmdWrapper(
     cmd: str = ""
@@ -22,7 +24,7 @@ def pytorchCUDACheck() -> Optional[bool]:
     """Via pytorch to check Nvidia CUDA available.
 
     Returns:
-        bool: Available of CUDA.
+        bool: Available of CUDA by pytorch if pytorch is available, else 'None'.
     """
     try:
         import torch
@@ -35,8 +37,9 @@ def pytorchCUDACheck() -> Optional[bool]:
         ))
         return torch.cuda.is_available()
     except ImportError as e:
-        print(
-            e, "This checking method requires pytorch" +
-            " which has been installed in this enviornment."
+        warnings.warn(
+            "Torch CUDA checking method requires pytorch" +
+            " which has been installed in this enviornment.",
+            category=QurryImportWarning
         )
         return None

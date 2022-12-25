@@ -1,9 +1,9 @@
 from typing import Optional
 import warnings
 
-from .exceptions import InvalidConfiguratedWarning
-from ..mori import defaultConfig
-from ..util.watch import ResoureWatch
+from ...exceptions import QurryInheritionNoEffect
+from ...mori import defaultConfig
+from ...tools.watch import ResoureWatch
 
 transpileConfig = defaultConfig(
     name='transpileArgs',
@@ -113,8 +113,8 @@ def containChecker(
             Defaults to False.
 
     Raises:
-        InvalidConfiguratedWarning: _description_
-        InvalidConfiguratedWarning: _description_
+        QurryInheritionNoEffect: _description_
+        QurryInheritionNoEffect: _description_
 
     Returns:
         Optional[Exception]: _description_
@@ -128,9 +128,9 @@ def containChecker(
             )
 
             if restrict:
-                raise InvalidConfiguratedWarning(text)
+                raise QurryInheritionNoEffect(text)
             else:
-                warnings.warn(text, InvalidConfiguratedWarning)
+                warnings.warn(text, QurryInheritionNoEffect)
         else:
             useKey = checker.has(config)
             uselessKey = checker.useless(config)
@@ -141,8 +141,8 @@ def containChecker(
             )
             if len(uselessKey) > 0:
                 if restrict:
-                    raise InvalidConfiguratedWarning(text)
+                    raise QurryInheritionNoEffect(text)
                 else:
-                    warnings.warn(text, InvalidConfiguratedWarning)
+                    warnings.warn(text, QurryInheritionNoEffect)
     else:
         ...

@@ -8,7 +8,7 @@ import warnings
 import time
 from typing import Union, Optional, NamedTuple, Hashable
 
-from ..qurrium import QurryV4, haarBase, qubitSelector, waveSelecter, Counts
+from ..qurrium import QurryV4, haarBase, qubit_selector, wave_selector, Counts
 from ..mori import defaultConfig
 
 # EchoListen V0.4.0 - Measuring Loschmidt Echo - Qurrech
@@ -148,8 +148,8 @@ class EchoHaarMeasureV4(QurryV4, haarBase):
         """
 
         # wave
-        wave1 = waveSelecter(self, wave1)
-        wave2 = waveSelecter(self, wave2)
+        wave1 = wave_selector(self, wave1)
+        wave2 = wave_selector(self, wave2)
 
         # degree
         numQubits1 = self.waves[wave1].num_qubits
@@ -161,14 +161,14 @@ class EchoHaarMeasureV4(QurryV4, haarBase):
 
         if degree is None:
             degree = numQubits
-        degree = qubitSelector(numQubits, degree=degree)
+        degree = qubit_selector(numQubits, degree=degree)
         if measure is None:
             measure = numQubits
-        measure = qubitSelector(
+        measure = qubit_selector(
             numQubits, degree=measure, as_what='measure range')
         if unitary_set is None:
             unitary_set = numQubits
-        unitary_set = qubitSelector(
+        unitary_set = qubit_selector(
             numQubits, degree=unitary_set, as_what='unitary_set')
 
         if (min(degree) < min(measure)) or (max(degree) > max(measure)):
@@ -351,7 +351,7 @@ class EchoHaarMeasureV4(QurryV4, haarBase):
 
         if isinstance(degree, int):
             subsystemSize = degree
-            degree = qubitSelector(len(list(counts[0].keys())[0]), degree=degree)
+            degree = qubit_selector(len(list(counts[0].keys())[0]), degree=degree)
         else:
             subsystemSize = max(degree) - min(degree)
 

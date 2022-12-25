@@ -1,14 +1,15 @@
-__version__ = '0.3.2'
+__version__ = '0.3.4'
 
 from .qurmagsq import MagnetSquare
 from .qurrech import EchoListen
 from .qurrent import EntropyMeasure
 from .qurstrop import StringOperator
-from .qurrium import Qurry
+from .qurrium import QurryV3, QurryV4 as Qurry
 
-from .util import (
+from .tools import (
     backendWrapper, 
     ResoureWatch,
+    version_check,
     cmdWrapper,
     pytorchCUDACheck,
 )
