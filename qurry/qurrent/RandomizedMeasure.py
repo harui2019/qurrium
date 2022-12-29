@@ -61,7 +61,7 @@ def _entangled_entropy_core(
     degree: Union[tuple[int, int], int],
     measure: tuple[int, int] = None,
     _workers_num: Optional[int] = None,
-) -> tuple[list[float], tuple[int, int], tuple[int, int]]:
+) -> tuple[dict[int, float], tuple[int, int], tuple[int, int]]:
     """The core function of entangled entropy.
 
     Args:
@@ -134,7 +134,7 @@ def _entangled_entropy_core(
     Begin = time.time()
 
     if launch_worker == 1:
-        purityCellList = []
+        purityCellItems = []
         print(
             f"| Without multi-processing to calculate overlap of {times} counts. It will take a lot of time to complete.")
         for i, c in enumerate(counts):
@@ -143,7 +143,7 @@ def _entangled_entropy_core(
                 f"| Calculating overlap {i} and {i} " +
                 f"by summarize {len(c)**2} values - {i+1}/{times}" +
                 f" - {round(time.time() - Begin, 3)}s.", end="\r")
-            purityCellList.append(_purityCell(
+            purityCellItems.append(_purityCell(
                 i, c, bitStringRange, subsystemSize))
 
         print(" "*150, end="\r")
@@ -154,11 +154,12 @@ def _entangled_entropy_core(
         print(
             f"| With {launch_worker} workers to calculate overlap of {times} counts.")
         pool = Pool(launch_worker)
-        purityCellList = pool.starmap(
+        purityCellItems = pool.starmap(
             _purityCell, [(i, c, bitStringRange, subsystemSize) for i, c in enumerate(counts)])
         print(f"| Calculating overlap end - {round(time.time() - Begin, 3)}s.")
 
-    return purityCellList, bitStringRange, measure
+    purityCellDict = {k: v for k, v in purityCellItems}
+    return purityCellDict, bitStringRange, measure
 
 
 def entangled_entropy(
@@ -169,6 +170,33 @@ def entangled_entropy(
     _workers_num: Optional[int] = None,
 ) -> dict[str, float]:
     """Calculate entangled entropy.
+    
+    - Reference:
+        - Used in:
+            Statistical correlations between locally randomized measurements: 
+            A toolbox for probing entanglement in many-body quantum states - 
+            A. Elben, B. Vermersch, C. F. Roos, and P. Zoller, 
+            [PhysRevA.99.052323](https://doi.org/10.1103/PhysRevA.99.052323)
+
+        - `bibtex`:
+
+    ```bibtex
+        @article{PhysRevA.99.052323,
+            title = {Statistical correlations between locally randomized measurements: 
+            A toolbox for probing entanglement in many-body quantum states},
+            author = {Elben, A. and Vermersch, B. and Roos, C. F. and Zoller, P.},
+            journal = {Phys. Rev. A},
+            volume = {99},
+            issue = {5},
+            pages = {052323},
+            numpages = {12},
+            year = {2019},
+            month = {May},
+            publisher = {American Physical Society},
+            doi = {10.1103/PhysRevA.99.052323},
+            url = {https://link.aps.org/doi/10.1103/PhysRevA.99.052323}
+        }
+        ```
 
     Args:
         shots (int): Shots of the experiment on quantum machine.
@@ -186,13 +214,14 @@ def entangled_entropy(
             a list of each overlap, puritySD, degree, actual measure range, bitstring range.
     """
 
-    purityCellList, bitStringRange, measureRange = _entangled_entropy_core(
+    purityCellDict, bitStringRange, measureRange = _entangled_entropy_core(
         shots=shots,
         counts=counts,
         degree=degree,
         measure=measure,
         _workers_num=_workers_num,
     )
+    purityCellList = list(purityCellDict.values())
 
     purity = np.mean(purityCellList)
     puritySD = np.std(purityCellList)
@@ -201,7 +230,7 @@ def entangled_entropy(
     quantity = {
         'purity': purity,
         'entropy': entropy,
-        'purityCellList': purityCellList,
+        'purityCells': purityCellDict,
         'puritySD': puritySD,
 
         'degree': degree,
@@ -212,6 +241,80 @@ def entangled_entropy(
     return quantity
 
 
+@overload
+def solve_p(
+    meas_series: np.ndarray, 
+    nA: int
+) -> tuple[np.ndarray, np.ndarray]:
+    ...
+    
+@overload
+def solve_p(
+    meas_series: float,
+    nA: int
+) -> tuple[float, float]:
+    ...
+
+def solve_p(meas_series, nA):
+    
+    b = 1/2**(nA-1)-2
+    a = 1+1/2**nA-1/2**(nA-1)
+    c = 1-meas_series
+    ppser = (-b+np.sqrt(b**2-4*a*c))/2/a
+    pnser = (-b-np.sqrt(b**2-4*a*c))/2/a
+    
+    return ppser, pnser
+
+@overload
+def mitigation_equation(
+    pser: np.ndarray, 
+    meas_series: np.ndarray,
+    nA: int
+) -> np.ndarray:
+    ...
+    
+@overload
+def mitigation_equation(
+    pser: float,
+    meas_series: float,
+    nA: int
+) -> float:
+    ...
+
+def mitigation_equation(pser, meas_series, nA):
+    psq = np.square(pser)
+    return (
+            meas_series-psq/2**nA - (pser-psq)/2**(nA-1)
+        ) / np.square(1-pser)
+
+@overload
+def error_mitgation(
+    measSystem: float,
+    allSystem: float,
+    nA: int,
+    systemSize: int,
+) -> dict[str, float]:
+    ...
+    
+@overload
+def error_mitgation(
+    measSystem: np.ndarray,
+    allSystem: np.ndarray,
+    nA: int,
+    systemSize: int,
+) -> dict[str, np.ndarray]:
+    ...
+
+def error_mitgation(measSystem, allSystem, nA, systemSize):
+    pp, pn = solve_p(allSystem, systemSize)
+    mitiga = mitigation_equation(pn, measSystem, nA)
+    
+    return {
+        'mitigatedPurity': mitiga,
+        'mitigatedEntropy': -np.log2(mitiga)
+    }
+
+
 def entangled_entropy_complex(
     shots: int,
     counts: list[dict[str, int]],
@@ -220,6 +323,31 @@ def entangled_entropy_complex(
     _workers_num: Optional[int] = None,
 ) -> dict[str, float]:
     """Calculate entangled entropy with more information combined.
+    
+    - Reference:
+        - Used in:
+            Simple mitigation of global depolarizing errors in quantum simulations - 
+            Vovrosh, Joseph and Khosla, Kiran E. and Greenaway, Sean and Self, Christopher and Kim, M. S. and Knolle, Johannes,
+            [PhysRevE.104.035309](https://link.aps.org/doi/10.1103/PhysRevE.104.035309)
+    
+        - `bibtex`:
+        
+    ```bibtex
+        @article{PhysRevE.104.035309,
+            title = {Simple mitigation of global depolarizing errors in quantum simulations},
+            author = {Vovrosh, Joseph and Khosla, Kiran E. and Greenaway, Sean and Self, Christopher and Kim, M. S. and Knolle, Johannes},
+            journal = {Phys. Rev. E},
+            volume = {104},
+            issue = {3},
+            pages = {035309},
+            numpages = {8},
+            year = {2021},
+            month = {Sep},
+            publisher = {American Physical Society},
+            doi = {10.1103/PhysRevE.104.035309},
+            url = {https://link.aps.org/doi/10.1103/PhysRevE.104.035309}
+        }
+    ```
 
     Args:
         shots (int): Shots of the experiment on quantum machine.
@@ -239,24 +367,26 @@ def entangled_entropy_complex(
             degree, actual measure range, actual measure range in all system, bitstring range.
     """
 
-    purityCellList, bitStringRange, measureRange = _entangled_entropy_core(
+    purityCellDict, bitStringRange, measureRange = _entangled_entropy_core(
         shots=shots,
         counts=counts,
         degree=degree,
         measure=measure,
         _workers_num=_workers_num,
     )
+    purityCellList = list(purityCellDict.values())
 
-    purityCellListAllSys, bitStringRangeAllSys, measureRangeAllSys = _entangled_entropy_core(
+    purityCellDictAllSys, bitStringRangeAllSys, measureRangeAllSys = _entangled_entropy_core(
         shots=shots,
         counts=counts,
         degree=None,
         measure=measure,
         _workers_num=_workers_num,
     )
+    purityCellListAllSys = list(purityCellDictAllSys.values())
 
-    purity = np.mean(purityCellList)
-    purityAllSys = np.mean(purityCellListAllSys)
+    purity: float = np.mean(purityCellList)
+    purityAllSys: float = np.mean(purityCellListAllSys)
     puritySD = np.std(purityCellList)
     puritySDAllSys = np.std(purityCellListAllSys)
 
@@ -266,28 +396,39 @@ def entangled_entropy_complex(
     if measure is None:
         measureInfo = 'not specified, use all qubits'
     else:
-        measureInfo = measure
+        measureInfo = f'measure range: {measure}'
+        
+    num_qubits = len(list(counts[0].keys())[0])
+    if isinstance(degree, tuple):
+        subsystem = max(degree) - min(degree)
+    else:
+        subsystem = degree
+    error_mitgation_info = error_mitgation(
+        measSystem=purity,
+        allSystem=purityAllSys,
+        nA=subsystem,
+        systemSize=num_qubits,
+    )
 
     quantity = {
         # target system
         'purity': purity,
         'entropy': entropy,
-        'purityCellList': purityCellList,
+        'purityCells': purityCellDict,
         'puritySD': puritySD,
         'bitStringRange': bitStringRange,
         # all system
         'purityAllSys': purityAllSys,
         'entropyAllSys': entropyAllSys,
-        'purityCellListAllSys': purityCellListAllSys,
+        'purityCellsAllSys': purityCellDictAllSys,
         'puritySDAllSys': puritySDAllSys,
         'bitsStringRangeAllSys': bitStringRangeAllSys,
         # mitigated
-        # errorMitigatedPurity:
-        # errorMitigatedEntropy:
-        # errorMitigatedPuritySD:
-        # errorMitigatedPurityCellList:
+        'mitigatedPurity': error_mitgation_info['mitigatedPurity'],
+        'mitigatedEntropy': error_mitgation_info['mitigatedEntropy'],
         # info
         'degree': degree,
+        'numQubits': num_qubits,
         'measure': measureInfo,
         'measureActually': measureRange,
         'measureActuallyAllSys': measureRangeAllSys,
@@ -309,26 +450,25 @@ class EntropyRandomizedAnalysis(AnalysisPrototype):
     class analysisContent(NamedTuple):
         """The content of the analysis."""
         # TODO: args hint
-        # TODO: add error mitigated purity
 
         purity: float
         """The purity of the system."""
         entropy: float
+        """The entanglement entropy of the system."""
         puritySD: float
-        purityCellList: list[float]
+        purityCells: dict[int, float]
         bitStringRange: tuple[int, int]
 
         purityAllSys: float
         entropyAllSys: float
-        purityCellListAllSys: list[float]
+        purityCellsAllSys: dict[int, float]
         puritySDAllSys: float
         bitsStringRangeAllSys: tuple[int, int]
 
-        # errorMitigatedPurity: float
-        # errorMitigatedEntropy: float
-        # errorMitigatedPuritySD: float
-        # errorMitigatedPurityCellList: list[float]
+        mitigatedPurity: float
+        mitigatedEntropy: float
 
+        numQubits: int
         measure: tuple[int, int]
         measureActually: tuple[int, int]
         measureActuallyAllSys: tuple[int, int]
@@ -340,9 +480,8 @@ class EntropyRandomizedAnalysis(AnalysisPrototype):
     def default_side_product_fields(self) -> Iterable[str]:
         """The fields that will be stored as side product."""
         return [
-            'purityCellList',
-            'purityCellListAllSys',
-            'errorMitigatedPurityCellList'
+            'purityCells',
+            'purityCellsAllSys',
         ]
 
     @classmethod
@@ -473,7 +612,7 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
             measure=measure,
             _workers_num=_workers_num,
         )
-        print(qs.keys(), 'qqq')
+
         serial = len(self.reports)
         analysis = self.analysis_container(
             serial=serial,
