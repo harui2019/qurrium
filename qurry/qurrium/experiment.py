@@ -48,40 +48,41 @@ class ExperimentPrototype():
 
         # Qiskit argument of experiment.
         # Multiple jobs shared
-        shots: int = 1024
+        shots: int
         """Number of shots to run the program (default: 1024)."""
-        backend: Backend = AerSimulator()
+        backend: Backend
         """Backend to execute the circuits on."""
-        provider: Optional[AccountProvider] = None
+        provider: Optional[AccountProvider]
         """Provider to execute the backend on."""
-        runArgs: dict = {}
+        runArgs: dict
         """Arguments of `execute`."""
 
         # Single job dedicated
-        runBy: Literal['gate', 'operator'] = "gate"
+        runBy: Literal['gate', 'operator']
         """Run circuits by gate or operator."""
-        transpileArgs: dict = {}
+        transpileArgs: dict
         """Arguments of `qiskit.compiler.transpile`."""
-        decompose: Optional[int] = 2
+        decompose: Optional[int]
         """Decompose the circuit in given times to show the circuit figures in :property:`.before.figOriginal`."""
 
-        tags: tuple = ()
+        tags: tuple
         """Tags of experiment."""
 
         # Auto-analysis when counts are ready
-        defaultAnalysis: list[dict[str, Any]] = []
+        defaultAnalysis: list[dict[str, Any]]
+        """When counts are ready, the experiment will automatically analyze the counts with the given analysis."""
 
         # Arguments for exportation
-        saveLocation: Union[Path, str] = Path('./')
+        saveLocation: Union[Path, str]
         """Location of saving experiment. 
         If this experiment is called by :cls:`QurryMultiManager`,
         then `adventure`, `legacy`, `tales`, and `reports` will be exported to their dedicated folders in this location respectively.
         This location is the default location for it's not specific where to save when call :meth:`.write()`, if does, then will be overwriten and update."""
-        filename: str = ''
+        filename: str
         """The name of file to be exported, it will be decided by the :meth:`.export` when it's called.
         More info in the pydoc of :prop:`files` or :meth:`.export`.
         """
-        files: dict[str, Path] = {}
+        files: dict[str, Path]
         """The list of file to be exported.
         For the `.write` function actually exports 4 different files
         respecting to `adventure`, `legacy`, `tales`, and `reports` like:
@@ -131,42 +132,40 @@ class ExperimentPrototype():
         """
 
         # Arguments for multi-experiment
-        serial: Optional[int] = None
+        serial: Optional[int]
         """Index of experiment in a multiOutput."""
-        summonerID: Optional[Hashable] = None
+        summonerID: Optional[Hashable]
         """ID of experiment of the multiManager."""
-        summonerName: Optional[str] = None
+        summonerName: Optional[str]
         """Name of experiment of the multiManager."""
 
         # header
-        datetimes: dict[str, str] = {}
+        datetimes: dict[str, str]
 
     class before(NamedTuple):
         # Experiment Preparation
-        circuit: list[QuantumCircuit] = []
+        circuit: list[QuantumCircuit]
         """Circuits of experiment."""
-        figOriginal: list[str] = []
+        figOriginal: list[str]
         """Raw circuit figures which is the circuit before transpile."""
-        figTranspiled: list[str] = []
+        figTranspiled: list[str]
         """Transpile circuit figures which is the circuit after transpile and the actual one would be executed."""
 
         # Export data
-        jobID: str = ''
+        jobID: str
         """ID of job for pending on real machine (IBMQBackend)."""
-        expName: str = 'exps'
+        expName: str
         """Name of experiment which is also showed on IBM Quantum Computing quene."""
 
         # side product
-        sideProduct: dict = {
-            'number_between_3_and_4': ['bleem', '(it\'s a joke)']
-        }
+        sideProduct: dict
         """The data of experiment will be independently exported in the folder 'tales'."""
 
     class after(NamedTuple):
         # Measurement Result
-        result: list[Result] = []
+        result: list[Result]
         """Results of experiment."""
-        counts: list[dict[str, int]] = []
+        counts: list[dict[str, int]]
         """Counts of experiment."""
 
     _unexports = ['sideProduct', 'result']
@@ -258,7 +257,7 @@ class ExperimentPrototype():
 
         # Dealing special arguments
         if 'datetimes' not in commons:
-            commons.datetimes['bulid'] = datetime.now().strftime(
+            commons['datetimes']['bulid'] = datetime.now().strftime(
                 "%Y-%m-%d %H:%M:%S")
         if 'defaultAnalysis' in commons:
             filted_analysis = []
@@ -285,8 +284,18 @@ class ExperimentPrototype():
             **commons
         )
         self.outfields: dict[str, Any] = outfields
-        self.beforewards = self.before()
-        self.afterwards = self.after()
+        self.beforewards = self.before(
+            circuit=[],
+            figOriginal=[],
+            figTranspiled=[],
+            jobID='',
+            expName=self.args.expName,
+            sideProduct={},
+        )
+        self.afterwards = self.after(
+            result=[],
+            counts=[],
+        )
         self.reports: dict[str, ExperimentPrototype.analysis_container] = {}
 
         _summon_check = {
@@ -314,10 +323,10 @@ class ExperimentPrototype():
                     "Summoner data is not completed, it will export in single experiment mode.", category=QurrySummonerInfoIncompletion)
                 summon_msg.print()
 
-    after_lock = False
-    """Protect the :cls:`afterward` content to be overwritten. When setitem is called and completed, it will be setted as `False` automatically."""
-    mute_auto_lock = False
-    """Whether mute the auto-lock message."""
+        self.after_lock = False
+        """Protect the :cls:`afterward` content to be overwritten. When setitem is called and completed, it will be setted as `False` automatically."""
+        self.mute_auto_lock = False
+        """Whether mute the auto-lock message."""
 
     def unlock_afterward(self, mute_auto_lock: bool = False):
         """Unlock the :cls:`afterward` content to be overwritten.
@@ -330,10 +339,10 @@ class ExperimentPrototype():
         self.mute_auto_lock = mute_auto_lock
 
     def __setitem__(self, key, value) -> None:
-        if key in self.before._fields:
+        if key in self.beforewards._fields:
             self.beforewards = self.beforewards._replace(**{key: value})
 
-        elif key in self.after._fields:
+        elif key in self.afterwards._fields:
             if self.after_lock and isinstance(self.after_lock, bool):
                 self.afterwards = self.afterwards._replace(**{key: value})
             else:
@@ -353,9 +362,9 @@ class ExperimentPrototype():
             self.mute_auto_lock = False
 
     def __getitem__(self, key) -> Any:
-        if key in self.before._fields:
+        if key in self.beforewards._fields:
             return getattr(self.beforewards, key)
-        elif key in self.after._fields:
+        elif key in self.afterwards._fields:
             return getattr(self.afterwards, key)
         else:
             raise ValueError(

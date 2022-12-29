@@ -264,7 +264,6 @@ class QurryV5Prototype:
         summonerName: Optional[str] = None,
 
         muteOutfieldsWarning: bool = False,
-
         **otherArgs: any
     ) -> Hashable:
 
@@ -287,6 +286,7 @@ class QurryV5Prototype:
         ctrlArgs: ExperimentPrototype.arguments
         commons: ExperimentPrototype.commonparams
         outfields: dict[str, Any]
+        # Given parameters and default parameters
         ctrlArgs, commons, outfields = self.paramsControl(
             waveKey=waveKey,
             expID=expID,
@@ -302,10 +302,13 @@ class QurryV5Prototype:
             tags=tags,
 
             defaultAnalysis=defaultAnalysis,
+            saveLocation=None,
+            filename='',
+            files={},
             serial=serial,
             summonerID=summonerID,
             summonerName=summonerName,
-
+            datetimes={},
             **otherArgs)
 
         # TODO: levenshtein_distance check for outfields
@@ -345,7 +348,12 @@ class QurryV5Prototype:
         self.exps.lastID = newExps.commons.expID
 
         assert self.exps.lastID == self.lastID
-        assert self.exps[self.lastID] == self.lastExp
+        assert self.exps[self.lastID].expID == self.lastExp.expID
+        assert len(self.lastExp.beforewards.circuit) == 0
+        assert len(self.lastExp.beforewards.figOriginal) == 0
+        assert len(self.lastExp.beforewards.figTranspiled) == 0
+        assert len(self.lastExp.afterwards.result) == 0
+        assert len(self.lastExp.afterwards.counts) == 0
 
         return self.lastID
 
