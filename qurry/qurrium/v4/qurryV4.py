@@ -2642,7 +2642,8 @@ class QurryV4:
                         gajima.gprint("| Getting Counts length:", len(counts))
                     for rk in pcircs:
                         allCircuitCountsDict[rk] = counts[rk-pcircs[0]]
-                        gajima.gprint(f"| Packing Counts of {rk} length:", len(counts[rk-pcircs[0]]))
+                        gajima.gprint(f"| Packing Counts of {rk} length:", len(
+                            counts[rk-pcircs[0]]))
 
                 else:
                     if not pk == 'noTags' or not pk == ():

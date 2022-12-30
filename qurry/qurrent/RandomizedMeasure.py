@@ -43,8 +43,7 @@ def _purityCell(
     singleCountsUnderDegree = dict.fromkeys(
         [k[bitStringRange[0]:bitStringRange[1]] for k in singleCounts], 0)
     for bitString in list(singleCounts):
-        singleCountsUnderDegree[bitString[bitStringRange[0]
-            :bitStringRange[1]]] += singleCounts[bitString]
+        singleCountsUnderDegree[bitString[bitStringRange[0]                                          :bitStringRange[1]]] += singleCounts[bitString]
 
     purityCell = 0
     for sAi, sAiMeas in singleCountsUnderDegree.items():
@@ -170,7 +169,7 @@ def entangled_entropy(
     _workers_num: Optional[int] = None,
 ) -> dict[str, float]:
     """Calculate entangled entropy.
-    
+
     - Reference:
         - Used in:
             Statistical correlations between locally randomized measurements: 
@@ -243,11 +242,12 @@ def entangled_entropy(
 
 @overload
 def solve_p(
-    meas_series: np.ndarray, 
+    meas_series: np.ndarray,
     nA: int
 ) -> tuple[np.ndarray, np.ndarray]:
     ...
-    
+
+
 @overload
 def solve_p(
     meas_series: float,
@@ -255,24 +255,27 @@ def solve_p(
 ) -> tuple[float, float]:
     ...
 
+
 def solve_p(meas_series, nA):
-    
+
     b = 1/2**(nA-1)-2
     a = 1+1/2**nA-1/2**(nA-1)
     c = 1-meas_series
     ppser = (-b+np.sqrt(b**2-4*a*c))/2/a
     pnser = (-b-np.sqrt(b**2-4*a*c))/2/a
-    
+
     return ppser, pnser
+
 
 @overload
 def mitigation_equation(
-    pser: np.ndarray, 
+    pser: np.ndarray,
     meas_series: np.ndarray,
     nA: int
 ) -> np.ndarray:
     ...
-    
+
+
 @overload
 def mitigation_equation(
     pser: float,
@@ -281,11 +284,13 @@ def mitigation_equation(
 ) -> float:
     ...
 
+
 def mitigation_equation(pser, meas_series, nA):
     psq = np.square(pser)
     return (
-            meas_series-psq/2**nA - (pser-psq)/2**(nA-1)
-        ) / np.square(1-pser)
+        meas_series-psq/2**nA - (pser-psq)/2**(nA-1)
+    ) / np.square(1-pser)
+
 
 @overload
 def error_mitgation(
@@ -295,7 +300,8 @@ def error_mitgation(
     systemSize: int,
 ) -> dict[str, float]:
     ...
-    
+
+
 @overload
 def error_mitgation(
     measSystem: np.ndarray,
@@ -305,10 +311,11 @@ def error_mitgation(
 ) -> dict[str, np.ndarray]:
     ...
 
+
 def error_mitgation(measSystem, allSystem, nA, systemSize):
     pp, pn = solve_p(allSystem, systemSize)
     mitiga = mitigation_equation(pn, measSystem, nA)
-    
+
     return {
         'mitigatedPurity': mitiga,
         'mitigatedEntropy': -np.log2(mitiga)
@@ -323,15 +330,15 @@ def entangled_entropy_complex(
     _workers_num: Optional[int] = None,
 ) -> dict[str, float]:
     """Calculate entangled entropy with more information combined.
-    
+
     - Reference:
         - Used in:
             Simple mitigation of global depolarizing errors in quantum simulations - 
             Vovrosh, Joseph and Khosla, Kiran E. and Greenaway, Sean and Self, Christopher and Kim, M. S. and Knolle, Johannes,
             [PhysRevE.104.035309](https://link.aps.org/doi/10.1103/PhysRevE.104.035309)
-    
+
         - `bibtex`:
-        
+
     ```bibtex
         @article{PhysRevE.104.035309,
             title = {Simple mitigation of global depolarizing errors in quantum simulations},
@@ -397,7 +404,7 @@ def entangled_entropy_complex(
         measureInfo = 'not specified, use all qubits'
     else:
         measureInfo = f'measure range: {measure}'
-        
+
     num_qubits = len(list(counts[0].keys())[0])
     if isinstance(degree, tuple):
         subsystem = max(degree) - min(degree)
@@ -733,7 +740,9 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
 
             qcList.append(qcExp1)
 
-        self.lastExp.beforewards.sideProduct['unitaryOP'] = unitaryList
+        self.lastExp.beforewards.sideProduct['unitaryOP'] = {
+            k: {i: np.array(v[i]).tolist() for i in range(*args.unitary_loc)}
+            for k, v in unitaryList.items()}
         self.lastExp.beforewards.sideProduct['randomized'] = {i: {
             j: qubitOpToPauliCoeff(
                 unitaryList[i][j])
