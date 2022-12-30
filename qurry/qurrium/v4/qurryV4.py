@@ -2137,8 +2137,8 @@ class QurryV4:
             if hasattr(expsMulti[k], 'export'):
                 expsMulti[k].export(
                     saveLocation=expsMulti.exportLocation,
-                    additionName=expsMulti.expsName,
-                    name=k,
+                    name=expsMulti.expsName,
+                    tagmapName=k,
                     filetype=expsMulti.filetype
                 )
                 expsMulti.gitignore.sync(f'*.{k}.{expsMulti.filetype}')
