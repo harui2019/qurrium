@@ -15,7 +15,7 @@ import os
 import json
 
 from ..hoshi import Hoshi
-from ..mori import jsonablize, quickJSON
+from ..mori import jsonablize, quickJSON, defaultConfig
 from ..exceptions import (
     QurryInvalidInherition,
     QurryExperimentCountsNotCompleted,
@@ -27,6 +27,50 @@ from ..exceptions import (
 from .declare.type import Counts
 from .analysis import AnalysisPrototype, QurryAnalysis
 
+
+commonparamsConfig = defaultConfig(
+    name='commonparams',
+    default={
+        'expID': None,
+        'waveKey': None,
+        'shots': 1024,
+        'backend': AerSimulator(),
+        'provider': None,
+        'runArgs': {},
+        'runBy': 'gate',
+        'transpileArgs': {},
+        'decompose': None,
+        'tags': (),
+        'defaultAnalysis': [],
+        'saveLocation': Path('./'),
+        'filetype': 'json',
+        'datetimes': {},
+        'serial': None,
+        'summonerID': None,
+        'summonerName': None,
+        'datetimes': None,
+    }
+)
+
+beforeConfig = defaultConfig(
+    name='before',
+    default={
+        'circuit': [],
+        'figOriginal': [],
+        'figTranspiled': [],
+        'jobID': '',
+        'expName': '',
+        'sideProduct': {},
+    }
+)
+
+afterConfig = defaultConfig(
+    name='after',
+    default={
+        'result': [],
+        'counts': [],
+    }
+)
 
 class ExperimentPrototype():
 

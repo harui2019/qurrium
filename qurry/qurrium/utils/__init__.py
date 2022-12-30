@@ -5,3 +5,4 @@ from .randomized import (
     makeTwoBitStr, makeTwoBitStrOneLiner, haarBase,
     hamming_distance, ensembleCell, densityMatrixToBloch, qubitOpToPauliCoeff
 )
+from .naming import naming, namingComplex

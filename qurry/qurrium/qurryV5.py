@@ -21,16 +21,19 @@ from pathlib import Path
 from typing import Literal, Union, Optional, NamedTuple, Hashable, Iterable, Type, overload, Any
 from abc import abstractmethod, abstractclassmethod, abstractproperty
 
+from ..mori import TagMap
 from ..mori.type import TagMapType
 from ..tools import Gajima, ResoureWatch
 
 from .declare.default import (
     transpileConfig,
     runConfig,
+    managerRunConfig,
     containChecker,
 )
 from .experiment import ExperimentPrototype, QurryExperiment, DummyExperiment
 from .container import WaveContainer, ExperimentContainer
+from .multimanager import MultiManager
 
 from .utils import decomposer
 from ..exceptions import QurryInheritionNoEffect
@@ -210,9 +213,8 @@ class QurryV5Prototype:
         self.exps = ExperimentContainer()
         """The experiments container."""
 
-        self.multiJob = None
+        self.multimanagers = None
         """The last multiJob be called.
-        # TODO: This is a temporary useless until `multimanager` completed.
         Replace the property :prop:`multiNow`. in :cls:`QurryV4`"""
 
     # state checking
@@ -637,7 +639,74 @@ class QurryV5Prototype:
             )
 
         return IDNow
+    
+    def _paramsControlMulti(
+        self,
+        # configList
+        configList: list = [],
 
+        # defaultConfig of `IBMQJobManager().run`
+        # Multiple jobs shared
+        shots: int = 1024,
+        backend: Backend = AerSimulator(),
+        provider: AccountProvider = None,
+        # IBMQJobManager() dedicated
+        managerRunArgs: dict[str, any] = {
+            'max_experiments_per_job': 200,
+        },
+        # Other arguments of experiment
+        # Multiple jobs shared
+        summonerName: str = 'exps',
+        summonerID: Optional[str] = None,
+        saveLocation: Union[Path, str] = Path('./'),
+
+        jobsType: Literal["local", "IBMQ", "AWS_Bracket", "Azure_Q"] = "local",
+        isRetrieve: bool = False,
+        isRead: bool = False,
+        # independentExports: list[str] = _independentExportDefault,
+        filetype: TagMap._availableFileType = 'json',
+    ) -> list[dict[str, any]]: 
+        ...
+        
+        isRead = isRetrieve | isRead
+        
+        for config, checker in [
+            (managerRunArgs, managerRunConfig),
+        ]:
+            containChecker(config, checker)
+        
+        self.multiJob = MultiManager(
+            summonerID=summonerID,
+            summonerName=summonerName,
+            shots=shots,
+            backend=backend,
+            provider=provider,
+            
+            saveLocation=saveLocation,
+
+            isRead=isRead,
+            filetype=filetype,
+            jobsType=jobsType,
+            managerRunArgs=managerRunArgs,
+        )
+        
+        initedConfigList = []
+        for serial, config in enumerate(configList):
+            initedConfigList.append({
+                **config,
+                'shots': shots,
+                'backend': backend,
+                'provider': provider,
+
+                'expsName': self.multiJob.multicommons.expsName,
+                'saveLocation': self.multiJob.multicommons.exportLocation,
+
+                'serial': serial,
+                'summonerID': self.multiJob.multicommons.summonerID,
+                'summonerName': self.multiJob.multicommons.summonerName,
+            })
+            
+        return initedConfigList
 
 class QurryV5(QurryV5Prototype):
 
