@@ -61,10 +61,11 @@ class MultiManager:
         """The dict of config of each experiments."""
         circuitsNum: dict[str, int]
         """The map with tags of index of experiments, which multiple experiments shared."""
-        circuitsMap: TagMapType[str]
-        """The map of circuits of each experiments, which multiple experiments shared."""
+        
         pendingPools: TagMapType[str]
         """The pool of pending jobs, which multiple experiments shared, it works only when executing experiments is remote."""
+        circuitsMap: TagMapType[str]
+        """The map of circuits of each experiments in the index of pending, which multiple experiments shared."""
         jobID: list[tuple[str, str]]
         """The list of jobID in pending, which multiple experiments shared, it works only when executing experiments is remote."""
         
@@ -75,9 +76,9 @@ class MultiManager:
     class after(NamedTuple):
         """`dataStateDepending` and `dataNeccessary` in V4 format."""
         retrievedResult: TagMapType[Result]
-        allCounts: dict[str, dict[str, int]]
+        allCounts: dict[Hashable, list[dict[str, int]]]
 
-    _unexports = ['tagMapResult']
+    _unexports = ['retrievedResult']
     """The content would not be exported."""
     after_lock = False
     """Protect the :cls:`afterward` content to be overwritten. When setitem is called and completed, it will be setted as `False` automatically."""
@@ -125,6 +126,14 @@ class MultiManager:
         else:
             raise ValueError(
                 f"{key} is not a valid field of '{self.before.__name__}' and '{self.after.__name__}'.")
+
+    @property
+    def summonerID(self) -> str:
+        return self.multicommons.summonerID
+    
+    @property
+    def summonerName(self) -> str:
+        return self.multicommons.summonerName
 
     def __init__(
         self,
@@ -288,7 +297,7 @@ class MultiManager:
     
     def write(
         self,
-        saveLocation: Union[Path, str] = Path('./'),
+        saveLocation: Optional[Union[Path, str]] = None,
 
         indent: int = 2,
         encoding: str = 'utf-8',
@@ -296,6 +305,12 @@ class MultiManager:
     ) -> dict:
         
         print(f"| Export...")
+        if saveLocation is None:
+            saveLocation = self.multicommons.saveLocation
+            if saveLocation is None:
+                raise ValueError(
+                    "Can't find the saveLocation, please specify it.")
+        
         self.gitignore.ignore('*.json')
         if not os.path.exists(saveLocation):
             os.makedirs(saveLocation)

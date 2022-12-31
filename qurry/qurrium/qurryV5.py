@@ -210,10 +210,10 @@ class QurryV5Prototype:
                     "contained hashable key and 'QuantumCircuit', skipped to be adding.",
                     category=TypeError)
 
-        self.exps = ExperimentContainer()
+        self.exps: ExperimentContainer = ExperimentContainer()
         """The experiments container."""
 
-        self.multimanagers = None
+        self.multimanagers: dict[str, MultiManager] = {}
         """The last multiJob be called.
         Replace the property :prop:`multiNow`. in :cls:`QurryV4`"""
 
@@ -245,7 +245,7 @@ class QurryV5Prototype:
 
     def _paramsControlMain(
         self,
-        wave: Union[QuantumCircuit, Hashable, None],
+        wave: Union[QuantumCircuit, Hashable, None] = None,
 
         expID: Optional[str] = None,
         shots: int = 1024,
@@ -269,14 +269,16 @@ class QurryV5Prototype:
         **otherArgs: any
     ) -> Hashable:
 
-        # TODO: If given a existing expID, then just used its existing parameter except `redo` is given.
+        if expID in self.exps:
+            self.exps.call(expID)
+            assert self.exps.lastID == expID
+            assert self.exps.lastExp is not None
+            assert self.exps.lastID == self.lastID
+            return self.lastID
 
         # wave
         if isinstance(wave, QuantumCircuit):
             waveKey = self.add(wave)
-        elif wave == None:
-            waveKey = self.lastWaveKey
-            print(f"| Autofill will use '.lastWave' as key")
         elif isinstance(wave, Hashable):
             if not self.has(wave):
                 raise KeyError(f"Wave '{wave}' not found in '.waves'")
@@ -304,7 +306,7 @@ class QurryV5Prototype:
             tags=tags,
 
             defaultAnalysis=defaultAnalysis,
-            saveLocation=None,
+            saveLocation=Path('./'),
             filename='',
             files={},
             serial=serial,
@@ -378,6 +380,7 @@ class QurryV5Prototype:
         indent: int = 2,
         encoding: str = 'utf-8',
         jsonablize: bool = False,
+        _exportMute: bool = True,
         **allArgs: any,
     ) -> Hashable:
         """Construct the quantum circuit of experiment.
@@ -404,7 +407,7 @@ class QurryV5Prototype:
         # draw original
         for _w in cirqs:
             self.lastExp.beforewards.figOriginal.append(
-                decomposer(_w, self.lastExp.commons.decompose))
+                decomposer(_w, self.lastExp.commons.decompose).draw(output='text'))
 
         # transpile
         transpiledCirqs: list[QuantumCircuit] = transpile(
@@ -414,7 +417,7 @@ class QurryV5Prototype:
         )
         for _w in transpiledCirqs:
             self.lastExp.beforewards.figTranspiled.append(
-                decomposer(_w, self.lastExp.commons.decompose))
+                decomposer(_w, self.lastExp.commons.decompose).draw(output='text'))
             self.lastExp.beforewards.circuit.append(_w)
 
         if isinstance(saveLocation, (Path, str)):
@@ -424,6 +427,7 @@ class QurryV5Prototype:
                 indent=indent,
                 encoding=encoding,
                 jsonablize=jsonablize,
+                mute=_exportMute,
             )
 
         return IDNow
@@ -436,6 +440,7 @@ class QurryV5Prototype:
         indent: int = 2,
         encoding: str = 'utf-8',
         jsonablize: bool = False,
+        _exportMute: bool = True,
         **allArgs: any,
     ) -> Hashable:
         """Export the result after running the job.
@@ -483,6 +488,7 @@ class QurryV5Prototype:
                 indent=indent,
                 encoding=encoding,
                 jsonablize=jsonablize,
+                mute=_exportMute,
             )
 
         return IDNow
@@ -539,6 +545,7 @@ class QurryV5Prototype:
         indent: int = 2,
         encoding: str = 'utf-8',
         jsonablize: bool = False,
+        _exportMute: bool = False,
         **allArgs: any,
     ) -> Hashable:
         """Export the result after running the job.
@@ -585,6 +592,7 @@ class QurryV5Prototype:
                 indent=indent,
                 encoding=encoding,
                 jsonablize=jsonablize,
+                mute=_exportMute,
             )
 
         return IDNow
@@ -597,6 +605,7 @@ class QurryV5Prototype:
         indent: int = 2,
         encoding: str = 'utf-8',
         jsonablize: bool = False,
+        _exportMute: bool = False,
         **otherArgs: any
     ):
         """
@@ -610,7 +619,7 @@ class QurryV5Prototype:
                 If input is `None` or something illegal, then use `.lastWave'.
                 Defaults to None.
 
-            expsName (str, optional):
+            expName (str, optional):
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
                 This name is also used for creating a folder to store the exports.
                 Defaults to `'exps'`.
@@ -636,9 +645,12 @@ class QurryV5Prototype:
                 indent=indent,
                 encoding=encoding,
                 jsonablize=jsonablize,
+                mute=_exportMute,
             )
 
         return IDNow
+    
+    _rjustLen = 3
     
     def _paramsControlMulti(
         self,
@@ -665,9 +677,31 @@ class QurryV5Prototype:
         isRead: bool = False,
         # independentExports: list[str] = _independentExportDefault,
         filetype: TagMap._availableFileType = 'json',
-    ) -> list[dict[str, any]]: 
-        ...
+    ) -> tuple[list[dict[str, any]], str]:
+        """_summary_
+
+        Args:
+            configList (list, optional): _description_. Defaults to [].
+            shots (int, optional): _description_. Defaults to 1024.
+            backend (Backend, optional): _description_. Defaults to AerSimulator().
+            provider (AccountProvider, optional): _description_. Defaults to None.
+            managerRunArgs (_type_, optional): _description_. Defaults to { 'max_experiments_per_job': 200, }.
+            summonerName (str, optional): _description_. Defaults to 'exps'.
+            summonerID (Optional[str], optional): _description_. Defaults to None.
+            saveLocation (Union[Path, str], optional): _description_. Defaults to Path('./').
+            jobsType (Literal[&quot;local&quot;, &quot;IBMQ&quot;, &quot;AWS_Bracket&quot;, &quot;Azure_Q&quot;], optional): _description_. Defaults to "local".
+            isRetrieve (bool, optional): _description_. Defaults to False.
+            isRead (bool, optional): _description_. Defaults to False.
+            filetype (TagMap._availableFileType, optional): _description_. Defaults to 'json'.
+
+        Returns:
+            tuple[list[dict[str, any]], str]: _description_
+        """        
         
+        if summonerID in self.multimanagers:
+            multiJob = self.multimanagers[summonerID]
+            return list(multiJob.beforewards.configDict.values()), multiJob.summonerID
+            
         isRead = isRetrieve | isRead
         
         for config, checker in [
@@ -675,7 +709,7 @@ class QurryV5Prototype:
         ]:
             containChecker(config, checker)
         
-        self.multiJob = MultiManager(
+        multiJob = MultiManager(
             summonerID=summonerID,
             summonerName=summonerName,
             shots=shots,
@@ -690,6 +724,8 @@ class QurryV5Prototype:
             managerRunArgs=managerRunArgs,
         )
         
+        self.multimanagers[multiJob.summonerID] = multiJob
+        
         initedConfigList = []
         for serial, config in enumerate(configList):
             initedConfigList.append({
@@ -698,16 +734,165 @@ class QurryV5Prototype:
                 'backend': backend,
                 'provider': provider,
 
-                'expsName': self.multiJob.multicommons.expsName,
-                'saveLocation': self.multiJob.multicommons.exportLocation,
+                'expName': multiJob.multicommons.summonerName,
+                'saveLocation': multiJob.multicommons.saveLocation,
 
                 'serial': serial,
-                'summonerID': self.multiJob.multicommons.summonerID,
-                'summonerName': self.multiJob.multicommons.summonerName,
+                'summonerID': multiJob.multicommons.summonerID,
+                'summonerName': multiJob.multicommons.summonerName,
             })
             
-        return initedConfigList
+        return initedConfigList, multiJob.summonerID
+    
+    def multiOutput(
+        self,
+        # configList
+        configList: list = [],
 
+        # defaultConfig of `IBMQJobManager().run`
+        # Multiple jobs shared
+        shots: int = 1024,
+        backend: Backend = AerSimulator(),
+        provider: AccountProvider = None,
+        # IBMQJobManager() dedicated
+        # Other arguments of experiment
+        # Multiple jobs shared
+        summonerName: str = 'exps',
+        summonerID: Optional[str] = None,
+        saveLocation: Union[Path, str] = Path('./'),
+        
+        filetype: TagMap._availableFileType = 'json',
+        overwrite: bool = False,
+
+        **allArgs: any,
+    ) -> Hashable:
+        """_summary_
+
+        Args:
+            configList (list, optional): _description_. Defaults to [].
+            shots (int, optional): _description_. Defaults to 1024.
+            backend (Backend, optional): _description_. Defaults to AerSimulator().
+            provider (AccountProvider, optional): _description_. Defaults to None.
+            summonerName (str, optional): _description_. Defaults to 'exps'.
+            summonerID (Optional[str], optional): _description_. Defaults to None.
+            saveLocation (Union[Path, str], optional): _description_. Defaults to Path('./').
+            filetype (TagMap._availableFileType, optional): _description_. Defaults to 'json'.
+            overwrite (bool, optional): _description_. Defaults to False.
+
+        Returns:
+            Hashable: _description_
+        """        
+        
+        initedConfigList, besummonned = self._paramsControlMulti(
+            configList=configList,
+            shots=shots,
+            provider=provider,
+            managerRunArgs={},
+            summonerName=summonerName,
+            summonerID=summonerID,
+            saveLocation=saveLocation,
+            jobsType="local",
+            isRetrieve=False,
+            isRead=False,
+            filetype=filetype,
+        )
+        currentMultiJob = self.multimanagers[besummonned]
+        assert currentMultiJob.summonerID == besummonned
+        
+        for config in initedConfigList:
+            currentID = self.build(**config)
+            currentMultiJob.beforewards.configDict[currentID] = config
+            currentMultiJob.beforewards.circuitsNum[currentID] = len(
+                self.exps[currentID].beforewards.circuit)
+            files = self.exps[currentID].write(mute=True)
+            
+            tmpCircSerial = [
+                idx for idx in range(len(self.exps[currentID].beforewards.circuit))]
+            currentMultiJob.beforewards.pendingPools[currentID] = tmpCircSerial
+            currentMultiJob.beforewards.circuitsMap[currentID] = tmpCircSerial
+            currentMultiJob.beforewards.jobID.append((currentID, 'local'))
+            
+            currentMultiJob.beforewards.tagMapExpsID[
+                self.exps[currentID].commons.tags].append(currentID)
+            currentMultiJob.beforewards.tagMapFiles[
+                self.exps[currentID].commons.tags].append(files)
+            currentMultiJob.beforewards.tagMapIndex[
+                self.exps[currentID].commons.tags
+            ].append(self.exps[currentID].commons.serial)
+            
+        filesMulti = currentMultiJob.write()
+            
+        for id_exec, jobtype in currentMultiJob.beforewards.jobID:
+            self.output(
+                expID = id_exec,
+                saveLocation=currentMultiJob.multicommons.saveLocation,
+                _exportMute=True,
+            )
+            currentMultiJob.afterwards.allCounts[id_exec] = self.exps[id_exec].afterwards.counts
+            
+        filesMulti = currentMultiJob.write()
+        
+        return currentMultiJob.multicommons.summonerID
+    
+    def multiAnalysis(
+        self,
+        summonerID: str,
+        analysisName: str = 'report',
+        *args,
+        specificAnalysisArgs: dict[Hashable, dict[str, Any]] = {},
+        
+        **analysisArgs: Any,
+    ) -> str:
+        """_summary_
+
+        Args:
+            summonerID (str): _description_
+            analysisName (str, optional): _description_. Defaults to 'report'.
+            specificAnalysisArgs (dict[Hashable, dict[str, Any]], optional): _description_. Defaults to {}.
+
+        Raises:
+            ValueError: _description_
+            ValueError: _description_
+            ValueError: _description_
+
+        Returns:
+            str: _description_
+        """        
+        
+        if len(args) > 0:
+            raise ValueError("No positional arguments allowed except `summonerID`.")
+        
+        if summonerID in self.multimanagers:
+            multiJob = self.multimanagers[summonerID]        
+        else:
+            raise ValueError("No such summonerID in multimanagers.")
+        
+        if len(multiJob.afterwards.allCounts) == 0:
+            raise ValueError("No counts in multimanagers.")
+        
+        idx_tagMapQ = len(multiJob.tagMapQuantity)
+        name = f"{analysisName}"+f'{idx_tagMapQ+1}'.rjust(self._rjustLen, '0')
+        multiJob.tagMapQuantity[name] = TagMap()
+        
+        for k in multiJob.afterwards.allCounts.keys():
+            if k in specificAnalysisArgs:
+                report = self.exps[k].analyze(**specificAnalysisArgs[k])
+            else:
+                report = self.exps[k].analyze(**analysisArgs)
+                
+            self.exps[k].write(mute=True)
+            main, tales = report.export()
+            multiJob.tagMapQuantity[name][
+                self.exps[k].commons.tags].append(main)
+            
+        multiJob.tagMapQuantity[name].export(
+            saveLocation=multiJob.multicommons.exportLocation,
+            tagmapName='tagmapQuantity',
+            name=name,
+        )
+        
+        return name
+    
 class QurryV5(QurryV5Prototype):
 
     @classmethod
@@ -735,7 +920,7 @@ class QurryV5(QurryV5Prototype):
                 If input is `None` or something illegal, then use `.lastWave'.
                 Defaults to None.
 
-            expsName (str, optional):
+            expName (str, optional):
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
                 This name is also used for creating a folder to store the exports.
                 Defaults to `'exps'`.
@@ -777,7 +962,7 @@ class QurryV5(QurryV5Prototype):
     def measure(
         self,
         wave: Union[QuantumCircuit, any, None] = None,
-        expsName: str = 'exps',
+        expName: str = 'exps',
         sampling: int = 1,
         *args,
         saveLocation: Optional[Union[Path, str]] = None,
@@ -798,7 +983,7 @@ class QurryV5(QurryV5Prototype):
                 If input is `None` or something illegal, then use `.lastWave'.
                 Defaults to None.
 
-            expsName (str, optional):
+            expName (str, optional):
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
                 This name is also used for creating a folder to store the exports.
                 Defaults to `'exps'`.
@@ -812,7 +997,7 @@ class QurryV5(QurryV5Prototype):
 
         IDNow = self.result(
             wave=wave,
-            expsName=expsName,
+            expName=expName,
             sampling=sampling,
             saveLocation=None,
             **otherArgs,
