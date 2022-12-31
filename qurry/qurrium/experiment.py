@@ -830,14 +830,16 @@ class ExperimentPrototype():
 
     def write(
         self,
-        saveLocation: Union[Path, str] = Path('./'),
+        saveLocation: Optional[Union[Path, str]] = None,
 
         mode: str = 'w+',
         indent: int = 2,
         encoding: str = 'utf-8',
         jsonablize: bool = False,
         # zip: bool = False,
-    ) -> Export:
+        
+        mute: bool = False,
+    ) -> dict[str, str]:
         """Export the experiment data, if there is a previous export, then will overwrite.
         Replacement of :func:`QurryV4().writeLegacy`
 
@@ -866,7 +868,7 @@ class ExperimentPrototype():
         Args:
             saveLocation (Optional[Union[Path, str]], optional):
                 Where to save the export content as `json` file.
-                If `saveLocation == None`, then cancelled the file to be exported.
+                If `saveLocation == None`, then use the value in `self.commons` to be exported, if it's None too, then raise error.
                 Defaults to `None`.
 
             mode (str): 
@@ -886,9 +888,17 @@ class ExperimentPrototype():
             ...
         elif isinstance(saveLocation, str):
             saveLocation = Path(saveLocation)
+        elif saveLocation is None:
+            saveLocation = self.commons.saveLocation
+            if self.commons.saveLocation is None:
+                raise ValueError(
+                    "saveLocation is None, please provide a valid saveLocation")
         else:
             raise TypeError(
                 f"saveLocation must be Path or str, not {type(saveLocation)}")
+        
+        if self.commons.saveLocation != saveLocation:
+            self.commons = self.commons._replace(saveLocation=saveLocation)
 
         export_material = self.export()
         export_set = {}
@@ -926,7 +936,7 @@ class ExperimentPrototype():
                 export_set[f'tales.{tk}'] = tv
             else:
                 export_set[f'tales.{tk}'] = [tv]
-            if f'reports.tales.{tk}' not in export_material.files:
+            if f'tales.{tk}' not in export_material.files:
                 warnings.warn(
                     f"tales.{tk} is not in export_names, it's not exported.")
         # reports ............  # reports
@@ -967,7 +977,10 @@ class ExperimentPrototype():
                 indent=indent,
                 encoding=encoding,
                 jsonablize=jsonablize,
+                mute=mute,
             )
+            
+        return export_material.files
 
     @classmethod
     def _read_core(
