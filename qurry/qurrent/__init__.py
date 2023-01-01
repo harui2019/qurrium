@@ -2,6 +2,8 @@ from typing import Literal, Union
 import warnings
 
 from ..exceptions import UnconfiguredWarning
+from .RandomizedMeasure import EntropyRandomizedMeasure
+from .HadamardTest import EntropyHadamardTest
 # v4
 from .v4.haarMeasure import EntropyHaarMeasureV4
 from .v4.hadamardTest import EntropyHadamardTestV4
@@ -83,6 +85,16 @@ def EntropyMeasure(
                 warnings.warn(
                     "QurryV4 EntropyMeasure does not exist base method, replaced by 'randomized'.", UnconfiguredWarning)
             return EntropyHaarMeasureV4(*args, **kwargs)
+        
+    elif version == 'v5':
+        print("Experimental version 'v5' is running.")
+        if method == 'randomized' or method == 'haar':
+            return EntropyRandomizedMeasure(*args, **kwargs)
+        elif method == 'hadamard':
+            return EntropyHadamardTest(*args, **kwargs)
+        else:
+            return EntropyRandomizedMeasure(*args, **kwargs)
+
     else:
         warnings.warn(
             f"Invalid version {version}, replaced by 'v4'.", UnconfiguredWarning)

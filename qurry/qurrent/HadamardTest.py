@@ -160,7 +160,7 @@ class EntropyHadamardExperiment(ExperimentPrototype):
         self.reports[serial] = analysis
         return analysis
 
-class EntropyHadamardMeasure(QurryV5Prototype):
+class EntropyHadamardTest(QurryV5Prototype):
 
     __name__ = 'qurrent.Randomized'
 
