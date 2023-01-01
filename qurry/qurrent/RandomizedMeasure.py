@@ -5,7 +5,7 @@ import warnings
 import numpy as np
 from multiprocessing import Pool, cpu_count
 from pathlib import Path
-from typing import Literal, Union, Optional, NamedTuple, Hashable, Iterable, Type, overload, Any
+from typing import Union, Optional, NamedTuple, Hashable, Iterable, Type, overload, Any
 
 from ..qurrium import (
     QurryV5Prototype,
@@ -548,43 +548,6 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
         """
         return EntropyRandomizedAnalysis
 
-    @classmethod
-    def quantities(
-        cls,
-        shots: int,
-        counts: list[dict[str, int]],
-        degree: Union[tuple[int, int], int],
-        measure: tuple[int, int] = None,
-        _workers_num: Optional[int] = None,
-    ) -> dict[str, float]:
-        """Calculate entangled entropy with more information combined.
-
-        Args:
-            shots (int): Shots of the experiment on quantum machine.
-            counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
-            degree (Union[tuple[int, int], int]): Degree of the subsystem.
-            measure (tuple[int, int], optional): Measuring range on quantum circuits. Defaults to None.
-            _workers_num (Optional[int], optional): 
-                Number of multi-processing workers, 
-                if sets to 1, then disable to using multi-processing;
-                if not specified, the use 3/4 of cpu counts by `round(cpu_count*3/4)`.
-                Defaults to None.
-
-        Returns:
-            dict[str, float]: A dictionary contains 
-                purity, entropy, a list of each overlap, puritySD, 
-                purity of all system, entropy of all system, a list of each overlap in all system, puritySD of all system,
-                degree, actual measure range, actual measure range in all system, bitstring range.
-        """
-
-        return entangled_entropy_complex(
-            shots=shots,
-            counts=counts,
-            degree=degree,
-            measure=measure,
-            _workers_num=_workers_num,
-        )
-
     def analyze(
         self,
         degree: Union[tuple[int, int], int],
@@ -612,7 +575,7 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
         unitary_loc = self.args.unitary_loc
         counts = self.afterwards.counts
 
-        qs = self.quantities(
+        qs = self.analysis_container.quantities(
             shots=shots,
             counts=counts,
             degree=degree,
