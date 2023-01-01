@@ -656,28 +656,26 @@ class QurryV5Prototype:
         self,
         # configList
         configList: list = [],
-
         # defaultConfig of `IBMQJobManager().run`
         # Multiple jobs shared
+        summonerName: str = 'exps',
+        summonerID: Optional[str] = None,
         shots: int = 1024,
         backend: Backend = AerSimulator(),
         provider: AccountProvider = None,
+        # Other arguments of experiment
+        # Multiple jobs shared
+        saveLocation: Union[Path, str] = Path('./'),
+        jobsType: Literal["local", "IBMQ", "AWS_Bracket", "Azure_Q"] = "local",
         # IBMQJobManager() dedicated
         managerRunArgs: dict[str, any] = {
             'max_experiments_per_job': 200,
         },
-        # Other arguments of experiment
-        # Multiple jobs shared
-        summonerName: str = 'exps',
-        summonerID: Optional[str] = None,
-        saveLocation: Union[Path, str] = Path('./'),
-
-        jobsType: Literal["local", "IBMQ", "AWS_Bracket", "Azure_Q"] = "local",
+        filetype: TagMap._availableFileType = 'json',
+        
         isRetrieve: bool = False,
         isRead: bool = False,
-        # independentExports: list[str] = _independentExportDefault,
-        filetype: TagMap._availableFileType = 'json',
-    ) -> tuple[list[dict[str, any]], str]:
+    ) -> tuple[list[dict[str, Any]], str]:
         """_summary_
 
         Args:
@@ -709,24 +707,34 @@ class QurryV5Prototype:
         ]:
             containChecker(config, checker)
         
-        multiJob = MultiManager(
-            summonerID=summonerID,
-            summonerName=summonerName,
-            shots=shots,
-            backend=backend,
-            provider=provider,
+        if isRead:
+            multiJob = MultiManager(
+                summonerID=None,
+                summonerName=summonerName,
+                isRead=isRead,
+                
+                saveLocation=saveLocation,
+            )
+        else:
+            multiJob = MultiManager(
+                summonerID=summonerID,
+                summonerName=summonerName,
+                shots=shots,
+                backend=backend,
+                provider=provider,
             
-            saveLocation=saveLocation,
+                saveLocation=saveLocation,
+                files={},
 
-            isRead=isRead,
-            filetype=filetype,
-            jobsType=jobsType,
-            managerRunArgs=managerRunArgs,
-        )
+                jobsType=jobsType,
+                managerRunArgs=managerRunArgs,
+                filetype=filetype,
+                datetimes={},
+            )
         
         self.multimanagers[multiJob.summonerID] = multiJob
         
-        initedConfigList = []
+        initedConfigList: list[dict[str, Any]] = []
         for serial, config in enumerate(configList):
             initedConfigList.append({
                 **config,
@@ -751,14 +759,14 @@ class QurryV5Prototype:
 
         # defaultConfig of `IBMQJobManager().run`
         # Multiple jobs shared
+        summonerName: str = 'exps',
+        summonerID: Optional[str] = None,
         shots: int = 1024,
         backend: Backend = AerSimulator(),
         provider: AccountProvider = None,
         # IBMQJobManager() dedicated
         # Other arguments of experiment
         # Multiple jobs shared
-        summonerName: str = 'exps',
-        summonerID: Optional[str] = None,
         saveLocation: Union[Path, str] = Path('./'),
         
         filetype: TagMap._availableFileType = 'json',
@@ -786,6 +794,7 @@ class QurryV5Prototype:
         initedConfigList, besummonned = self._paramsControlMulti(
             configList=configList,
             shots=shots,
+            backend=backend,
             provider=provider,
             managerRunArgs={},
             summonerName=summonerName,
@@ -885,13 +894,59 @@ class QurryV5Prototype:
             multiJob.tagMapQuantity[name][
                 self.exps[k].commons.tags].append(main)
             
-        multiJob.tagMapQuantity[name].export(
-            saveLocation=multiJob.multicommons.exportLocation,
-            tagmapName='tagmapQuantity',
-            name=name,
+        filesMulti = multiJob.write(_onlyQuantity=True)
+        
+        return multiJob.multicommons.summonerID
+    
+    def multiRead(
+        self,
+        # configList
+        summonerName: str = 'exps',
+        summonerID: Optional[str] = None,
+        # IBMQJobManager() dedicated
+        # Other arguments of experiment
+        # Multiple jobs shared
+        saveLocation: Union[Path, str] = Path('./'),
+
+        **allArgs: any,
+    ) -> Hashable:
+        """_summary_
+
+        Args:
+            configList (list, optional): _description_. Defaults to [].
+            shots (int, optional): _description_. Defaults to 1024.
+            backend (Backend, optional): _description_. Defaults to AerSimulator().
+            provider (AccountProvider, optional): _description_. Defaults to None.
+            summonerName (str, optional): _description_. Defaults to 'exps'.
+            summonerID (Optional[str], optional): _description_. Defaults to None.
+            saveLocation (Union[Path, str], optional): _description_. Defaults to Path('./').
+            filetype (TagMap._availableFileType, optional): _description_. Defaults to 'json'.
+            overwrite (bool, optional): _description_. Defaults to False.
+
+        Returns:
+            Hashable: _description_
+        """        
+        
+        initedConfigList, besummonned = self._paramsControlMulti(
+            summonerName=summonerName,
+            summonerID=summonerID,
+            saveLocation=saveLocation,
+            isRead=True,
         )
         
-        return name
+        assert besummonned in self.multimanagers
+        assert self.multimanagers[besummonned].multicommons.summonerID == besummonned
+        
+        quene: list[ExperimentPrototype] = self.experiment.read(
+            saveLocation=self.multimanagers[besummonned].multicommons.saveLocation,
+            name=summonerName,
+        )
+        for exp in quene:
+            self.exps[exp.expID] = exp
+
+        self.exps
+        
+        return besummonned
     
 class QurryV5(QurryV5Prototype):
 

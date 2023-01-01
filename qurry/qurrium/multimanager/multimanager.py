@@ -12,13 +12,32 @@ import gc
 import json
 import warnings
 
-from ...mori import jsonablize, TagMap, syncControl
+from ...mori import jsonablize, TagMap, syncControl, defaultConfig
 from ...mori.type import TagMapType
 from ...mori.quick import quickJSON, quickRead
 from ...exceptions import QurryProtectContent
 from ..declare.type import Quantity, Counts
 from ..utils.naming import namingComplex, naming
 
+
+
+multicommonConfig = defaultConfig(
+    name='multicommon',
+    default={
+        'summonerID': None,
+        'summonerName': None,
+        'shots': 1024,
+        'backend': AerSimulator(),
+        'provider': None,
+        'saveLocation': Path('./'),
+        'exportLocation': Path('./'),
+        'files': {},
+        'jobsType': None,
+        'managerRunArgs': None,
+        'filetype': 'json',
+        'datetimes': {}
+    }
+)
 
 class MultiManager:
 
@@ -31,28 +50,29 @@ class MultiManager:
         summonerName: str
         """Name of experiment of the multiManager."""
 
-        shots: int = 1024
+        shots: int
         """Number of shots to run the program (default: 1024), which multiple experiments shared."""
-        backend: Backend = AerSimulator()
+        backend: Backend
         """Backend to execute the circuits on, which multiple experiments shared."""
-        provider: Optional[AccountProvider] = None
+        provider: Optional[AccountProvider]
         """Provider to execute the backend on, which multiple experiments shared."""
 
-        saveLocation: Union[Path, str] = Path('./')
+        saveLocation: Union[Path, str]
         """Location of saving experiment."""
-        exportLocation: Path = Path('./')
+        exportLocation: Path
         """Location of exporting experiment, exportLocation is the final result decided by experiment."""
+        files: dict[str, Union[str, dict[str, str]]]
 
-        jobsType: Literal["local", "IBMQ", "AWS_Bracket", "Azure_Q"] = None
+        jobsType: Literal["local", "IBMQ", "AWS_Bracket", "Azure_Q"]
         """Type of jobs to run multiple experiments."""
         
-        managerRunArgs: dict[str, any] = None
+        managerRunArgs: dict[str, any]
         """Other arguments will be passed to `IBMQJobManager()`"""
 
-        filetype: TagMap._availableFileType = None
+        filetype: TagMap._availableFileType
         
         # header
-        datetimes: dict[str, str] = {}
+        datetimes: dict[str, str]
 
     class before(NamedTuple):
         """`dataNeccessary` and `expsMultiMain` in V4 format."""
@@ -143,7 +163,6 @@ class MultiManager:
         saveLocation: Union[Path, str] = Path('./'),
         
         isRead: bool = False,
-        indent: int = 2,
         encoding: str = 'utf-8',
         
         filetype: TagMap._availableFileType = 'json',
@@ -177,7 +196,10 @@ class MultiManager:
                 "'expID' is not hashable, it will be set to generate automatically.")
         finally:
             if summonerID is None:
-                summonerID = str(uuid4())
+                if isRead:
+                    summonerID = ''
+                else:
+                    summonerID = str(uuid4())
             else:
                 ...
         
@@ -199,7 +221,7 @@ class MultiManager:
                 rawReadMultiConfig: dict[str, Any] = json.load(f)
             rawReadMultiConfig['saveLocation'] = self.namingCpx.saveLocation
             rawReadMultiConfig['exportLocation'] = self.namingCpx.exportLocation
-            files: dict[str, str]= rawReadMultiConfig['files']
+            files: dict[str, Union[str, dict[str, str]]] = rawReadMultiConfig['files']
                     
             self.beforewards = self.before(
                 configDict=quickRead(
@@ -243,8 +265,13 @@ class MultiManager:
                     saveLocation=self.namingCpx.exportLocation,
                 ),
             )
-            # TODO: add tagMapQuantity read
             self.tagMapQuantity: dict[str, TagMapType[Quantity]] = {}
+            for qk in files['tagMapQuantity'].keys():
+                self.tagMapQuantity[qk] = TagMap.read(
+                    saveLocation=self.namingCpx.exportLocation,
+                    tagmapName=f'tagMapQuantity',
+                    name=f'{self.namingCpx.expsName}.{qk}',
+                )
 
         else:
             rawReadMultiConfig = {
@@ -302,8 +329,10 @@ class MultiManager:
         indent: int = 2,
         encoding: str = 'utf-8',
         # zip: bool = False,
+        _onlyQuantity: bool = False,
     ) -> dict:
         
+        self.gitignore.read(self.multicommons.exportLocation)
         print(f"| Export...")
         if saveLocation is None:
             saveLocation = self.multicommons.saveLocation
@@ -318,9 +347,9 @@ class MultiManager:
             os.makedirs(self.multicommons.exportLocation)
         self.gitignore.export(self.multicommons.exportLocation)
         
-        files = {}
+        # beforewards amd afterwards
         for k in self.before._fields + self.after._fields:
-            if k  in self._unexports:
+            if _onlyQuantity or (k in self._unexports):
                 ...
             elif isinstance(self[k], TagMap):
                 tmp: TagMap = self[k]
@@ -337,13 +366,13 @@ class MultiManager:
                         'indent': indent,
                     }
                 )
-                files[k] = str(filename)
+                self.multicommons.files[k] = str(filename)
                 self.gitignore.sync(f"*.{k}.{self.multicommons.filetype}")
                 
             elif isinstance(self[k], (dict, list)):
                 filename = self.multicommons.exportLocation / \
                     f"{self.multicommons.summonerName}.{k}.json"
-                files[k] = str(filename)
+                self.multicommons.files[k] = str(filename)
                 self.gitignore.sync(f"*.{k}.json")
                 quickJSON(
                     content=self[k],
@@ -357,8 +386,8 @@ class MultiManager:
             else:
                 warnings.warn(
                     f"'{k}' is type '{type(self[k])}' which is not supported to export.")
-                
-        files['tagMapQuantity'] = {}
+        # tagMapQuantity
+        self.multicommons.files['tagMapQuantity'] = {}
         for k, v in self.tagMapQuantity.items():
             filename = v.export(
                 saveLocation=self.multicommons.exportLocation,
@@ -373,17 +402,17 @@ class MultiManager:
                     'indent': indent,
                 }
             )
-            files['tagMapQuantity'][k] = str(filename)
+            self.multicommons.files['tagMapQuantity'][k] = str(filename)
         self.gitignore.sync(f"*.tagMapQuantity.{self.multicommons.filetype}")
-                
+        # multiConfig
         multiConfigName = self.multicommons.exportLocation / \
             f"{self.multicommons.summonerName}.multiConfig.json"
-        files['multiConfig'] = str(multiConfigName)
+        self.multicommons.files['multiConfig'] = str(multiConfigName)
         self.gitignore.sync('*.multiConfig.json')
         multiConfig = {
             **self.multicommons._asdict(), 
             'outfields': self.outfields,
-            'files': files,
+            'files': self.multicommons.files,
         }
         quickJSON(
             content=multiConfig,

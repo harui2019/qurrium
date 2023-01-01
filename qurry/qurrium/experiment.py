@@ -990,7 +990,7 @@ class ExperimentPrototype():
         saveLocation: Union[Path, str] = Path('./'),
 
         encoding: str = 'utf-8',
-    ):
+    ) -> 'ExperimentPrototype':
         """Core of read function.
 
         Args:
@@ -1110,7 +1110,7 @@ class ExperimentPrototype():
         saveLocation: Union[Path, str] = Path('./'),
 
         encoding: str = 'utf-8',
-    ):
+    ) -> list['ExperimentPrototype']:
         """Read the experiment from file.
         Replacement of :func:`QurryV4().readLegacy`
 
