@@ -717,7 +717,6 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
     def measure(
         self,
         wave: Union[QuantumCircuit, any, None] = None,
-        degree: Union[int, tuple[int, int], None] = None,
         times: int = 100,
         measure: Union[int, tuple[int, int], None] = None,
         unitary_set: Union[int, tuple[int, int], None] = None,
@@ -756,7 +755,6 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
         IDNow = self.result(
             wave=wave,
             expName=expName,
-            degree=degree,
             times=times,
             measure=measure,
             unitary_set=unitary_set,

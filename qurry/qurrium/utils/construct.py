@@ -8,7 +8,7 @@ def qubit_selector(
     num_qubits: int,
     degree: Union[int, tuple[int, int], None] = None,
     as_what: Literal['degree', 'unitary_set', 'measure range'] = 'degree',
-) -> tuple[int]:
+) -> tuple[int, int]:
     """Determint the qubits to be used.
 
     Args:
