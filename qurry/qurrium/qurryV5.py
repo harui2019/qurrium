@@ -396,6 +396,7 @@ class QurryV5Prototype:
         IDNow = self._paramsControlMain(**allArgs)
         assert IDNow == self.lastID
         assert self.lastExp is not None
+        currentExp = self.lastExp
 
         if len(args) > 0:
             raise ValueError(
@@ -406,22 +407,22 @@ class QurryV5Prototype:
 
         # draw original
         for _w in cirqs:
-            self.lastExp.beforewards.figOriginal.append(
-                decomposer(_w, self.lastExp.commons.decompose).draw(output='text'))
+            currentExp.beforewards.figOriginal.append(
+                decomposer(_w, currentExp.commons.decompose).draw(output='text'))
 
         # transpile
         transpiledCirqs: list[QuantumCircuit] = transpile(
             cirqs,
             backend=self.lastExp.commons.backend,
-            **self.lastExp.commons.transpileArgs
+            **currentExp.commons.transpileArgs
         )
         for _w in transpiledCirqs:
-            self.lastExp.beforewards.figTranspiled.append(
-                decomposer(_w, self.lastExp.commons.decompose).draw(output='text'))
-            self.lastExp.beforewards.circuit.append(_w)
+            currentExp.beforewards.figTranspiled.append(
+                decomposer(_w, currentExp.commons.decompose).draw(output='text'))
+            currentExp.beforewards.circuit.append(_w)
 
         if isinstance(saveLocation, (Path, str)):
-            self.lastExp.write(
+            currentExp.write(
                 saveLocation=saveLocation,
                 mode=mode,
                 indent=indent,
@@ -649,9 +650,9 @@ class QurryV5Prototype:
             )
 
         return IDNow
-    
+
     _rjustLen = 3
-    
+
     def _paramsControlMulti(
         self,
         # configList
@@ -672,7 +673,7 @@ class QurryV5Prototype:
             'max_experiments_per_job': 200,
         },
         filetype: TagMap._availableFileType = 'json',
-        
+
         isRetrieve: bool = False,
         isRead: bool = False,
     ) -> tuple[list[dict[str, Any]], str]:
@@ -694,25 +695,25 @@ class QurryV5Prototype:
 
         Returns:
             tuple[list[dict[str, any]], str]: _description_
-        """        
-        
+        """
+
         if summonerID in self.multimanagers:
             multiJob = self.multimanagers[summonerID]
             return list(multiJob.beforewards.configDict.values()), multiJob.summonerID
-            
+
         isRead = isRetrieve | isRead
-        
+
         for config, checker in [
             (managerRunArgs, managerRunConfig),
         ]:
             containChecker(config, checker)
-        
+
         if isRead:
             multiJob = MultiManager(
                 summonerID=None,
                 summonerName=summonerName,
                 isRead=isRead,
-                
+
                 saveLocation=saveLocation,
             )
         else:
@@ -722,7 +723,7 @@ class QurryV5Prototype:
                 shots=shots,
                 backend=backend,
                 provider=provider,
-            
+
                 saveLocation=saveLocation,
                 files={},
 
@@ -731,9 +732,9 @@ class QurryV5Prototype:
                 filetype=filetype,
                 datetimes={},
             )
-        
+
         self.multimanagers[multiJob.summonerID] = multiJob
-        
+
         initedConfigList: list[dict[str, Any]] = []
         for serial, config in enumerate(configList):
             initedConfigList.append({
@@ -749,9 +750,9 @@ class QurryV5Prototype:
                 'summonerID': multiJob.multicommons.summonerID,
                 'summonerName': multiJob.multicommons.summonerName,
             })
-            
+
         return initedConfigList, multiJob.summonerID
-    
+
     def multiOutput(
         self,
         # configList
@@ -768,11 +769,11 @@ class QurryV5Prototype:
         # Other arguments of experiment
         # Multiple jobs shared
         saveLocation: Union[Path, str] = Path('./'),
-        
+
         filetype: TagMap._availableFileType = 'json',
         overwrite: bool = False,
 
-        **allArgs: any,
+        defaultMultiAnalysis: list[dict[str, Any]] = []
     ) -> Hashable:
         """_summary_
 
@@ -789,8 +790,8 @@ class QurryV5Prototype:
 
         Returns:
             Hashable: _description_
-        """        
-        
+        """
+
         initedConfigList, besummonned = self._paramsControlMulti(
             configList=configList,
             shots=shots,
@@ -807,20 +808,20 @@ class QurryV5Prototype:
         )
         currentMultiJob = self.multimanagers[besummonned]
         assert currentMultiJob.summonerID == besummonned
-        
+
         for config in initedConfigList:
             currentID = self.build(**config)
             currentMultiJob.beforewards.configDict[currentID] = config
             currentMultiJob.beforewards.circuitsNum[currentID] = len(
                 self.exps[currentID].beforewards.circuit)
             files = self.exps[currentID].write(mute=True)
-            
+
             tmpCircSerial = [
                 idx for idx in range(len(self.exps[currentID].beforewards.circuit))]
             currentMultiJob.beforewards.pendingPools[currentID] = tmpCircSerial
             currentMultiJob.beforewards.circuitsMap[currentID] = tmpCircSerial
             currentMultiJob.beforewards.jobID.append((currentID, 'local'))
-            
+
             currentMultiJob.beforewards.tagMapExpsID[
                 self.exps[currentID].commons.tags].append(currentID)
             currentMultiJob.beforewards.tagMapFiles[
@@ -828,28 +829,37 @@ class QurryV5Prototype:
             currentMultiJob.beforewards.tagMapIndex[
                 self.exps[currentID].commons.tags
             ].append(self.exps[currentID].commons.serial)
-            
+
         filesMulti = currentMultiJob.write()
-            
+
         for id_exec, jobtype in currentMultiJob.beforewards.jobID:
             self.output(
-                expID = id_exec,
+                expID=id_exec,
                 saveLocation=currentMultiJob.multicommons.saveLocation,
                 _exportMute=True,
             )
             currentMultiJob.afterwards.allCounts[id_exec] = self.exps[id_exec].afterwards.counts
-            
+
+        if len(defaultMultiAnalysis) > 0:
+            for analysis in defaultMultiAnalysis:
+                self.multiAnalysis(
+                    summonerID=currentMultiJob.multicommons.summonerID,
+                    analysisName=currentMultiJob.multicommons.summonerName,
+                    _write=False,
+                    **analysis,
+                )
+
         filesMulti = currentMultiJob.write()
-        
+
         return currentMultiJob.multicommons.summonerID
-    
+
     def multiAnalysis(
         self,
         summonerID: str,
         analysisName: str = 'report',
         *args,
         specificAnalysisArgs: dict[Hashable, dict[str, Any]] = {},
-        
+        _write: bool = True,
         **analysisArgs: Any,
     ) -> str:
         """_summary_
@@ -866,38 +876,42 @@ class QurryV5Prototype:
 
         Returns:
             str: _description_
-        """        
-        
+        """
+
         if len(args) > 0:
-            raise ValueError("No positional arguments allowed except `summonerID`.")
-        
+            raise ValueError(
+                "No positional arguments allowed except `summonerID`.")
+
         if summonerID in self.multimanagers:
-            multiJob = self.multimanagers[summonerID]        
+            multiJob = self.multimanagers[summonerID]
         else:
             raise ValueError("No such summonerID in multimanagers.")
-        
+
         if len(multiJob.afterwards.allCounts) == 0:
             raise ValueError("No counts in multimanagers.")
-        
+
         idx_tagMapQ = len(multiJob.tagMapQuantity)
         name = f"{analysisName}"+f'{idx_tagMapQ+1}'.rjust(self._rjustLen, '0')
         multiJob.tagMapQuantity[name] = TagMap()
-        
+
         for k in multiJob.afterwards.allCounts.keys():
             if k in specificAnalysisArgs:
                 report = self.exps[k].analyze(**specificAnalysisArgs[k])
             else:
                 report = self.exps[k].analyze(**analysisArgs)
-                
+
             self.exps[k].write(mute=True)
             main, tales = report.export()
             multiJob.tagMapQuantity[name][
                 self.exps[k].commons.tags].append(main)
-            
-        filesMulti = multiJob.write(_onlyQuantity=True)
-        
+
+        if _write:
+            filesMulti = multiJob.write(_onlyQuantity=True)
+        else:
+            filesMulti = {}
+
         return multiJob.multicommons.summonerID
-    
+
     def multiRead(
         self,
         # configList
@@ -908,7 +922,7 @@ class QurryV5Prototype:
         # Multiple jobs shared
         saveLocation: Union[Path, str] = Path('./'),
 
-        **allArgs: any,
+        # defaultMultiAnalysis: list[dict[str, Any]] = []
     ) -> Hashable:
         """_summary_
 
@@ -925,18 +939,18 @@ class QurryV5Prototype:
 
         Returns:
             Hashable: _description_
-        """        
-        
+        """
+
         initedConfigList, besummonned = self._paramsControlMulti(
             summonerName=summonerName,
             summonerID=summonerID,
             saveLocation=saveLocation,
             isRead=True,
         )
-        
+
         assert besummonned in self.multimanagers
         assert self.multimanagers[besummonned].multicommons.summonerID == besummonned
-        
+
         quene: list[ExperimentPrototype] = self.experiment.read(
             saveLocation=self.multimanagers[besummonned].multicommons.saveLocation,
             name=summonerName,
@@ -944,10 +958,19 @@ class QurryV5Prototype:
         for exp in quene:
             self.exps[exp.expID] = exp
 
-        self.exps
-        
+        # if len(defaultMultiAnalysis) > 0:
+        #     currentMultiJob = self.multimanagers[besummonned]
+        #     for analysis in defaultMultiAnalysis:
+        #         self.multiAnalysis(
+        #             summonerID=currentMultiJob.multicommons.summonerID,
+        #             analysisName=currentMultiJob.multicommons.summonerName,
+        #             _write=False,
+        #             **analysis,
+        #         )
+
         return besummonned
-    
+
+
 class QurryV5(QurryV5Prototype):
 
     @classmethod

@@ -72,6 +72,7 @@ afterConfig = defaultConfig(
     }
 )
 
+
 class ExperimentPrototype():
 
     __name__ = 'ExperimentPrototype'
@@ -480,7 +481,6 @@ class ExperimentPrototype():
     def sheet(
         self,
         reportExpanded: bool = False,
-
         hoshi: bool = False,
     ) -> Hoshi:
         info = Hoshi(
@@ -837,7 +837,7 @@ class ExperimentPrototype():
         encoding: str = 'utf-8',
         jsonablize: bool = False,
         # zip: bool = False,
-        
+
         mute: bool = False,
     ) -> dict[str, str]:
         """Export the experiment data, if there is a previous export, then will overwrite.
@@ -896,7 +896,7 @@ class ExperimentPrototype():
         else:
             raise TypeError(
                 f"saveLocation must be Path or str, not {type(saveLocation)}")
-        
+
         if self.commons.saveLocation != saveLocation:
             self.commons = self.commons._replace(saveLocation=saveLocation)
 
@@ -979,7 +979,7 @@ class ExperimentPrototype():
                 jsonablize=jsonablize,
                 mute=mute,
             )
-            
+
         return export_material.files
 
     @classmethod
