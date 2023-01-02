@@ -1,4 +1,5 @@
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit.quantum_info import Operator
 
 import time
 import warnings
@@ -43,7 +44,7 @@ def _purityCell(
     singleCountsUnderDegree = dict.fromkeys(
         [k[bitStringRange[0]:bitStringRange[1]] for k in singleCounts], 0)
     for bitString in list(singleCounts):
-        singleCountsUnderDegree[bitString[bitStringRange[0]                                          :bitStringRange[1]]] += singleCounts[bitString]
+        singleCountsUnderDegree[bitString[bitStringRange[0]:bitStringRange[1]]] += singleCounts[bitString]
 
     purityCell = 0
     for sAi, sAiMeas in singleCountsUnderDegree.items():
@@ -443,6 +444,35 @@ def entangled_entropy_complex(
     return quantity
 
 
+def _circuit_method_core(
+    idx: int,
+    tgtCircuit: QuantumCircuit,
+    expName: str,
+    unitary_loc: tuple[int, int],
+    unitarySubList: dict[int, Operator],
+    measure: tuple[int, int],
+) -> QuantumCircuit:
+
+    numQubits = tgtCircuit.num_qubits
+
+    qFunc1 = QuantumRegister(numQubits, 'q1')
+    cMeas1 = ClassicalRegister(
+        measure[1]-measure[0], 'c1')
+    qcExp1 = QuantumCircuit(qFunc1, cMeas1)
+    qcExp1.name = f"{expName}-{idx}"
+
+    qcExp1.append(tgtCircuit, [qFunc1[i] for i in range(numQubits)])
+
+    qcExp1.barrier()
+    for j in range(*unitary_loc):
+        qcExp1.append(unitarySubList[j], [j])
+
+    for j in range(*measure):
+        qcExp1.measure(qFunc1[j], cMeas1[j-measure[0]])
+
+    return qcExp1
+
+
 class EntropyRandomizedAnalysis(AnalysisPrototype):
 
     __name__ = 'qurrent.RandomizedAnalysis'
@@ -540,6 +570,7 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
         times: int = 100
         measure: tuple[int, int] = None
         unitary_loc: tuple[int, int] = None
+        workers_num: int = int(cpu_count()/4*3)
 
     @classmethod
     @property
@@ -677,31 +708,45 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
         circuit = self.waves[commons.waveKey]
         numQubits = circuit.num_qubits
 
-        qcList = []
         unitaryList = {i: {
             j: random_unitary(2) for j in range(*args.unitary_loc)
         } for i in range(args.times)}
 
-        print(f"| Build circuit: {commons.waveKey}", end="\r")
-        for i in range(args.times):
-            qFunc1 = QuantumRegister(numQubits, 'q1')
-            cMeas1 = ClassicalRegister(
-                args.measure[1]-args.measure[0], 'c1')
-            qcExp1 = QuantumCircuit(qFunc1, cMeas1)
-            qcExp1.name = f"{args.expName}-{i}"
+        if isinstance(commons.serial, int):
+            print(
+                f"| Build circuit: {commons.waveKey}, serial={commons.serial} by={commons.summonerName}.", end="\r")
+        else:
+            print(f"| Build circuit: {commons.waveKey}.", end="\r")
+        # for i in range(args.times):
+        #     qFunc1 = QuantumRegister(numQubits, 'q1')
+        #     cMeas1 = ClassicalRegister(
+        #         args.measure[1]-args.measure[0], 'c1')
+        #     qcExp1 = QuantumCircuit(qFunc1, cMeas1)
+        #     qcExp1.name = f"{args.expName}-{i}"
 
-            qcExp1.append(self.waves.call(
-                wave=commons.waveKey,
-            ), [qFunc1[i] for i in range(numQubits)])
+        #     qcExp1.append(self.waves.call(
+        #         wave=commons.waveKey,
+        #     ), [qFunc1[i] for i in range(numQubits)])
 
-            qcExp1.barrier()
-            for j in range(*args.unitary_loc):
-                qcExp1.append(unitaryList[i][j], [j])
+        #     qcExp1.barrier()
+        #     for j in range(*args.unitary_loc):
+        #         qcExp1.append(unitaryList[i][j], [j])
 
-            for j in range(*args.measure):
-                qcExp1.measure(qFunc1[j], cMeas1[j-args.measure[0]])
+        #     for j in range(*args.measure):
+        #         qcExp1.measure(qFunc1[j], cMeas1[j-args.measure[0]])
 
-            qcList.append(qcExp1)
+        #     qcList.append(qcExp1)
+
+        pool = Pool(args.workers_num)
+        qcList = pool.starmap(
+            _circuit_method_core, [(
+                i, circuit, args.expName, args.unitary_loc, unitaryList[i], args.measure
+            ) for i in range(args.times)])
+        if isinstance(commons.serial, int):
+            print(
+                f"| Build circuit: {commons.waveKey}, serial={commons.serial} by={commons.summonerName} done.", end="\r")
+        else:
+            print(f"| Build circuit: {commons.waveKey} done.", end="\r")
 
         self.lastExp.beforewards.sideProduct['unitaryOP'] = {
             k: {i: np.array(v[i]).tolist() for i in range(*args.unitary_loc)}
