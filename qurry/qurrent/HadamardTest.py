@@ -50,6 +50,7 @@ class EntropyHadamardAnalysis(AnalysisPrototype):
 
     class analysisInput(NamedTuple):
         """To set the analysis."""
+        shots: int = None
 
     class analysisContent(NamedTuple):
         """The content of the analysis."""

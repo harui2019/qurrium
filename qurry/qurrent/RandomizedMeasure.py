@@ -452,7 +452,7 @@ class EntropyRandomizedAnalysis(AnalysisPrototype):
 
         degree: tuple[int, int]
         shots: int
-        unitary_loc: tuple[int, int]
+        unitary_loc: tuple[int, int] = None
 
     class analysisContent(NamedTuple):
         """The content of the analysis."""
