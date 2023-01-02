@@ -50,7 +50,6 @@ class EntropyHadamardAnalysis(AnalysisPrototype):
 
     class analysisInput(NamedTuple):
         """To set the analysis."""
-        shots: int
 
     class analysisContent(NamedTuple):
         """The content of the analysis."""
@@ -111,7 +110,6 @@ class EntropyHadamardExperiment(ExperimentPrototype):
     class arguments(NamedTuple):
         """Arguments for the experiment."""
         expName: str = 'exps'
-        times: int = 100
         degree: tuple[int, int] = None
         
     @classmethod
@@ -142,7 +140,6 @@ class EntropyHadamardExperiment(ExperimentPrototype):
         """
 
         shots = self.commons.shots
-        unitary_loc = self.args.unitary_loc
         counts = self.afterwards.counts
 
         qs = self.analysis_container.quantities(
@@ -162,7 +159,7 @@ class EntropyHadamardExperiment(ExperimentPrototype):
 
 class EntropyHadamardTest(QurryV5Prototype):
 
-    __name__ = 'qurrent.Randomized'
+    __name__ = 'qurrent.Hadamard'
 
     @classmethod
     @property
