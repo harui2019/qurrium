@@ -333,7 +333,7 @@ class MultiManager:
     ) -> dict:
         
         self.gitignore.read(self.multicommons.exportLocation)
-        print(f"| Export...")
+        print(f"| Export multimanager...")
         if saveLocation is None:
             saveLocation = self.multicommons.saveLocation
             if saveLocation is None:

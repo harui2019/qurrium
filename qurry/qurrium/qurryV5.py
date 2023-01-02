@@ -94,8 +94,8 @@ class QurryV5Prototype:
             Optional[Hashable]: Key of given wave function in `.waves`.
         """
         return self.waves.add(
-            wave=wave, 
-            key=key, 
+            wave=wave,
+            key=key,
             replace=replace
         )
 
@@ -388,6 +388,7 @@ class QurryV5Prototype:
         **allArgs: any,
     ) -> Hashable:
         """Construct the quantum circuit of experiment.
+        The first finishing point.
 
         Args:
             allArgs: all arguments will handle by `self.paramsControl()` and export as specific format.
@@ -401,6 +402,8 @@ class QurryV5Prototype:
         assert IDNow == self.lastID
         assert self.lastExp is not None
         currentExp = self.lastExp
+        if len(currentExp.beforewards.circuit) > 0:
+            return IDNow
 
         if len(args) > 0:
             raise ValueError(
@@ -796,6 +799,7 @@ class QurryV5Prototype:
             Hashable: _description_
         """
 
+        print(f"| MultiOutput building...")
         initedConfigList, besummonned = self._paramsControlMulti(
             configList=configList,
             shots=shots,
@@ -836,6 +840,7 @@ class QurryV5Prototype:
 
         filesMulti = currentMultiJob.write()
 
+        print(f"| MultiOutput running...")
         for id_exec, jobtype in currentMultiJob.beforewards.jobID:
             self.output(
                 expID=id_exec,
@@ -845,6 +850,7 @@ class QurryV5Prototype:
             currentMultiJob.afterwards.allCounts[id_exec] = self.exps[id_exec].afterwards.counts
 
         if len(defaultMultiAnalysis) > 0:
+            print(f"| MultiOutput analyzing...")
             for analysis in defaultMultiAnalysis:
                 self.multiAnalysis(
                     summonerID=currentMultiJob.multicommons.summonerID,

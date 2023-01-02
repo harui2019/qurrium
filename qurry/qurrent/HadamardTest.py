@@ -14,6 +14,7 @@ from ..qurrium import (
     qubit_selector
 )
 
+
 def entangle_entropy(
     shots: int,
     counts: list[dict[str, int]],
@@ -43,6 +44,7 @@ def entangle_entropy(
         'entropy': entropy,
     }
     return quantity
+
 
 class EntropyHadamardAnalysis(AnalysisPrototype):
 
@@ -100,7 +102,7 @@ class EntropyHadamardAnalysis(AnalysisPrototype):
             counts=counts,
         )
         return result
-    
+
 
 class EntropyHadamardExperiment(ExperimentPrototype):
 
@@ -111,14 +113,14 @@ class EntropyHadamardExperiment(ExperimentPrototype):
         """Arguments for the experiment."""
         expName: str = 'exps'
         degree: tuple[int, int] = None
-        
+
     @classmethod
     @property
     def analysis_container(cls) -> Type[EntropyHadamardAnalysis]:
         """The container class responding to this QurryV5 class.
         """
         return EntropyHadamardAnalysis
-    
+
     def analyze(
         self
     ) -> AnalysisPrototype:
@@ -156,6 +158,7 @@ class EntropyHadamardExperiment(ExperimentPrototype):
 
         self.reports[serial] = analysis
         return analysis
+
 
 class EntropyHadamardTest(QurryV5Prototype):
 
@@ -198,7 +201,6 @@ class EntropyHadamardTest(QurryV5Prototype):
             dict: The export will be processed in `.paramsControlCore`
         """
 
-
         # measure and unitary location
         numQubits = self.waves[waveKey].num_qubits
         degree = qubit_selector(numQubits, degree=degree)
@@ -225,7 +227,7 @@ class EntropyHadamardTest(QurryV5Prototype):
         qFunc2 = QuantumRegister(numQubits, 'q2')
         cMeas1 = ClassicalRegister(1, 'c1')
         qcExp1 = QuantumCircuit(qAnc, qFunc1, qFunc2, cMeas1)
-        
+
         qcExp1.append(self.waves.call(
             wave=commons.waveKey,
         ), [qFunc1[i] for i in range(numQubits)])
@@ -233,7 +235,7 @@ class EntropyHadamardTest(QurryV5Prototype):
         qcExp1.append(self.waves.call(
             wave=commons.waveKey,
         ), [qFunc2[i] for i in range(numQubits)])
-        
+
         qcExp1.barrier()
         qcExp1.h(qAnc)
         for i in range(*args.degree):

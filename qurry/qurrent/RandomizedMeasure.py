@@ -44,7 +44,8 @@ def _purityCell(
     singleCountsUnderDegree = dict.fromkeys(
         [k[bitStringRange[0]:bitStringRange[1]] for k in singleCounts], 0)
     for bitString in list(singleCounts):
-        singleCountsUnderDegree[bitString[bitStringRange[0]:bitStringRange[1]]] += singleCounts[bitString]
+        singleCountsUnderDegree[bitString[bitStringRange[0]
+            :bitStringRange[1]]] += singleCounts[bitString]
 
     purityCell = 0
     for sAi, sAiMeas in singleCountsUnderDegree.items():
@@ -713,8 +714,10 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
         } for i in range(args.times)}
 
         if isinstance(commons.serial, int):
-            print(
-                f"| Build circuit: {commons.waveKey}, serial={commons.serial} by={commons.summonerName}.", end="\r")
+            print((
+                f"| Build circuit: {commons.waveKey}, worker={args.workers_num}," +
+                f" serial={commons.serial}, by={commons.summonerName}."
+            ), end="\r")
         else:
             print(f"| Build circuit: {commons.waveKey}.", end="\r")
         # for i in range(args.times):
@@ -744,7 +747,9 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
             ) for i in range(args.times)])
         if isinstance(commons.serial, int):
             print(
-                f"| Build circuit: {commons.waveKey}, serial={commons.serial} by={commons.summonerName} done.", end="\r")
+                f"| Build circuit: {commons.waveKey}, worker={args.workers_num}," +
+                f" serial={commons.serial}, by={commons.summonerName} done."
+            )
         else:
             print(f"| Build circuit: {commons.waveKey} done.", end="\r")
 
