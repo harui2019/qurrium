@@ -272,40 +272,27 @@ def _add(
         Optional[Hashable]: Key of given wave function in `.waves`.
     """
 
-    if isinstance(wave, QuantumCircuit):
+    if key is None:
         key = len(_wave_container)
         _wave_container[key] = wave
 
-    elif isinstance(wave, tuple):
-        if isinstance(wave[0], Hashable):
-            key = wave[0]
-            if key in _wave_container:
-                if replace == True:
-                    pass
-                elif replace == 'duplicate':
-                    if isinstance(key, tuple):
-                        key += (len(_wave_container), )
-                    else:
-                        key = f"{key}.{len(_wave_container)}"
+    elif isinstance(key, Hashable):
+        if key in _wave_container:
+            if replace == True:
+                pass
+            elif replace == 'duplicate':
+                if isinstance(key, tuple):
+                    key += (len(_wave_container), )
                 else:
-                    key = len(_wave_container)
-        else:
-            key = len(_wave_container)
-            warnings.warn(
-                f"Giving key '{key}' is the type of {type(wave[0])} which is unhashable, replaced by serial number {key}.",
-                category=TypeError)
+                    key = f"{key}.{len(_wave_container)}"
+            else:
+                key = len(_wave_container)
+        _wave_container[key] = wave
 
-        if isinstance(wave[1], QuantumCircuit):
-            _wave_container[key] = wave[1]
-        else:
-            key = None
-            warnings.warn(
-                f"'{wave[1]}' is a '{type(wave[1])}' instead of 'QuantumCircuit', skipped being add.",
-                category=TypeError)
     else:
-        key = None
+        key = len(_wave_container)
         warnings.warn(
-            f"'{wave}' is a '{type(wave)}' instead of 'QuantumCircuit' or 'tuple' contained hashable key and 'QuantumCircuit', skipped being add.",
+            f"'{key}' is '{type(key)}', a unhashable key, skipped being add.",
             category=TypeError)
 
     return key

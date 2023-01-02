@@ -93,7 +93,11 @@ class QurryV5Prototype:
         Returns:
             Optional[Hashable]: Key of given wave function in `.waves`.
         """
-        return self.waves.add(wave, key, replace)
+        return self.waves.add(
+            wave=wave, 
+            key=key, 
+            replace=replace
+        )
 
     def remove(self, key: Hashable) -> None:
         """Remove wave function from `.waves`.
@@ -771,9 +775,9 @@ class QurryV5Prototype:
         saveLocation: Union[Path, str] = Path('./'),
 
         filetype: TagMap._availableFileType = 'json',
-        overwrite: bool = False,
 
-        defaultMultiAnalysis: list[dict[str, Any]] = []
+        defaultMultiAnalysis: list[dict[str, Any]] = [],
+        analysisName: str = 'report',
     ) -> Hashable:
         """_summary_
 
@@ -844,7 +848,7 @@ class QurryV5Prototype:
             for analysis in defaultMultiAnalysis:
                 self.multiAnalysis(
                     summonerID=currentMultiJob.multicommons.summonerID,
-                    analysisName=currentMultiJob.multicommons.summonerName,
+                    analysisName=analysisName,
                     _write=False,
                     **analysis,
                 )
@@ -891,7 +895,7 @@ class QurryV5Prototype:
             raise ValueError("No counts in multimanagers.")
 
         idx_tagMapQ = len(multiJob.tagMapQuantity)
-        name = f"{analysisName}"+f'{idx_tagMapQ+1}'.rjust(self._rjustLen, '0')
+        name = f"{analysisName}."+f'{idx_tagMapQ+1}'.rjust(self._rjustLen, '0')
         multiJob.tagMapQuantity[name] = TagMap()
 
         for k in multiJob.afterwards.allCounts.keys():
@@ -923,6 +927,7 @@ class QurryV5Prototype:
         saveLocation: Union[Path, str] = Path('./'),
 
         # defaultMultiAnalysis: list[dict[str, Any]] = []
+        # analysisName: str = 'report',
     ) -> Hashable:
         """_summary_
 
@@ -963,7 +968,7 @@ class QurryV5Prototype:
         #     for analysis in defaultMultiAnalysis:
         #         self.multiAnalysis(
         #             summonerID=currentMultiJob.multicommons.summonerID,
-        #             analysisName=currentMultiJob.multicommons.summonerName,
+        #             analysisName=analysisName,
         #             _write=False,
         #             **analysis,
         #         )

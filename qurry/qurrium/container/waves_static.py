@@ -32,7 +32,12 @@ class WaveContainer(dict[Hashable, QuantumCircuit]):
         replace: Literal[True, False, 'duplicate'] = False,
     ) -> Hashable:
 
-        self.lastWaveKey = _add(self, wave, key, replace)
+        self.lastWaveKey = _add(
+            _wave_container=self, 
+            wave=wave,
+            key=key, 
+            replace=replace
+        )
         return self.lastWaveKey
 
     def remove(
