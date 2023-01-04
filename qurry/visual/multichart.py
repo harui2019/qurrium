@@ -10,7 +10,7 @@ from pathlib import Path
 from math import pi
 from typing import Callable, Optional, Union, NamedTuple, overload
 
-from ..mori import attributedDict, TagList
+from ..mori import TagList
 from ..qurrium import Quantity
 from .qurchart import QurchartConfig, paramsControl
 

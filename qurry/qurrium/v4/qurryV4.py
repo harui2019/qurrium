@@ -33,9 +33,9 @@ from abc import abstractmethod, abstractclassmethod
 from collections import namedtuple
 from matplotlib.figure import Figure
 
+from ...mori_deprecated import attributedDict
 from ...mori import (
     defaultConfig,
-    attributedDict,
     defaultConfig,
     syncControl,
     jsonablize,

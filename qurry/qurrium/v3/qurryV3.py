@@ -34,9 +34,9 @@ from abc import abstractmethod, abstractclassmethod
 from collections import Counter
 
 from ...tools import Gajima, ResoureWatch
+from ...mori_deprecated import attributedDict
 from ...mori import (
     defaultConfig,
-    attributedDict,
     syncControl,
     jsonablize,
     quickJSONExport,
