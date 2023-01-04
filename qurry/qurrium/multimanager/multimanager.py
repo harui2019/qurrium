@@ -19,8 +19,6 @@ from ...exceptions import QurryProtectContent
 from ..declare.type import Quantity, Counts
 from ..utils.naming import namingComplex, naming
 
-
-
 multicommonConfig = defaultConfig(
     name='multicommon',
     default={

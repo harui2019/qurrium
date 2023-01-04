@@ -2,24 +2,14 @@ from qiskit import execute, transpile, QuantumCircuit
 from qiskit_aer import AerSimulator
 from qiskit.quantum_info import Operator
 from qiskit.circuit import Gate
-from qiskit.result import Result
 from qiskit.providers import Backend
-from qiskit.providers.ibmq import IBMQJobManager, AccountProvider
-from qiskit.providers.ibmq.managed import (
-    ManagedJobSet,
-    # ManagedJob,
-    ManagedResults,
-    IBMQManagedResultDataNotAvailable,
-    # IBMQJobManagerInvalidStateError,
-    # IBMQJobManagerUnknownJobSet
-    IBMQJobManagerJobNotFound
-)
+from qiskit.providers.ibmq import AccountProvider
 
 import warnings
 import datetime
 from pathlib import Path
-from typing import Literal, Union, Optional, Hashable, Iterable, Type, overload, Any
-from abc import abstractmethod, abstractclassmethod, abstractproperty
+from typing import Literal, Union, Optional, Hashable, Type, Any
+from abc import abstractmethod, abstractproperty
 
 from ..mori import TagMap
 from ..mori.type import TagMapType
@@ -31,7 +21,7 @@ from .declare.default import (
     managerRunConfig,
     containChecker,
 )
-from .experiment import ExperimentPrototype, QurryExperiment, DummyExperiment
+from .experiment import ExperimentPrototype, QurryExperiment
 from .container import WaveContainer, ExperimentContainer
 from .multimanager import MultiManager
 

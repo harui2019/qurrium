@@ -102,7 +102,7 @@ class AnalysisPrototype():
             f"{self.input.__repr__()}, " +
             f"{self.content.__repr__()}, " +
             f"{len(self.outfields)} unused arguments>")
-        
+
     def sheet(
         self,
         hoshi: bool = False,

@@ -8,6 +8,7 @@ class namingComplex(NamedTuple):
     saveLocation: Path
     exportLocation: Path
 
+
 def naming(
     isRead: bool = False,
     expsName: str = 'exps',
@@ -74,7 +75,7 @@ def naming(
             f"| at: {exportLocation}"
         )
         os.makedirs(exportLocation)
-        
+
     return namingComplex(
         expsName=immutableName,
         saveLocation=saveLocation,
