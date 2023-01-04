@@ -27,7 +27,6 @@ import json
 import warnings
 
 from ...mori import jsonablize, TagList, syncControl
-from ...mori.type import TagMapType
 from ...mori.quick import quickJSON
 from ...exceptions import QurryInvalidInherition, QurryProtectContent
 from ..declare.type import Quantity, Counts, waveGetter, waveReturn
@@ -80,24 +79,24 @@ class MultiManagerPrototype:
         """The dict of config of each experiments."""
         circuitsNum: dict[str, int]
         """The map with tags of index of experiments, which multiple experiments shared."""
-        circuitsMap: TagMapType[str]
+        circuitsMap: TagList[str]
         """The map of circuits of each experiments, which multiple experiments shared."""
-        pendingPools: TagMapType[str]
+        pendingPools: TagList[str]
         """The pool of pending jobs, which multiple experiments shared, it works only when executing experiments is remote."""
         jobID: list[tuple[str, str]]
         
-        tagMapExpsID: TagMapType[str]
-        tagMapFiles: TagMapType[str]
-        tagMapIndex: TagMapType[Union[str, int]]
+        tagMapExpsID: TagList[str]
+        tagMapFiles: TagList[str]
+        tagMapIndex: TagList[Union[str, int]]
         
     class after(NamedTuple):
         """`dataStateDepending` and `dataNeccessary` in V4 format."""
-        tagMapCounts: TagMapType[Counts]
-        tagMapResult: TagMapType[Result]
+        tagMapCounts: TagList[Counts]
+        tagMapResult: TagList[Result]
         
     class multiAnalysis(NamedTuple):
         analysisOption: dict[str, any]
-        tagMapQuantiity: TagMapType[Quantity]
+        tagMapQuantiity: TagList[Quantity]
 
     _unexports = ['tagMapResult']
     """The content would not be exported."""

@@ -10,16 +10,15 @@ from pathlib import Path
 from math import pi
 from typing import Callable, Optional, Union, NamedTuple, overload
 
-from ..mori import attributedDict, TagMapType
-from ..mori.type import TagMapType
+from ..mori import attributedDict, TagList
 from ..qurrium import Quantity
 from .qurchart import QurchartConfig, paramsControl
 
 
 class QurChartMulti:
 
-    DataUnit = Union[TagMapType[Quantity], dict[str, dict[str, float]]],
-    InputType = Union[DataUnit, list[DataUnit], dict[DataUnit], TagMapType[DataUnit]]
+    DataUnit = Union[TagList[Quantity], dict[str, dict[str, float]]],
+    InputType = Union[DataUnit, list[DataUnit], dict[DataUnit], TagList[DataUnit]]
 
     def __init__(
         self,

@@ -45,7 +45,6 @@ from ...mori import (
     TagList,
     singleColCSV,
 )
-from ...mori.type import TagMapType
 from ...exceptions import UnconfiguredWarning
 from ..declare.type import (
     Quantity,
@@ -323,11 +322,11 @@ class QurryV3:
         listExpID: list = []
         listFile: list = []
 
-        tagMapExpsID: TagMapType[str] = TagList()
-        tagMapIndex: TagMapType[Union[str, int]] = TagList()
-        tagMapQuantity: TagMapType[Quantity] = TagList()
-        tagMapCounts: TagMapType[Counts] = TagList()
-        # tagMapResult: TagMapType[Result] = TagList()
+        tagMapExpsID: TagList[str] = TagList()
+        tagMapIndex: TagList[Union[str, int]] = TagList()
+        tagMapQuantity: TagList[Quantity] = TagList()
+        tagMapCounts: TagList[Counts] = TagList()
+        # tagMapResult: TagList[Result] = TagList()
 
         circuitsMap: dict = {}
         circuitsNum: dict = {}

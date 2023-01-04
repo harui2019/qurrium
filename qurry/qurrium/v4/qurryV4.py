@@ -43,7 +43,6 @@ from ...mori import (
     sortHashableAhead,
     TagList,
 )
-from ...mori.type import TagMapType
 from ...tools import ResoureWatch, Gajima
 from tqdm import tqdm
 
@@ -194,20 +193,20 @@ class QurryV4:
         state: Literal["init", "pending", "completed"] = 'init'
 
     class _tagMapStateDepending(NamedTuple):
-        tagMapQuantity: TagMapType[Quantity]
-        tagMapCounts: TagMapType[Counts]
+        tagMapQuantity: TagList[Quantity]
+        tagMapCounts: TagList[Counts]
 
     class _tagMapUnexported(NamedTuple):
-        tagMapResult: TagMapType[Result]
+        tagMapResult: TagList[Result]
 
     class _tagMapNeccessary(NamedTuple):
         # with Job.json file
-        tagMapExpsID: TagMapType[str]
-        tagMapFiles: TagMapType[str]
-        tagMapIndex: TagMapType[Union[str, int]]
+        tagMapExpsID: TagList[str]
+        tagMapFiles: TagList[str]
+        tagMapIndex: TagList[Union[str, int]]
         # circuitsMap
-        circuitsMap: TagMapType[str]
-        pendingPools: TagMapType[str]
+        circuitsMap: TagList[str]
+        pendingPools: TagList[str]
 
     _generalJobKeyRequired = ['state']
     _powerJobKeyRequired = ['powerJobID'] + _generalJobKeyRequired
@@ -1634,19 +1633,19 @@ class QurryV4:
         """The process of data generation or reading.
 
         >>> class _tagMapStateDepending(NamedTuple):
-                tagMapQuantity: TagMapType[Quantity] = TagList()
-                tagMapCounts: TagMapType[Counts] = TagList()
+                tagMapQuantity: TagList[Quantity] = TagList()
+                tagMapCounts: TagList[Counts] = TagList()
 
         >>> class _tagMapUnexported(NamedTuple):
-                tagMapResult: TagMapType[Result] = TagList()
+                tagMapResult: TagList[Result] = TagList()
 
         >>> class _tagMapNeccessary(NamedTuple):
                 # with Job.json file
-                tagMapExpsID: TagMapType[str] = TagList()
-                tagMapFiles: TagMapType[str] = TagList()
-                tagMapIndex: TagMapType[Union[str, int]] = TagList()
+                tagMapExpsID: TagList[str] = TagList()
+                tagMapFiles: TagList[str] = TagList()
+                tagMapIndex: TagList[Union[str, int]] = TagList()
                 # circuitsMap
-                circuitsMap: TagMapType[str] = TagList()
+                circuitsMap: TagList[str] = TagList()
 
         Args:
             namingComplex (_namingComplex): 

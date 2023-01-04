@@ -13,7 +13,6 @@ import json
 import warnings
 
 from ...mori import jsonablize, TagList, syncControl, defaultConfig
-from ...mori.type import TagMapType
 from ...mori.quick import quickJSON, quickRead
 from ...exceptions import QurryProtectContent
 from ..declare.type import Quantity, Counts
@@ -80,20 +79,20 @@ class MultiManager:
         circuitsNum: dict[str, int]
         """The map with tags of index of experiments, which multiple experiments shared."""
         
-        pendingPools: TagMapType[str]
+        pendingPools: TagList[str]
         """The pool of pending jobs, which multiple experiments shared, it works only when executing experiments is remote."""
-        circuitsMap: TagMapType[str]
+        circuitsMap: TagList[str]
         """The map of circuits of each experiments in the index of pending, which multiple experiments shared."""
         jobID: list[tuple[str, str]]
         """The list of jobID in pending, which multiple experiments shared, it works only when executing experiments is remote."""
         
-        tagMapExpsID: TagMapType[str]
-        tagMapFiles: TagMapType[str]
-        tagMapIndex: TagMapType[Union[str, int]] 
+        tagMapExpsID: TagList[str]
+        tagMapFiles: TagList[str]
+        tagMapIndex: TagList[Union[str, int]] 
         
     class after(NamedTuple):
         """`dataStateDepending` and `dataNeccessary` in V4 format."""
-        retrievedResult: TagMapType[Result]
+        retrievedResult: TagList[Result]
         allCounts: dict[Hashable, list[dict[str, int]]]
 
     _unexports = ['retrievedResult']
@@ -263,7 +262,7 @@ class MultiManager:
                     saveLocation=self.namingCpx.exportLocation,
                 ),
             )
-            self.tagMapQuantity: dict[str, TagMapType[Quantity]] = {}
+            self.tagMapQuantity: dict[str, TagList[Quantity]] = {}
             for qk in files['tagMapQuantity'].keys():
                 self.tagMapQuantity[qk] = TagList.read(
                     saveLocation=self.namingCpx.exportLocation,
@@ -295,7 +294,7 @@ class MultiManager:
                 retrievedResult={},
                 allCounts={},
             )
-            self.tagMapQuantity: dict[str, TagMapType[Quantity]] = {}
+            self.tagMapQuantity: dict[str, TagList[Quantity]] = {}
         
         multicommons = {}
         outfields = {}
