@@ -12,7 +12,7 @@ import gc
 import json
 import warnings
 
-from ...mori import jsonablize, TagMap, syncControl, defaultConfig
+from ...mori import jsonablize, TagList, syncControl, defaultConfig
 from ...mori.type import TagMapType
 from ...mori.quick import quickJSON, quickRead
 from ...exceptions import QurryProtectContent
@@ -67,7 +67,7 @@ class MultiManager:
         managerRunArgs: dict[str, any]
         """Other arguments will be passed to `IBMQJobManager()`"""
 
-        filetype: TagMap._availableFileType
+        filetype: TagList._availableFileType
         
         # header
         datetimes: dict[str, str]
@@ -163,7 +163,7 @@ class MultiManager:
         isRead: bool = False,
         encoding: str = 'utf-8',
         
-        filetype: TagMap._availableFileType = 'json',
+        filetype: TagList._availableFileType = 'json',
         **kwargs
     ) -> None:
         """Initialize the multi-experiment.
@@ -230,11 +230,11 @@ class MultiManager:
                     filename=Path(files['circuitsNum']).name,
                     saveLocation=self.namingCpx.exportLocation,
                 ),
-                circuitsMap=TagMap.read(
+                circuitsMap=TagList.read(
                     saveLocation=self.namingCpx.exportLocation,
                     tagmapName='circuitsMap'
                 ),
-                pendingPools=TagMap.read(
+                pendingPools=TagList.read(
                     saveLocation=self.namingCpx.exportLocation,
                     tagmapName='pendingPools'
                 ),
@@ -243,15 +243,15 @@ class MultiManager:
                     saveLocation=self.namingCpx.exportLocation,
                 ),
                 
-                tagMapExpsID=TagMap.read(
+                tagMapExpsID=TagList.read(
                     saveLocation=self.namingCpx.exportLocation,
                     tagmapName='tagMapExpsID'
                 ),
-                tagMapFiles=TagMap.read(
+                tagMapFiles=TagList.read(
                     saveLocation=self.namingCpx.exportLocation,
                     tagmapName='tagMapFiles'
                 ),
-                tagMapIndex=TagMap.read(
+                tagMapIndex=TagList.read(
                     saveLocation=self.namingCpx.exportLocation,
                     tagmapName='tagMapIndex'
                 ),
@@ -265,7 +265,7 @@ class MultiManager:
             )
             self.tagMapQuantity: dict[str, TagMapType[Quantity]] = {}
             for qk in files['tagMapQuantity'].keys():
-                self.tagMapQuantity[qk] = TagMap.read(
+                self.tagMapQuantity[qk] = TagList.read(
                     saveLocation=self.namingCpx.exportLocation,
                     tagmapName=f'tagMapQuantity',
                     name=f'{self.namingCpx.expsName}.{qk}',
@@ -283,13 +283,13 @@ class MultiManager:
             self.beforewards = self.before(
                 configDict={},
                 circuitsNum={},
-                circuitsMap=TagMap(),
-                pendingPools=TagMap(),
+                circuitsMap=TagList(),
+                pendingPools=TagList(),
                 jobID=[],
                 
-                tagMapExpsID=TagMap(),
-                tagMapFiles=TagMap(),
-                tagMapIndex=TagMap(),
+                tagMapExpsID=TagList(),
+                tagMapFiles=TagList(),
+                tagMapIndex=TagList(),
             )
             self.afterwards = self.after(
                 retrievedResult={},
@@ -349,8 +349,8 @@ class MultiManager:
         for k in self.before._fields + self.after._fields:
             if _onlyQuantity or (k in self._unexports):
                 ...
-            elif isinstance(self[k], TagMap):
-                tmp: TagMap = self[k]
+            elif isinstance(self[k], TagList):
+                tmp: TagList = self[k]
                 filename = tmp.export(
                     saveLocation=self.multicommons.exportLocation,
                     tagmapName=f"{k}",

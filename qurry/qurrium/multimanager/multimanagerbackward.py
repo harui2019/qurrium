@@ -26,7 +26,7 @@ import gc
 import json
 import warnings
 
-from ...mori import jsonablize, TagMap, syncControl
+from ...mori import jsonablize, TagList, syncControl
 from ...mori.type import TagMapType
 from ...mori.quick import quickJSON
 from ...exceptions import QurryInvalidInherition, QurryProtectContent
@@ -63,7 +63,7 @@ class MultiManagerPrototype:
         managerRunArgs: dict[str, any] = None
         """Other arguments will be passed to `IBMQJobManager()`"""
 
-        filetype: TagMap._availableFileType = None
+        filetype: TagList._availableFileType = None
         
         # header
         datetimes: dict[str, str] = {}
@@ -268,21 +268,21 @@ class MultiManagerPrototype:
             if state == 'completed' and not overwrite:
                 rawAfterward = self.after(
 
-                    tagMapCounts=TagMap.read(
+                    tagMapCounts=TagList.read(
                         saveLocation=namingComplex.exportLocation,
                         tagmapName='tagMapCounts',
                     )
                 )
                 rawMultiAnalysis = self.multiAnalysis(
                     analysisOption={},
-                    tagMapQuantity=TagMap.read(
+                    tagMapQuantity=TagList.read(
                         saveLocation=namingComplex.exportLocation,
                         tagmapName='tagMapQuantity',
                     ),
                 )
             else:
                 trawAfterward = self._tagMapStateDepending(**{
-                    k: TagMap({}, k)
+                    k: TagList({}, k)
                     for k in self._tagMapStateDepending._fields})
         
         else:
@@ -342,8 +342,8 @@ class MultiManagerPrototype:
         for k in self.before._fields + self.after._fields:
             if k  in self._unexports:
                 ...
-            elif isinstance(self[k], TagMap):
-                tmp: TagMap = self[k]
+            elif isinstance(self[k], TagList):
+                tmp: TagList = self[k]
                 filename = tmp.export(
                     saveLocation=self.multicommons.exportLocation,
                     tagmapName=f"{k}",

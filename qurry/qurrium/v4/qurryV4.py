@@ -41,7 +41,7 @@ from ...mori import (
     jsonablize,
     quickJSONExport,
     sortHashableAhead,
-    TagMap,
+    TagList,
 )
 from ...mori.type import TagMapType
 from ...tools import ResoureWatch, Gajima
@@ -180,7 +180,7 @@ class QurryV4:
         isRead: bool = None
         clear: bool = None
         independentExports: list[str] = None
-        filetype: TagMap._availableFileType = None
+        filetype: TagList._availableFileType = None
 
     class expsMultiMain(NamedTuple):
         # configList
@@ -1634,19 +1634,19 @@ class QurryV4:
         """The process of data generation or reading.
 
         >>> class _tagMapStateDepending(NamedTuple):
-                tagMapQuantity: TagMapType[Quantity] = TagMap()
-                tagMapCounts: TagMapType[Counts] = TagMap()
+                tagMapQuantity: TagMapType[Quantity] = TagList()
+                tagMapCounts: TagMapType[Counts] = TagList()
 
         >>> class _tagMapUnexported(NamedTuple):
-                tagMapResult: TagMapType[Result] = TagMap()
+                tagMapResult: TagMapType[Result] = TagList()
 
         >>> class _tagMapNeccessary(NamedTuple):
                 # with Job.json file
-                tagMapExpsID: TagMapType[str] = TagMap()
-                tagMapFiles: TagMapType[str] = TagMap()
-                tagMapIndex: TagMapType[Union[str, int]] = TagMap()
+                tagMapExpsID: TagMapType[str] = TagList()
+                tagMapFiles: TagMapType[str] = TagList()
+                tagMapIndex: TagMapType[Union[str, int]] = TagList()
                 # circuitsMap
-                circuitsMap: TagMapType[str] = TagMap()
+                circuitsMap: TagMapType[str] = TagList()
 
         Args:
             namingComplex (_namingComplex): 
@@ -1736,41 +1736,41 @@ class QurryV4:
             # tagMapStateDepending
             if state == 'completed' and not overwrite:
                 tagMapStateDepending = self._tagMapStateDepending(
-                    tagMapQuantity=TagMap.read(
+                    tagMapQuantity=TagList.read(
                         saveLocation=namingComplex.exportLocation,
                         tagmapName='tagMapQuantity',
                     ),
-                    tagMapCounts=TagMap.read(
+                    tagMapCounts=TagList.read(
                         saveLocation=namingComplex.exportLocation,
                         tagmapName='tagMapCounts',
                     )
                 )
             else:
                 tagMapStateDepending = self._tagMapStateDepending(**{
-                    k: TagMap({}, k)
+                    k: TagList({}, k)
                     for k in self._tagMapStateDepending._fields})
 
             # tagMapUnexported
             tagMapUnexported = self._tagMapUnexported(**{
-                k: TagMap({}, k)
+                k: TagList({}, k)
                 for k in self._tagMapUnexported._fields})
             # tagMapNeccessary
             if version == 3:
                 tagMapNeccessary = self._tagMapNeccessary(
                     tagMapExpsID=dataDummyJobs['tagMapExpsID'],
-                    tagMapFiles=TagMap({
+                    tagMapFiles=TagList({
                         'power': dataDummyJobs['listFile']
                     }),
-                    tagMapIndex=TagMap(dataDummyJobs['tagMapIndex']),
-                    circuitsMap=TagMap(dataDummyJobs['circuitsMap']),
-                    pendingPools=TagMap({
+                    tagMapIndex=TagList(dataDummyJobs['tagMapIndex']),
+                    circuitsMap=TagList(dataDummyJobs['circuitsMap']),
+                    pendingPools=TagList({
                         'power': [i for i in range(sum(dataDummyJobs['circuitsNum'].values()))]
                     })
                 )
 
             else:
                 tagMapNeccessary = self._tagMapNeccessary(**{
-                    k: TagMap(dataDummyJobs[k]) if k in dataDummyJobs else TagMap.read(
+                    k: TagList(dataDummyJobs[k]) if k in dataDummyJobs else TagList.read(
                         saveLocation=namingComplex.exportLocation,
                         tagmapName=k,
                     )
@@ -1796,15 +1796,15 @@ class QurryV4:
             # Data Gen
             # tagMapStateDepending
             tagMapStateDepending = self._tagMapStateDepending(**{
-                k: TagMap({}, k)
+                k: TagList({}, k)
                 for k in self._tagMapStateDepending._fields})
             # tagMapUnexported
             tagMapUnexported = self._tagMapUnexported(**{
-                k: TagMap({}, k)
+                k: TagList({}, k)
                 for k in self._tagMapUnexported._fields})
             # tagMapUnexported
             tagMapNeccessary = self._tagMapNeccessary(**{
-                k: TagMap({}, k)
+                k: TagList({}, k)
                 for k in self._tagMapNeccessary._fields})
 
             circuitsNum: dict[str, int] = {}
@@ -1891,7 +1891,7 @@ class QurryV4:
         isRead: bool = False,
         clear: bool = False,
         # independentExports: list[str] = _independentExportDefault,
-        filetype: TagMap._availableFileType = 'json',
+        filetype: TagList._availableFileType = 'json',
 
         # powerJobID: Optional[Union[str, list[str]]] = None,
         state: Literal["init", "pending", "completed"] = "init",
@@ -2582,7 +2582,7 @@ class QurryV4:
         pendingMapping: dict[Union[str, tuple[str]],
                              QurryV4.managedReturn] = {}
         allCircuitCountsDict: dict[int, Counts] = {}
-        expIDBaseCountsMapping = TagMap()
+        expIDBaseCountsMapping = TagList()
 
         if expsMulti.state == 'pending':
             print(f"| Retrieve result...")

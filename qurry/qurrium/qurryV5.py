@@ -11,8 +11,7 @@ from pathlib import Path
 from typing import Literal, Union, Optional, Hashable, Type, Any
 from abc import abstractmethod, abstractproperty
 
-from ..mori import TagMap
-from ..mori.type import TagMapType
+from ..mori import TagList
 from ..tools import Gajima, ResoureWatch
 
 from .declare.default import (
@@ -641,7 +640,7 @@ class QurryV5Prototype:
         managerRunArgs: dict[str, any] = {
             'max_experiments_per_job': 200,
         },
-        filetype: TagMap._availableFileType = 'json',
+        filetype: TagList._availableFileType = 'json',
 
         isRetrieve: bool = False,
         isRead: bool = False,
@@ -660,7 +659,7 @@ class QurryV5Prototype:
             jobsType (Literal[&quot;local&quot;, &quot;IBMQ&quot;, &quot;AWS_Bracket&quot;, &quot;Azure_Q&quot;], optional): _description_. Defaults to "local".
             isRetrieve (bool, optional): _description_. Defaults to False.
             isRead (bool, optional): _description_. Defaults to False.
-            filetype (TagMap._availableFileType, optional): _description_. Defaults to 'json'.
+            filetype (TagList._availableFileType, optional): _description_. Defaults to 'json'.
 
         Returns:
             tuple[list[dict[str, any]], str]: _description_
@@ -739,7 +738,7 @@ class QurryV5Prototype:
         # Multiple jobs shared
         saveLocation: Union[Path, str] = Path('./'),
 
-        filetype: TagMap._availableFileType = 'json',
+        filetype: TagList._availableFileType = 'json',
 
         defaultMultiAnalysis: list[dict[str, Any]] = [],
         analysisName: str = 'report',
@@ -754,7 +753,7 @@ class QurryV5Prototype:
             summonerName (str, optional): _description_. Defaults to 'exps'.
             summonerID (Optional[str], optional): _description_. Defaults to None.
             saveLocation (Union[Path, str], optional): _description_. Defaults to Path('./').
-            filetype (TagMap._availableFileType, optional): _description_. Defaults to 'json'.
+            filetype (TagList._availableFileType, optional): _description_. Defaults to 'json'.
             overwrite (bool, optional): _description_. Defaults to False.
 
         Returns:
@@ -864,7 +863,7 @@ class QurryV5Prototype:
 
         idx_tagMapQ = len(multiJob.tagMapQuantity)
         name = f"{analysisName}."+f'{idx_tagMapQ+1}'.rjust(self._rjustLen, '0')
-        multiJob.tagMapQuantity[name] = TagMap()
+        multiJob.tagMapQuantity[name] = TagList()
 
         for k in multiJob.afterwards.allCounts.keys():
             if k in specificAnalysisArgs:
@@ -907,7 +906,7 @@ class QurryV5Prototype:
             summonerName (str, optional): _description_. Defaults to 'exps'.
             summonerID (Optional[str], optional): _description_. Defaults to None.
             saveLocation (Union[Path, str], optional): _description_. Defaults to Path('./').
-            filetype (TagMap._availableFileType, optional): _description_. Defaults to 'json'.
+            filetype (TagList._availableFileType, optional): _description_. Defaults to 'json'.
             overwrite (bool, optional): _description_. Defaults to False.
 
         Returns:
