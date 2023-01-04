@@ -10,7 +10,8 @@ from pathlib import Path
 from math import pi
 from typing import Callable, Optional, Union, NamedTuple, overload
 
-from ...mori import argdict, Configuration
+from ...mori import Configuration
+from ...mori_deprecated import argdict
 from ..qurchart import yLimDecider
 
 
@@ -18,7 +19,7 @@ class QurryplotV1:
     """:cls:`QurryplotV1` will be pointed to migrate old code and function in draw.py
     And it's just temporarily solution on drawing.
     
-    With exportation data form be fixed as :cls:`TagMap`
+    With exportation data form be fixed as :cls:`TagList`
     :cls:`QurryplotV1` will replaced by :cls:`QurryDrawer` with better data structure handling.
 
     Returns:

@@ -130,7 +130,7 @@ def yLimDecider(
     """Give the `ylim` of the plot.
 
     Args:
-        data (TagMap): Plot data.
+        data (TagList): Plot data.
 
     Returns:
         tuple[float, float]: The upper and the lower bounds of plot should be.
