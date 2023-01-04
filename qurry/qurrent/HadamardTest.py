@@ -214,11 +214,15 @@ class EntropyHadamardTest(QurryV5Prototype):
             **otherArgs,
         )
 
-    def method(self) -> list[QuantumCircuit]:
+    def method(
+        self,
+        expID: Hashable,
+    ) -> list[QuantumCircuit]:
 
-        assert self.lastExp is not None
-        args: EntropyHadamardExperiment.arguments = self.lastExp.args
-        commons: EntropyHadamardExperiment.commonparams = self.lastExp.commons
+        assert expID in self.exps
+        assert self.exps[expID].commons.expID == expID
+        args: EntropyHadamardExperiment.arguments = self.exps[expID].args
+        commons: EntropyHadamardExperiment.commonparams = self.exps[expID].commons
         circuit = self.waves[commons.waveKey]
         numQubits = circuit.num_qubits
 
@@ -288,11 +292,12 @@ class EntropyHadamardTest(QurryV5Prototype):
             saveLocation=None,
             **otherArgs,
         )
-        assert IDNow == self.lastID
-        assert self.lastExp is not None
+        assert IDNow in self.exps
+        assert self.exps[IDNow].commons.expID == IDNow
+        currentExp = self.exps[IDNow]
 
         if isinstance(saveLocation, (Path, str)):
-            self.lastExp.write(
+            currentExp.write(
                 saveLocation=saveLocation,
                 mode=mode,
                 indent=indent,

@@ -701,11 +701,16 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
             **otherArgs,
         )
 
-    def method(self) -> list[QuantumCircuit]:
+    def method(
+        self,
+        expID: Hashable,
+    ) -> list[QuantumCircuit]:
 
-        assert self.lastExp is not None
-        args: EntropyRandomizedExperiment.arguments = self.lastExp.args
-        commons: EntropyRandomizedExperiment.commonparams = self.lastExp.commons
+        assert expID in self.exps
+        assert self.exps[expID].commons.expID == expID
+        currentExp = self.exps[expID]
+        args: EntropyRandomizedExperiment.arguments = self.exps[expID].args
+        commons: EntropyRandomizedExperiment.commonparams = self.exps[expID].commons
         circuit = self.waves[commons.waveKey]
         numQubits = circuit.num_qubits
 
@@ -753,10 +758,10 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
         else:
             print(f"| Build circuit: {commons.waveKey} done.", end="\r")
 
-        self.lastExp.beforewards.sideProduct['unitaryOP'] = {
+        currentExp.beforewards.sideProduct['unitaryOP'] = {
             k: {i: np.array(v[i]).tolist() for i in range(*args.unitary_loc)}
             for k, v in unitaryList.items()}
-        self.lastExp.beforewards.sideProduct['randomized'] = {i: {
+        currentExp.beforewards.sideProduct['randomized'] = {i: {
             j: qubitOpToPauliCoeff(
                 unitaryList[i][j])
             for j in range(*args.unitary_loc)
@@ -811,11 +816,12 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
             saveLocation=None,
             **otherArgs,
         )
-        assert IDNow == self.lastID
-        assert self.lastExp is not None
+        assert IDNow in self.exps
+        assert self.exps[IDNow].commons.expID == IDNow
+        currentExp = self.exps[IDNow]
 
         if isinstance(saveLocation, (Path, str)):
-            self.lastExp.write(
+            currentExp.write(
                 saveLocation=saveLocation,
                 mode=mode,
                 indent=indent,

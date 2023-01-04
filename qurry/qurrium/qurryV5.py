@@ -18,7 +18,7 @@ from qiskit.providers.ibmq.managed import (
 import warnings
 import datetime
 from pathlib import Path
-from typing import Literal, Union, Optional, NamedTuple, Hashable, Iterable, Type, overload, Any
+from typing import Literal, Union, Optional, Hashable, Iterable, Type, overload, Any
 from abc import abstractmethod, abstractclassmethod, abstractproperty
 
 from ..mori import TagMap
@@ -35,7 +35,7 @@ from .experiment import ExperimentPrototype, QurryExperiment, DummyExperiment
 from .container import WaveContainer, ExperimentContainer
 from .multimanager import MultiManager
 
-from .utils import decomposer
+from .utils import decomposer, get_counts
 from ..exceptions import QurryInheritionNoEffect
 
 # Qurry V0.5.0 - a Qiskit Macro
@@ -367,7 +367,10 @@ class QurryV5Prototype:
 
     # Circuit
     @abstractmethod
-    def method(self) -> list[QuantumCircuit]:
+    def method(
+        self,
+        expID: Hashable,
+    ) -> list[QuantumCircuit]:
         """The method to construct circuit.
         Where should be overwritten by each construction of new measurement.
 
@@ -388,7 +391,7 @@ class QurryV5Prototype:
         **allArgs: any,
     ) -> Hashable:
         """Construct the quantum circuit of experiment.
-        The first finishing point.
+        ## The first finishing point.
 
         Args:
             allArgs: all arguments will handle by `self.paramsControl()` and export as specific format.
@@ -397,20 +400,21 @@ class QurryV5Prototype:
             Hashable: The ID of the experiment.
         """
 
-        # preparing
-        IDNow = self._paramsControlMain(**allArgs)
-        assert IDNow == self.lastID
-        assert self.lastExp is not None
-        currentExp = self.lastExp
-        if len(currentExp.beforewards.circuit) > 0:
-            return IDNow
-
         if len(args) > 0:
             raise ValueError(
                 f"{self.__name__} can't be initialized with positional arguments.")
 
+        # preparing
+        IDNow = self._paramsControlMain(**allArgs)
+        assert IDNow in self.exps
+        assert self.exps[IDNow].commons.expID == IDNow
+        currentExp = self.exps[IDNow]
+
+        if len(currentExp.beforewards.circuit) > 0:
+            return IDNow
+
         # circuit
-        cirqs = self.method()
+        cirqs = self.method(IDNow)
 
         # draw original
         for _w in cirqs:
@@ -420,7 +424,7 @@ class QurryV5Prototype:
         # transpile
         transpiledCirqs: list[QuantumCircuit] = transpile(
             cirqs,
-            backend=self.lastExp.commons.backend,
+            backend=currentExp.commons.backend,
             **currentExp.commons.transpileArgs
         )
         for _w in transpiledCirqs:
@@ -460,37 +464,38 @@ class QurryV5Prototype:
             Hashable: The ID of the experiment.
         """
 
+        if len(args) > 0:
+            raise ValueError(
+                f"{self.__name__} can't be initialized with positional arguments.")
+
         # preparing
         IDNow = self.build(
             saveLocation=None,
             **allArgs
         )
-        assert IDNow == self.lastID
-        assert self.lastExp is not None
-
-        if len(args) > 0:
-            raise ValueError(
-                f"{self.__name__} can't be initialized with positional arguments.")
+        assert IDNow in self.exps
+        assert self.exps[IDNow].commons.expID == IDNow
+        currentExp = self.exps[IDNow]
 
         execution = execute(
-            self.lastExp.beforewards.circuit,
-            **self.lastExp.commons.runArgs,
-            backend=self.lastExp.commons.backend,
-            shots=self.lastExp.commons.shots,
+            currentExp.beforewards.circuit,
+            **currentExp.commons.runArgs,
+            backend=currentExp.commons.backend,
+            shots=currentExp.commons.shots,
         )
         # commons
         date = datetime.datetime.today().strftime("%Y-%m-%d_%H-%M-%S")
-        self.lastExp.commons.datetimes['run'] = date
+        currentExp.commons.datetimes['run'] = date
         # beforewards
         jobID = execution.job_id()
-        self.lastExp['jobID'] = jobID
+        currentExp['jobID'] = jobID
         # afterwards
         result = execution.result()
-        self.lastExp.unlock_afterward(mute_auto_lock=True)
-        self.lastExp['result'].append(result)
+        currentExp.unlock_afterward(mute_auto_lock=True)
+        currentExp['result'].append(result)
 
         if isinstance(saveLocation, (Path, str)):
-            self.lastExp.write(
+            currentExp.write(
                 saveLocation=saveLocation,
                 mode=mode,
                 indent=indent,
@@ -500,50 +505,6 @@ class QurryV5Prototype:
             )
 
         return IDNow
-
-    @classmethod
-    def get_counts(
-        cls,
-        result: Union[Result, ManagedResults, None],
-        num: Optional[int] = None,
-        resultIdxList: Optional[list[int]] = None,
-    ) -> list[dict[str, int]]:
-        """Computing specific squantity.
-        Where should be overwritten by each construction of new measurement.
-
-        Returns:
-            tuple[dict, dict]:
-                Counts, purity, entropy of experiment.
-        """
-        counts: list[dict[str, int]] = []
-        if result is None:
-            counts.append({})
-            print("| Failed Job result skip, Job ID:", result.job_id)
-            return counts
-
-        try:
-            if num is None:
-                get: Union[list[dict[str, int]],
-                           dict[str, int]] = result.get_counts()
-                if isinstance(get, list):
-                    counts: list[dict[str, int]] = get
-                else:
-                    counts.append(get)
-            else:
-                if resultIdxList is None:
-                    resultIdxList = [i for i in range(num)]
-                for i in resultIdxList:
-                    allMeas = result.get_counts(i)
-                    counts.append(allMeas)
-
-        except IBMQManagedResultDataNotAvailable as err:
-            counts.append({})
-            print("| Failed Job result skip, Job ID:", result.job_id, err)
-        except IBMQJobManagerJobNotFound as err:
-            counts.append({})
-            print("| Failed Job result skip, Job ID:", result.job_id, err)
-
-        return counts
 
     def result(
         self,
@@ -565,36 +526,37 @@ class QurryV5Prototype:
             Hashable: The ID of the experiment.
         """
 
+        if len(args) > 0:
+            raise ValueError(
+                f"{self.__name__} can't be initialized with positional arguments.")
+
         # preparing
         IDNow = self.run(
             saveLocation=None,
             **allArgs
         )
-        assert IDNow == self.lastID
-        assert self.lastExp is not None
+        assert IDNow in self.exps
+        assert self.exps[IDNow].commons.expID == IDNow
+        currentExp = self.exps[IDNow]
         assert len(
-            self.lastExp.afterwards.result) == 1, "Result should be only one."
-
-        if len(args) > 0:
-            raise ValueError(
-                f"{self.__name__} can't be initialized with positional arguments.")
+            currentExp.afterwards.result) == 1, "Result should be only one."
 
         # afterwards
-        num = len(self.lastExp.beforewards.circuit)
-        counts = self.get_counts(
-            result=self.lastExp.afterwards.result[0],
+        num = len(currentExp.beforewards.circuit)
+        counts = get_counts(
+            result=currentExp.afterwards.result[0],
             num=num,
         )
         for _c in counts:
-            self.lastExp.afterwards.counts.append(_c)
+            currentExp.afterwards.counts.append(_c)
 
         # default analysis
-        if len(self.lastExp.commons.defaultAnalysis) > 0:
-            for _analysis in self.lastExp.commons.defaultAnalysis:
-                self.lastExp.analyze(**_analysis)
+        if len(currentExp.commons.defaultAnalysis) > 0:
+            for _analysis in currentExp.commons.defaultAnalysis:
+                currentExp.analyze(**_analysis)
 
         if isinstance(saveLocation, (Path, str)):
-            self.lastExp.write(
+            currentExp.write(
                 saveLocation=saveLocation,
                 mode=mode,
                 indent=indent,
@@ -614,9 +576,11 @@ class QurryV5Prototype:
         encoding: str = 'utf-8',
         jsonablize: bool = False,
         _exportMute: bool = False,
+
         **otherArgs: any
     ):
-        """
+        """Export the result after running the job.
+        ## The second finishing point.
 
         Args:
             wave (Union[QuantumCircuit, int, None], optional):
@@ -639,15 +603,23 @@ class QurryV5Prototype:
             dict: The output.
         """
 
+        if len(args) > 0:
+            raise ValueError(
+                f"{self.__name__} can't be initialized with positional arguments.")
+
         IDNow = self.result(
             saveLocation=None,
             **otherArgs,
         )
-        assert IDNow == self.lastID
-        assert self.lastExp is not None
+        assert IDNow in self.exps
+        assert self.exps[IDNow].commons.expID == IDNow
+        currentExp = self.exps[IDNow]
+
+        if len(currentExp.afterwards.result) > 0:
+            return IDNow
 
         if isinstance(saveLocation, (Path, str)):
-            self.lastExp.write(
+            currentExp.write(
                 saveLocation=saveLocation,
                 mode=mode,
                 indent=indent,
@@ -1034,17 +1006,22 @@ class QurryV5(QurryV5Prototype):
             **otherArgs,
         )
 
-    def method(self) -> list[QuantumCircuit]:
+    def method(
+        self,
+        expID: Hashable,
+    ) -> list[QuantumCircuit]:
 
-        assert self.lastExp is not None
-        args: QurryExperiment.arguments = self.lastExp.args
-        commons: QurryExperiment.commonparams = self.lastExp.commons
+        assert expID in self.exps
+        assert self.exps[expID].commons.expID == expID
+        currentExp = self.exps[expID]
+        args: QurryExperiment.arguments = self.exps[expID].args
+        commons: QurryExperiment.commonparams = self.exps[expID].commons
         circuit = self.waves[commons.waveKey]
         numQubits = circuit.num_qubits
 
-        self.lastExp['expName'] = f"{args.expName}-{self.lastExp.commons.waveKey}-x{args.sampling}"
+        currentExp['expName'] = f"{args.expName}-{currentExp.commons.waveKey}-x{args.sampling}"
         print(
-            f"| Directly call: {self.lastExp.commons.waveKey} with sampling {args.sampling} times.")
+            f"| Directly call: {currentExp.commons.waveKey} with sampling {args.sampling} times.")
 
         return [circuit for i in range(args.sampling)]
 
@@ -1091,11 +1068,12 @@ class QurryV5(QurryV5Prototype):
             saveLocation=None,
             **otherArgs,
         )
-        assert IDNow == self.lastID
-        assert self.lastExp is not None
+        assert IDNow in self.exps
+        assert self.exps[IDNow].commons.expID == IDNow
+        currentExp = self.exps[IDNow]
 
         if isinstance(saveLocation, (Path, str)):
-            self.lastExp.write(
+            currentExp.write(
                 saveLocation=saveLocation,
                 mode=mode,
                 indent=indent,
