@@ -12,10 +12,11 @@ from datetime import datetime
 import gc
 import warnings
 import os
+import glob
 import json
 
 from ..hoshi import Hoshi
-from ..mori import jsonablize, quickJSON, defaultConfig
+from ..mori import jsonablize, TagList, quickJSON, quickRead, defaultConfig
 from ..exceptions import (
     QurryInvalidInherition,
     QurryExperimentCountsNotCompleted,
@@ -302,8 +303,9 @@ class ExperimentPrototype():
 
         # Dealing special arguments
         if 'datetimes' not in commons:
-            commons['datetimes']['bulid'] = datetime.now().strftime(
-                "%Y-%m-%d %H:%M:%S")
+            commons['datetimes'] = {
+                'bulid': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
         if 'defaultAnalysis' in commons:
             filted_analysis = []
             for raw_input_analysis in commons['defaultAnalysis']:
@@ -318,6 +320,9 @@ class ExperimentPrototype():
             commons['defaultAnalysis'] = filted_analysis
         else:
             commons['defaultAnalysis'] = []
+        if 'tags' in commons:
+            if isinstance(commons['tags'], list):
+                commons['tags'] = tuple(commons['tags'])
 
         self.args: self.arguments = self.arguments(**params)
         self.commons = self.commonparams(
@@ -478,7 +483,7 @@ class ExperimentPrototype():
             f"{len(self.after._fields)} experiment result datasets, " +
             f"and {len(self.reports)} analysis>")
 
-    def sheet(
+    def statesheet(
         self,
         reportExpanded: bool = False,
         hoshi: bool = False,
@@ -502,7 +507,9 @@ class ExperimentPrototype():
         info.newline(('itemize', 'outfields', len(self.outfields),
                       'Number of unused arguments.', 1))
         for k, v in self.outfields.items():
-            info.newline(('itemize', str(k), str(v), '', 2))
+            
+            
+            info.newline(('itemize', str(k), v, '', 2))
 
         info.newline(('itemize', 'beforewards'))
         for k, v in self.beforewards._asdict().items():
@@ -889,7 +896,7 @@ class ExperimentPrototype():
         elif isinstance(saveLocation, str):
             saveLocation = Path(saveLocation)
         elif saveLocation is None:
-            saveLocation = self.commons.saveLocation
+            saveLocation = Path(self.commons.saveLocation)
             if self.commons.saveLocation is None:
                 raise ValueError(
                     "saveLocation is None, please provide a valid saveLocation")
@@ -960,6 +967,9 @@ class ExperimentPrototype():
         for k in self._required_folder:
             if not os.path.exists(folder / k):
                 os.mkdir(folder / k)
+        
+        for k, v in export_material.files.items():
+            self.commons.files[k] = v
 
         for filekey, content in list(export_set.items()) + [('qurryinfo', qurryinfo)]:
             # Exportation of qurryinfo
@@ -1167,7 +1177,166 @@ class ExperimentPrototype():
             ))
 
         return queue
+    
+    @classmethod
+    def readV4(
+        cls,
+        name: Union[Path, str],
+        summonerID: Optional[Hashable] = None,
+        saveLocation: Union[Path, str] = Path('./'),
 
+        encoding: str = 'utf-8',
+    ) -> list['ExperimentPrototype']:
+        """Read the experiment from file made by QurryV4, it's only available for the export of multiOutput.
+        Replacement of :func:`QurryV4().readLegacy`
+
+        Args:
+            name_or_id (Union[Path, str]): 
+                The name or id of the experiment to be read.
+            saveLocation (Union[Path, str], optional):
+                The location of the experiment to be read.
+                Defaults to Path('./').
+            indent (int, optional): 
+                Indent length for json, for :func:`mori.quickJSON`. Defaults to 2.
+            encoding (str, optional): 
+                Encoding method, for :func:`mori.quickJSON`. Defaults to 'utf-8'.
+
+        Raises:
+            ValueError: 'saveLocation' needs to be the type of 'str' or 'Path'.
+            FileNotFoundError: When `saveLocation` is not available.
+
+        """
+
+        if isinstance(saveLocation, (Path, str)):
+            saveLocation = Path(saveLocation)
+        else:
+            raise ValueError(
+                "'saveLocation' needs to be the type of 'str' or 'Path'.")
+        if not os.path.exists(saveLocation):
+            raise FileNotFoundError(
+                f"'SaveLoaction' does not exist, '{saveLocation}'.")
+            
+        exportLocation = saveLocation / name
+        if not os.path.exists(exportLocation):
+            raise FileNotFoundError(
+                f"'exportLoaction' does not exist, '{exportLocation}'.")
+        
+        configDict = quickRead(
+            filename=f'{name}.configDict.json',
+            saveLocation=exportLocation,
+        )
+        qurryinfoV4: dict[str, dict[str, str]] = {}
+        for k, v in configDict.items():
+            exportLocTmp = Path(v["exportLocation"]).name
+            qurryinfoV4[k] = {
+                'folder': exportLocTmp,
+                'legacy': str(Path(exportLocTmp) / 'legacy' / f"*{k}*.json"),
+                'tales':  str(Path(exportLocTmp) / 'tales' / f"*{k}*.json"),
+            }
+
+        queue = []
+        for expID, fileIndex in qurryinfoV4.items():
+            queue.append(cls._readV4_core(
+                expID, fileIndex, name, summonerID, saveLocation, encoding
+            ))
+            
+        return queue
+
+    @classmethod
+    def _readV4_core(
+        cls,
+        expID: str,
+        fileIndex: dict[str, str],
+        summonerName: str,
+        summonerID: Optional[Hashable] = None, 
+        saveLocation: Union[Path, str] = Path('./'),
+
+        encoding: str = 'utf-8',
+    ) -> 'ExperimentPrototype':
+        ...
+        
+        if isinstance(saveLocation, (Path, str)):
+            saveLocation = Path(saveLocation)
+        else:
+            raise ValueError(
+                "'saveLocation' needs to be the type of 'str' or 'Path'.")
+        if not os.path.exists(saveLocation):
+            raise FileNotFoundError(
+                f"'SaveLoaction' does not exist, '{saveLocation}'.")
+        
+        legacyRead = {}
+        lsfolder = glob.glob(str(saveLocation / fileIndex['legacy']))
+        if len(lsfolder) == 0:
+            raise FileNotFoundError(
+                f"The file 'expID={expID}' not found at the legacy folder of '{fileIndex['legacy']}'.")
+        for p in lsfolder:
+            with open(p, 'r', encoding=encoding) as Legacy:
+                legacyRead = json.load(Legacy)
+
+        talesRead = {}
+        lsfoldertales = glob.glob(str(saveLocation / fileIndex['tales']))
+        for p in lsfoldertales:
+            tmp = Path(p)
+            with open(p, 'r', encoding='utf-8') as Tales:
+                talesRead[tmp.suffixes[-2][1:]] = json.load(Tales)
+                
+        infields = {}
+        commonsinput = {
+            "files": {
+                'v4': fileIndex
+            },
+            'summonerName': summonerName,
+            'summonerID': summonerID,
+        }
+        beforewards = {}
+        afterwards = {}
+        outfields = {
+            'oldTales': talesRead
+        }
+        
+        for k in legacyRead:
+            if k in cls.arguments._fields:
+                infields[k] = legacyRead[k]
+            elif k in cls.commonparams._fields:
+                commonsinput[k] = legacyRead[k]
+            elif k in cls.before._fields:
+                beforewards[k] = legacyRead[k]
+            elif k in cls.after._fields:
+                afterwards[k] = legacyRead[k]
+                
+            elif k == 'figRaw':
+                beforewards['figOriginal'] = legacyRead[k]
+            elif k == 'figTranspile':
+                beforewards['figTranspiled'] = legacyRead[k]
+            elif k == 'dateCreate':
+                commonsinput['datetimes'] = {
+                    'build': legacyRead[k],
+                    'transformToV5': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                }
+            elif k == 'expIndex':
+                commonsinput['serial'] = legacyRead[k]
+            elif k == 'tags':
+                commonsinput['serial'] = legacyRead[k]
+            
+            else:
+                outfields[k] = legacyRead[k]
+                
+        if "wave" in legacyRead:
+            infields['waveKey'] = legacyRead['wave']
+
+        instance = cls(
+            **infields,
+            **commonsinput,
+            **outfields,
+        )
+        
+        for k, v in beforewards.items():
+            instance[k] = v
+        for k, v in afterwards.items():
+            for vv in v:
+                instance[k].append(vv)
+                
+        return instance
 
 class DummyExperiment(ExperimentPrototype):
     """The dummy experiment for testing and before first experiment runs."""

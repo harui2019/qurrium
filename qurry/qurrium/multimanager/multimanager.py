@@ -163,6 +163,7 @@ class MultiManager:
         encoding: str = 'utf-8',
         
         filetype: TagList._availableFileType = 'json',
+        version: Literal['v4', 'v5'] = 'v5',
         **kwargs
     ) -> None:
         """Initialize the multi-experiment.
@@ -194,7 +195,10 @@ class MultiManager:
         finally:
             if summonerID is None:
                 if isRead:
-                    summonerID = ''
+                    if version == 'v5':
+                        summonerID = ''
+                    else:
+                        summonerID = str(uuid4())
                 else:
                     summonerID = str(uuid4())
             else:
@@ -207,8 +211,7 @@ class MultiManager:
             saveLocation=saveLocation,
         )
         
-        version = 5
-        if isRead:       
+        if isRead and version == 'v5':     
             multiConfigName = self.namingCpx.exportLocation / \
                 f"{self.namingCpx.expsName}.multiConfig.json"
             if not multiConfigName.exists():
@@ -270,6 +273,87 @@ class MultiManager:
                     name=f'{self.namingCpx.expsName}.{qk}',
                 )
 
+        elif isRead and version == 'v4':
+            dataDummyJobs: dict[any] = {}
+            dataPowerJobsName = self.namingCpx.exportLocation / \
+                f"{self.namingCpx.expsName}.powerJobs.json"
+            dataMultiJobsName = self.namingCpx.exportLocation / \
+                f"{self.namingCpx.expsName}.multiJobs.json"
+            
+            if os.path.exists(dataPowerJobsName):
+                with open(dataPowerJobsName, 'r', encoding='utf-8') as theData:
+                    dataDummyJobs = json.load(theData)
+                jobsType = "powerJobs"
+
+            else:
+                with open(dataMultiJobsName, 'r', encoding='utf-8') as theData:
+                    dataDummyJobs = json.load(theData)
+                jobsType = "multiJobs"
+            
+            rawReadMultiConfig = {
+                **kwargs,
+                'summonerID': summonerID,
+                'summonerName': self.namingCpx.expsName,
+                'saveLocation': self.namingCpx.saveLocation,
+                'exportLocation': self.namingCpx.exportLocation,
+                'filetype': filetype,
+                'jobsType': jobsType,
+                'files': {
+                    'v4': {
+                        jobsType: f'{self.namingCpx.expsName}.{jobsType}.json',
+                        'configDict': f'{self.namingCpx.expsName}.configDict.json',
+                        'circuitsMap': f'{self.namingCpx.expsName}.circuitsMap.json',
+                        'pendingPools': f'{self.namingCpx.expsName}.pendingPools.json',
+                        'tagMapExpsID': f'{self.namingCpx.expsName}.tagMapExpsID.json',
+                        'tagMapFiles': f'{self.namingCpx.expsName}.tagMapFiles.json',
+                        'tagMapIndex': f'{self.namingCpx.expsName}.tagMapIndex.json',
+                        'tagMapQuantity': f'{self.namingCpx.expsName}.tagMapQuantity.json',
+                    }
+                }
+            }
+            for k in dataDummyJobs.keys():
+                if k in self.multicommonparams._fields:
+                    rawReadMultiConfig[k] = dataDummyJobs[k]
+            self.beforewards = self.before(
+                configDict=quickRead(
+                    filename=f"{self.namingCpx.expsName}.configDict.json",
+                    saveLocation=self.namingCpx.exportLocation,
+                ),
+                circuitsNum=dataDummyJobs['circuitsNum'],
+                circuitsMap=TagList.read(
+                    saveLocation=self.namingCpx.exportLocation,
+                    tagmapName='circuitsMap'
+                ),
+                pendingPools=TagList.read(
+                    saveLocation=self.namingCpx.exportLocation,
+                    tagmapName='pendingPools'
+                ),
+                jobID=[],
+                
+                tagMapExpsID=TagList.read(
+                    saveLocation=self.namingCpx.exportLocation,
+                    tagmapName='tagMapExpsID'
+                ),
+                tagMapFiles=TagList.read(
+                    saveLocation=self.namingCpx.exportLocation,
+                    tagmapName='tagMapFiles'
+                ),
+                tagMapIndex=TagList.read(
+                    saveLocation=self.namingCpx.exportLocation,
+                    tagmapName='tagMapIndex'
+                ),
+            )
+            self.afterwards = self.after(
+                retrievedResult={},
+                allCounts={},
+            )
+            self.tagMapQuantity: dict[str, TagList[Quantity]] = {
+                'oldreport': TagList.read(
+                    saveLocation=self.namingCpx.exportLocation,
+                    tagmapName='tagMapQuantity',
+                ),
+            }
+
         else:
             rawReadMultiConfig = {
                 **kwargs,
@@ -303,8 +387,11 @@ class MultiManager:
                 multicommons[k] = rawReadMultiConfig[k]
             else:
                 outfields[k] = rawReadMultiConfig[k]
+        
         if 'datetimes' not in multicommons:
             multicommons['datetimes'] = {}
+            if version == 'v4':
+                multicommons['datetimes']['v4Read'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             multicommons['datetimes']['bulid'] = datetime.now().strftime(
                 "%Y-%m-%d %H:%M:%S")
         
@@ -367,7 +454,7 @@ class MultiManager:
                 self.gitignore.sync(f"*.{k}.{self.multicommons.filetype}")
                 
             elif isinstance(self[k], (dict, list)):
-                filename = self.multicommons.exportLocation / \
+                filename = Path(self.multicommons.exportLocation) / \
                     f"{self.multicommons.summonerName}.{k}.json"
                 self.multicommons.files[k] = str(filename)
                 self.gitignore.sync(f"*.{k}.json")
@@ -402,7 +489,7 @@ class MultiManager:
             self.multicommons.files['tagMapQuantity'][k] = str(filename)
         self.gitignore.sync(f"*.tagMapQuantity.{self.multicommons.filetype}")
         # multiConfig
-        multiConfigName = self.multicommons.exportLocation / \
+        multiConfigName = Path(self.multicommons.exportLocation) / \
             f"{self.multicommons.summonerName}.multiConfig.json"
         self.multicommons.files['multiConfig'] = str(multiConfigName)
         self.gitignore.sync('*.multiConfig.json')

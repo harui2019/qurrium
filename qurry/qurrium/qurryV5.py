@@ -644,6 +644,7 @@ class QurryV5Prototype:
 
         isRetrieve: bool = False,
         isRead: bool = False,
+        version: Literal['v4', 'v5'] = 'v5',
     ) -> tuple[list[dict[str, Any]], str]:
         """_summary_
 
@@ -683,6 +684,7 @@ class QurryV5Prototype:
                 isRead=isRead,
 
                 saveLocation=saveLocation,
+                version=version,
             )
         else:
             multiJob = MultiManager(
@@ -720,6 +722,88 @@ class QurryV5Prototype:
             })
 
         return initedConfigList, multiJob.summonerID
+
+    
+    def multiBuild(
+        self,
+        # configList
+        configList: list = [],
+
+        # defaultConfig of `IBMQJobManager().run`
+        # Multiple jobs shared
+        summonerName: str = 'exps',
+        summonerID: Optional[str] = None,
+        shots: int = 1024,
+        backend: Backend = AerSimulator(),
+        provider: AccountProvider = None,
+        # IBMQJobManager() dedicated
+        managerRunArgs: dict = {},
+        # Other arguments of experiment
+        # Multiple jobs shared
+        saveLocation: Union[Path, str] = Path('./'),
+
+        filetype: TagList._availableFileType = 'json',
+        jobsType: Literal["local", "IBMQ", "AWS_Bracket", "Azure_Q"] = 'local',
+    ) -> Hashable:
+        """_summary_
+
+        Args:
+            configList (list, optional): _description_. Defaults to [].
+            shots (int, optional): _description_. Defaults to 1024.
+            backend (Backend, optional): _description_. Defaults to AerSimulator().
+            provider (AccountProvider, optional): _description_. Defaults to None.
+            summonerName (str, optional): _description_. Defaults to 'exps'.
+            summonerID (Optional[str], optional): _description_. Defaults to None.
+            saveLocation (Union[Path, str], optional): _description_. Defaults to Path('./').
+            filetype (TagList._availableFileType, optional): _description_. Defaults to 'json'.
+            overwrite (bool, optional): _description_. Defaults to False.
+
+        Returns:
+            Hashable: _description_
+        """
+
+        print(f"| MultiOutput building...")
+        initedConfigList, besummonned = self._paramsControlMulti(
+            configList=configList,
+            shots=shots,
+            backend=backend,
+            provider=provider,
+            managerRunArgs=managerRunArgs,
+            summonerName=summonerName,
+            summonerID=summonerID,
+            saveLocation=saveLocation,
+            jobsType=jobsType,
+            isRetrieve=False,
+            isRead=False,
+            filetype=filetype,
+        )
+        currentMultiJob = self.multimanagers[besummonned]
+        assert currentMultiJob.summonerID == besummonned
+
+        for config in initedConfigList:
+            currentID = self.build(**config)
+            currentMultiJob.beforewards.configDict[currentID] = config
+            currentMultiJob.beforewards.circuitsNum[currentID] = len(
+                self.exps[currentID].beforewards.circuit)
+            files = self.exps[currentID].write(mute=True)
+
+            tmpCircSerial = [
+                idx for idx in range(len(self.exps[currentID].beforewards.circuit))]
+            currentMultiJob.beforewards.pendingPools[currentID] = tmpCircSerial
+            currentMultiJob.beforewards.circuitsMap[currentID] = tmpCircSerial
+            currentMultiJob.beforewards.jobID.append((currentID, 'local'))
+
+            currentMultiJob.beforewards.tagMapExpsID[
+                self.exps[currentID].commons.tags].append(currentID)
+            currentMultiJob.beforewards.tagMapFiles[
+                self.exps[currentID].commons.tags].append(files)
+            currentMultiJob.beforewards.tagMapIndex[
+                self.exps[currentID].commons.tags
+            ].append(self.exps[currentID].commons.serial)
+
+        filesMulti = currentMultiJob.write()
+        
+        return currentMultiJob.multicommons.summonerID
 
     def multiOutput(
         self,
@@ -759,9 +843,8 @@ class QurryV5Prototype:
         Returns:
             Hashable: _description_
         """
-
-        print(f"| MultiOutput building...")
-        initedConfigList, besummonned = self._paramsControlMulti(
+        
+        besummonned = self.multiBuild(
             configList=configList,
             shots=shots,
             backend=backend,
@@ -771,35 +854,10 @@ class QurryV5Prototype:
             summonerID=summonerID,
             saveLocation=saveLocation,
             jobsType="local",
-            isRetrieve=False,
-            isRead=False,
             filetype=filetype,
         )
         currentMultiJob = self.multimanagers[besummonned]
         assert currentMultiJob.summonerID == besummonned
-
-        for config in initedConfigList:
-            currentID = self.build(**config)
-            currentMultiJob.beforewards.configDict[currentID] = config
-            currentMultiJob.beforewards.circuitsNum[currentID] = len(
-                self.exps[currentID].beforewards.circuit)
-            files = self.exps[currentID].write(mute=True)
-
-            tmpCircSerial = [
-                idx for idx in range(len(self.exps[currentID].beforewards.circuit))]
-            currentMultiJob.beforewards.pendingPools[currentID] = tmpCircSerial
-            currentMultiJob.beforewards.circuitsMap[currentID] = tmpCircSerial
-            currentMultiJob.beforewards.jobID.append((currentID, 'local'))
-
-            currentMultiJob.beforewards.tagMapExpsID[
-                self.exps[currentID].commons.tags].append(currentID)
-            currentMultiJob.beforewards.tagMapFiles[
-                self.exps[currentID].commons.tags].append(files)
-            currentMultiJob.beforewards.tagMapIndex[
-                self.exps[currentID].commons.tags
-            ].append(self.exps[currentID].commons.serial)
-
-        filesMulti = currentMultiJob.write()
 
         print(f"| MultiOutput running...")
         for id_exec, jobtype in currentMultiJob.beforewards.jobID:
@@ -883,6 +941,39 @@ class QurryV5Prototype:
 
         return multiJob.multicommons.summonerID
 
+    def multiWrite(
+        self,
+        summonerID: Hashable,
+    ) -> Hashable:
+        """_summary_
+
+        Args:
+            summonerID (Hashable): _description_
+
+        Raises:
+            ValueError: _description_
+
+        Returns:
+            Hashable: _description_
+        """
+        
+        if not summonerID in self.multimanagers:
+            raise ValueError("No such summonerID in multimanagers.", summonerID)
+        
+        currentMultiJob = self.multimanagers[summonerID]
+        assert currentMultiJob.summonerID == summonerID
+        
+        for id_exec, jobtype in currentMultiJob.beforewards.jobID:
+            self.exps[id_exec].write(
+                saveLocation=currentMultiJob.multicommons.saveLocation,
+                mute=True,
+            )
+        
+        filesMulti = currentMultiJob.write()
+        
+        return currentMultiJob.multicommons.summonerID
+
+
     def multiRead(
         self,
         # configList
@@ -942,6 +1033,72 @@ class QurryV5Prototype:
 
         return besummonned
 
+
+    def multiReadV4(
+        self,
+        # configList
+        summonerName: str = 'exps',
+        summonerID: Optional[str] = None,
+        # IBMQJobManager() dedicated
+        # Other arguments of experiment
+        # Multiple jobs shared
+        saveLocation: Union[Path, str] = Path('./'),
+
+        # defaultMultiAnalysis: list[dict[str, Any]] = []
+        # analysisName: str = 'report',
+    ) -> Hashable:
+        """_summary_
+
+        Args:
+            configList (list, optional): _description_. Defaults to [].
+            shots (int, optional): _description_. Defaults to 1024.
+            backend (Backend, optional): _description_. Defaults to AerSimulator().
+            provider (AccountProvider, optional): _description_. Defaults to None.
+            summonerName (str, optional): _description_. Defaults to 'exps'.
+            summonerID (Optional[str], optional): _description_. Defaults to None.
+            saveLocation (Union[Path, str], optional): _description_. Defaults to Path('./').
+            filetype (TagList._availableFileType, optional): _description_. Defaults to 'json'.
+            overwrite (bool, optional): _description_. Defaults to False.
+
+        Returns:
+            Hashable: _description_
+        """
+
+        initedConfigList, besummonned = self._paramsControlMulti(
+            summonerName=summonerName,
+            summonerID=summonerID,
+            saveLocation=saveLocation,
+            isRead=True,
+            version='v4',
+        )
+
+        assert besummonned in self.multimanagers
+        assert self.multimanagers[besummonned].multicommons.summonerID == besummonned
+        currentMultiJob = self.multimanagers[besummonned]
+
+        quene: list[ExperimentPrototype] = self.experiment.readV4(
+            saveLocation=saveLocation,
+            name=summonerName,
+            summonerID=besummonned,
+        )
+        for exp in quene:
+            self.exps[exp.expID] = exp
+            currentMultiJob.beforewards.jobID.append([
+                exp.expID, currentMultiJob.multicommons.jobsType])
+            currentMultiJob.afterwards.allCounts[exp.expID] = exp.afterwards.counts
+            
+
+        # if len(defaultMultiAnalysis) > 0:
+        #     currentMultiJob = self.multimanagers[besummonned]
+        #     for analysis in defaultMultiAnalysis:
+        #         self.multiAnalysis(
+        #             summonerID=currentMultiJob.multicommons.summonerID,
+        #             analysisName=analysisName,
+        #             _write=False,
+        #             **analysis,
+        #         )
+
+        return besummonned
 
 class QurryV5(QurryV5Prototype):
 
