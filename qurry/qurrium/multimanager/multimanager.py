@@ -406,6 +406,24 @@ class MultiManager:
     def summonerName(self) -> str:
         return self.multicommons.summonerName
     
+    def updateSaveLocation(
+        self,
+        saveLocation: Union[Path, str],
+        isRead: bool = True,
+    ) -> dict:
+        saveLocation = Path(saveLocation)
+        self.namingCpx = naming(
+            isRead=isRead,
+            expsName=self.multicommons.summonerName,
+            saveLocation=saveLocation,
+        )
+        self.multicommons = self.multicommons._replace(
+            saveLocation=self.namingCpx.saveLocation,
+            exportLocation=self.namingCpx.exportLocation,
+        )
+        
+        return self.namingCpx._asdict()
+    
     def write(
         self,
         saveLocation: Optional[Union[Path, str]] = None,
@@ -420,9 +438,8 @@ class MultiManager:
         print(f"| Export multimanager...")
         if saveLocation is None:
             saveLocation = self.multicommons.saveLocation
-            if saveLocation is None:
-                raise ValueError(
-                    "Can't find the saveLocation, please specify it.")
+        else:
+            self.updateSaveLocation(saveLocation=saveLocation, isRead=True)
         
         self.gitignore.ignore('*.json')
         self.gitignore.sync('qurryinfo.json')
