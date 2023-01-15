@@ -425,6 +425,7 @@ class MultiManager:
                     "Can't find the saveLocation, please specify it.")
         
         self.gitignore.ignore('*.json')
+        self.gitignore.sync('qurryinfo.json')
         if not os.path.exists(saveLocation):
             os.makedirs(saveLocation)
         if not os.path.exists(self.multicommons.exportLocation):
