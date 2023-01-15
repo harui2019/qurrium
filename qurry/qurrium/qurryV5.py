@@ -202,7 +202,7 @@ class QurryV5Prototype:
                 warnings.warn(
                     f"'{w}' is a '{type(w)}' instead of 'QuantumCircuit' or 'tuple' " +
                     "contained hashable key and 'QuantumCircuit', skipped to be adding.",
-                    category=TypeError)
+                )
 
         self.exps: ExperimentContainer = ExperimentContainer()
         """The experiments container."""
@@ -886,6 +886,7 @@ class QurryV5Prototype:
         self,
         summonerID: str,
         analysisName: str = 'report',
+        noSerialize: bool = False,
         *args,
         specificAnalysisArgs: dict[Hashable, Union[dict[str, Any], bool]] = {},
         _write: bool = True,
@@ -920,7 +921,8 @@ class QurryV5Prototype:
             raise ValueError("No counts in multimanagers.")
 
         idx_tagMapQ = len(multiJob.tagMapQuantity)
-        name = f"{analysisName}."+f'{idx_tagMapQ+1}'.rjust(self._rjustLen, '0')
+        name = (
+            analysisName if noSerialize else f"{analysisName}."+f'{idx_tagMapQ+1}'.rjust(self._rjustLen, '0'))
         multiJob.tagMapQuantity[name] = TagList()
 
         for k in multiJob.afterwards.allCounts.keys():
@@ -975,7 +977,7 @@ class QurryV5Prototype:
         filesMulti = currentMultiJob.write(
             saveLocation=saveLocation if saveLocation is not None else None,
         )
-        
+
         for id_exec, jobtype in currentMultiJob.beforewards.jobID:
             self.exps[id_exec].write(
                 saveLocation=currentMultiJob.multicommons.saveLocation,
@@ -1120,7 +1122,7 @@ class QurryV5Prototype:
         """
 
         if security and isinstance(security, bool):
-            self.__init__(self.waves)
+            self.__init__(*[(k, v) for k, v in self.waves.items()])
             gc.collect()
             warnings.warn(
                 "The measurement has reset and release memory allocating.")
@@ -1129,6 +1131,7 @@ class QurryV5Prototype:
                 "Reset does not execute to prevent executing accidentally, " +
                 "if you are sure to do this, then use '.reset(security=True)'."
             )
+
 
 class QurryV5(QurryV5Prototype):
 

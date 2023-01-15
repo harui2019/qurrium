@@ -409,11 +409,11 @@ class MultiManager:
     def updateSaveLocation(
         self,
         saveLocation: Union[Path, str],
-        isRead: bool = True,
+        withoutSerial: bool = True,
     ) -> dict:
         saveLocation = Path(saveLocation)
         self.namingCpx = naming(
-            isRead=isRead,
+            withoutSerial=withoutSerial,
             expsName=self.multicommons.summonerName,
             saveLocation=saveLocation,
         )
@@ -439,7 +439,7 @@ class MultiManager:
         if saveLocation is None:
             saveLocation = self.multicommons.saveLocation
         else:
-            self.updateSaveLocation(saveLocation=saveLocation, isRead=True)
+            self.updateSaveLocation(saveLocation=saveLocation, withoutSerial=True)
         
         self.gitignore.ignore('*.json')
         self.gitignore.sync('qurryinfo.json')

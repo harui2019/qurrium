@@ -14,6 +14,7 @@ def naming(
     expsName: str = 'exps',
     saveLocation: Union[Path, str] = Path('./'),
     shortName: str = 'qurry',
+    withoutSerial: bool = False,
     _rjustLen: int = 3,
     _indexRename: int = 1,
 ) -> namingComplex:
@@ -58,6 +59,9 @@ def naming(
             f"| Retrieve {immutableName}...\n" +
             f"| at: {exportLocation}"
         )
+    elif withoutSerial:
+        immutableName = expsName
+        exportLocation = saveLocation / immutableName
 
     else:
         expsName = f'{expsName}.{shortName}'
