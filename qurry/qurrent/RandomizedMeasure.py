@@ -237,6 +237,8 @@ def entangled_entropy(
         'degree': degree,
         'measureActually': measureRange,
         'bitStringRange': bitStringRange,
+        
+        'countsNum': len(counts),
     }
 
     return quantity
@@ -441,6 +443,8 @@ def entangled_entropy_complex(
         'measure': measureInfo,
         'measureActually': measureRange,
         'measureActuallyAllSys': measureRangeAllSys,
+        
+        'countsNum': len(counts),
     }
     return quantity
 
@@ -510,6 +514,8 @@ class EntropyRandomizedAnalysis(AnalysisPrototype):
         measure: tuple[int, int]
         measureActually: tuple[int, int]
         measureActuallyAllSys: tuple[int, int]
+        
+        countsNum: int
 
         def __repr__(self):
             return f"analysisContent(purity={self.purity}, entropy={self.entropy}, and others)"
