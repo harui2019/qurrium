@@ -5,6 +5,7 @@ from qiskit.circuit import Gate
 from qiskit.providers import Backend
 from qiskit.providers.ibmq import AccountProvider
 
+import gc
 import warnings
 import datetime
 from pathlib import Path
@@ -723,7 +724,6 @@ class QurryV5Prototype:
 
         return initedConfigList, multiJob.summonerID
 
-    
     def multiBuild(
         self,
         # configList
@@ -802,7 +802,7 @@ class QurryV5Prototype:
             ].append(self.exps[currentID].commons.serial)
 
         filesMulti = currentMultiJob.write()
-        
+
         return currentMultiJob.multicommons.summonerID
 
     def multiOutput(
@@ -843,7 +843,7 @@ class QurryV5Prototype:
         Returns:
             Hashable: _description_
         """
-        
+
         besummonned = self.multiBuild(
             configList=configList,
             shots=shots,
@@ -887,7 +887,7 @@ class QurryV5Prototype:
         summonerID: str,
         analysisName: str = 'report',
         *args,
-        specificAnalysisArgs: dict[Hashable, dict[str, Any]] = {},
+        specificAnalysisArgs: dict[Hashable, Union[dict[str, Any], bool]] = {},
         _write: bool = True,
         **analysisArgs: Any,
     ) -> str:
@@ -925,7 +925,14 @@ class QurryV5Prototype:
 
         for k in multiJob.afterwards.allCounts.keys():
             if k in specificAnalysisArgs:
-                report = self.exps[k].analyze(**specificAnalysisArgs[k])
+                if isinstance(specificAnalysisArgs[k], bool):
+                    if specificAnalysisArgs[k] is False:
+                        print(f"| MultiAnalysis: {k} skipped in {summonerID}.")
+                        continue
+                    else:
+                        report = self.exps[k].analyze(**analysisArgs)
+                else:
+                    report = self.exps[k].analyze(**specificAnalysisArgs[k])
             else:
                 report = self.exps[k].analyze(**analysisArgs)
 
@@ -944,6 +951,7 @@ class QurryV5Prototype:
     def multiWrite(
         self,
         summonerID: Hashable,
+        saveLocation: Optional[Union[Path, str]] = None,
     ) -> Hashable:
         """_summary_
 
@@ -956,23 +964,25 @@ class QurryV5Prototype:
         Returns:
             Hashable: _description_
         """
-        
+
         if not summonerID in self.multimanagers:
-            raise ValueError("No such summonerID in multimanagers.", summonerID)
-        
+            raise ValueError(
+                "No such summonerID in multimanagers.", summonerID)
+
         currentMultiJob = self.multimanagers[summonerID]
         assert currentMultiJob.summonerID == summonerID
+
+        filesMulti = currentMultiJob.write(
+            saveLocation=saveLocation if saveLocation is not None else None,
+        )
         
         for id_exec, jobtype in currentMultiJob.beforewards.jobID:
             self.exps[id_exec].write(
                 saveLocation=currentMultiJob.multicommons.saveLocation,
                 mute=True,
             )
-        
-        filesMulti = currentMultiJob.write()
-        
-        return currentMultiJob.multicommons.summonerID
 
+        return currentMultiJob.multicommons.summonerID
 
     def multiRead(
         self,
@@ -1033,7 +1043,6 @@ class QurryV5Prototype:
 
         return besummonned
 
-
     def multiReadV4(
         self,
         # configList
@@ -1086,7 +1095,6 @@ class QurryV5Prototype:
             currentMultiJob.beforewards.jobID.append([
                 exp.expID, currentMultiJob.multicommons.jobsType])
             currentMultiJob.afterwards.allCounts[exp.expID] = exp.afterwards.counts
-            
 
         # if len(defaultMultiAnalysis) > 0:
         #     currentMultiJob = self.multimanagers[besummonned]
@@ -1099,6 +1107,28 @@ class QurryV5Prototype:
         #         )
 
         return besummonned
+
+    def reset(
+        self,
+        *args,
+        security: bool = False,
+    ) -> None:
+        """Reset the measurement and release memory.
+
+        Args:
+            security (bool, optional): Security for reset. Defaults to `False`.
+        """
+
+        if security and isinstance(security, bool):
+            self.__init__(self.waves)
+            gc.collect()
+            warnings.warn(
+                "The measurement has reset and release memory allocating.")
+        else:
+            warnings.warn(
+                "Reset does not execute to prevent executing accidentally, " +
+                "if you are sure to do this, then use '.reset(security=True)'."
+            )
 
 class QurryV5(QurryV5Prototype):
 
