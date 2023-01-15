@@ -1230,8 +1230,8 @@ class ExperimentPrototype():
             exportLocTmp = Path(v["exportLocation"]).name
             qurryinfoV4[k] = {
                 'folder': exportLocTmp,
-                'legacy': str(Path(exportLocTmp) / 'legacy' / f"*{k}*.json"),
-                'tales':  str(Path(exportLocTmp) / 'tales' / f"*{k}*.json"),
+                'legacy': str(Path(exportLocTmp) / 'legacy' / f"*expId={k}*.json"),
+                'tales':  str(Path(exportLocTmp) / 'tales' / f"*expId={k}*.json"),
             }
 
         queue = []
