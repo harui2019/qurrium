@@ -577,7 +577,7 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
         times: int = 100
         measure: tuple[int, int] = None
         unitary_loc: tuple[int, int] = None
-        workers_num: int = int(cpu_count()/4*3)
+        workers_num: int = int(cpu_count() - 2)
 
     @classmethod
     @property
