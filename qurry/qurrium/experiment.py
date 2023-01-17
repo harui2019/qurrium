@@ -1093,19 +1093,28 @@ class ExperimentPrototype():
                     instance[k].append(vv)
             else:
                 instance[k] = v
-        for k, v in export_material_set['tales'].items():
-            instance['sideProduct'][k] = v
+        if 'tales' in export_material_set:
+            for k, v in export_material_set['tales'].items():
+                instance['sideProduct'][k] = v
         # afterwards
         for k, v in export_material_set['legacy'].items():
             # instance.unlock_afterward(mute_auto_lock=True)
             for vv in v:
                 instance[k].append(vv)
         # reports
-        mains = {k: v for k, v in export_material_set['reports'].items()}
-        sides = {k: {} for k in export_material_set['reports']}
-        for tk, tv in export_material_set['tales_report'].items():
-            for k, v in tv.items():
-                sides[k][tk] = v
+        if 'reports' in export_material_set:
+            mains = {k: v for k, v in export_material_set['reports'].items()}
+            sides = {k: {} for k in export_material_set['reports']}
+        else:
+            mains = {}
+            sides = {}
+        if 'tales_report' in export_material_set:
+            for tk, tv in export_material_set['tales_report'].items():
+                for k, v in tv.items():
+                    if k not in sides:
+                        sides[k] = {}
+                        mains[k] = {}
+                    sides[k][tk] = v
 
         # print(mains, sides, 'mains, sides')
         for k, v in mains.items():
