@@ -3,10 +3,33 @@ import warnings
 from typing import NamedTuple, Union
 from collections import namedtuple
 
-from ..exceptions import (
-    QurryMemoryOverAllocationWarning,
-    QurryInheritionNoEffect,
-)
+
+class MemoryOverAllocationWarning(Warning):
+    """_summary_
+
+    Args:
+        Warning (_type_): _description_
+
+    Raises:
+        MemoryOverAllocationWarning: _description_
+
+    Returns:
+        _type_: _description_
+    """
+
+
+class InheritionNoEffect(Warning):
+    """_summary_
+
+    Args:
+        Warning (_type_): _description_
+
+    Raises:
+        InheritionNoEffect: _description_
+
+    Returns:
+        _type_: _description_
+    """
 
 
 class ResoureWatch:
@@ -35,7 +58,7 @@ class ResoureWatch:
         if len(arg) > 0:
             warnings.warn(
                 "Please specify at least arguments to configure.",
-                QurryInheritionNoEffect
+                InheritionNoEffect
             )
 
         self.ALLOW_LIMIT = self.RESOURCE_LIMIT(
@@ -60,7 +83,7 @@ class ResoureWatch:
             self.SAVE_LOCK._replace(**{lock: True})
         else:
             print(f"| Lock '{lock}' does not exist.")
-            
+
     @staticmethod
     def virtual_memory() -> any:
         return psutil.virtual_memory()
@@ -98,7 +121,7 @@ class ResoureWatch:
         if self.judge():
             self.message = " ".join(message)
             if return_stop_sign:
-                raise QurryMemoryOverAllocationWarning(
+                raise MemoryOverAllocationWarning(
                     "Resource usage breaks limit.",
                     self.message,
                     self.__repr__()
