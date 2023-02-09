@@ -26,7 +26,7 @@ from .container import WaveContainer, ExperimentContainer
 from .multimanager import MultiManager
 
 from .utils import decomposer, get_counts
-from ..exceptions import QurryInheritionNoEffect
+from ..exceptions import QurryInheritionNoEffect, QurryResetAccomplished, QurryResetSecurityActivated
 
 # Qurry V0.5.0 - a Qiskit Macro
 
@@ -262,6 +262,84 @@ class QurryV5Prototype:
         muteOutfieldsWarning: bool = False,
         **otherArgs: any
     ) -> Hashable:
+        """Control the experiment's general parameters.
+
+        Args:
+            wave (Union[QuantumCircuit, Hashable, None], optional): 
+                The index of the wave function in `self.waves` or add new one to calaculation,
+                then choose one of waves as the experiment material.
+                If input is `QuantumCircuit`, then add and use it.
+                If input is the key in `.waves`, then use it.
+                If input is `None` or something illegal, then use `.lastWave'.
+                Defaults to None.
+                
+            expID (Optional[str], optional): 
+                If input is `None`, then create an new experiment.
+                If input is a existed experiment ID, then use it.
+                Otherwise, use the experiment with given specific ID.
+                Defaults to None.
+                
+            shots (int, optional):
+                Shots of the job. Defaults to `1024`.
+                
+                
+            backend (Backend, optional): 
+                The quantum backend. Defaults to AerSimulator().
+                
+            provider (Optional[AccountProvider], optional): 
+                :cls:`AccountProvider` of current backend for running :cls:`IBMQJobManager`.
+                Defaults to `None`.
+                
+            runArgs (dict, optional): 
+                defaultConfig of :func:`qiskit.execute`. Defaults to `{}`.
+                
+            runBy (Literal[&#39;gate&#39;, &#39;operator&#39;], optional): 
+                Construct wave function via :cls:`Operater` for "operator" or :cls:`Gate` for "gate".
+                When use 'IBMQBackend' only allowed to use wave function as `Gate` instead of `Operator`.
+                Defaults to "gate".
+                
+            transpileArgs (dict, optional):
+                defaultConfig of :func:`qiskit.transpile`. Defaults to `{}`.
+                
+            decompose (Optional[int], optional): 
+                Running `QuantumCircuit` which be decomposed given times. Defaults to 2.
+                
+            tags (tuple, optional): 
+                Given the experiment multiple tags to make a dictionary for recongnizing it.
+                Defaults to ().
+                
+            defaultAnalysis (list[dict[str, Any]], optional): 
+                The analysis methods will be excuted after counts has been computed.
+                Defaults to [].
+                
+            serial (Optional[int], optional): 
+                Index of experiment in a multiOutput.
+                **!!ATTENTION, this should only be used by `Multimanager`!!**
+                Defaults to None.
+                
+            summonerID (Optional[Hashable], optional): 
+                ID of experiment of the multiManager. 
+                **!!ATTENTION, this should only be used by `Multimanager`!!**
+                Defaults to None.
+                
+            summonerName (Optional[str], optional): 
+                Name of experiment of the multiManager.
+                **!!ATTENTION, this should only be used by `Multimanager`!!**
+                _description_. Defaults to None.
+            
+            muteOutfieldsWarning (bool, optional):
+                Mute the warning when there are unused arguments detected and stored in outfields.
+                Defaults to False.
+
+        Raises:
+            KeyError: Giving an not existed wave key.
+            TypeError: Neither `QuantumCircuit` for directly adding new wave nor `Hashable` for key is given.
+            TypeError: One of defaultAnalysis is not a dict.
+            ValueError: One of defaultAnalysis is invalid.
+
+        Returns:
+            Hashable: _description_
+        """
 
         if expID in self.exps:
             self.exps.call(expID)
@@ -384,6 +462,20 @@ class QurryV5Prototype:
         ## The first finishing point.
 
         Args:
+            saveLocation (Optional[Union[Path, str]], optional):
+                The location to save the experiment. If None, will not save.
+                Defaults to None.
+            mode (str, optional):
+                The mode to open the file. Defaults to 'w+'.
+            indent (int, optional):
+                The indent of json file. Defaults to 2.
+            encoding (str, optional):
+                The encoding of json file. Defaults to 'utf-8'.
+            jsonablize (bool, optional):
+                Whether to jsonablize the experiment output. Defaults to False.
+            _exportMute (bool, optional):
+                Whether to mute the export hint. Defaults to True.
+                
             allArgs: all arguments will handle by `self.paramsControl()` and export as specific format.
 
         Returns:
@@ -448,6 +540,20 @@ class QurryV5Prototype:
         """Export the result after running the job.
 
         Args:
+            saveLocation (Optional[Union[Path, str]], optional):
+                The location to save the experiment. If None, will not save.
+                Defaults to None.
+            mode (str, optional):
+                The mode to open the file. Defaults to 'w+'.
+            indent (int, optional):
+                The indent of json file. Defaults to 2.
+            encoding (str, optional):
+                The encoding of json file. Defaults to 'utf-8'.
+            jsonablize (bool, optional):
+                Whether to jsonablize the experiment output. Defaults to False.
+            _exportMute (bool, optional):
+                Whether to mute the export hint. Defaults to True.
+                
             allArgs: all arguments will handle by `self.paramsControl()` and export as specific format.
 
         Returns:
@@ -510,6 +616,20 @@ class QurryV5Prototype:
         """Export the result after running the job.
 
         Args:
+            saveLocation (Optional[Union[Path, str]], optional):
+                The location to save the experiment. If None, will not save.
+                Defaults to None.
+            mode (str, optional):
+                The mode to open the file. Defaults to 'w+'.
+            indent (int, optional):
+                The indent of json file. Defaults to 2.
+            encoding (str, optional):
+                The encoding of json file. Defaults to 'utf-8'.
+            jsonablize (bool, optional):
+                Whether to jsonablize the experiment output. Defaults to False.
+            _exportMute (bool, optional):
+                Whether to mute the export hint. Defaults to True.
+        
             allArgs: all arguments will handle by `self.paramsControl()` and export as specific format.
 
         Returns:
@@ -585,6 +705,20 @@ class QurryV5Prototype:
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
                 This name is also used for creating a folder to store the exports.
                 Defaults to `'exps'`.
+                
+            saveLocation (Optional[Union[Path, str]], optional):
+                The location to save the experiment. If None, will not save.
+                Defaults to None.
+            mode (str, optional):
+                The mode to open the file. Defaults to 'w+'.
+            indent (int, optional):
+                The indent of json file. Defaults to 2.
+            encoding (str, optional):
+                The encoding of json file. Defaults to 'utf-8'.
+            jsonablize (bool, optional):
+                Whether to jsonablize the experiment output. Defaults to False.
+            _exportMute (bool, optional):
+                Whether to mute the export hint. Defaults to True.
 
             otherArgs (any):
                 Other arguments.
@@ -620,7 +754,8 @@ class QurryV5Prototype:
 
         return IDNow
 
-    _rjustLen = 3
+    _rjustLen: int = 3
+    """The length of the serial number of the experiment."""
 
     def _paramsControlMulti(
         self,
@@ -787,12 +922,6 @@ class QurryV5Prototype:
                 self.exps[currentID].beforewards.circuit)
             files = self.exps[currentID].write(mute=True)
 
-            tmpCircSerial = [
-                idx for idx in range(len(self.exps[currentID].beforewards.circuit))]
-            currentMultiJob.beforewards.pendingPools[currentID] = tmpCircSerial
-            currentMultiJob.beforewards.circuitsMap[currentID] = tmpCircSerial
-            currentMultiJob.beforewards.jobID.append((currentID, 'local'))
-
             currentMultiJob.beforewards.tagMapExpsID[
                 self.exps[currentID].commons.tags].append(currentID)
             currentMultiJob.beforewards.tagMapFiles[
@@ -802,6 +931,10 @@ class QurryV5Prototype:
             ].append(self.exps[currentID].commons.serial)
 
         filesMulti = currentMultiJob.write()
+        
+        assert len(currentMultiJob.beforewards.pendingPools) == 0
+        assert len(currentMultiJob.beforewards.circuitsMap) == 0
+        assert len(currentMultiJob.beforewards.jobID) == 0
 
         return currentMultiJob.multicommons.summonerID
 
@@ -858,15 +991,27 @@ class QurryV5Prototype:
         )
         currentMultiJob = self.multimanagers[besummonned]
         assert currentMultiJob.summonerID == besummonned
+        circSerial = []
 
         print(f"| MultiOutput running...")
-        for id_exec, jobtype in currentMultiJob.beforewards.jobID:
-            self.output(
+        for id_exec in currentMultiJob.beforewards.configDict:
+            currentID = self.output(
                 expID=id_exec,
                 saveLocation=currentMultiJob.multicommons.saveLocation,
                 _exportMute=True,
             )
-            currentMultiJob.afterwards.allCounts[id_exec] = self.exps[id_exec].afterwards.counts
+
+            circSerialLen = len(circSerial)
+            tmpCircSerial = [
+                idx+circSerialLen 
+            for idx in range(len(self.exps[currentID].beforewards.circuit))]
+            
+            circSerial += tmpCircSerial
+            currentMultiJob.beforewards.pendingPools[currentID] = tmpCircSerial
+            currentMultiJob.beforewards.circuitsMap[currentID] = tmpCircSerial
+            currentMultiJob.beforewards.jobID.append((currentID, 'local'))
+            
+            currentMultiJob.afterwards.allCounts[currentID] = self.exps[currentID].afterwards.counts
 
         if len(defaultMultiAnalysis) > 0:
             print(f"| MultiOutput analyzing...")
@@ -942,6 +1087,8 @@ class QurryV5Prototype:
             main, tales = report.export()
             multiJob.tagMapQuantity[name][
                 self.exps[k].commons.tags].append(main)
+        multiJob.multicommons.datetimes[name] = datetime.now().strftime(
+            "%Y-%m-%d %H:%M:%S")
 
         if _write:
             filesMulti = multiJob.write(_onlyQuantity=True)
@@ -1125,12 +1272,13 @@ class QurryV5Prototype:
             self.__init__(*[(k, v) for k, v in self.waves.items()])
             gc.collect()
             warnings.warn(
-                "The measurement has reset and release memory allocating.")
+                "The measurement has reset and release memory allocating.",
+                QurryResetAccomplished)
         else:
             warnings.warn(
                 "Reset does not execute to prevent executing accidentally, " +
-                "if you are sure to do this, then use '.reset(security=True)'."
-            )
+                "if you are sure to do this, then use '.reset(security=True)'.",
+                QurryResetSecurityActivated)
 
 
 class QurryV5(QurryV5Prototype):
@@ -1152,7 +1300,7 @@ class QurryV5(QurryV5Prototype):
         """Handling all arguments and initializing a single experiment.
 
         Args:
-            wave (Union[QuantumCircuit, int, None], optional):
+            waveKey (Union[QuantumCircuit, int, None], optional):
                 The index of the wave function in `self.waves` or add new one to calaculation,
                 then choose one of waves as the experiment material.
                 If input is `QuantumCircuit`, then add and use it.

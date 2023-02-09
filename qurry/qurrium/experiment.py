@@ -20,7 +20,7 @@ from ..mori import jsonablize, TagList, quickJSON, quickRead, defaultConfig
 from ..exceptions import (
     QurryInvalidInherition,
     QurryExperimentCountsNotCompleted,
-    QurryResetSecurityActivate,
+    QurryResetSecurityActivated,
     QurryResetAccomplished,
     QurryProtectContent,
     QurrySummonerInfoIncompletion
@@ -463,7 +463,7 @@ class ExperimentPrototype():
                 (
                     "Attention: any position arguments are not available on this method."
                     if len(args) > 0 else ""),
-                category=QurryResetSecurityActivate)
+                category=QurryResetSecurityActivated)
 
     # show info
     def __hash__(self) -> int:
