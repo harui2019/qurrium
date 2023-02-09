@@ -51,7 +51,7 @@ class QurryMemoryOverAllocationWarning(QurryWarning):
 class QurryImportWarning(QurryWarning):
     "Warning for qurry trying to import something."
 
-class QurryResetSecurityActivate(QurryWarning):
+class QurryResetSecurityActivated(QurryWarning):
     "Warning for reset class security."
     
 class QurryResetAccomplished(QurryWarning):
