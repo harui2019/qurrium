@@ -1,9 +1,13 @@
 from qiskit import QuantumCircuit
+from qiskit.providers import Backend
 from qiskit.providers.ibmq import IBMQBackend, IBMQJobManager, AccountProvider
 from qiskit.providers.ibmq.managed import ManagedJobSet, IBMQJobManagerInvalidStateError
 from qiskit.providers.ibmq.exceptions import IBMQError
 
-from typing import Literal, NamedTuple, Any
+from typing import Literal, NamedTuple, Hashable, Any
+
+from .multimanager import MultiManager
+from ..container import ExperimentContainer
 
 
 class QurryIBMQPackage(NamedTuple):
@@ -13,6 +17,51 @@ class QurryIBMQPackage(NamedTuple):
     name: str
     type: Literal['pending', 'retrieve']
 
+class IBMQRunner:
+    
+    currentMultiJob: MultiManager
+    backend: Backend
+
+    jobID: str
+    report: str
+    name: str
+    type: Literal['pending', 'retrieve']
+    
+    JobManager: IBMQJobManager()
+    
+    def __init__(
+        self,
+        besummonned: Hashable,
+        multiJob: MultiManager, 
+        backend: Backend,
+        experimentalContainer: ExperimentContainer
+    ):
+        assert multiJob.summonerID == besummonned
+        self.currentMultiJob = multiJob
+        self.backend = backend
+        self.expContainer = experimentalContainer
+        
+        self.JobManager = IBMQJobManager()
+        self.circWithSerial = {}
+        
+    def pending(
+        self,
+        pendingStrategy: str = 'default',
+    ):
+        for id_exec in self.currentMultiJob.beforewards.configDict:
+            circSerialLen = len(self.circWithSerial)
+            for idx, circ in enumerate(self.expContainer[id_exec].beforewards.circuit):
+                self.circWithSerial[idx+circSerialLen] = circ
+                self.currentMultiJob.beforewards.circuitsMap[id_exec].append(idx+circSerialLen)
+                
+                
+        pendingJob01 = self.JobManager.run(
+            experiments=list(self.circWithSerial.values()),
+            backend=self.backend,
+            shots=1024,
+            name='qurryV5',
+        )
+            
 
 def pending(
     ibmqJobManager: IBMQJobManager,

@@ -1,5 +1,5 @@
 from qiskit import __qiskit_version__
-from qiskit.providers import Backend
+from qiskit.providers import Backend, BackendV1, BackendV2
 from qiskit.providers.ibmq import AccountProvider
 from qiskit_aer import AerProvider
 from qiskit_aer.version import get_version_info as get_version_info_aer
@@ -7,7 +7,7 @@ from qiskit_aer.version import get_version_info as get_version_info_aer
 import requests
 import pkg_resources
 from random import random
-from typing import Optional, Hashable
+from typing import Optional, Hashable, Union
 
 from .command import cmdWrapper, pytorchCUDACheck
 from ..hoshi import Hoshi
@@ -292,7 +292,7 @@ class backendWrapper:
     def __call__(
         self,
         backend_name: str,
-    ) -> Backend:
+    ) -> Union[Backend, BackendV1, BackendV2]:
         # if 'qasm' in backend_name:
         #     warnings.warn(
         #         "We use 'AerSimulator' as replacement of 'QASMSimulator' "+

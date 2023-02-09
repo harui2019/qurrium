@@ -93,13 +93,15 @@ class MultiManager:
     class after(NamedTuple):
         """`dataStateDepending` and `dataNeccessary` in V4 format."""
         retrievedResult: TagList[Result]
+        """The list of retrieved results, which multiple experiments shared."""
         allCounts: dict[Hashable, list[dict[str, int]]]
+        """The dict of all counts of each experiments."""
 
-    _unexports = ['retrievedResult']
+    _unexports: list[str] = ['retrievedResult']
     """The content would not be exported."""
-    after_lock = False
+    after_lock: bool = False
     """Protect the :cls:`afterward` content to be overwritten. When setitem is called and completed, it will be setted as `False` automatically."""
-    mute_auto_lock = False
+    mute_auto_lock: bool = False
     """Whether mute the auto-lock message."""
 
     def unlock_afterward(self, mute_auto_lock: bool = False):
@@ -390,10 +392,10 @@ class MultiManager:
         
         if 'datetimes' not in multicommons:
             multicommons['datetimes'] = {}
-            if version == 'v4':
-                multicommons['datetimes']['v4Read'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            multicommons['datetimes']['bulid'] = datetime.now().strftime(
-                "%Y-%m-%d %H:%M:%S")
+        if version == 'v4':
+            multicommons['datetimes']['v4Read'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        multicommons['datetimes']['bulid'] = datetime.now().strftime(
+            "%Y-%m-%d %H:%M:%S")
         
         self.multicommons = self.multicommonparams(**multicommons)
         self.outfields: dict[str, Any] = outfields
