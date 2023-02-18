@@ -12,11 +12,11 @@ import gc
 import json
 import warnings
 
-from ...mori import jsonablize, TagList, syncControl, defaultConfig
+from ...mori import TagList, syncControl, defaultConfig
 from ...mori.quick import quickJSON, quickRead
 from ...exceptions import QurryProtectContent
-from ..declare.type import Quantity, Counts
-from ..utils.naming import namingComplex, naming
+from ..declare.type import Quantity
+from ..utils.naming import naming
 
 multicommonConfig = defaultConfig(
     name='multicommon',
@@ -79,11 +79,14 @@ class MultiManager:
         circuitsNum: dict[str, int]
         """The map with tags of index of experiments, which multiple experiments shared."""
         
-        pendingPools: TagList[str]
+        pendingPools: TagList[int]
         """The pool of pending jobs, which multiple experiments shared, it works only when executing experiments is remote."""
         circuitsMap: TagList[str]
         """The map of circuits of each experiments in the index of pending, which multiple experiments shared."""
-        jobID: list[tuple[str, str]]
+        jobID: list[Union[
+            tuple[Union[str, None], Union[str, tuple, Hashable, None]],
+            list[Union[str, None], Union[str, tuple, Hashable, None]]
+        ]]
         """The list of jobID in pending, which multiple experiments shared, it works only when executing experiments is remote."""
         
         tagMapExpsID: TagList[str]

@@ -14,7 +14,6 @@ from abc import abstractmethod, abstractproperty
 
 from ..mori import TagList
 from ..tools import Gajima, ResoureWatch
-
 from .declare.default import (
     transpileConfig,
     runConfig,
@@ -23,7 +22,7 @@ from .declare.default import (
 )
 from .experiment import ExperimentPrototype, QurryExperiment
 from .container import WaveContainer, ExperimentContainer
-from .multimanager import MultiManager
+from .multimanager import MultiManager, IBMQRunner, Runner
 
 from .utils import decomposer, get_counts
 from ..exceptions import QurryInheritionNoEffect, QurryResetAccomplished, QurryResetSecurityActivated
@@ -210,6 +209,8 @@ class QurryV5Prototype:
         self.multimanagers: dict[str, MultiManager] = {}
         """The last multiJob be called.
         Replace the property :prop:`multiNow`. in :cls:`QurryV4`"""
+        
+        self.multirunner: Union[IBMQRunner, Runner] = Runner()
 
     # state checking
     @property
@@ -1026,6 +1027,87 @@ class QurryV5Prototype:
         filesMulti = currentMultiJob.write()
 
         return currentMultiJob.multicommons.summonerID
+    
+    def multiPending(
+        self,
+        # configList
+        configList: list = [],
+
+        # defaultConfig of `IBMQJobManager().run`
+        # Multiple jobs shared
+        summonerName: str = 'exps',
+        summonerID: Optional[str] = None,
+        shots: int = 1024,
+        backend: Backend = AerSimulator(),
+        provider: AccountProvider = None,
+        # IBMQJobManager() dedicated
+        # Other arguments of experiment
+        # Multiple jobs shared
+        saveLocation: Union[Path, str] = Path('./'),
+
+        filetype: TagList._availableFileType = 'json',
+
+        pendingStrategy: Literal['default', 'onetime', 'each', 'tags'] = 'default',
+        # defaultMultiAnalysis: list[dict[str, Any]] = [],
+        # analysisName: str = 'report',
+    ) -> Hashable:
+        """_summary_
+
+        Args:
+            configList (list, optional): _description_. Defaults to [].
+            shots (int, optional): _description_. Defaults to 1024.
+            backend (Backend, optional): _description_. Defaults to AerSimulator().
+            provider (AccountProvider, optional): _description_. Defaults to None.
+            summonerName (str, optional): _description_. Defaults to 'exps'.
+            summonerID (Optional[str], optional): _description_. Defaults to None.
+            saveLocation (Union[Path, str], optional): _description_. Defaults to Path('./').
+            filetype (TagList._availableFileType, optional): _description_. Defaults to 'json'.
+            overwrite (bool, optional): _description_. Defaults to False.
+
+        Returns:
+            Hashable: _description_
+        """
+        
+        besummonned = self.multiBuild(
+            configList=configList,
+            shots=shots,
+            backend=backend,
+            provider=provider,
+            managerRunArgs={},
+            summonerName=summonerName,
+            summonerID=summonerID,
+            saveLocation=saveLocation,
+            jobsType=f"IBMQ.{pendingStrategy}",
+            filetype=filetype,
+        )
+        currentMultiJob = self.multimanagers[besummonned]
+        assert currentMultiJob.summonerID == besummonned
+        
+        self.multirunner: IBMQRunner = IBMQRunner(
+            currentMultiJob.summonerName,
+            currentMultiJob,
+            backend=backend,
+            experimentalContainer=self.exps,
+        )
+        
+        # currentMultiJob.outfields['pendingStrategy'] = pendingStrategy
+        self.multirunner.pending(
+            pendingStrategy=pendingStrategy,
+        )
+        
+        # if len(defaultMultiAnalysis) > 0:
+        #     currentMultiJob = self.multimanagers[besummonned]
+        #     for analysis in defaultMultiAnalysis:
+        #         self.multiAnalysis(
+        #             summonerID=currentMultiJob.multicommons.summonerID,
+        #             analysisName=analysisName,
+        #             _write=False,
+        #             **analysis,
+        #         )
+        
+        filesMulti = currentMultiJob.write()
+
+        return currentMultiJob.multicommons.summonerID
 
     def multiAnalysis(
         self,
@@ -1191,6 +1273,49 @@ class QurryV5Prototype:
         #         )
 
         return besummonned
+
+    def multiRetrieve(
+        self,
+        # configList
+        summonerName: str = 'exps',
+        summonerID: Optional[str] = None,
+        # IBMQJobManager() dedicated
+        # Other arguments of experiment
+        # Multiple jobs shared
+        saveLocation: Union[Path, str] = Path('./'),
+
+        # defaultMultiAnalysis: list[dict[str, Any]] = []
+        # analysisName: str = 'report',
+    ) -> Hashable:
+        """_summary_
+
+        Args:
+            configList (list, optional): _description_. Defaults to [].
+            shots (int, optional): _description_. Defaults to 1024.
+            backend (Backend, optional): _description_. Defaults to AerSimulator().
+            provider (AccountProvider, optional): _description_. Defaults to None.
+            summonerName (str, optional): _description_. Defaults to 'exps'.
+            summonerID (Optional[str], optional): _description_. Defaults to None.
+            saveLocation (Union[Path, str], optional): _description_. Defaults to Path('./').
+            filetype (TagList._availableFileType, optional): _description_. Defaults to 'json'.
+            overwrite (bool, optional): _description_. Defaults to False.
+
+        Returns:
+            Hashable: _description_
+        """
+        
+        besummonned = self.multiRead(
+            summonerName=summonerName,
+            summonerID=summonerID,
+            saveLocation=saveLocation,
+        )
+        currentMultiJob = self.multimanagers[besummonned]
+        assert currentMultiJob.summonerID == besummonned
+        
+        if currentMultiJob.multicommons.jobsType[:4] != 'IBMQ':
+            warnings.warn(f"Jobstype of '{besummonned}' is {currentMultiJob.multicommons.jobsType} which is not supported.")
+            return besummonned
+        
 
     def multiReadV4(
         self,

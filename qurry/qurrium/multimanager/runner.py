@@ -9,9 +9,28 @@ from abc import abstractmethod
 
 from .multimanager import MultiManager
 
+class Runner:
+    
+    currentManager: MultiManager
+    backend: Backend
+
+    jobID: str
+    report: str
+    name: str
+    type: Literal['pending', 'retrieve']
+    
+    @abstractmethod
+    def pending(self, *args, **kwargs):
+        pass
+    
+    @abstractmethod
+    def retrieve(self, *args, **kwargs):
+        pass
+
+
 # Using for Third-Party Backend
 
-class Runner:
+class ThirdPartyRunner(Runner):
     
     currentManager: MultiManager
     backend: Backend
