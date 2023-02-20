@@ -10,14 +10,13 @@ from abc import abstractmethod
 from .multimanager import MultiManager
 
 class Runner:
+    """Pending and Retrieve Jobs from remote backend."""
     
     currentManager: MultiManager
     backend: Backend
 
-    jobID: str
-    report: str
-    name: str
-    type: Literal['pending', 'retrieve']
+    pendingIDs: str
+    reports: dict[str, dict]
     
     @abstractmethod
     def pending(self, *args, **kwargs):
@@ -31,15 +30,14 @@ class Runner:
 # Using for Third-Party Backend
 
 class ThirdPartyRunner(Runner):
+    """Pending and Retrieve Jobs from Third-Parties' backend."""
     
     currentManager: MultiManager
     backend: Backend
 
-    jobID: str
-    report: str
-    name: str
-    type: Literal['pending', 'retrieve']
-    
+    pendingIDs: str
+    reports: dict[str, dict]
+
     def __init__(
         self, 
         manager: MultiManager, 

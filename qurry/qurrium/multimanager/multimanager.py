@@ -392,6 +392,8 @@ class MultiManager:
         for k in rawReadMultiConfig:
             if k in self.multicommonparams._fields:
                 multicommons[k] = rawReadMultiConfig[k]
+            elif k == 'outfields':
+                outfields = { **rawReadMultiConfig[k] }
             else:
                 outfields[k] = rawReadMultiConfig[k]
 

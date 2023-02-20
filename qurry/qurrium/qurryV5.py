@@ -209,7 +209,7 @@ class QurryV5Prototype:
         self.multimanagers: dict[str, MultiManager] = {}
         """The last multiJob be called.
         Replace the property :prop:`multiNow`. in :cls:`QurryV4`"""
-        
+
         self.multirunner: Union[IBMQRunner, Runner] = Runner()
 
     # state checking
@@ -273,61 +273,61 @@ class QurryV5Prototype:
                 If input is the key in `.waves`, then use it.
                 If input is `None` or something illegal, then use `.lastWave'.
                 Defaults to None.
-                
+
             expID (Optional[str], optional): 
                 If input is `None`, then create an new experiment.
                 If input is a existed experiment ID, then use it.
                 Otherwise, use the experiment with given specific ID.
                 Defaults to None.
-                
+
             shots (int, optional):
                 Shots of the job. Defaults to `1024`.
-                
-                
+
+
             backend (Backend, optional): 
                 The quantum backend. Defaults to AerSimulator().
-                
+
             provider (Optional[AccountProvider], optional): 
                 :cls:`AccountProvider` of current backend for running :cls:`IBMQJobManager`.
                 Defaults to `None`.
-                
+
             runArgs (dict, optional): 
                 defaultConfig of :func:`qiskit.execute`. Defaults to `{}`.
-                
+
             runBy (Literal[&#39;gate&#39;, &#39;operator&#39;], optional): 
                 Construct wave function via :cls:`Operater` for "operator" or :cls:`Gate` for "gate".
                 When use 'IBMQBackend' only allowed to use wave function as `Gate` instead of `Operator`.
                 Defaults to "gate".
-                
+
             transpileArgs (dict, optional):
                 defaultConfig of :func:`qiskit.transpile`. Defaults to `{}`.
-                
+
             decompose (Optional[int], optional): 
                 Running `QuantumCircuit` which be decomposed given times. Defaults to 2.
-                
+
             tags (tuple, optional): 
                 Given the experiment multiple tags to make a dictionary for recongnizing it.
                 Defaults to ().
-                
+
             defaultAnalysis (list[dict[str, Any]], optional): 
                 The analysis methods will be excuted after counts has been computed.
                 Defaults to [].
-                
+
             serial (Optional[int], optional): 
                 Index of experiment in a multiOutput.
                 **!!ATTENTION, this should only be used by `Multimanager`!!**
                 Defaults to None.
-                
+
             summonerID (Optional[Hashable], optional): 
                 ID of experiment of the multiManager. 
                 **!!ATTENTION, this should only be used by `Multimanager`!!**
                 Defaults to None.
-                
+
             summonerName (Optional[str], optional): 
                 Name of experiment of the multiManager.
                 **!!ATTENTION, this should only be used by `Multimanager`!!**
                 _description_. Defaults to None.
-            
+
             muteOutfieldsWarning (bool, optional):
                 Mute the warning when there are unused arguments detected and stored in outfields.
                 Defaults to False.
@@ -476,7 +476,7 @@ class QurryV5Prototype:
                 Whether to jsonablize the experiment output. Defaults to False.
             _exportMute (bool, optional):
                 Whether to mute the export hint. Defaults to True.
-                
+
             allArgs: all arguments will handle by `self.paramsControl()` and export as specific format.
 
         Returns:
@@ -514,6 +514,9 @@ class QurryV5Prototype:
             currentExp.beforewards.figTranspiled.append(
                 decomposer(_w, currentExp.commons.decompose).draw(output='text'))
             currentExp.beforewards.circuit.append(_w)
+        # commons
+        date = datetime.today().strftime("%Y-%m-%d_%H-%M-%S")
+        currentExp.commons.datetimes['build'] = date
 
         if isinstance(saveLocation, (Path, str)):
             currentExp.write(
@@ -554,7 +557,7 @@ class QurryV5Prototype:
                 Whether to jsonablize the experiment output. Defaults to False.
             _exportMute (bool, optional):
                 Whether to mute the export hint. Defaults to True.
-                
+
             allArgs: all arguments will handle by `self.paramsControl()` and export as specific format.
 
         Returns:
@@ -630,7 +633,7 @@ class QurryV5Prototype:
                 Whether to jsonablize the experiment output. Defaults to False.
             _exportMute (bool, optional):
                 Whether to mute the export hint. Defaults to True.
-        
+
             allArgs: all arguments will handle by `self.paramsControl()` and export as specific format.
 
         Returns:
@@ -706,7 +709,7 @@ class QurryV5Prototype:
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
                 This name is also used for creating a folder to store the exports.
                 Defaults to `'exps'`.
-                
+
             saveLocation (Optional[Union[Path, str]], optional):
                 The location to save the experiment. If None, will not save.
                 Defaults to None.
@@ -932,7 +935,7 @@ class QurryV5Prototype:
             ].append(self.exps[currentID].commons.serial)
 
         filesMulti = currentMultiJob.write()
-        
+
         assert len(currentMultiJob.beforewards.pendingPools) == 0
         assert len(currentMultiJob.beforewards.circuitsMap) == 0
         assert len(currentMultiJob.beforewards.jobID) == 0
@@ -1004,14 +1007,14 @@ class QurryV5Prototype:
 
             circSerialLen = len(circSerial)
             tmpCircSerial = [
-                idx+circSerialLen 
-            for idx in range(len(self.exps[currentID].beforewards.circuit))]
-            
+                idx+circSerialLen
+                for idx in range(len(self.exps[currentID].beforewards.circuit))]
+
             circSerial += tmpCircSerial
             currentMultiJob.beforewards.pendingPools[currentID] = tmpCircSerial
             currentMultiJob.beforewards.circuitsMap[currentID] = tmpCircSerial
             currentMultiJob.beforewards.jobID.append((currentID, 'local'))
-            
+
             currentMultiJob.afterwards.allCounts[currentID] = self.exps[currentID].afterwards.counts
 
         if len(defaultMultiAnalysis) > 0:
@@ -1027,7 +1030,7 @@ class QurryV5Prototype:
         filesMulti = currentMultiJob.write()
 
         return currentMultiJob.multicommons.summonerID
-    
+
     def multiPending(
         self,
         # configList
@@ -1047,7 +1050,8 @@ class QurryV5Prototype:
 
         filetype: TagList._availableFileType = 'json',
 
-        pendingStrategy: Literal['default', 'onetime', 'each', 'tags'] = 'default',
+        pendingStrategy: Literal['default',
+                                 'onetime', 'each', 'tags'] = 'default',
         # defaultMultiAnalysis: list[dict[str, Any]] = [],
         # analysisName: str = 'report',
     ) -> Hashable:
@@ -1067,7 +1071,7 @@ class QurryV5Prototype:
         Returns:
             Hashable: _description_
         """
-        
+
         besummonned = self.multiBuild(
             configList=configList,
             shots=shots,
@@ -1082,19 +1086,19 @@ class QurryV5Prototype:
         )
         currentMultiJob = self.multimanagers[besummonned]
         assert currentMultiJob.summonerID == besummonned
-        
+
         self.multirunner: IBMQRunner = IBMQRunner(
             besummonned=currentMultiJob.summonerID,
             multiJob=currentMultiJob,
             backend=backend,
             experimentalContainer=self.exps,
         )
-        
+
         # currentMultiJob.outfields['pendingStrategy'] = pendingStrategy
-        self.multirunner.pending(
+        bependings = self.multirunner.pending(
             pendingStrategy=pendingStrategy,
         )
-        
+
         # if len(defaultMultiAnalysis) > 0:
         #     currentMultiJob = self.multimanagers[besummonned]
         #     for analysis in defaultMultiAnalysis:
@@ -1104,8 +1108,14 @@ class QurryV5Prototype:
         #             _write=False,
         #             **analysis,
         #         )
-        
+
         filesMulti = currentMultiJob.write()
+        for id_exec in currentMultiJob.beforewards.configDict:
+            print(f"| MultiWrite: {id_exec} in {summonerID}.")
+            self.exps[id_exec].write(
+                saveLocation=currentMultiJob.multicommons.saveLocation,
+                mute=True,
+            )
 
         return currentMultiJob.multicommons.summonerID
 
@@ -1207,7 +1217,8 @@ class QurryV5Prototype:
             saveLocation=saveLocation if saveLocation is not None else None,
         )
 
-        for id_exec, jobtype in currentMultiJob.beforewards.jobID:
+        for id_exec in currentMultiJob.beforewards.configDict:
+            print(f"| MultiWrite: {id_exec} in {summonerID}.")
             self.exps[id_exec].write(
                 saveLocation=currentMultiJob.multicommons.saveLocation,
                 mute=True,
@@ -1308,7 +1319,7 @@ class QurryV5Prototype:
         Returns:
             Hashable: _description_
         """
-        
+
         besummonned = self.multiRead(
             summonerName=summonerName,
             summonerID=summonerID,
@@ -1316,26 +1327,33 @@ class QurryV5Prototype:
         )
         currentMultiJob = self.multimanagers[besummonned]
         assert currentMultiJob.summonerID == besummonned
-        
+
         if currentMultiJob.multicommons.jobsType[:4] != 'IBMQ':
-            warnings.warn(f"Jobstype of '{besummonned}' is {currentMultiJob.multicommons.jobsType} which is not supported.")
+            warnings.warn(
+                f"Jobstype of '{besummonned}' is {currentMultiJob.multicommons.jobsType} which is not supported.")
             return besummonned
-        
+
         self.multirunner: IBMQRunner = IBMQRunner(
             besummonned=currentMultiJob.summonerID,
             multiJob=currentMultiJob,
             backend=backend,
             experimentalContainer=self.exps,
         )
-        
-        beretrieved =  self.multirunner.retrieve(
+
+        beretrieveds = self.multirunner.retrieve(
             provider=provider,
             refresh=refresh,
             overwrite=overwrite,
         )
-        assert beretrieved == besummonned
-        
+
+        print(f"| Retrieved {len(beretrieveds)} jobs.")
         filesMulti = currentMultiJob.write()
+        for id_exec in currentMultiJob.beforewards.configDict:
+            print(f"| MultiWrite: {id_exec} in {summonerID}.")
+            self.exps[id_exec].write(
+                saveLocation=currentMultiJob.multicommons.saveLocation,
+                mute=True,
+            )
 
         return currentMultiJob.multicommons.summonerID
 

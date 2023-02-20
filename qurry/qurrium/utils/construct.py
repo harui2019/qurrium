@@ -148,7 +148,7 @@ def get_counts(
         return counts
 
     try:
-        if num is None:
+        if num is None and resultIdxList is None:
             get: Union[list[dict[str, int]],
                        dict[str, int]] = result.get_counts()
             if isinstance(get, list):
@@ -158,6 +158,12 @@ def get_counts(
         else:
             if resultIdxList is None:
                 resultIdxList = [i for i in range(num)]
+            elif num is None:
+                ...
+            else:
+                if num != len(resultIdxList):
+                    warnings.warn("The number of result is not equal to the length of resultIdxList, use resultIdxList.")
+                
             for i in resultIdxList:
                 allMeas = result.get_counts(i)
                 counts.append(allMeas)
