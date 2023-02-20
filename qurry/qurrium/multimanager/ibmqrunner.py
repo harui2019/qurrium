@@ -21,8 +21,9 @@ class QurryIBMQBackendIO(NamedTuple):
     name: str
     type: Literal['pending', 'retrieve']
 
+
 class IBMQRunner(Runner):
-    
+
     currentMultiJob: MultiManager
     backend: Backend
 
@@ -30,34 +31,37 @@ class IBMQRunner(Runner):
     report: str
     name: str
     type: Literal['pending', 'retrieve']
-    
+
     JobManager: IBMQJobManager()
-    
+
     def __init__(
         self,
         besummonned: Hashable,
-        multiJob: MultiManager, 
+        multiJob: MultiManager,
         backend: Backend,
         experimentalContainer: ExperimentContainer
     ):
-        assert multiJob.summonerID == besummonned
+        assert multiJob.summonerID == besummonned, (
+            f"Summoner ID not match, multiJob.summonerID: {multiJob.summonerID}, besummonned: {besummonned}")
         self.currentMultiJob = multiJob
         self.backend = backend
         self.expContainer = experimentalContainer
-        
+
         self.JobManager = IBMQJobManager()
         self.circWithSerial: dict[int, QuantumCircuit] = {}
-        
+
     def pending(
         self,
-        pendingStrategy: Literal['default', 'onetime', 'each', 'tags'] = 'default',
+        pendingStrategy: Literal[
+            'default', 'onetime', 'each', 'tags'] = 'default',
     ) -> list[tuple[str, str]]:
-        
+
         for id_exec in self.currentMultiJob.beforewards.configDict:
             circSerialLen = len(self.circWithSerial)
             for idx, circ in enumerate(self.expContainer[id_exec].beforewards.circuit):
-                self.currentMultiJob.beforewards.circuitsMap[id_exec].append(idx+circSerialLen)
-                
+                self.currentMultiJob.beforewards.circuitsMap[id_exec].append(
+                    idx+circSerialLen)
+
                 if pendingStrategy == 'each':
                     self.currentMultiJob.beforewards.pendingPools[id_exec].append(
                         idx+circSerialLen)
@@ -73,58 +77,60 @@ class IBMQRunner(Runner):
                             f"Unknown strategy '{pendingStrategy}, use 'onetime'.")
                     self.currentMultiJob.beforewards.pendingPools['_onetime'].append(
                         idx+circSerialLen)
-                    
+
                 self.circWithSerial[idx+circSerialLen] = circ
-                
+
         self.currentMultiJob.multicommons.datetimes['pending'] = datetime.now(
-            ).strftime("%Y-%m-%d %H:%M:%S")
-        
+        ).strftime("%Y-%m-%d %H:%M:%S")
+
         for pk, pcircIdxs in self.currentMultiJob.beforewards.pendingPools.items():
             if len(pcircIdxs) > 0:
                 if pk == '_onetime':
-                    pendingName = f'{self.currentMultiJob.multicommons.name}'    
+                    pendingName = f'{self.currentMultiJob.multicommons.summonerName}'
                 elif isinstance(pk, (list, tuple)):
-                    pendingName = f'{self.currentMultiJob.multicommons.name}-{"-".join(pk)}'
+                    pendingName = f'{self.currentMultiJob.multicommons.summonerName}-{"-".join(pk)}'
                 else:
-                    pendingName = f'{self.currentMultiJob.multicommons.name}-{pk}'
-                
+                    pendingName = f'{self.currentMultiJob.multicommons.summonerName}-{pk}'
+
                 pendingJob = IBMQPending(
                     ibmqJobManager=self.JobManager,
-                    experiments=[self.circWithSerial[idx] for idx in pcircIdxs],
+                    experiments=[self.circWithSerial[idx]
+                                 for idx in pcircIdxs],
                     backend=self.backend,
                     shots=self.currentMultiJob.multicommons.shots,
                     name=pendingName,
                     managerRunArgs=self.currentMultiJob.multicommons.managerRunArgs,
                 )
-                self.currentMultiJob.beforewards.jobID.append((pendingJob.jobID, pk))
+                self.currentMultiJob.beforewards.jobID.append(
+                    (pendingJob.jobID, pk))
                 print(f"| pending: {pk} - {pendingJob.jobID}")
                 print(f"| report:", pendingJob.report)
                 print(f"| name:", pendingJob.name)
-            
+
             else:
                 self.currentMultiJob.beforewards.jobID.append((None, pk))
                 warnings.warn(f"Pending pool '{pk}' is empty.")
-        
+
         self.currentMultiJob.multicommons.datetimes['pendingCompleted'] = datetime.now(
-            ).strftime("%Y-%m-%d %H:%M:%S")
-        
+        ).strftime("%Y-%m-%d %H:%M:%S")
+
         return self.currentMultiJob.beforewards.jobID
-    
+
     def retrieve(
         self,
         provider: AccountProvider,
         refresh: bool = False,
         overwrite: bool = False,
     ) -> list[tuple[str, str]]:
-        
+
         pendingMapping: dict[Hashable, QurryIBMQBackendIO] = {}
-        
+
         retrieveTimes = 1
         retrieveTimesName = 'retrieve'+f'{retrieveTimes}'.rjust(3, '0')
-        while not retrieveTimesName in self.currentMultiJob.multicommons.datetimes:
+        while retrieveTimesName in self.currentMultiJob.multicommons.datetimes:
             retrieveTimes += 1
             retrieveTimesName = 'retrieve'+f'{retrieveTimes}'.rjust(3, '0')
-            
+
         if retrieveTimes > 1 and overwrite == False:
             print(f"| retrieve times: {retrieveTimes}, overwrite: {overwrite}")
             lastTimeDate = self.currentMultiJob.multicommons.datetimes[
@@ -133,11 +139,11 @@ class IBMQRunner(Runner):
             print(f"| Last retrieve at: {lastTimeDate}")
             print(f"| Seems to there is a retrieve before.")
             print(f"| You can use `overwrite=True` to overwrite the previous retrieve.")
-            
+
             return self.currentMultiJob.beforewards.jobID
-        
+
         self.currentMultiJob.multicommons.datetimes[retrieveTimesName] = datetime.now(
-            ).strftime("%Y-%m-%d %H:%M:%S")
+        ).strftime("%Y-%m-%d %H:%M:%S")
         for pendingID, pk in self.currentMultiJob.beforewards.jobID:
             print(f"| retrieve: {pendingID} {pk}")
             if pendingID is None:
@@ -148,7 +154,7 @@ class IBMQRunner(Runner):
                 provider=provider,
                 refresh=refresh,
             )
-            
+
         for pk, pcircs in self.currentMultiJob.beforewards.pendingPools.items():
             if len(pcircs) > 0:
                 pendingJob = pendingMapping[pk].managedJob
@@ -177,14 +183,14 @@ class IBMQRunner(Runner):
             else:
                 warnings.warn(f"Pending pool '{pk}' is empty.")
         print("| Distributing all circuits to their original experimemts.")
-        
-        circSerial = []
+
         for currentID, idxCircs in self.currentMultiJob.beforewards.circuitsMap.items():
             for idx in idxCircs:
                 self.expContainer[currentID].afterwards.counts.append(
                     self.currentMultiJob.afterwards.allCounts[idx])
-        
+
         return self.currentMultiJob.beforewards.jobID
+
 
 def IBMQPending(
     ibmqJobManager: IBMQJobManager,

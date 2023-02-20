@@ -292,7 +292,7 @@ class EntropyHadamardTest(QurryV5Prototype):
             saveLocation=None,
             **otherArgs,
         )
-        assert IDNow in self.exps
+        assert IDNow in self.exps, f"ID {IDNow} not found."
         assert self.exps[IDNow].commons.expID == IDNow
         currentExp = self.exps[IDNow]
 

@@ -7,7 +7,7 @@ from qiskit.providers.ibmq import AccountProvider
 
 import gc
 import warnings
-import datetime
+from datetime import datetime
 from pathlib import Path
 from typing import Literal, Union, Optional, Hashable, Type, Any
 from abc import abstractmethod, abstractproperty
@@ -25,7 +25,7 @@ from .container import WaveContainer, ExperimentContainer
 from .multimanager import MultiManager, IBMQRunner, Runner
 
 from .utils import decomposer, get_counts
-from ..exceptions import QurryInheritionNoEffect, QurryResetAccomplished, QurryResetSecurityActivated
+from ..exceptions import QurryUnrecongnizedArguments, QurryResetAccomplished, QurryResetSecurityActivated
 
 # Qurry V0.5.0 - a Qiskit Macro
 
@@ -395,7 +395,7 @@ class QurryV5Prototype:
                     f"The following keys are not recognized as arguments for main process of experiment: " +
                     f"{list(outfields.keys())}'" +
                     ', but are still kept in experiment record.',
-                    QurryInheritionNoEffect
+                    QurryUnrecongnizedArguments
                 )
 
         if len(commons.defaultAnalysis) > 0:
@@ -489,7 +489,7 @@ class QurryV5Prototype:
 
         # preparing
         IDNow = self._paramsControlMain(**allArgs)
-        assert IDNow in self.exps
+        assert IDNow in self.exps, f"ID {IDNow} not found."
         assert self.exps[IDNow].commons.expID == IDNow
         currentExp = self.exps[IDNow]
 
@@ -570,7 +570,7 @@ class QurryV5Prototype:
             saveLocation=None,
             **allArgs
         )
-        assert IDNow in self.exps
+        assert IDNow in self.exps, f"ID {IDNow} not found."
         assert self.exps[IDNow].commons.expID == IDNow
         currentExp = self.exps[IDNow]
 
@@ -581,7 +581,7 @@ class QurryV5Prototype:
             shots=currentExp.commons.shots,
         )
         # commons
-        date = datetime.datetime.today().strftime("%Y-%m-%d_%H-%M-%S")
+        date = datetime.today().strftime("%Y-%m-%d_%H-%M-%S")
         currentExp.commons.datetimes['run'] = date
         # beforewards
         jobID = execution.job_id()
@@ -646,7 +646,7 @@ class QurryV5Prototype:
             saveLocation=None,
             **allArgs
         )
-        assert IDNow in self.exps
+        assert IDNow in self.exps, f"ID {IDNow} not found."
         assert self.exps[IDNow].commons.expID == IDNow
         currentExp = self.exps[IDNow]
         assert len(
@@ -736,7 +736,7 @@ class QurryV5Prototype:
             saveLocation=None,
             **otherArgs,
         )
-        assert IDNow in self.exps
+        assert IDNow in self.exps, f"ID {IDNow} not found."
         assert self.exps[IDNow].commons.expID == IDNow
         currentExp = self.exps[IDNow]
 
@@ -1084,8 +1084,8 @@ class QurryV5Prototype:
         assert currentMultiJob.summonerID == besummonned
         
         self.multirunner: IBMQRunner = IBMQRunner(
-            currentMultiJob.summonerName,
-            currentMultiJob,
+            besummonned=currentMultiJob.summonerID,
+            multiJob=currentMultiJob,
             backend=backend,
             experimentalContainer=self.exps,
         )
@@ -1283,6 +1283,11 @@ class QurryV5Prototype:
         # Other arguments of experiment
         # Multiple jobs shared
         saveLocation: Union[Path, str] = Path('./'),
+        backend: Backend = AerSimulator(),
+        provider: AccountProvider = None,
+
+        refresh: bool = False,
+        overwrite: bool = False,
 
         # defaultMultiAnalysis: list[dict[str, Any]] = []
         # analysisName: str = 'report',
@@ -1316,6 +1321,23 @@ class QurryV5Prototype:
             warnings.warn(f"Jobstype of '{besummonned}' is {currentMultiJob.multicommons.jobsType} which is not supported.")
             return besummonned
         
+        self.multirunner: IBMQRunner = IBMQRunner(
+            besummonned=currentMultiJob.summonerID,
+            multiJob=currentMultiJob,
+            backend=backend,
+            experimentalContainer=self.exps,
+        )
+        
+        beretrieved =  self.multirunner.retrieve(
+            provider=provider,
+            refresh=refresh,
+            overwrite=overwrite,
+        )
+        assert beretrieved == besummonned
+        
+        filesMulti = currentMultiJob.write()
+
+        return currentMultiJob.multicommons.summonerID
 
     def multiReadV4(
         self,
@@ -1520,7 +1542,7 @@ class QurryV5(QurryV5Prototype):
             saveLocation=None,
             **otherArgs,
         )
-        assert IDNow in self.exps
+        assert IDNow in self.exps, f"ID {IDNow} not found."
         assert self.exps[IDNow].commons.expID == IDNow
         currentExp = self.exps[IDNow]
 

@@ -36,6 +36,7 @@ multicommonConfig = defaultConfig(
     }
 )
 
+
 class MultiManager:
 
     class multicommonparams(NamedTuple):
@@ -62,23 +63,23 @@ class MultiManager:
 
         jobsType: Literal["local", "IBMQ", "AWS_Bracket", "Azure_Q"]
         """Type of jobs to run multiple experiments."""
-        
+
         managerRunArgs: dict[str, any]
         """Other arguments will be passed to `IBMQJobManager()`"""
 
         filetype: TagList._availableFileType
-        
+
         # header
         datetimes: dict[str, str]
 
     class before(NamedTuple):
         """`dataNeccessary` and `expsMultiMain` in V4 format."""
-        
+
         configDict: dict[str, dict[str, any]]
         """The dict of config of each experiments."""
         circuitsNum: dict[str, int]
         """The map with tags of index of experiments, which multiple experiments shared."""
-        
+
         pendingPools: TagList[int]
         """The pool of pending jobs, which multiple experiments shared, it works only when executing experiments is remote."""
         circuitsMap: TagList[str]
@@ -88,11 +89,11 @@ class MultiManager:
             list[Union[str, None], Union[str, tuple, Hashable, None]]
         ]]
         """The list of jobID in pending, which multiple experiments shared, it works only when executing experiments is remote."""
-        
+
         tagMapExpsID: TagList[str]
         tagMapFiles: TagList[str]
-        tagMapIndex: TagList[Union[str, int]] 
-        
+        tagMapIndex: TagList[Union[str, int]]
+
     class after(NamedTuple):
         """`dataStateDepending` and `dataNeccessary` in V4 format."""
         retrievedResult: TagList[Result]
@@ -120,7 +121,7 @@ class MultiManager:
     def __setitem__(self, key, value) -> None:
         if key in self.before._fields:
             self.beforewards = self.beforewards._replace(**{key: value})
-        
+
         elif key in self.after._fields:
             if self.after_lock and isinstance(self.after_lock, bool):
                 self.afterwards = self.afterwards._replace(**{key: value})
@@ -152,7 +153,7 @@ class MultiManager:
     @property
     def summonerID(self) -> str:
         return self.multicommons.summonerID
-    
+
     @property
     def summonerName(self) -> str:
         return self.multicommons.summonerName
@@ -163,10 +164,10 @@ class MultiManager:
         summonerID: Hashable,
         summonerName: str,
         saveLocation: Union[Path, str] = Path('./'),
-        
+
         isRead: bool = False,
         encoding: str = 'utf-8',
-        
+
         filetype: TagList._availableFileType = 'json',
         version: Literal['v4', 'v5'] = 'v5',
         **kwargs
@@ -186,8 +187,8 @@ class MultiManager:
         Raises:
             ValueError: _description_
             ValueError: _description_
-        """        
-        
+        """
+
         if len(args) > 0:
             raise ValueError(
                 f"{self.__name__} can't be initialized with positional arguments.")
@@ -208,15 +209,15 @@ class MultiManager:
                     summonerID = str(uuid4())
             else:
                 ...
-        
+
         self.gitignore = syncControl()
         self.namingCpx = naming(
             isRead=isRead,
             expsName=summonerName,
             saveLocation=saveLocation,
         )
-        
-        if isRead and version == 'v5':     
+
+        if isRead and version == 'v5':
             multiConfigName = self.namingCpx.exportLocation / \
                 f"{self.namingCpx.expsName}.multiConfig.json"
             if not multiConfigName.exists():
@@ -226,8 +227,9 @@ class MultiManager:
                 rawReadMultiConfig: dict[str, Any] = json.load(f)
             rawReadMultiConfig['saveLocation'] = self.namingCpx.saveLocation
             rawReadMultiConfig['exportLocation'] = self.namingCpx.exportLocation
-            files: dict[str, Union[str, dict[str, str]]] = rawReadMultiConfig['files']
-                    
+            files: dict[str, Union[str, dict[str, str]]
+                        ] = rawReadMultiConfig['files']
+
             self.beforewards = self.before(
                 configDict=quickRead(
                     filename=Path(files['configDict']).name,
@@ -249,7 +251,7 @@ class MultiManager:
                     filename=Path(files['jobID']).name,
                     saveLocation=self.namingCpx.exportLocation,
                 ),
-                
+
                 tagMapExpsID=TagList.read(
                     saveLocation=self.namingCpx.exportLocation,
                     tagmapName='tagMapExpsID'
@@ -284,7 +286,7 @@ class MultiManager:
                 f"{self.namingCpx.expsName}.powerJobs.json"
             dataMultiJobsName = self.namingCpx.exportLocation / \
                 f"{self.namingCpx.expsName}.multiJobs.json"
-            
+
             if os.path.exists(dataPowerJobsName):
                 with open(dataPowerJobsName, 'r', encoding='utf-8') as theData:
                     dataDummyJobs = json.load(theData)
@@ -294,7 +296,7 @@ class MultiManager:
                 with open(dataMultiJobsName, 'r', encoding='utf-8') as theData:
                     dataDummyJobs = json.load(theData)
                 jobsType = "multiJobs"
-            
+
             rawReadMultiConfig = {
                 **kwargs,
                 'summonerID': summonerID,
@@ -334,7 +336,7 @@ class MultiManager:
                     tagmapName='pendingPools'
                 ),
                 jobID=[],
-                
+
                 tagMapExpsID=TagList.read(
                     saveLocation=self.namingCpx.exportLocation,
                     tagmapName='tagMapExpsID'
@@ -374,7 +376,7 @@ class MultiManager:
                 circuitsMap=TagList(),
                 pendingPools=TagList(),
                 jobID=[],
-                
+
                 tagMapExpsID=TagList(),
                 tagMapFiles=TagList(),
                 tagMapIndex=TagList(),
@@ -384,7 +386,7 @@ class MultiManager:
                 allCounts={},
             )
             self.tagMapQuantity: dict[str, TagList[Quantity]] = {}
-        
+
         multicommons = {}
         outfields = {}
         for k in rawReadMultiConfig:
@@ -392,25 +394,26 @@ class MultiManager:
                 multicommons[k] = rawReadMultiConfig[k]
             else:
                 outfields[k] = rawReadMultiConfig[k]
-        
+
         if 'datetimes' not in multicommons:
             multicommons['datetimes'] = {}
         if version == 'v4':
-            multicommons['datetimes']['v4Read'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            multicommons['datetimes']['v4Read'] = datetime.now().strftime(
+                "%Y-%m-%d %H:%M:%S")
         multicommons['datetimes']['bulid'] = datetime.now().strftime(
             "%Y-%m-%d %H:%M:%S")
-        
+
         self.multicommons = self.multicommonparams(**multicommons)
         self.outfields: dict[str, Any] = outfields
-        
+
     @property
     def summonerID(self) -> str:
         return self.multicommons.summonerID
-    
+
     @property
     def summonerName(self) -> str:
         return self.multicommons.summonerName
-    
+
     def updateSaveLocation(
         self,
         saveLocation: Union[Path, str],
@@ -426,9 +429,9 @@ class MultiManager:
             saveLocation=self.namingCpx.saveLocation,
             exportLocation=self.namingCpx.exportLocation,
         )
-        
+
         return self.namingCpx._asdict()
-    
+
     def write(
         self,
         saveLocation: Optional[Union[Path, str]] = None,
@@ -438,14 +441,15 @@ class MultiManager:
         # zip: bool = False,
         _onlyQuantity: bool = False,
     ) -> dict:
-        
+
         self.gitignore.read(self.multicommons.exportLocation)
         print(f"| Export multimanager...")
         if saveLocation is None:
             saveLocation = self.multicommons.saveLocation
         else:
-            self.updateSaveLocation(saveLocation=saveLocation, withoutSerial=True)
-        
+            self.updateSaveLocation(
+                saveLocation=saveLocation, withoutSerial=True)
+
         self.gitignore.ignore('*.json')
         self.gitignore.sync('qurryinfo.json')
         if not os.path.exists(saveLocation):
@@ -453,7 +457,7 @@ class MultiManager:
         if not os.path.exists(self.multicommons.exportLocation):
             os.makedirs(self.multicommons.exportLocation)
         self.gitignore.export(self.multicommons.exportLocation)
-        
+
         # beforewards amd afterwards
         for k in self.before._fields + self.after._fields:
             if _onlyQuantity or (k in self._unexports):
@@ -475,7 +479,7 @@ class MultiManager:
                 )
                 self.multicommons.files[k] = str(filename)
                 self.gitignore.sync(f"*.{k}.{self.multicommons.filetype}")
-                
+
             elif isinstance(self[k], (dict, list)):
                 filename = Path(self.multicommons.exportLocation) / \
                     f"{self.multicommons.summonerName}.{k}.json"
@@ -489,7 +493,7 @@ class MultiManager:
                     indent=indent,
                     encoding=encoding,
                 )
-                
+
             else:
                 warnings.warn(
                     f"'{k}' is type '{type(self[k])}' which is not supported to export.")
@@ -517,7 +521,7 @@ class MultiManager:
         self.multicommons.files['multiConfig'] = str(multiConfigName)
         self.gitignore.sync('*.multiConfig.json')
         multiConfig = {
-            **self.multicommons._asdict(), 
+            **self.multicommons._asdict(),
             'outfields': self.outfields,
             'files': self.multicommons.files,
         }
@@ -528,8 +532,11 @@ class MultiManager:
             jsonablize=True,
             encoding=encoding,
         )
-        
+
         self.gitignore.export(self.multicommons.exportLocation)
-        
+
         return multiConfig
-        
+
+    @property
+    def name(self) -> Hashable:
+        return self.multicommons.summonerName
