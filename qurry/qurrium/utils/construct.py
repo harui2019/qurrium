@@ -17,7 +17,7 @@ from typing import Literal, Union, Hashable, Optional
 def qubit_selector(
     num_qubits: int,
     degree: Union[int, tuple[int, int], None] = None,
-    as_what: Literal['degree', 'unitary_set', 'measure range'] = 'degree',
+    as_what: Literal['degree', 'unitary_set', 'unitary_loc', 'measure range'] = 'degree',
 ) -> tuple[int, int]:
     """Determint the qubits to be used.
 
@@ -25,7 +25,7 @@ def qubit_selector(
         num_qubits (int): Number of qubits.
         degree (Union[int, tuple[int, int], None], optional): 
             Degree of freedom or specific subsystem range. Defaults to None then will use number of qubits as degree.
-        as_what (Literal[&#39;degree&#39;, &#39;unitary_set&#39;, &#39;measure range&#39;], optional): For what is qubit range. Defaults to 'degree'.
+        as_what (Literal[&#39;degree&#39;, &#39;unitary_set&#39;, &#39;unitary_loc&#39;, &#39;measure range&#39;], optional): For what is qubit range. Defaults to 'degree'.
 
     Raises:
         ValueError: The specific degree of subsystem qubits beyond number of qubits which the wave function has.
