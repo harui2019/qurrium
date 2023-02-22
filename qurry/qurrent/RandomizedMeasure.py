@@ -481,6 +481,7 @@ def _circuit_method_core(
 class EntropyRandomizedAnalysis(AnalysisPrototype):
 
     __name__ = 'qurrent.RandomizedAnalysis'
+    shortName = 'qurrent.haar.report'
 
     class analysisInput(NamedTuple):
         """To set the analysis."""
@@ -569,8 +570,7 @@ class EntropyRandomizedAnalysis(AnalysisPrototype):
 class EntropyRandomizedExperiment(ExperimentPrototype):
 
     __name__ = 'qurrent.RandomizedExperiment'
-    shortName = 'qurrent'
-
+    shortName = 'qurrent.haar.exp'
     class arguments(NamedTuple):
         """Arguments for the experiment."""
         expName: str = 'exps'
@@ -636,6 +636,7 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
 class EntropyRandomizedMeasure(QurryV5Prototype):
 
     __name__ = 'qurrent.Randomized'
+    shortName = 'qurrent.haar'
 
     @classmethod
     @property
@@ -690,11 +691,11 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
         if unitary_loc is None:
             unitary_loc = numQubits
         unitary_loc = qubit_selector(
-            numQubits, degree=unitary_loc, as_what='unitary_set')
+            numQubits, degree=unitary_loc, as_what='unitary_loc')
 
         if (min(measure) < min(unitary_loc)) or (max(measure) > max(unitary_loc)):
             raise ValueError(
-                f"Unitary_set range '{unitary_loc}' does not contain measure range '{measure}'.")
+                f"unitary_loc range '{unitary_loc}' does not contain measure range '{measure}'.")
 
         expName = f"w={waveKey}-at={times}.{self.shortName}"
 
@@ -780,7 +781,7 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
         wave: Union[QuantumCircuit, any, None] = None,
         times: int = 100,
         measure: Union[int, tuple[int, int], None] = None,
-        unitary_set: Union[int, tuple[int, int], None] = None,
+        unitary_loc: Union[int, tuple[int, int], None] = None,
         expName: str = 'exps',
         *args,
         saveLocation: Optional[Union[Path, str]] = None,
@@ -818,7 +819,7 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
             expName=expName,
             times=times,
             measure=measure,
-            unitary_set=unitary_set,
+            unitary_loc=unitary_loc,
             saveLocation=None,
             **otherArgs,
         )

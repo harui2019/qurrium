@@ -49,6 +49,7 @@ def entangle_entropy(
 class EntropyHadamardAnalysis(AnalysisPrototype):
 
     __name__ = 'qurrent.HadamardAnalysis'
+    shortName = 'qurrent.hadamard.report'
 
     class analysisInput(NamedTuple):
         """To set the analysis."""
@@ -107,7 +108,7 @@ class EntropyHadamardAnalysis(AnalysisPrototype):
 class EntropyHadamardExperiment(ExperimentPrototype):
 
     __name__ = 'qurrent.HadamardExperiment'
-    shortName = 'qurrent'
+    shortName = 'qurrent.hadamard.exp'
 
     class arguments(NamedTuple):
         """Arguments for the experiment."""
@@ -163,6 +164,7 @@ class EntropyHadamardExperiment(ExperimentPrototype):
 class EntropyHadamardTest(QurryV5Prototype):
 
     __name__ = 'qurrent.Hadamard'
+    shortName = 'qurrent.hadamard'
 
     @classmethod
     @property
