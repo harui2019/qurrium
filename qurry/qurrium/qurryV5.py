@@ -1027,7 +1027,8 @@ class QurryV5Prototype:
                     **analysis,
                 )
 
-        filesMulti = currentMultiJob.write()
+        bewritten = self.multiWrite(besummonned)
+        assert bewritten == besummonned
 
         return currentMultiJob.multicommons.summonerID
 
@@ -1099,23 +1100,8 @@ class QurryV5Prototype:
             pendingStrategy=pendingStrategy,
         )
 
-        # if len(defaultMultiAnalysis) > 0:
-        #     currentMultiJob = self.multimanagers[besummonned]
-        #     for analysis in defaultMultiAnalysis:
-        #         self.multiAnalysis(
-        #             summonerID=currentMultiJob.multicommons.summonerID,
-        #             analysisName=analysisName,
-        #             _write=False,
-        #             **analysis,
-        #         )
-
-        filesMulti = currentMultiJob.write()
-        for id_exec in currentMultiJob.beforewards.configDict:
-            print(f"| MultiWrite: {id_exec} in {summonerID}.")
-            self.exps[id_exec].write(
-                saveLocation=currentMultiJob.multicommons.saveLocation,
-                mute=True,
-            )
+        bewritten = self.multiWrite(besummonned)
+        assert bewritten == besummonned
 
         return currentMultiJob.multicommons.summonerID
 
@@ -1347,13 +1333,8 @@ class QurryV5Prototype:
         )
 
         print(f"| Retrieved {len(beretrieveds)} jobs.")
-        filesMulti = currentMultiJob.write()
-        for id_exec in currentMultiJob.beforewards.configDict:
-            print(f"| MultiWrite: {id_exec} in {summonerID}.")
-            self.exps[id_exec].write(
-                saveLocation=currentMultiJob.multicommons.saveLocation,
-                mute=True,
-            )
+        bewritten = self.multiWrite(besummonned)
+        assert bewritten == besummonned
 
         return currentMultiJob.multicommons.summonerID
 
