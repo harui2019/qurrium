@@ -1,21 +1,31 @@
 from qiskit import QuantumCircuit
+from qiskit.result import Result
+from qiskit.providers.ibmq.managed import (
+    ManagedJobSet,
+    # ManagedJob,
+    ManagedResults,
+    IBMQManagedResultDataNotAvailable,
+    # IBMQJobManagerInvalidStateError,
+    # IBMQJobManagerUnknownJobSet
+    IBMQJobManagerJobNotFound
+)
 
 import warnings
-from typing import Literal, Union, Hashable
+from typing import Literal, Union, Hashable, Optional
 
 
 def qubit_selector(
     num_qubits: int,
     degree: Union[int, tuple[int, int], None] = None,
-    as_what: Literal['degree', 'unitary_set', 'measure range'] = 'degree',
-) -> tuple[int]:
+    as_what: Literal['degree', 'unitary_set', 'unitary_loc', 'measure range'] = 'degree',
+) -> tuple[int, int]:
     """Determint the qubits to be used.
 
     Args:
         num_qubits (int): Number of qubits.
         degree (Union[int, tuple[int, int], None], optional): 
             Degree of freedom or specific subsystem range. Defaults to None then will use number of qubits as degree.
-        as_what (Literal[&#39;degree&#39;, &#39;unitary_set&#39;, &#39;measure range&#39;], optional): For what is qubit range. Defaults to 'degree'.
+        as_what (Literal[&#39;degree&#39;, &#39;unitary_set&#39;, &#39;unitary_loc&#39;, &#39;measure range&#39;], optional): For what is qubit range. Defaults to 'degree'.
 
     Raises:
         ValueError: The specific degree of subsystem qubits beyond number of qubits which the wave function has.
@@ -117,3 +127,52 @@ def decomposer(
     for t in range(decompose):
         qcResult = qcResult.decompose()
     return qcResult
+
+
+def get_counts(
+    result: Union[Result, ManagedResults, None],
+    num: Optional[int] = None,
+    resultIdxList: Optional[list[int]] = None,
+) -> list[dict[str, int]]:
+    """Computing specific squantity.
+    Where should be overwritten by each construction of new measurement.
+
+    Returns:
+        tuple[dict, dict]:
+            Counts, purity, entropy of experiment.
+    """
+    counts: list[dict[str, int]] = []
+    if result is None:
+        counts.append({})
+        print("| Failed Job result skip, Job ID:", result.job_id)
+        return counts
+
+    try:
+        if num is None and resultIdxList is None:
+            get: Union[list[dict[str, int]],
+                       dict[str, int]] = result.get_counts()
+            if isinstance(get, list):
+                counts: list[dict[str, int]] = get
+            else:
+                counts.append(get)
+        else:
+            if resultIdxList is None:
+                resultIdxList = [i for i in range(num)]
+            elif num is None:
+                ...
+            else:
+                if num != len(resultIdxList):
+                    warnings.warn("The number of result is not equal to the length of resultIdxList, use resultIdxList.")
+                
+            for i in resultIdxList:
+                allMeas = result.get_counts(i)
+                counts.append(allMeas)
+
+    except IBMQManagedResultDataNotAvailable as err:
+        counts.append({})
+        print("| Failed Job result skip, Job ID:", result.job_id, err)
+    except IBMQJobManagerJobNotFound as err:
+        counts.append({})
+        print("| Failed Job result skip, Job ID:", result.job_id, err)
+
+    return counts

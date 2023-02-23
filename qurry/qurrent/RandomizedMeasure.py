@@ -1,11 +1,12 @@
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit.quantum_info import Operator
 
 import time
 import warnings
 import numpy as np
 from multiprocessing import Pool, cpu_count
 from pathlib import Path
-from typing import Literal, Union, Optional, NamedTuple, Hashable, Iterable, Type, overload, Any
+from typing import Union, Optional, NamedTuple, Hashable, Iterable, Type, overload, Any
 
 from ..qurrium import (
     QurryV5Prototype,
@@ -61,7 +62,7 @@ def _entangled_entropy_core(
     degree: Union[tuple[int, int], int],
     measure: tuple[int, int] = None,
     _workers_num: Optional[int] = None,
-) -> tuple[list[float], tuple[int, int], tuple[int, int]]:
+) -> tuple[dict[int, float], tuple[int, int], tuple[int, int]]:
     """The core function of entangled entropy.
 
     Args:
@@ -134,7 +135,7 @@ def _entangled_entropy_core(
     Begin = time.time()
 
     if launch_worker == 1:
-        purityCellList = []
+        purityCellItems = []
         print(
             f"| Without multi-processing to calculate overlap of {times} counts. It will take a lot of time to complete.")
         for i, c in enumerate(counts):
@@ -143,7 +144,7 @@ def _entangled_entropy_core(
                 f"| Calculating overlap {i} and {i} " +
                 f"by summarize {len(c)**2} values - {i+1}/{times}" +
                 f" - {round(time.time() - Begin, 3)}s.", end="\r")
-            purityCellList.append(_purityCell(
+            purityCellItems.append(_purityCell(
                 i, c, bitStringRange, subsystemSize))
 
         print(" "*150, end="\r")
@@ -154,11 +155,12 @@ def _entangled_entropy_core(
         print(
             f"| With {launch_worker} workers to calculate overlap of {times} counts.")
         pool = Pool(launch_worker)
-        purityCellList = pool.starmap(
+        purityCellItems = pool.starmap(
             _purityCell, [(i, c, bitStringRange, subsystemSize) for i, c in enumerate(counts)])
         print(f"| Calculating overlap end - {round(time.time() - Begin, 3)}s.")
 
-    return purityCellList, bitStringRange, measure
+    purityCellDict = {k: v for k, v in purityCellItems}
+    return purityCellDict, bitStringRange, measure
 
 
 def entangled_entropy(
@@ -169,6 +171,33 @@ def entangled_entropy(
     _workers_num: Optional[int] = None,
 ) -> dict[str, float]:
     """Calculate entangled entropy.
+
+    - Reference:
+        - Used in:
+            Statistical correlations between locally randomized measurements: 
+            A toolbox for probing entanglement in many-body quantum states - 
+            A. Elben, B. Vermersch, C. F. Roos, and P. Zoller, 
+            [PhysRevA.99.052323](https://doi.org/10.1103/PhysRevA.99.052323)
+
+        - `bibtex`:
+
+    ```bibtex
+        @article{PhysRevA.99.052323,
+            title = {Statistical correlations between locally randomized measurements: 
+            A toolbox for probing entanglement in many-body quantum states},
+            author = {Elben, A. and Vermersch, B. and Roos, C. F. and Zoller, P.},
+            journal = {Phys. Rev. A},
+            volume = {99},
+            issue = {5},
+            pages = {052323},
+            numpages = {12},
+            year = {2019},
+            month = {May},
+            publisher = {American Physical Society},
+            doi = {10.1103/PhysRevA.99.052323},
+            url = {https://link.aps.org/doi/10.1103/PhysRevA.99.052323}
+        }
+        ```
 
     Args:
         shots (int): Shots of the experiment on quantum machine.
@@ -186,13 +215,14 @@ def entangled_entropy(
             a list of each overlap, puritySD, degree, actual measure range, bitstring range.
     """
 
-    purityCellList, bitStringRange, measureRange = _entangled_entropy_core(
+    purityCellDict, bitStringRange, measureRange = _entangled_entropy_core(
         shots=shots,
         counts=counts,
         degree=degree,
         measure=measure,
         _workers_num=_workers_num,
     )
+    purityCellList = list(purityCellDict.values())
 
     purity = np.mean(purityCellList)
     puritySD = np.std(purityCellList)
@@ -201,15 +231,99 @@ def entangled_entropy(
     quantity = {
         'purity': purity,
         'entropy': entropy,
-        'purityCellList': purityCellList,
+        'purityCells': purityCellDict,
         'puritySD': puritySD,
 
         'degree': degree,
         'measureActually': measureRange,
         'bitStringRange': bitStringRange,
+        
+        'countsNum': len(counts),
     }
 
     return quantity
+
+
+@overload
+def solve_p(
+    meas_series: np.ndarray,
+    nA: int
+) -> tuple[np.ndarray, np.ndarray]:
+    ...
+
+
+@overload
+def solve_p(
+    meas_series: float,
+    nA: int
+) -> tuple[float, float]:
+    ...
+
+
+def solve_p(meas_series, nA):
+
+    b = 1/2**(nA-1)-2
+    a = 1+1/2**nA-1/2**(nA-1)
+    c = 1-meas_series
+    ppser = (-b+np.sqrt(b**2-4*a*c))/2/a
+    pnser = (-b-np.sqrt(b**2-4*a*c))/2/a
+
+    return ppser, pnser
+
+
+@overload
+def mitigation_equation(
+    pser: np.ndarray,
+    meas_series: np.ndarray,
+    nA: int
+) -> np.ndarray:
+    ...
+
+
+@overload
+def mitigation_equation(
+    pser: float,
+    meas_series: float,
+    nA: int
+) -> float:
+    ...
+
+
+def mitigation_equation(pser, meas_series, nA):
+    psq = np.square(pser)
+    return (
+        meas_series-psq/2**nA - (pser-psq)/2**(nA-1)
+    ) / np.square(1-pser)
+
+
+@overload
+def error_mitgation(
+    measSystem: float,
+    allSystem: float,
+    nA: int,
+    systemSize: int,
+) -> dict[str, float]:
+    ...
+
+
+@overload
+def error_mitgation(
+    measSystem: np.ndarray,
+    allSystem: np.ndarray,
+    nA: int,
+    systemSize: int,
+) -> dict[str, np.ndarray]:
+    ...
+
+
+def error_mitgation(measSystem, allSystem, nA, systemSize):
+    pp, pn = solve_p(allSystem, systemSize)
+    mitiga = mitigation_equation(pn, measSystem, nA)
+
+    return {
+        'mitigatedPurity': mitiga,
+        'mitigatedEntropy': -np.log2(mitiga)
+    }
 
 
 def entangled_entropy_complex(
@@ -220,6 +334,31 @@ def entangled_entropy_complex(
     _workers_num: Optional[int] = None,
 ) -> dict[str, float]:
     """Calculate entangled entropy with more information combined.
+
+    - Reference:
+        - Used in:
+            Simple mitigation of global depolarizing errors in quantum simulations - 
+            Vovrosh, Joseph and Khosla, Kiran E. and Greenaway, Sean and Self, Christopher and Kim, M. S. and Knolle, Johannes,
+            [PhysRevE.104.035309](https://link.aps.org/doi/10.1103/PhysRevE.104.035309)
+
+        - `bibtex`:
+
+    ```bibtex
+        @article{PhysRevE.104.035309,
+            title = {Simple mitigation of global depolarizing errors in quantum simulations},
+            author = {Vovrosh, Joseph and Khosla, Kiran E. and Greenaway, Sean and Self, Christopher and Kim, M. S. and Knolle, Johannes},
+            journal = {Phys. Rev. E},
+            volume = {104},
+            issue = {3},
+            pages = {035309},
+            numpages = {8},
+            year = {2021},
+            month = {Sep},
+            publisher = {American Physical Society},
+            doi = {10.1103/PhysRevE.104.035309},
+            url = {https://link.aps.org/doi/10.1103/PhysRevE.104.035309}
+        }
+    ```
 
     Args:
         shots (int): Shots of the experiment on quantum machine.
@@ -239,24 +378,26 @@ def entangled_entropy_complex(
             degree, actual measure range, actual measure range in all system, bitstring range.
     """
 
-    purityCellList, bitStringRange, measureRange = _entangled_entropy_core(
+    purityCellDict, bitStringRange, measureRange = _entangled_entropy_core(
         shots=shots,
         counts=counts,
         degree=degree,
         measure=measure,
         _workers_num=_workers_num,
     )
+    purityCellList = list(purityCellDict.values())
 
-    purityCellListAllSys, bitStringRangeAllSys, measureRangeAllSys = _entangled_entropy_core(
+    purityCellDictAllSys, bitStringRangeAllSys, measureRangeAllSys = _entangled_entropy_core(
         shots=shots,
         counts=counts,
         degree=None,
         measure=measure,
         _workers_num=_workers_num,
     )
+    purityCellListAllSys = list(purityCellDictAllSys.values())
 
-    purity = np.mean(purityCellList)
-    purityAllSys = np.mean(purityCellListAllSys)
+    purity: float = np.mean(purityCellList)
+    purityAllSys: float = np.mean(purityCellListAllSys)
     puritySD = np.std(purityCellList)
     puritySDAllSys = np.std(purityCellListAllSys)
 
@@ -266,72 +407,116 @@ def entangled_entropy_complex(
     if measure is None:
         measureInfo = 'not specified, use all qubits'
     else:
-        measureInfo = measure
+        measureInfo = f'measure range: {measure}'
+
+    num_qubits = len(list(counts[0].keys())[0])
+    if isinstance(degree, tuple):
+        subsystem = max(degree) - min(degree)
+    else:
+        subsystem = degree
+    error_mitgation_info = error_mitgation(
+        measSystem=purity,
+        allSystem=purityAllSys,
+        nA=subsystem,
+        systemSize=num_qubits,
+    )
 
     quantity = {
         # target system
         'purity': purity,
         'entropy': entropy,
-        'purityCellList': purityCellList,
+        'purityCells': purityCellDict,
         'puritySD': puritySD,
         'bitStringRange': bitStringRange,
         # all system
         'purityAllSys': purityAllSys,
         'entropyAllSys': entropyAllSys,
-        'purityCellListAllSys': purityCellListAllSys,
+        'purityCellsAllSys': purityCellDictAllSys,
         'puritySDAllSys': puritySDAllSys,
         'bitsStringRangeAllSys': bitStringRangeAllSys,
         # mitigated
-        # errorMitigatedPurity:
-        # errorMitigatedEntropy:
-        # errorMitigatedPuritySD:
-        # errorMitigatedPurityCellList:
+        'mitigatedPurity': error_mitgation_info['mitigatedPurity'],
+        'mitigatedEntropy': error_mitgation_info['mitigatedEntropy'],
         # info
         'degree': degree,
+        'numQubits': num_qubits,
         'measure': measureInfo,
         'measureActually': measureRange,
         'measureActuallyAllSys': measureRangeAllSys,
+        
+        'countsNum': len(counts),
     }
     return quantity
+
+
+def _circuit_method_core(
+    idx: int,
+    tgtCircuit: QuantumCircuit,
+    expName: str,
+    unitary_loc: tuple[int, int],
+    unitarySubList: dict[int, Operator],
+    measure: tuple[int, int],
+) -> QuantumCircuit:
+
+    numQubits = tgtCircuit.num_qubits
+
+    qFunc1 = QuantumRegister(numQubits, 'q1')
+    cMeas1 = ClassicalRegister(
+        measure[1]-measure[0], 'c1')
+    qcExp1 = QuantumCircuit(qFunc1, cMeas1)
+    qcExp1.name = f"{expName}-{idx}"
+
+    qcExp1.append(tgtCircuit, [qFunc1[i] for i in range(numQubits)])
+
+    qcExp1.barrier()
+    for j in range(*unitary_loc):
+        qcExp1.append(unitarySubList[j], [j])
+
+    for j in range(*measure):
+        qcExp1.measure(qFunc1[j], cMeas1[j-measure[0]])
+
+    return qcExp1
 
 
 class EntropyRandomizedAnalysis(AnalysisPrototype):
 
     __name__ = 'qurrent.RandomizedAnalysis'
+    shortName = 'qurrent.haar.report'
 
     class analysisInput(NamedTuple):
         """To set the analysis."""
 
         degree: tuple[int, int]
         shots: int
-        unitary_loc: tuple[int, int]
+        unitary_loc: tuple[int, int] = None
 
     class analysisContent(NamedTuple):
         """The content of the analysis."""
         # TODO: args hint
-        # TODO: add error mitigated purity
 
         purity: float
         """The purity of the system."""
         entropy: float
+        """The entanglement entropy of the system."""
         puritySD: float
-        purityCellList: list[float]
+        purityCells: dict[int, float]
         bitStringRange: tuple[int, int]
 
         purityAllSys: float
         entropyAllSys: float
-        purityCellListAllSys: list[float]
+        purityCellsAllSys: dict[int, float]
         puritySDAllSys: float
         bitsStringRangeAllSys: tuple[int, int]
 
-        # errorMitigatedPurity: float
-        # errorMitigatedEntropy: float
-        # errorMitigatedPuritySD: float
-        # errorMitigatedPurityCellList: list[float]
+        mitigatedPurity: float
+        mitigatedEntropy: float
 
+        numQubits: int
         measure: tuple[int, int]
         measureActually: tuple[int, int]
         measureActuallyAllSys: tuple[int, int]
+        
+        countsNum: int
 
         def __repr__(self):
             return f"analysisContent(purity={self.purity}, entropy={self.entropy}, and others)"
@@ -340,9 +525,8 @@ class EntropyRandomizedAnalysis(AnalysisPrototype):
     def default_side_product_fields(self) -> Iterable[str]:
         """The fields that will be stored as side product."""
         return [
-            'purityCellList',
-            'purityCellListAllSys',
-            'errorMitigatedPurityCellList'
+            'purityCells',
+            'purityCellsAllSys',
         ]
 
     @classmethod
@@ -386,14 +570,14 @@ class EntropyRandomizedAnalysis(AnalysisPrototype):
 class EntropyRandomizedExperiment(ExperimentPrototype):
 
     __name__ = 'qurrent.RandomizedExperiment'
-    shortName = 'qurrent'
-
+    shortName = 'qurrent.haar.exp'
     class arguments(NamedTuple):
         """Arguments for the experiment."""
         expName: str = 'exps'
         times: int = 100
         measure: tuple[int, int] = None
         unitary_loc: tuple[int, int] = None
+        workers_num: int = int(cpu_count() - 2)
 
     @classmethod
     @property
@@ -401,43 +585,6 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
         """The container class responding to this QurryV5 class.
         """
         return EntropyRandomizedAnalysis
-
-    @classmethod
-    def quantities(
-        cls,
-        shots: int,
-        counts: list[dict[str, int]],
-        degree: Union[tuple[int, int], int],
-        measure: tuple[int, int] = None,
-        _workers_num: Optional[int] = None,
-    ) -> dict[str, float]:
-        """Calculate entangled entropy with more information combined.
-
-        Args:
-            shots (int): Shots of the experiment on quantum machine.
-            counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
-            degree (Union[tuple[int, int], int]): Degree of the subsystem.
-            measure (tuple[int, int], optional): Measuring range on quantum circuits. Defaults to None.
-            _workers_num (Optional[int], optional): 
-                Number of multi-processing workers, 
-                if sets to 1, then disable to using multi-processing;
-                if not specified, the use 3/4 of cpu counts by `round(cpu_count*3/4)`.
-                Defaults to None.
-
-        Returns:
-            dict[str, float]: A dictionary contains 
-                purity, entropy, a list of each overlap, puritySD, 
-                purity of all system, entropy of all system, a list of each overlap in all system, puritySD of all system,
-                degree, actual measure range, actual measure range in all system, bitstring range.
-        """
-
-        return entangled_entropy_complex(
-            shots=shots,
-            counts=counts,
-            degree=degree,
-            measure=measure,
-            _workers_num=_workers_num,
-        )
 
     def analyze(
         self,
@@ -466,14 +613,14 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
         unitary_loc = self.args.unitary_loc
         counts = self.afterwards.counts
 
-        qs = self.quantities(
+        qs = self.analysis_container.quantities(
             shots=shots,
             counts=counts,
             degree=degree,
             measure=measure,
             _workers_num=_workers_num,
         )
-        print(qs.keys(), 'qqq')
+
         serial = len(self.reports)
         analysis = self.analysis_container(
             serial=serial,
@@ -489,6 +636,7 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
 class EntropyRandomizedMeasure(QurryV5Prototype):
 
     __name__ = 'qurrent.Randomized'
+    shortName = 'qurrent.haar'
 
     @classmethod
     @property
@@ -543,11 +691,11 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
         if unitary_loc is None:
             unitary_loc = numQubits
         unitary_loc = qubit_selector(
-            numQubits, degree=unitary_loc, as_what='unitary_set')
+            numQubits, degree=unitary_loc, as_what='unitary_loc')
 
         if (min(measure) < min(unitary_loc)) or (max(measure) > max(unitary_loc)):
             raise ValueError(
-                f"Unitary_set range '{unitary_loc}' does not contain measure range '{measure}'.")
+                f"unitary_loc range '{unitary_loc}' does not contain measure range '{measure}'.")
 
         expName = f"w={waveKey}-at={times}.{self.shortName}"
 
@@ -560,42 +708,67 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
             **otherArgs,
         )
 
-    def method(self) -> list[QuantumCircuit]:
+    def method(
+        self,
+        expID: Hashable,
+    ) -> list[QuantumCircuit]:
 
-        assert self.lastExp is not None
-        args: EntropyRandomizedExperiment.arguments = self.lastExp.args
-        commons: EntropyRandomizedExperiment.commonparams = self.lastExp.commons
+        assert expID in self.exps
+        assert self.exps[expID].commons.expID == expID
+        currentExp = self.exps[expID]
+        args: EntropyRandomizedExperiment.arguments = self.exps[expID].args
+        commons: EntropyRandomizedExperiment.commonparams = self.exps[expID].commons
         circuit = self.waves[commons.waveKey]
         numQubits = circuit.num_qubits
 
-        qcList = []
         unitaryList = {i: {
             j: random_unitary(2) for j in range(*args.unitary_loc)
         } for i in range(args.times)}
 
-        print(f"| Build circuit: {commons.waveKey}", end="\r")
-        for i in range(args.times):
-            qFunc1 = QuantumRegister(numQubits, 'q1')
-            cMeas1 = ClassicalRegister(
-                args.measure[1]-args.measure[0], 'c1')
-            qcExp1 = QuantumCircuit(qFunc1, cMeas1)
-            qcExp1.name = f"{args.expName}-{i}"
+        if isinstance(commons.serial, int):
+            print((
+                f"| Build circuit: {commons.waveKey}, worker={args.workers_num}," +
+                f" serial={commons.serial}, by={commons.summonerName}."
+            ), end="\r")
+        else:
+            print(f"| Build circuit: {commons.waveKey}.", end="\r")
+        # for i in range(args.times):
+        #     qFunc1 = QuantumRegister(numQubits, 'q1')
+        #     cMeas1 = ClassicalRegister(
+        #         args.measure[1]-args.measure[0], 'c1')
+        #     qcExp1 = QuantumCircuit(qFunc1, cMeas1)
+        #     qcExp1.name = f"{args.expName}-{i}"
 
-            qcExp1.append(self.waves.call(
-                wave=commons.waveKey,
-            ), [qFunc1[i] for i in range(numQubits)])
+        #     qcExp1.append(self.waves.call(
+        #         wave=commons.waveKey,
+        #     ), [qFunc1[i] for i in range(numQubits)])
 
-            qcExp1.barrier()
-            for j in range(*args.unitary_loc):
-                qcExp1.append(unitaryList[i][j], [j])
+        #     qcExp1.barrier()
+        #     for j in range(*args.unitary_loc):
+        #         qcExp1.append(unitaryList[i][j], [j])
 
-            for j in range(*args.measure):
-                qcExp1.measure(qFunc1[j], cMeas1[j-args.measure[0]])
+        #     for j in range(*args.measure):
+        #         qcExp1.measure(qFunc1[j], cMeas1[j-args.measure[0]])
 
-            qcList.append(qcExp1)
+        #     qcList.append(qcExp1)
 
-        self.lastExp.beforewards.sideProduct['unitaryOP'] = unitaryList
-        self.lastExp.beforewards.sideProduct['randomized'] = {i: {
+        pool = Pool(args.workers_num)
+        qcList = pool.starmap(
+            _circuit_method_core, [(
+                i, circuit, args.expName, args.unitary_loc, unitaryList[i], args.measure
+            ) for i in range(args.times)])
+        if isinstance(commons.serial, int):
+            print(
+                f"| Build circuit: {commons.waveKey}, worker={args.workers_num}," +
+                f" serial={commons.serial}, by={commons.summonerName} done."
+            )
+        else:
+            print(f"| Build circuit: {commons.waveKey} done.", end="\r")
+
+        currentExp.beforewards.sideProduct['unitaryOP'] = {
+            k: {i: np.array(v[i]).tolist() for i in range(*args.unitary_loc)}
+            for k, v in unitaryList.items()}
+        currentExp.beforewards.sideProduct['randomized'] = {i: {
             j: qubitOpToPauliCoeff(
                 unitaryList[i][j])
             for j in range(*args.unitary_loc)
@@ -606,10 +779,9 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
     def measure(
         self,
         wave: Union[QuantumCircuit, any, None] = None,
-        degree: Union[int, tuple[int, int], None] = None,
         times: int = 100,
         measure: Union[int, tuple[int, int], None] = None,
-        unitary_set: Union[int, tuple[int, int], None] = None,
+        unitary_loc: Union[int, tuple[int, int], None] = None,
         expName: str = 'exps',
         *args,
         saveLocation: Optional[Union[Path, str]] = None,
@@ -645,18 +817,18 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
         IDNow = self.result(
             wave=wave,
             expName=expName,
-            degree=degree,
             times=times,
             measure=measure,
-            unitary_set=unitary_set,
+            unitary_loc=unitary_loc,
             saveLocation=None,
             **otherArgs,
         )
-        assert IDNow == self.lastID
-        assert self.lastExp is not None
+        assert IDNow in self.exps, f"ID {IDNow} not found."
+        assert self.exps[IDNow].commons.expID == IDNow
+        currentExp = self.exps[IDNow]
 
         if isinstance(saveLocation, (Path, str)):
-            self.lastExp.write(
+            currentExp.write(
                 saveLocation=saveLocation,
                 mode=mode,
                 indent=indent,

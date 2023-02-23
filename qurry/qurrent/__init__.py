@@ -1,7 +1,10 @@
-from typing import Literal, Union
+from typing import Literal, Union, overload
 import warnings
 
 from ..exceptions import UnconfiguredWarning
+# v5
+from .RandomizedMeasure import EntropyRandomizedMeasure
+from .HadamardTest import EntropyHadamardTest
 # v4
 from .v4.haarMeasure import EntropyHaarMeasureV4
 from .v4.hadamardTest import EntropyHadamardTestV4
@@ -15,17 +18,77 @@ from .v2.haarMeasure import haarMeasureV2
 from .v2.hadamardTest import hadamardTestV2
 
 
+@overload
+def EntropyMeasure(
+    *args, method: Literal['base'], version: Literal['v2'], **kwargs
+) -> EntropyMeasureV2:
+    ...
+
+
+@overload
+def EntropyMeasure(
+    *args, method: Literal['hadamard'], version: Literal['v2'], **kwargs
+) -> hadamardTestV2:
+    ...
+
+@overload
+def EntropyMeasure(
+    *args, method: Union[Literal['randomized'], str], version: Literal['v2'], **kwargs
+) -> haarMeasureV2:
+    ...
+
+@overload
+def EntropyMeasure(
+    *args, method: Literal['base'], version: Literal['v3'], **kwargs
+) -> EntropyMeasureV3:
+    ...
+
+@overload
+def EntropyMeasure(
+    *args, method: Literal['hadamard'], version: Literal['v3'], **kwargs
+) -> hadamardTestV3:
+    ...
+
+
+@overload
+def EntropyMeasure(
+    *args, method: Union[Literal['randomized'], str], version: Literal['v3'], **kwargs
+) -> haarMeasureV3:
+    ...
+
+@overload
+def EntropyMeasure(
+    *args, method: Literal['hadamard'], version: Literal['v4'], **kwargs
+) -> EntropyHadamardTestV4:
+    ...
+
+
+@overload
+def EntropyMeasure(
+    *args, method: Union[Literal['randomized', 'base'], str], version: Literal['v4'], **kwargs
+) -> EntropyHaarMeasureV4:
+    ...
+    
+@overload
+def EntropyMeasure(
+    *args, method: Literal['hadamard'], version: Literal['v5'], **kwargs
+) -> EntropyHadamardTest:
+    ...
+
+
+@overload
+def EntropyMeasure(
+    *args, method: Union[Literal['randomized', 'base'], str], version: Literal['v5'], **kwargs
+) -> EntropyRandomizedMeasure:
+    ...
+
+
 def EntropyMeasure(
     *args,
-    method: Literal['randomized', 'hadamard', 'base'] = 'randomized',
-    version: Literal['v4', 'v3', 'v2'] = 'v4',
+    method = 'randomized',
+    version = 'v4',
     **kwargs,
-) -> Union[
-    EntropyMeasureV2,
-    EntropyMeasureV3,
-    EntropyHadamardTestV4,
-    EntropyHaarMeasureV4
-]:
+):
     """Call `EntropyMeasure` methods.
 
     Args:
@@ -39,6 +102,7 @@ def EntropyMeasure(
         version (Literal[&#39;v3&#39;, &#39;v2&#39;], optional): 
 
             - `EntropyMeasure` is the foundation of this module, this is why there is 'v2', 'v3', and `v4`.
+            - `EntropyMeasureV5` is the experimental version of `qurry`, which is a remake of all framework from V2.
             - `EntropyMeasureV4` is a data and processing structure refined of `v3`.
             - `EntropyMeasureV3` is the predecessor of framework of `qurry`.
             - `EntropyMeasureV2` is the fisrt application of `qurry`. Due to `EntropyMeasureV2` is deprecated but stil workable, so it is kept in this module.
@@ -83,6 +147,16 @@ def EntropyMeasure(
                 warnings.warn(
                     "QurryV4 EntropyMeasure does not exist base method, replaced by 'randomized'.", UnconfiguredWarning)
             return EntropyHaarMeasureV4(*args, **kwargs)
+
+    elif version == 'v5':
+        print("Experimental version 'v5' is running.")
+        if method == 'randomized' or method == 'haar':
+            return EntropyRandomizedMeasure(*args, **kwargs)
+        elif method == 'hadamard':
+            return EntropyHadamardTest(*args, **kwargs)
+        else:
+            return EntropyRandomizedMeasure(*args, **kwargs)
+
     else:
         warnings.warn(
             f"Invalid version {version}, replaced by 'v4'.", UnconfiguredWarning)

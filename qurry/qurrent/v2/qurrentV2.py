@@ -31,12 +31,12 @@ from typing import Union, Optional, Annotated, Callable
 
 from ...mori import (
     Configuration,
-    argdict,
     syncControl,
     jsonablize,
     quickJSONExport,
     keyTupleLoads,
 )
+from ...mori_deprecated import argdict
 
 # EntropyMeasureV0.2.1
 
@@ -825,7 +825,10 @@ class EntropyMeasureV2:
         elif isinstance(qcExp, QuantumCircuit):
             qcExp = self.qcDecomposer(qcExp, decompose)
             fig = qcExp.draw(drawMethod)
-
+            
+        else:
+            fig = []
+            
         return fig
 
     def circuitMethod(

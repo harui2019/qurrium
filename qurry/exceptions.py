@@ -45,13 +45,16 @@ class UnconfiguredWarning(QurryWarning):
 class QurryInheritionNoEffect(QurryWarning):
     "This configuration method has no effect."
 
+class QurryUnrecongnizedArguments(QurryWarning):
+    "This argument is not recognized but may be kept at somewhere."
+
 class QurryMemoryOverAllocationWarning(QurryWarning):
     "Automatically shutdown experiment to protect RAM for preventing crashing."
     
 class QurryImportWarning(QurryWarning):
     "Warning for qurry trying to import something."
 
-class QurryResetSecurityActivate(QurryWarning):
+class QurryResetSecurityActivated(QurryWarning):
     "Warning for reset class security."
     
 class QurryResetAccomplished(QurryWarning):

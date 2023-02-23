@@ -12,20 +12,66 @@ from datetime import datetime
 import gc
 import warnings
 import os
+import glob
 import json
 
 from ..hoshi import Hoshi
-from ..mori import jsonablize, quickJSON
+from ..mori import jsonablize, TagList, quickJSON, quickRead, defaultConfig
 from ..exceptions import (
     QurryInvalidInherition,
     QurryExperimentCountsNotCompleted,
-    QurryResetSecurityActivate,
+    QurryResetSecurityActivated,
     QurryResetAccomplished,
     QurryProtectContent,
     QurrySummonerInfoIncompletion
 )
 from .declare.type import Counts
 from .analysis import AnalysisPrototype, QurryAnalysis
+
+
+commonparamsConfig = defaultConfig(
+    name='commonparams',
+    default={
+        'expID': None,
+        'waveKey': None,
+        'shots': 1024,
+        'backend': AerSimulator(),
+        'provider': None,
+        'runArgs': {},
+        'runBy': 'gate',
+        'transpileArgs': {},
+        'decompose': None,
+        'tags': (),
+        'defaultAnalysis': [],
+        'saveLocation': Path('./'),
+        'filetype': 'json',
+        'datetimes': {},
+        'serial': None,
+        'summonerID': None,
+        'summonerName': None,
+        'datetimes': None,
+    }
+)
+
+beforeConfig = defaultConfig(
+    name='before',
+    default={
+        'circuit': [],
+        'figOriginal': [],
+        'figTranspiled': [],
+        'jobID': '',
+        'expName': '',
+        'sideProduct': {},
+    }
+)
+
+afterConfig = defaultConfig(
+    name='after',
+    default={
+        'result': [],
+        'counts': [],
+    }
+)
 
 
 class ExperimentPrototype():
@@ -48,40 +94,41 @@ class ExperimentPrototype():
 
         # Qiskit argument of experiment.
         # Multiple jobs shared
-        shots: int = 1024
+        shots: int
         """Number of shots to run the program (default: 1024)."""
-        backend: Backend = AerSimulator()
+        backend: Backend
         """Backend to execute the circuits on."""
-        provider: Optional[AccountProvider] = None
+        provider: Optional[AccountProvider]
         """Provider to execute the backend on."""
-        runArgs: dict = {}
+        runArgs: dict
         """Arguments of `execute`."""
 
         # Single job dedicated
-        runBy: Literal['gate', 'operator'] = "gate"
+        runBy: Literal['gate', 'operator']
         """Run circuits by gate or operator."""
-        transpileArgs: dict = {}
+        transpileArgs: dict
         """Arguments of `qiskit.compiler.transpile`."""
-        decompose: Optional[int] = 2
+        decompose: Optional[int]
         """Decompose the circuit in given times to show the circuit figures in :property:`.before.figOriginal`."""
 
-        tags: tuple = ()
+        tags: tuple
         """Tags of experiment."""
 
         # Auto-analysis when counts are ready
-        defaultAnalysis: list[dict[str, Any]] = []
+        defaultAnalysis: list[dict[str, Any]]
+        """When counts are ready, the experiment will automatically analyze the counts with the given analysis."""
 
         # Arguments for exportation
-        saveLocation: Union[Path, str] = Path('./')
+        saveLocation: Union[Path, str]
         """Location of saving experiment. 
         If this experiment is called by :cls:`QurryMultiManager`,
         then `adventure`, `legacy`, `tales`, and `reports` will be exported to their dedicated folders in this location respectively.
         This location is the default location for it's not specific where to save when call :meth:`.write()`, if does, then will be overwriten and update."""
-        filename: str = ''
+        filename: str
         """The name of file to be exported, it will be decided by the :meth:`.export` when it's called.
         More info in the pydoc of :prop:`files` or :meth:`.export`.
         """
-        files: dict[str, Path] = {}
+        files: dict[str, Path]
         """The list of file to be exported.
         For the `.write` function actually exports 4 different files
         respecting to `adventure`, `legacy`, `tales`, and `reports` like:
@@ -131,42 +178,40 @@ class ExperimentPrototype():
         """
 
         # Arguments for multi-experiment
-        serial: Optional[int] = None
+        serial: Optional[int]
         """Index of experiment in a multiOutput."""
-        summonerID: Optional[Hashable] = None
+        summonerID: Optional[Hashable]
         """ID of experiment of the multiManager."""
-        summonerName: Optional[str] = None
+        summonerName: Optional[str]
         """Name of experiment of the multiManager."""
 
         # header
-        datetimes: dict[str, str] = {}
+        datetimes: dict[str, str]
 
     class before(NamedTuple):
         # Experiment Preparation
-        circuit: list[QuantumCircuit] = []
+        circuit: list[QuantumCircuit]
         """Circuits of experiment."""
-        figOriginal: list[str] = []
+        figOriginal: list[str]
         """Raw circuit figures which is the circuit before transpile."""
-        figTranspiled: list[str] = []
+        figTranspiled: list[str]
         """Transpile circuit figures which is the circuit after transpile and the actual one would be executed."""
 
         # Export data
-        jobID: str = ''
+        jobID: str
         """ID of job for pending on real machine (IBMQBackend)."""
-        expName: str = 'exps'
+        expName: str
         """Name of experiment which is also showed on IBM Quantum Computing quene."""
 
         # side product
-        sideProduct: dict = {
-            'number_between_3_and_4': ['bleem', '(it\'s a joke)']
-        }
+        sideProduct: dict
         """The data of experiment will be independently exported in the folder 'tales'."""
 
     class after(NamedTuple):
         # Measurement Result
-        result: list[Result] = []
+        result: list[Result]
         """Results of experiment."""
-        counts: list[dict[str, int]] = []
+        counts: list[dict[str, int]]
         """Counts of experiment."""
 
     _unexports = ['sideProduct', 'result']
@@ -258,8 +303,9 @@ class ExperimentPrototype():
 
         # Dealing special arguments
         if 'datetimes' not in commons:
-            commons.datetimes['bulid'] = datetime.now().strftime(
-                "%Y-%m-%d %H:%M:%S")
+            commons['datetimes'] = {
+                'bulid': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
         if 'defaultAnalysis' in commons:
             filted_analysis = []
             for raw_input_analysis in commons['defaultAnalysis']:
@@ -274,6 +320,9 @@ class ExperimentPrototype():
             commons['defaultAnalysis'] = filted_analysis
         else:
             commons['defaultAnalysis'] = []
+        if 'tags' in commons:
+            if isinstance(commons['tags'], list):
+                commons['tags'] = tuple(commons['tags'])
 
         self.args: self.arguments = self.arguments(**params)
         self.commons = self.commonparams(
@@ -285,8 +334,18 @@ class ExperimentPrototype():
             **commons
         )
         self.outfields: dict[str, Any] = outfields
-        self.beforewards = self.before()
-        self.afterwards = self.after()
+        self.beforewards = self.before(
+            circuit=[],
+            figOriginal=[],
+            figTranspiled=[],
+            jobID='',
+            expName=self.args.expName,
+            sideProduct={},
+        )
+        self.afterwards = self.after(
+            result=[],
+            counts=[],
+        )
         self.reports: dict[str, ExperimentPrototype.analysis_container] = {}
 
         _summon_check = {
@@ -314,10 +373,10 @@ class ExperimentPrototype():
                     "Summoner data is not completed, it will export in single experiment mode.", category=QurrySummonerInfoIncompletion)
                 summon_msg.print()
 
-    after_lock = False
-    """Protect the :cls:`afterward` content to be overwritten. When setitem is called and completed, it will be setted as `False` automatically."""
-    mute_auto_lock = False
-    """Whether mute the auto-lock message."""
+        self.after_lock = False
+        """Protect the :cls:`afterward` content to be overwritten. When setitem is called and completed, it will be setted as `False` automatically."""
+        self.mute_auto_lock = False
+        """Whether mute the auto-lock message."""
 
     def unlock_afterward(self, mute_auto_lock: bool = False):
         """Unlock the :cls:`afterward` content to be overwritten.
@@ -330,10 +389,10 @@ class ExperimentPrototype():
         self.mute_auto_lock = mute_auto_lock
 
     def __setitem__(self, key, value) -> None:
-        if key in self.before._fields:
+        if key in self.beforewards._fields:
             self.beforewards = self.beforewards._replace(**{key: value})
 
-        elif key in self.after._fields:
+        elif key in self.afterwards._fields:
             if self.after_lock and isinstance(self.after_lock, bool):
                 self.afterwards = self.afterwards._replace(**{key: value})
             else:
@@ -353,9 +412,9 @@ class ExperimentPrototype():
             self.mute_auto_lock = False
 
     def __getitem__(self, key) -> Any:
-        if key in self.before._fields:
+        if key in self.beforewards._fields:
             return getattr(self.beforewards, key)
-        elif key in self.after._fields:
+        elif key in self.afterwards._fields:
             return getattr(self.afterwards, key)
         else:
             raise ValueError(
@@ -404,7 +463,7 @@ class ExperimentPrototype():
                 (
                     "Attention: any position arguments are not available on this method."
                     if len(args) > 0 else ""),
-                category=QurryResetSecurityActivate)
+                category=QurryResetSecurityActivated)
 
     # show info
     def __hash__(self) -> int:
@@ -424,10 +483,9 @@ class ExperimentPrototype():
             f"{len(self.after._fields)} experiment result datasets, " +
             f"and {len(self.reports)} analysis>")
 
-    def sheet(
+    def statesheet(
         self,
         reportExpanded: bool = False,
-
         hoshi: bool = False,
     ) -> Hoshi:
         info = Hoshi(
@@ -449,7 +507,9 @@ class ExperimentPrototype():
         info.newline(('itemize', 'outfields', len(self.outfields),
                       'Number of unused arguments.', 1))
         for k, v in self.outfields.items():
-            info.newline(('itemize', str(k), str(v), '', 2))
+            
+            
+            info.newline(('itemize', str(k), v, '', 2))
 
         info.newline(('itemize', 'beforewards'))
         for k, v in self.beforewards._asdict().items():
@@ -777,14 +837,16 @@ class ExperimentPrototype():
 
     def write(
         self,
-        saveLocation: Union[Path, str] = Path('./'),
+        saveLocation: Optional[Union[Path, str]] = None,
 
         mode: str = 'w+',
         indent: int = 2,
         encoding: str = 'utf-8',
         jsonablize: bool = False,
         # zip: bool = False,
-    ) -> Export:
+
+        mute: bool = False,
+    ) -> dict[str, str]:
         """Export the experiment data, if there is a previous export, then will overwrite.
         Replacement of :func:`QurryV4().writeLegacy`
 
@@ -813,7 +875,7 @@ class ExperimentPrototype():
         Args:
             saveLocation (Optional[Union[Path, str]], optional):
                 Where to save the export content as `json` file.
-                If `saveLocation == None`, then cancelled the file to be exported.
+                If `saveLocation == None`, then use the value in `self.commons` to be exported, if it's None too, then raise error.
                 Defaults to `None`.
 
             mode (str): 
@@ -833,9 +895,17 @@ class ExperimentPrototype():
             ...
         elif isinstance(saveLocation, str):
             saveLocation = Path(saveLocation)
+        elif saveLocation is None:
+            saveLocation = Path(self.commons.saveLocation)
+            if self.commons.saveLocation is None:
+                raise ValueError(
+                    "saveLocation is None, please provide a valid saveLocation")
         else:
             raise TypeError(
                 f"saveLocation must be Path or str, not {type(saveLocation)}")
+
+        if self.commons.saveLocation != saveLocation:
+            self.commons = self.commons._replace(saveLocation=saveLocation)
 
         export_material = self.export()
         export_set = {}
@@ -873,7 +943,7 @@ class ExperimentPrototype():
                 export_set[f'tales.{tk}'] = tv
             else:
                 export_set[f'tales.{tk}'] = [tv]
-            if f'reports.tales.{tk}' not in export_material.files:
+            if f'tales.{tk}' not in export_material.files:
                 warnings.warn(
                     f"tales.{tk} is not in export_names, it's not exported.")
         # reports ............  # reports
@@ -897,6 +967,9 @@ class ExperimentPrototype():
         for k in self._required_folder:
             if not os.path.exists(folder / k):
                 os.mkdir(folder / k)
+        
+        for k, v in export_material.files.items():
+            self.commons.files[k] = v
 
         for filekey, content in list(export_set.items()) + [('qurryinfo', qurryinfo)]:
             # Exportation of qurryinfo
@@ -914,7 +987,10 @@ class ExperimentPrototype():
                 indent=indent,
                 encoding=encoding,
                 jsonablize=jsonablize,
+                mute=mute,
             )
+
+        return export_material.files
 
     @classmethod
     def _read_core(
@@ -924,7 +1000,7 @@ class ExperimentPrototype():
         saveLocation: Union[Path, str] = Path('./'),
 
         encoding: str = 'utf-8',
-    ):
+    ) -> 'ExperimentPrototype':
         """Core of read function.
 
         Args:
@@ -1017,19 +1093,28 @@ class ExperimentPrototype():
                     instance[k].append(vv)
             else:
                 instance[k] = v
-        for k, v in export_material_set['tales'].items():
-            instance['sideProduct'][k] = v
+        if 'tales' in export_material_set:
+            for k, v in export_material_set['tales'].items():
+                instance['sideProduct'][k] = v
         # afterwards
         for k, v in export_material_set['legacy'].items():
             # instance.unlock_afterward(mute_auto_lock=True)
             for vv in v:
                 instance[k].append(vv)
         # reports
-        mains = {k: v for k, v in export_material_set['reports'].items()}
-        sides = {k: {} for k in export_material_set['reports']}
-        for tk, tv in export_material_set['tales_report'].items():
-            for k, v in tv.items():
-                sides[k][tk] = v
+        if 'reports' in export_material_set:
+            mains = {k: v for k, v in export_material_set['reports'].items()}
+            sides = {k: {} for k in export_material_set['reports']}
+        else:
+            mains = {}
+            sides = {}
+        if 'tales_report' in export_material_set:
+            for tk, tv in export_material_set['tales_report'].items():
+                for k, v in tv.items():
+                    if k not in sides:
+                        sides[k] = {}
+                        mains[k] = {}
+                    sides[k][tk] = v
 
         # print(mains, sides, 'mains, sides')
         for k, v in mains.items():
@@ -1044,7 +1129,7 @@ class ExperimentPrototype():
         saveLocation: Union[Path, str] = Path('./'),
 
         encoding: str = 'utf-8',
-    ):
+    ) -> list['ExperimentPrototype']:
         """Read the experiment from file.
         Replacement of :func:`QurryV4().readLegacy`
 
@@ -1101,7 +1186,166 @@ class ExperimentPrototype():
             ))
 
         return queue
+    
+    @classmethod
+    def readV4(
+        cls,
+        name: Union[Path, str],
+        summonerID: Optional[Hashable] = None,
+        saveLocation: Union[Path, str] = Path('./'),
 
+        encoding: str = 'utf-8',
+    ) -> list['ExperimentPrototype']:
+        """Read the experiment from file made by QurryV4, it's only available for the export of multiOutput.
+        Replacement of :func:`QurryV4().readLegacy`
+
+        Args:
+            name_or_id (Union[Path, str]): 
+                The name or id of the experiment to be read.
+            saveLocation (Union[Path, str], optional):
+                The location of the experiment to be read.
+                Defaults to Path('./').
+            indent (int, optional): 
+                Indent length for json, for :func:`mori.quickJSON`. Defaults to 2.
+            encoding (str, optional): 
+                Encoding method, for :func:`mori.quickJSON`. Defaults to 'utf-8'.
+
+        Raises:
+            ValueError: 'saveLocation' needs to be the type of 'str' or 'Path'.
+            FileNotFoundError: When `saveLocation` is not available.
+
+        """
+
+        if isinstance(saveLocation, (Path, str)):
+            saveLocation = Path(saveLocation)
+        else:
+            raise ValueError(
+                "'saveLocation' needs to be the type of 'str' or 'Path'.")
+        if not os.path.exists(saveLocation):
+            raise FileNotFoundError(
+                f"'SaveLoaction' does not exist, '{saveLocation}'.")
+            
+        exportLocation = saveLocation / name
+        if not os.path.exists(exportLocation):
+            raise FileNotFoundError(
+                f"'exportLoaction' does not exist, '{exportLocation}'.")
+        
+        configDict = quickRead(
+            filename=f'{name}.configDict.json',
+            saveLocation=exportLocation,
+        )
+        qurryinfoV4: dict[str, dict[str, str]] = {}
+        for k, v in configDict.items():
+            exportLocTmp = Path(v["exportLocation"]).name
+            qurryinfoV4[k] = {
+                'folder': exportLocTmp,
+                'legacy': str(Path(exportLocTmp) / 'legacy' / f"*expId={k}*.json"),
+                'tales':  str(Path(exportLocTmp) / 'tales' / f"*expId={k}*.json"),
+            }
+
+        queue = []
+        for expID, fileIndex in qurryinfoV4.items():
+            queue.append(cls._readV4_core(
+                expID, fileIndex, name, summonerID, saveLocation, encoding
+            ))
+            
+        return queue
+
+    @classmethod
+    def _readV4_core(
+        cls,
+        expID: str,
+        fileIndex: dict[str, str],
+        summonerName: str,
+        summonerID: Optional[Hashable] = None, 
+        saveLocation: Union[Path, str] = Path('./'),
+
+        encoding: str = 'utf-8',
+    ) -> 'ExperimentPrototype':
+        ...
+        
+        if isinstance(saveLocation, (Path, str)):
+            saveLocation = Path(saveLocation)
+        else:
+            raise ValueError(
+                "'saveLocation' needs to be the type of 'str' or 'Path'.")
+        if not os.path.exists(saveLocation):
+            raise FileNotFoundError(
+                f"'SaveLoaction' does not exist, '{saveLocation}'.")
+        
+        legacyRead = {}
+        lsfolder = glob.glob(str(saveLocation / fileIndex['legacy']))
+        if len(lsfolder) == 0:
+            raise FileNotFoundError(
+                f"The file 'expID={expID}' not found at the legacy folder of '{fileIndex['legacy']}'.")
+        for p in lsfolder:
+            with open(p, 'r', encoding=encoding) as Legacy:
+                legacyRead = json.load(Legacy)
+
+        talesRead = {}
+        lsfoldertales = glob.glob(str(saveLocation / fileIndex['tales']))
+        for p in lsfoldertales:
+            tmp = Path(p)
+            with open(p, 'r', encoding='utf-8') as Tales:
+                talesRead[tmp.suffixes[-2][1:]] = json.load(Tales)
+                
+        infields = {}
+        commonsinput = {
+            "files": {
+                'v4': fileIndex
+            },
+            'summonerName': summonerName,
+            'summonerID': summonerID,
+        }
+        beforewards = {}
+        afterwards = {}
+        outfields = {
+            'oldTales': talesRead
+        }
+        
+        for k in legacyRead:
+            if k in cls.arguments._fields:
+                infields[k] = legacyRead[k]
+            elif k in cls.commonparams._fields:
+                commonsinput[k] = legacyRead[k]
+            elif k in cls.before._fields:
+                beforewards[k] = legacyRead[k]
+            elif k in cls.after._fields:
+                afterwards[k] = legacyRead[k]
+                
+            elif k == 'figRaw':
+                beforewards['figOriginal'] = legacyRead[k]
+            elif k == 'figTranspile':
+                beforewards['figTranspiled'] = legacyRead[k]
+            elif k == 'dateCreate':
+                commonsinput['datetimes'] = {
+                    'build': legacyRead[k],
+                    'transformToV5': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                }
+            elif k == 'expIndex':
+                commonsinput['serial'] = legacyRead[k]
+            elif k == 'tags':
+                commonsinput['serial'] = legacyRead[k]
+            
+            else:
+                outfields[k] = legacyRead[k]
+                
+        if "wave" in legacyRead:
+            infields['waveKey'] = legacyRead['wave']
+
+        instance = cls(
+            **infields,
+            **commonsinput,
+            **outfields,
+        )
+        
+        for k, v in beforewards.items():
+            instance[k] = v
+        for k, v in afterwards.items():
+            for vv in v:
+                instance[k].append(vv)
+                
+        return instance
 
 class DummyExperiment(ExperimentPrototype):
     """The dummy experiment for testing and before first experiment runs."""

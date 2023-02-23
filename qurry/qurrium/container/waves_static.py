@@ -10,7 +10,7 @@ from typing import Literal, Union, Optional, Hashable, MutableMapping
 from .waves_dynamic import _add, _remove
 
 
-class StaticWaveContainer(dict[Hashable, QuantumCircuit]):
+class WaveContainer(dict[Hashable, QuantumCircuit]):
 
     @property
     def lastWave(self) -> QuantumCircuit:
@@ -32,7 +32,12 @@ class StaticWaveContainer(dict[Hashable, QuantumCircuit]):
         replace: Literal[True, False, 'duplicate'] = False,
     ) -> Hashable:
 
-        self.lastWaveKey = _add(self, wave, key, replace)
+        self.lastWaveKey = _add(
+            _wave_container=self, 
+            wave=wave,
+            key=key, 
+            replace=replace
+        )
         return self.lastWaveKey
 
     def remove(

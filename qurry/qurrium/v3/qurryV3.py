@@ -34,18 +34,17 @@ from abc import abstractmethod, abstractclassmethod
 from collections import Counter
 
 from ...tools import Gajima, ResoureWatch
+from ...mori_deprecated import attributedDict
 from ...mori import (
     defaultConfig,
-    attributedDict,
     syncControl,
     jsonablize,
     quickJSONExport,
     keyTupleLoads,
     sortHashableAhead,
-    TagMap,
+    TagList,
     singleColCSV,
 )
-from ...mori.type import TagMapType
 from ...exceptions import UnconfiguredWarning
 from ..declare.type import (
     Quantity,
@@ -323,11 +322,11 @@ class QurryV3:
         listExpID: list = []
         listFile: list = []
 
-        tagMapExpsID: TagMapType[str] = TagMap()
-        tagMapIndex: TagMapType[Union[str, int]] = TagMap()
-        tagMapQuantity: TagMapType[Quantity] = TagMap()
-        tagMapCounts: TagMapType[Counts] = TagMap()
-        # tagMapResult: TagMapType[Result] = TagMap()
+        tagMapExpsID: TagList[str] = TagList()
+        tagMapIndex: TagList[Union[str, int]] = TagList()
+        tagMapQuantity: TagList[Quantity] = TagList()
+        tagMapCounts: TagList[Counts] = TagList()
+        # tagMapResult: TagList[Result] = TagList()
 
         circuitsMap: dict = {}
         circuitsNum: dict = {}
@@ -1859,11 +1858,11 @@ class QurryV3:
                 'listExpID': [],  # expIDList
                 'listFile': [],  # fileList
                 # 'listQuantity': [],  # expPurityList/expEntropyList
-                'tagMapExpsID': TagMap(),  # expsBelong
-                'tagMapIndex': TagMap(),
+                'tagMapExpsID': TagList(),  # expsBelong
+                'tagMapIndex': TagList(),
 
-                'tagMapQuantity': TagMap(),
-                'tagMapCounts': TagMap(),
+                'tagMapQuantity': TagList(),
+                'tagMapCounts': TagList(),
 
                 'circuitsMap': {},
                 'circuitsNum': {},

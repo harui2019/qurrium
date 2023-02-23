@@ -8,12 +8,12 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 from .qurchart import paramsControl, valueGetter, stickLabelGiver
-from ..mori.type import TagMapType
+from ..mori import TagList
 from ..qurrium import Quantity
 
 
 def errorBar(
-    data: Union[TagMapType[Quantity], dict[str, dict[str, float]]],
+    data: Union[TagList[Quantity], dict[str, dict[str, float]]],
 
     name: str,
     quantity: str = 'entropy',

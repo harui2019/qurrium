@@ -9,7 +9,7 @@ import numpy as np
 import warnings
 import os
 
-from ..mori.type import TagMapType
+from ..mori import TagList
 from ..qurrium import Quantity
 
 _mplExportFormat = Literal['eps', 'jpg', 'jpeg', 'pdf', 'pgf',
@@ -36,7 +36,7 @@ class QurchartConfig(NamedTuple):
 
 
 def paramsControl(
-    data: Union[TagMapType[Quantity], dict[str, dict[str, float]]],
+    data: Union[TagList[Quantity], dict[str, dict[str, float]]],
 
     yLim: Union[callable, tuple[float, float],
                 None, Literal['qurchart']] = None,
@@ -124,13 +124,13 @@ def paramsControl(
 
 
 def yLimDecider(
-    data: Union[TagMapType[Quantity], dict[str, dict[str, float]]],
+    data: Union[TagList[Quantity], dict[str, dict[str, float]]],
     quantity: str = 'entropy',
 ) -> tuple[float, float]:
     """Give the `ylim` of the plot.
 
     Args:
-        data (TagMap): Plot data.
+        data (TagList): Plot data.
 
     Returns:
         tuple[float, float]: The upper and the lower bounds of plot should be.

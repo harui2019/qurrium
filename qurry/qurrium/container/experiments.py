@@ -1,7 +1,7 @@
 from ..experiment import ExperimentPrototype
 from typing import Union, Optional, Hashable, MutableMapping
 
-class ExperimentContainer(dict):
+class ExperimentContainer(dict[Hashable, ExperimentPrototype]):
     
     @property
     def lastExp(self) -> ExperimentPrototype:

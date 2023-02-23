@@ -9,4 +9,4 @@
 	url = git@github.com:harui2019/mori.git
 [submodule "qurry/hoshi"]
 	path = qurry/hoshi
-	url = https://github.com/harui2019/hoshi.git
+	url = git@github.com:harui2019/hoshi.git

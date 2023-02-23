@@ -7,12 +7,12 @@ from math import pi
 import matplotlib.pyplot as plt
 
 from .qurchart import paramsControl
-from ..mori.type import TagMapType
+from ..mori import TagList
 from ..qurrium import Quantity
 
 
 def quench(
-    data: Union[TagMapType[Quantity], dict[str, dict[str, float]]],
+    data: Union[TagList[Quantity], dict[str, dict[str, float]]],
     beta: float,
     timeEvo: Iterable,
     name: str,
@@ -23,7 +23,7 @@ def quench(
     """_summary_
 
     Args:
-        data (Union[TagMapType[Quantity], dict[str, dict[str, float]]]): _description_
+        data (Union[TagList[Quantity], dict[str, dict[str, float]]]): _description_
         beta (float): _description_
         timeEvo (Iterable): _description_
         name (str): _description_
