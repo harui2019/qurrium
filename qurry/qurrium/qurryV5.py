@@ -1286,8 +1286,8 @@ class QurryV5Prototype:
         refresh: bool = False,
         overwrite: bool = False,
 
-        # defaultMultiAnalysis: list[dict[str, Any]] = []
-        # analysisName: str = 'report',
+        defaultMultiAnalysis: list[dict[str, Any]] = [],
+        analysisName: str = 'report',
     ) -> Hashable:
         """_summary_
 
@@ -1335,6 +1335,16 @@ class QurryV5Prototype:
         print(f"| Retrieved {len(beretrieveds)} jobs.")
         bewritten = self.multiWrite(besummonned)
         assert bewritten == besummonned
+        
+        if len(defaultMultiAnalysis) > 0:
+            print(f"| MultiRetrieve analyzing...")
+            for analysis in defaultMultiAnalysis:
+                self.multiAnalysis(
+                    summonerID=currentMultiJob.multicommons.summonerID,
+                    analysisName=analysisName,
+                    _write=False,
+                    **analysis,
+                )
 
         return currentMultiJob.multicommons.summonerID
 
