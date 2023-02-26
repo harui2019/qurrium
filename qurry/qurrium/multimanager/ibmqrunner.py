@@ -15,7 +15,7 @@ from ..utils import get_counts
 
 
 class QurryIBMQBackendIO(NamedTuple):
-    
+
     managedJob: ManagedJobSet
     jobID: str
     report: str
@@ -53,7 +53,7 @@ class IBMQRunner(Runner):
         self.JobManager = IBMQJobManager()
         """JobManager for IBMQ"""
         self.circWithSerial: dict[int, QuantumCircuit] = {}
-        
+
         self.reports = {}
 
     def pending(
@@ -138,27 +138,35 @@ class IBMQRunner(Runner):
     ) -> list[tuple[str, str]]:
 
         pendingMapping: dict[Hashable, QurryIBMQBackendIO] = {}
+        coutsTmpContainer: dict[str, dict[str, int]] = {}
+        def retrieveTimesNamer(
+            retrieveTimes): return 'retrieve.'+f'{retrieveTimes}'.rjust(3, '0')
 
-        retrieveTimes = 1
-        retrieveTimesName = 'retrieve.'+f'{retrieveTimes}'.rjust(3, '0')
-        while retrieveTimesName in self.currentMultiJob.multicommons.datetimes:
-            retrieveTimes += 1
-            retrieveTimesName = 'retrieve.'+f'{retrieveTimes}'.rjust(3, '0')
+        alreadyRetrieved: list[str] = [
+            datetimeTag for datetimeTag in self.currentMultiJob.multicommons.datetimes
+            if 'retrieve' in datetimeTag]
+        retrieveTimes = len(alreadyRetrieved)
+        retrieveTimesName = retrieveTimesNamer(retrieveTimes)
 
         if retrieveTimes > 1 and overwrite == False:
-            print(f"| retrieve times: {retrieveTimes}, overwrite: {overwrite}")
+            print(f"| retrieve times: {retrieveTimes-1}, overwrite: {overwrite}")
             lastTimeDate = self.currentMultiJob.multicommons.datetimes[
-                'retrieve'+f'{retrieveTimes-1}'.rjust(3, '0')
+                retrieveTimesNamer(retrieveTimes-1)
             ]
-            print(f"| Last retrieve at: {lastTimeDate}")
-            print(f"| Seems to there is a retrieve before.")
+            print(f"| Last retrieve by: {retrieveTimesNamer(retrieveTimes-1)} at {lastTimeDate}")
+            print(f"| Seems to there are some retrieves before.")
             print(f"| You can use `overwrite=True` to overwrite the previous retrieve.")
 
             return self.currentMultiJob.beforewards.jobID
+        
+        if overwrite:
+            print(f"| Overwrite the previous retrieve.")
+            self.currentMultiJob.afterwards.reset(
+                security=True, muteWarning=True)
 
         current = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.currentMultiJob.multicommons.datetimes[retrieveTimesName] = current
-        
+
         for pendingID, pk in self.currentMultiJob.beforewards.jobID:
             if pendingID is None:
                 warnings.warn(f"Pending pool '{pk}' is empty.")
@@ -196,20 +204,23 @@ class IBMQRunner(Runner):
                     )
                     print("| Getting Counts length:", len(counts))
                 for rk in pcircs:
-                    self.currentMultiJob.afterwards.allCounts[rk] = counts[rk-pcircs[0]]
+                    coutsTmpContainer[rk] = counts[rk-pcircs[0]]
                     print(f"| Packing Counts of {rk} length:", len(
                         counts[rk-pcircs[0]]))
 
             else:
                 warnings.warn(f"Pending pool '{pk}' is empty.")
-        
+
         print("| Distributing all circuits to their original experimemts.")
         for currentID, idxCircs in self.currentMultiJob.beforewards.circuitsMap.items():
-            print(f"| Distributing to {currentID} with {len(idxCircs)} circuits.")
+            print(
+                f"| Distributing to {currentID} with {len(idxCircs)} circuits.")
             for idx in idxCircs:
                 self.expContainer[currentID].afterwards.counts.append(
-                    self.currentMultiJob.afterwards.allCounts[idx])
+                    coutsTmpContainer[idx])
             self.expContainer[currentID].commons.datetimes[retrieveTimesName] = current
+            self.currentMultiJob.afterwards.allCounts[
+                currentID] = self.expContainer[currentID].afterwards.counts
 
         return self.currentMultiJob.beforewards.jobID
 

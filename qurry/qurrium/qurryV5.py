@@ -25,7 +25,11 @@ from .container import WaveContainer, ExperimentContainer
 from .multimanager import MultiManager, IBMQRunner, Runner
 
 from .utils import decomposer, get_counts
-from ..exceptions import QurryUnrecongnizedArguments, QurryResetAccomplished, QurryResetSecurityActivated
+from ..exceptions import (
+    QurryUnrecongnizedArguments, 
+    QurryResetAccomplished, 
+    QurryResetSecurityActivated
+)
 
 # Qurry V0.5.0 - a Qiskit Macro
 
@@ -1332,7 +1336,7 @@ class QurryV5Prototype:
             overwrite=overwrite,
         )
 
-        print(f"| Retrieved {len(beretrieveds)} jobs.")
+        print(f"| Retrieve {currentMultiJob.summonerName} completed.")
         bewritten = self.multiWrite(besummonned)
         assert bewritten == besummonned
         
