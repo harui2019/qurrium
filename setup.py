@@ -30,7 +30,7 @@ __author__ = "Huai-Chung Chang (harui2019@proton.me)"
 
 setup(
     name='qurry',
-    version='0.3.4',
+    version='0.5.0.beta01',
     description='Qurry 🍛 - The Measuring Tool for Renyi Entropy, Loschmidt Echo, and Magnetization Squared, The Library of Some Common Cases',
     long_description=README,
     long_description_content_type='text/markdown',

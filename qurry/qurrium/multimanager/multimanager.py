@@ -14,7 +14,11 @@ import warnings
 
 from ...mori import TagList, syncControl, defaultConfig
 from ...mori.quick import quickJSON, quickRead
-from ...exceptions import QurryProtectContent
+from ...exceptions import (
+    QurryProtectContent,
+    QurryResetAccomplished, 
+    QurryResetSecurityActivated
+)
 from ..declare.type import Quantity
 from ..utils.naming import naming
 
@@ -100,6 +104,35 @@ class MultiManager:
         """The list of retrieved results, which multiple experiments shared."""
         allCounts: dict[Hashable, list[dict[str, int]]]
         """The dict of all counts of each experiments."""
+        
+        def reset(
+            self,
+            *args,
+            security: bool = False,
+            muteWarning: bool = False,
+        ) -> None:
+            """Reset the measurement and release memory for overwrite.
+
+            Args:
+                security (bool, optional): Security for reset. Defaults to `False`.
+                muteWarning (bool, optional): Mute the warning message. Defaults to `False`.
+            """
+
+            if security and isinstance(security, bool):
+                self.__init__(
+                    retrievedResult=TagList(),
+                    allCounts={}
+                )
+                gc.collect()
+                if not muteWarning:
+                    warnings.warn(
+                        "Afterwards reset accomplished.",
+                        QurryResetAccomplished)
+            else:
+                warnings.warn(
+                    "Reset does not execute to prevent executing accidentally, " +
+                    "if you are sure to do this, then use '.reset(security=True)'.",
+                    QurryResetSecurityActivated)
 
     _unexports: list[str] = ['retrievedResult']
     """The content would not be exported."""

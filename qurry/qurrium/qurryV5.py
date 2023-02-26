@@ -25,7 +25,11 @@ from .container import WaveContainer, ExperimentContainer
 from .multimanager import MultiManager, IBMQRunner, Runner
 
 from .utils import decomposer, get_counts
-from ..exceptions import QurryUnrecongnizedArguments, QurryResetAccomplished, QurryResetSecurityActivated
+from ..exceptions import (
+    QurryUnrecongnizedArguments, 
+    QurryResetAccomplished, 
+    QurryResetSecurityActivated
+)
 
 # Qurry V0.5.0 - a Qiskit Macro
 
@@ -1286,8 +1290,8 @@ class QurryV5Prototype:
         refresh: bool = False,
         overwrite: bool = False,
 
-        # defaultMultiAnalysis: list[dict[str, Any]] = []
-        # analysisName: str = 'report',
+        defaultMultiAnalysis: list[dict[str, Any]] = [],
+        analysisName: str = 'report',
     ) -> Hashable:
         """_summary_
 
@@ -1332,9 +1336,19 @@ class QurryV5Prototype:
             overwrite=overwrite,
         )
 
-        print(f"| Retrieved {len(beretrieveds)} jobs.")
+        print(f"| Retrieve {currentMultiJob.summonerName} completed.")
         bewritten = self.multiWrite(besummonned)
         assert bewritten == besummonned
+        
+        if len(defaultMultiAnalysis) > 0:
+            print(f"| MultiRetrieve analyzing...")
+            for analysis in defaultMultiAnalysis:
+                self.multiAnalysis(
+                    summonerID=currentMultiJob.multicommons.summonerID,
+                    analysisName=analysisName,
+                    _write=False,
+                    **analysis,
+                )
 
         return currentMultiJob.multicommons.summonerID
 

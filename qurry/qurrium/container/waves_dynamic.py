@@ -292,8 +292,7 @@ def _add(
     else:
         key = len(_wave_container)
         warnings.warn(
-            f"'{key}' is '{type(key)}', a unhashable key, skipped being add.",
-            category=TypeError)
+            f"'{key}' is '{type(key)}', a unhashable key, skipped being add.")
 
     return key
 
