@@ -1982,7 +1982,7 @@ class QurryV3:
 
             for k in ['all', 'noTags']:
                 if legacyTag == k:
-                    legacyTag == None
+                    legacyTag = None
                     print(
                         f"| warning: '{k}' is a reserved key for export data.")
 
@@ -2267,7 +2267,7 @@ class QurryV3:
 
             for k in ['all', 'noTags']:
                 if legacyTag == k:
-                    legacyTag == None
+                    legacyTag = None
                     print(
                         f"| warning: '{k}' is a reserved key for export data.")
 
@@ -2518,7 +2518,7 @@ class QurryV3:
 
             for k in ['all', 'noTags']:
                 if legacyTag == k:
-                    legacyTag == None
+                    legacyTag = None
                     print(
                         f"| warning: '{k}' is a reserved key for export data.")
 
