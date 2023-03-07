@@ -13,11 +13,9 @@ jobs:
         run: |
           git config --global user.name 'Your Name'
           git config --global user.email 'youremail@example.com'
-      # - name: Read Version File
-      #   run: python get_version.py
+      - name: Read Version File
+        run: echo "VERSION=$(python setup.py --version)" >> $GITHUB_ENV
       - name: Create Version Tag
-        env:
-          VERSION: ${VERSION=$(python setup.py --version)}
         run: |
           git tag $VERSION -m "New release"
-          git push origin $VERSION
+          git push origin ${{ env.VERSION }}
