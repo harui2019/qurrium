@@ -19,5 +19,5 @@ jobs:
         env:
           VERSION: ${{ env.VERSION }}
         run: |
-          git tag $VERSION -m "New release"
+          git tag -a $VERSION -m "New release"
           git push origin $VERSION
