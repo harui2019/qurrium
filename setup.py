@@ -1,7 +1,16 @@
 import os
 from setuptools import setup, find_packages
 
-from qurry.version import __version__, __version_str__
+from distutils.util import convert_path
+from pathlib import Path
+
+main_ns = {}
+ver_path = convert_path('./qurry/version.py')
+with open(ver_path) as ver_file:
+    exec(ver_file.read(), main_ns)
+
+__version_str__ = main_ns['__version_str__']
+print(f'| Version: {__version_str__}')
 
 README_PATH = os.path.join(
     os.path.abspath(os.path.dirname(__file__)), 'README.md')
