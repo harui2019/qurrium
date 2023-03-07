@@ -9,18 +9,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Read Version File
-        id: version
-        uses: actions/github-script@v4
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const content = await github.repos.getContent({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              path: 'VERSION.txt'
-            })
-            return content.data.content.toString('utf8')
       - name: Set up Git user
         run: |
           git config --global user.name 'Your Name'
