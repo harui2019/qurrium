@@ -8,4 +8,4 @@ with open(ver_path) as ver_file:
 __version_str__ = main_ns['__version_str__']
 print(f'| Version: {__version_str__}')
 # 將版本號碼傳遞到環境變數中
-print(f'::set-env name=VERSION::{__version_str__}')
+print(f'"name=VERSION::{__version_str__}" >> $GITHUB_ENV')
