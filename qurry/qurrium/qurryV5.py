@@ -265,7 +265,7 @@ class QurryV5Prototype:
         summonerName: Optional[str] = None,
 
         muteOutfieldsWarning: bool = False,
-        **otherArgs: any
+        **otherArgs: Any
     ) -> Hashable:
         """Control the experiment's general parameters.
 
@@ -461,7 +461,7 @@ class QurryV5Prototype:
         encoding: str = 'utf-8',
         jsonablize: bool = False,
         _exportMute: bool = True,
-        **allArgs: any,
+        **allArgs: Any,
     ) -> Hashable:
         """Construct the quantum circuit of experiment.
         ## The first finishing point.
@@ -543,7 +543,7 @@ class QurryV5Prototype:
         encoding: str = 'utf-8',
         jsonablize: bool = False,
         _exportMute: bool = True,
-        **allArgs: any,
+        **allArgs: Any,
     ) -> Hashable:
         """Export the result after running the job.
 
@@ -619,7 +619,7 @@ class QurryV5Prototype:
         encoding: str = 'utf-8',
         jsonablize: bool = False,
         _exportMute: bool = False,
-        **allArgs: any,
+        **allArgs: Any,
     ) -> Hashable:
         """Export the result after running the job.
 
@@ -695,7 +695,7 @@ class QurryV5Prototype:
         jsonablize: bool = False,
         _exportMute: bool = False,
 
-        **otherArgs: any
+        **otherArgs: Any
     ):
         """Export the result after running the job.
         ## The second finishing point.
@@ -728,7 +728,7 @@ class QurryV5Prototype:
             _exportMute (bool, optional):
                 Whether to mute the export hint. Defaults to True.
 
-            otherArgs (any):
+            otherArgs (Any):
                 Other arguments.
 
         Returns:
@@ -781,33 +781,72 @@ class QurryV5Prototype:
         saveLocation: Union[Path, str] = Path('./'),
         jobsType: Literal["local", "IBMQ", "AWS_Bracket", "Azure_Q"] = "local",
         # IBMQJobManager() dedicated
-        managerRunArgs: dict[str, any] = {
+        managerRunArgs: dict[str, Any] = {
             'max_experiments_per_job': 200,
         },
         filetype: TagList._availableFileType = 'json',
 
         isRetrieve: bool = False,
         isRead: bool = False,
-        version: Literal['v4', 'v5'] = 'v5',
+        readVersion: Literal['v4', 'v5'] = 'v5',
     ) -> tuple[list[dict[str, Any]], str]:
-        """_summary_
+        """Control the experiment's parameters for running multiple jobs.
 
         Args:
-            configList (list, optional): _description_. Defaults to [].
-            shots (int, optional): _description_. Defaults to 1024.
-            backend (Backend, optional): _description_. Defaults to AerSimulator().
-            provider (AccountProvider, optional): _description_. Defaults to None.
-            managerRunArgs (_type_, optional): _description_. Defaults to { 'max_experiments_per_job': 200, }.
-            summonerName (str, optional): _description_. Defaults to 'exps'.
-            summonerID (Optional[str], optional): _description_. Defaults to None.
-            saveLocation (Union[Path, str], optional): _description_. Defaults to Path('./').
-            jobsType (Literal[&quot;local&quot;, &quot;IBMQ&quot;, &quot;AWS_Bracket&quot;, &quot;Azure_Q&quot;], optional): _description_. Defaults to "local".
-            isRetrieve (bool, optional): _description_. Defaults to False.
-            isRead (bool, optional): _description_. Defaults to False.
-            filetype (TagList._availableFileType, optional): _description_. Defaults to 'json'.
+            configList (list, optional): 
+                The list of default configurations of multiple experiment. 
+                Defaults to [].
+            
+            summonerName (str, optional): 
+                Name for multimanager. Defaults to 'exps'.
+                
+            summonerID (Optional[str], optional):
+                Name for multimanager. Defaults to None.
+
+            shots (int, optional):
+                Shots of the job.
+                Defaults to `1024`.
+                
+            backend (Backend, optional):
+                The quantum backend.
+                Defaults to AerSimulator().
+                
+            provider (Optional[AccountProvider], optional):
+                :cls:`AccountProvider` of current backend for running :cls:`IBMQJobManager`.
+                Defaults to `None`.
+            
+            saveLocation (Union[Path, str], optional): 
+                Where to save the export content as `json` file.
+                If `saveLocation == None`, then cancelled the file to be exported.
+                Defaults to Path('./').
+                
+            filetype (TagList._availableFileType, optional): 
+                The file type of export data. Defaults to 'json' (recommended).
+                
+            managerRunArgs (dict, optional):
+                defaultConfig of :func:`IBMQJobManager().run`.
+                Defaults to `{
+                    'max_experiments_per_job': 200,
+                }`.
+                
+            jobsType (Literal[&quot;local&quot;, &quot;IBMQ&quot;, &quot;AWS_Bracket&quot;, &quot;Azure_Q&quot;], optional): 
+                What types of the backend will run on. Defaults to "local".
+            
+            isRetrieve (bool, optional):
+                Whether this jobs will retrieve the pending experiment after initializing.
+                Defaults to `False`.
+            
+            isRead (bool, optional): 
+                Whether this jobs will read the existed experiment data during initializing.
+                Defaults to False.
+
+            readVersion (Literal['v4', 'v5'], optional):
+                The version of the data to be read.
+                Defaults to 'v5'.
 
         Returns:
-            tuple[list[dict[str, any]], str]: _description_
+            tuple[list[dict[str, Any]], str]: 
+                The list of formated configuration of each experimemt and summonerID (ID of multimanager).
         """
 
         if summonerID in self.multimanagers:
@@ -828,7 +867,7 @@ class QurryV5Prototype:
                 isRead=isRead,
 
                 saveLocation=saveLocation,
-                version=version,
+                version=readVersion,
             )
         else:
             multiJob = MultiManager(
@@ -871,7 +910,6 @@ class QurryV5Prototype:
         self,
         # configList
         configList: list = [],
-
         # defaultConfig of `IBMQJobManager().run`
         # Multiple jobs shared
         summonerName: str = 'exps',
@@ -884,26 +922,55 @@ class QurryV5Prototype:
         # Other arguments of experiment
         # Multiple jobs shared
         saveLocation: Union[Path, str] = Path('./'),
-
-        filetype: TagList._availableFileType = 'json',
         jobsType: Literal["local", "IBMQ", "AWS_Bracket", "Azure_Q"] = 'local',
+        filetype: TagList._availableFileType = 'json',
     ) -> Hashable:
-        """_summary_
+        """Buling the experiment's parameters for running multiple jobs.
 
         Args:
-            configList (list, optional): _description_. Defaults to [].
-            shots (int, optional): _description_. Defaults to 1024.
-            backend (Backend, optional): _description_. Defaults to AerSimulator().
-            provider (AccountProvider, optional): _description_. Defaults to None.
-            summonerName (str, optional): _description_. Defaults to 'exps'.
-            summonerID (Optional[str], optional): _description_. Defaults to None.
-            saveLocation (Union[Path, str], optional): _description_. Defaults to Path('./').
-            filetype (TagList._availableFileType, optional): _description_. Defaults to 'json'.
-            overwrite (bool, optional): _description_. Defaults to False.
+            configList (list, optional): 
+                The list of default configurations of multiple experiment. 
+                Defaults to [].
+            
+            summonerName (str, optional): 
+                Name for multimanager. Defaults to 'exps'.
+                
+            summonerID (Optional[str], optional):
+                Name for multimanager. Defaults to None.
+                
+            shots (int, optional):
+                Shots of the job.
+                Defaults to `1024`.
+                
+            backend (Backend, optional):
+                The quantum backend.
+                Defaults to AerSimulator().
+                
+            provider (Optional[AccountProvider], optional):
+                :cls:`AccountProvider` of current backend for running :cls:`IBMQJobManager`.
+                Defaults to `None`.
+
+            managerRunArgs (dict, optional):
+                defaultConfig of :func:`IBMQJobManager().run`.
+                Defaults to `{
+                    'max_experiments_per_job': 200,
+                }`.
+                
+            saveLocation (Union[Path, str], optional): 
+                Where to save the export content as `json` file.
+                If `saveLocation == None`, then cancelled the file to be exported.
+                Defaults to Path('./').
+                
+            jobsType (Literal[&quot;local&quot;, &quot;IBMQ&quot;, &quot;AWS_Bracket&quot;, &quot;Azure_Q&quot;], optional): 
+                What types of the backend will run on. Defaults to "local".
+                
+            filetype (TagList._availableFileType, optional): 
+                The file type of export data. Defaults to 'json' (recommend).
 
         Returns:
-            Hashable: _description_
+            Hashable: SummonerID (ID of multimanager).
         """
+
 
         print(f"| MultiOutput building...")
         initedConfigList, besummonned = self._paramsControlMulti(
@@ -962,27 +1029,55 @@ class QurryV5Prototype:
         # Other arguments of experiment
         # Multiple jobs shared
         saveLocation: Union[Path, str] = Path('./'),
-
         filetype: TagList._availableFileType = 'json',
-
+        # analysis preparation
         defaultMultiAnalysis: list[dict[str, Any]] = [],
         analysisName: str = 'report',
     ) -> Hashable:
-        """_summary_
+        """Running multiple jobs on local backend and output the analysis.
 
         Args:
-            configList (list, optional): _description_. Defaults to [].
-            shots (int, optional): _description_. Defaults to 1024.
-            backend (Backend, optional): _description_. Defaults to AerSimulator().
-            provider (AccountProvider, optional): _description_. Defaults to None.
-            summonerName (str, optional): _description_. Defaults to 'exps'.
-            summonerID (Optional[str], optional): _description_. Defaults to None.
-            saveLocation (Union[Path, str], optional): _description_. Defaults to Path('./').
-            filetype (TagList._availableFileType, optional): _description_. Defaults to 'json'.
-            overwrite (bool, optional): _description_. Defaults to False.
+            configList (list, optional): 
+                The list of default configurations of multiple experiment. 
+                Defaults to [].
+            
+            summonerName (str, optional): 
+                Name for multimanager. Defaults to 'exps'.
+                
+            summonerID (Optional[str], optional):
+                Name for multimanager. Defaults to None.
+                
+            shots (int, optional):
+                Shots of the job.
+                Defaults to `1024`.
+                
+            backend (Backend, optional):
+                The quantum backend.
+                Defaults to AerSimulator().
+                
+            provider (Optional[AccountProvider], optional):
+                :cls:`AccountProvider` of current backend for running :cls:`IBMQJobManager`.
+                Defaults to `None`.
+                
+            saveLocation (Union[Path, str], optional): 
+                Where to save the export content as `json` file.
+                If `saveLocation == None`, then cancelled the file to be exported.
+                Defaults to Path('./').
+                
+            filetype (TagList._availableFileType, optional): 
+                The file type of export data. Defaults to 'json' (recommend).
+                
+            defaultMultiAnalysis (list[dict[str, Any]], optional):
+                The default configurations of multiple analysis, 
+                if it's given, then will run automatically after the experiment results are ready.
+                Defaults to [].
+                
+            analysisName (str, optional):
+                The name of the analysis.
+                Defaults to 'report'.
 
         Returns:
-            Hashable: _description_
+            Hashable: SummonerID (ID of multimanager).
         """
 
         besummonned = self.multiBuild(
@@ -1057,7 +1152,7 @@ class QurryV5Prototype:
 
         pendingStrategy: Literal['default',
                                  'onetime', 'each', 'tags'] = 'default',
-        # defaultMultiAnalysis: list[dict[str, Any]] = [],
+        defaultMultiAnalysis: list[dict[str, Any]] = [],
         # analysisName: str = 'report',
     ) -> Hashable:
         """_summary_
@@ -1387,7 +1482,7 @@ class QurryV5Prototype:
             summonerID=summonerID,
             saveLocation=saveLocation,
             isRead=True,
-            version='v4',
+            readVersion='v4',
         )
 
         assert besummonned in self.multimanagers
@@ -1455,7 +1550,7 @@ class QurryV5(QurryV5Prototype):
         expName: str = 'exps',
         waveKey: Hashable = None,
         sampling: int = 1,
-        **otherArgs: any
+        **otherArgs: Any
     ) -> tuple[QurryExperiment.arguments, QurryExperiment.commonparams, dict[str, Any]]:
         """Handling all arguments and initializing a single experiment.
 
@@ -1473,7 +1568,7 @@ class QurryV5(QurryV5Prototype):
                 This name is also used for creating a folder to store the exports.
                 Defaults to `'exps'`.
 
-            otherArgs (any):
+            otherArgs (Any):
                 Other arguments.
 
         Returns:
@@ -1514,7 +1609,7 @@ class QurryV5(QurryV5Prototype):
 
     def measure(
         self,
-        wave: Union[QuantumCircuit, any, None] = None,
+        wave: Union[QuantumCircuit, Any, None] = None,
         expName: str = 'exps',
         sampling: int = 1,
         *args,
@@ -1523,7 +1618,7 @@ class QurryV5(QurryV5Prototype):
         indent: int = 2,
         encoding: str = 'utf-8',
         jsonablize: bool = False,
-        **otherArgs: any
+        **otherArgs: Any
     ):
         """
 
@@ -1541,7 +1636,7 @@ class QurryV5(QurryV5Prototype):
                 This name is also used for creating a folder to store the exports.
                 Defaults to `'exps'`.
 
-            otherArgs (any):
+            otherArgs (Any):
                 Other arguments.
 
         Returns:
