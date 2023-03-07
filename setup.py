@@ -2,7 +2,6 @@ import os
 from setuptools import setup, find_packages
 
 from distutils.util import convert_path
-from pathlib import Path
 
 main_ns = {}
 ver_path = convert_path('./qurry/version.py')
