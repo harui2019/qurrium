@@ -4,9 +4,9 @@
 [submodule "qurry/case/qurecipe"]
 	path = qurry/qurecipe
 	url = git@github.com:harui2019/qurecipe.git
-[submodule "qurry/mori"]
-	path = qurry/mori
-	url = git@github.com:harui2019/mori.git
 [submodule "qurry/hoshi"]
 	path = qurry/hoshi
 	url = git@github.com:harui2019/hoshi.git
+[submodule "qurry/mori"]
+	path = qurry/mori
+	url = git@github.com:harui2019/mori_inner.git

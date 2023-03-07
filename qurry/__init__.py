@@ -1,5 +1,3 @@
-__version__ = '0.3.4'
-
 from .qurmagsq import MagnetSquare
 from .qurrech import EchoListen
 from .qurrent import EntropyMeasure
@@ -13,3 +11,5 @@ from .tools import (
     cmdWrapper,
     pytorchCUDACheck,
 )
+
+from .version import __version__, __version_str__

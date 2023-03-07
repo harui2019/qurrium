@@ -68,7 +68,7 @@ class QurryV3:
 
     """ defaultConfig """
     __version__ = (0, 3, 4)
-    
+
     @abstractmethod
     class argsCore(NamedTuple):
         """Construct the experiment's parameters."""
@@ -465,7 +465,7 @@ class QurryV3:
         return hintDefaults
 
     """ Initialize """
-    
+
     @abstractmethod
     def initialize(self) -> dict[str, any]:
         """defaultConfig to Initialize QurryV3.
@@ -532,7 +532,7 @@ class QurryV3:
         # value create
         self.exps = {}
         self.expsBelong = {}
-        
+
         # TODO: add params control
         self.resourceWatch = ResoureWatch()
 
@@ -622,10 +622,10 @@ class QurryV3:
                     genKey += 1
                 key = genKey
                 self.waves[key] = waveCircuit
-                
+
             else:
                 self.waves[key] = waveCircuit
-    
+
             self.lastWave = key
             return self.lastWave
 
@@ -650,7 +650,7 @@ class QurryV3:
             return None
 
     def hasWave(
-        self, 
+        self,
         wavename: Hashable,
     ) -> bool:
         """Is there a wave with specific name.
@@ -666,8 +666,10 @@ class QurryV3:
     def waveInstruction(
         self,
         wave: Union[list[Hashable], Hashable, None] = None,
-        runBy: Optional[Literal['gate', 'operator', 'instruction', 'copy']] = None,
-        backend: Optional[Backend] = AerProvider().get_backend('aer_simulator'),
+        runBy: Optional[Literal['gate', 'operator',
+                                'instruction', 'copy']] = None,
+        backend: Optional[Backend] = AerProvider(
+        ).get_backend('aer_simulator'),
     ) -> waveGetter[waveReturn]:
         """Parse wave Circuit into `Instruction` as `Gate` or `Operator` on `QuantumCircuit`.
 
@@ -1110,7 +1112,7 @@ class QurryV3:
             warnings.warn(
                 f"The type of '{circuitSet}' is '{type(circuitSet)}', which can not export.")
             return None
-        
+
     @abstractmethod
     def circuitMethod(self) -> list[QuantumCircuit]:
         """The method to construct circuit.
@@ -1264,15 +1266,17 @@ class QurryV3:
 
             elif saveLocation == None:
                 legacyExport = jsonablize(exports)
+                saveLoc = None
 
             else:
                 legacyExport = jsonablize(exports)
+                saveLoc = None
                 warnings.warn(
                     "'saveLocation' is not the type of 'str' or 'Path', " +
                     "so export cancelled.")
 
         tales = self.exps[legacyId]['sideProduct']
-        if len(tales) > 0:
+        if len(tales) > 0 and isinstance(saveLoc, Path):
             with Gajima(
                 carousel=[('dots', 20, 6), 'basic'],
                 prefix="| ",
@@ -1335,7 +1339,8 @@ class QurryV3:
         if expID != None:
             lsfolder = glob.glob(str(saveLocation / f"*{expID}*.json"))
             if len(lsfolder) == 0:
-                raise FileNotFoundError(f"The file 'expID={expID}' not found at '{saveLocation}'.")
+                raise FileNotFoundError(
+                    f"The file 'expID={expID}' not found at '{saveLocation}'.")
 
             for p in lsfolder:
                 with open(p, 'r', encoding='utf-8') as Legacy:
@@ -1354,7 +1359,7 @@ class QurryV3:
 
         legacyRead = {
             **self.expsBaseExcepts(),
-            **{ k: v for k, v in legacyRead.items() if k not in excepts },
+            **{k: v for k, v in legacyRead.items() if k not in excepts},
         }
 
         if isinstance(legacyRead, dict):
@@ -1538,10 +1543,9 @@ class QurryV3:
                 self.exps[self.IDNow]['sideProduct'][k[1:]] = quantity[k]
             if k == '_dummy':
                 withCounts = True
-                
+
         for k, v in run_log.items():
             self.exps[self.IDNow]['sideProduct'][k] = v
-            
 
         quantity = {k: quantity[k] for k in quantity if k[0] != '_'}
         self.exps[self.IDNow] = {
@@ -1607,8 +1611,9 @@ class QurryV3:
             withCounts=withCounts,
             **otherArgs,
         )
-        
+
     """ Multiple Outputs """
+
     def resourceCheck(self) -> None:
         """_summary_
         """
@@ -1842,10 +1847,10 @@ class QurryV3:
                 # ? pendingTags works uncorrectly, check contain and type
                 # ? by IBMQJobManagerInvalidStateError: 'job_tags needs to be a list or strings.'
                 'independentExports': independentExports,
-                
+
                 'type': jobsType,
                 'state': 'init',
-                
+
                 # configList
                 'configList': initedConfigList,
 
@@ -1872,9 +1877,9 @@ class QurryV3:
         )
 
         return self.multiNow
-        
+
     JobManager = IBMQJobManager()
-    """:meth:`IBMQJobManager()` in :cls:`qurry`"""    
+    """:meth:`IBMQJobManager()` in :cls:`qurry`"""
 
     def multiOutput(
         self,
@@ -1970,20 +1975,21 @@ class QurryV3:
             )
             legacyTag = tuple(legacy['tags']) if isinstance(
                 legacy['tags'], list) else legacy['tags']
-            
+
             argsMulti.logTime.append(round(time.time() - start_time, 2))
-            argsMulti.logRAM.append(self.resourceWatch.virtual_memory().percent)
+            argsMulti.logRAM.append(
+                self.resourceWatch.virtual_memory().percent)
 
             for k in ['all', 'noTags']:
                 if legacyTag == k:
-                    legacyTag == None
+                    legacyTag = None
                     print(
                         f"| warning: '{k}' is a reserved key for export data.")
 
             # packing
             argsMulti.listFile.append(legacy['filename'])
             argsMulti.listExpID.append(self.IDNow)
-            
+
             argsMulti.tagMapExpsID.guider(legacyTag, self.IDNow)
             argsMulti.tagMapIndex.guider(legacyTag, config['expIndex'])
             argsMulti.tagMapQuantity.guider(legacyTag, quantity)
@@ -2149,10 +2155,10 @@ class QurryV3:
             # if n in dataDummyJobs:
         for tmk in [k for k in dataDummyJobs.keys() if 'tagMap' in k]:
             dataDummyJobs[tmk] = keyTupleLoads(dataDummyJobs[tmk])
-        
+
         # TODO: remake multiRead
         if dataDummyJobs['state'] == "completed":
-            for n in [    
+            for n in [
                 'tagMapQuantity',
                 'tagMapCounts',
             ]:
@@ -2161,7 +2167,7 @@ class QurryV3:
                     f"{argsMulti.expsName}.{n}.json",
                         'r', encoding='utf-8') as File:
                     dataDummyJobs[n] = json.load(File)
-            
+
         if dataDummyJobs['saveLocation'] != argsMulti.saveLocation:
             dataDummyJobs['saveLocation'] = argsMulti.saveLocation
 
@@ -2170,7 +2176,7 @@ class QurryV3:
             f"| MultiRead {self.__name__} End in {round(time.time() - start_time, 2)} sec ...\n"+f"+"+"-"*20)
 
         return dataDummyJobs
-    
+
     @staticmethod
     def reportCounts(JobManager: IBMQJobManager) -> dict[str, int]:
         """A better report representation of :meth:`IBMQJobManager().report()`
@@ -2181,8 +2187,10 @@ class QurryV3:
         Returns:
             dict[str, int]: Counts of report status.
         """
-        job_set_statuses = [job_set.statuses() for job_set in JobManager._job_sets]
-        status_list = [stat for stat_list in job_set_statuses for stat in stat_list]
+        job_set_statuses = [job_set.statuses()
+                            for job_set in JobManager._job_sets]
+        status_list = [
+            stat for stat_list in job_set_statuses for stat in stat_list]
 
         statusCounter = Counter(status_list)
         status_counts = {
@@ -2197,7 +2205,6 @@ class QurryV3:
         }
 
         return status_counts
-        
 
     def powerPending(
         self,
@@ -2233,7 +2240,7 @@ class QurryV3:
                 f"| index={config['expIndex']}/{numConfig} - {round(time.time() - start_time, 2)}s")
             circuitSet = self.circuitTranspiler(**config)
             allTranspliedCircs[self.IDNow] = circuitSet
-            
+
             # resource check
             self.resourceCheck()
 
@@ -2260,7 +2267,7 @@ class QurryV3:
 
             for k in ['all', 'noTags']:
                 if legacyTag == k:
-                    legacyTag == None
+                    legacyTag = None
                     print(
                         f"| warning: '{k}' is a reserved key for export data.")
 
@@ -2311,12 +2318,12 @@ class QurryV3:
             gajima.gprint(f"| name: {powerJob.name()}")
             expsMulti.powerJobID = powerJobID
             expsMulti.state = 'pending'
-            
+
             # ! Too many request
             # gajima.gprint(f"| Waiting for all jobs be queued... ")
             # isQueued = False
             # waiting = 0
-            
+
             # tiks = 20 # TODO: as a configure
             # givenUp = 1800
             # refreshPoint = 600
@@ -2340,9 +2347,9 @@ class QurryV3:
             #         gajima.gprint(f"| status: {statusCounts}")
             #     except IBMQJobManagerUnknownJobSet as e:
             #         isQueued = False
-            
+
             # powerJobsIDList = [mj.job.job_id() for mj in powerJob.jobs()]
-            
+
         expsMulti.gitignore.ignore('*.json')
         expsMulti.gitignore.sync(f'*.powerJobs.json')
 
@@ -2511,7 +2518,7 @@ class QurryV3:
 
             for k in ['all', 'noTags']:
                 if legacyTag == k:
-                    legacyTag == None
+                    legacyTag = None
                     print(
                         f"| warning: '{k}' is a reserved key for export data.")
 

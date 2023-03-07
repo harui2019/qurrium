@@ -1,0 +1,35 @@
+name: Create Version Tag
+on:
+  push:
+    branches:
+      - stable
+jobs:
+  create_tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Read Version File
+        id: version
+        uses: actions/github-script@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const content = await github.repos.getContent({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              path: 'VERSION.txt'
+            })
+            return content.data.content.toString('utf8')
+      - name: Set up Git user
+        run: |
+          git config --global user.name 'Your Name'
+          git config --global user.email 'youremail@example.com'
+      # - name: Read Version File
+      #   run: python get_version.py
+      - name: Create Version Tag
+        env:
+          VERSION: ${VERSION=$(python setup.py --version)}
+        run: |
+          git tag $VERSION -m "New release"
+          git push origin $VERSION
