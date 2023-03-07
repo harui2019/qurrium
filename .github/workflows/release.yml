@@ -15,9 +15,10 @@ jobs:
           git config --global user.email 'youremail@example.com'
       - name: Read Version File
         run: python get_version.py
-      - name: Create Version Tag
-        env:
-          VERSION: ${{ env.VERSION }}
+      - name: Check out Version
         run: |
-          git tag -a $VERSION -m "New release"
-          git push origin $VERSION
+          echo '| Version: ${{ env.VERSION }} in action'
+      - name: Create Version Tag
+        run: |
+          git tag -a ${{ env.VERSION }} -m "New release"
+          git push origin ${{ env.VERSION }}
