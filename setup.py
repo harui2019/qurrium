@@ -1,6 +1,8 @@
 import os
 from setuptools import setup, find_packages
 
+from .qurry import __version__, __version_str__
+
 README_PATH = os.path.join(
     os.path.abspath(os.path.dirname(__file__)), 'README.md')
 with open(README_PATH) as readme_file:
@@ -30,7 +32,7 @@ __author__ = "Huai-Chung Chang (harui2019@proton.me)"
 
 setup(
     name='qurry',
-    version='0.5.0.beta01',
+    version=__version_str__,
     description='Qurry 🍛 - The Measuring Tool for Renyi Entropy, Loschmidt Echo, and Magnetization Squared, The Library of Some Common Cases',
     long_description=README,
     long_description_content_type='text/markdown',
