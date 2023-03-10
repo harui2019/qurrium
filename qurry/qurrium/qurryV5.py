@@ -277,60 +277,46 @@ class QurryV5Prototype:
                 If input is the key in `.waves`, then use it.
                 If input is `None` or something illegal, then use `.lastWave'.
                 Defaults to None.
-
             expID (Optional[str], optional): 
                 If input is `None`, then create an new experiment.
                 If input is a existed experiment ID, then use it.
                 Otherwise, use the experiment with given specific ID.
                 Defaults to None.
-
             shots (int, optional):
                 Shots of the job. Defaults to `1024`.
-
             backend (Backend, optional): 
                 The quantum backend. Defaults to AerSimulator().
-
             provider (Optional[AccountProvider], optional): 
                 :cls:`AccountProvider` of current backend for running :cls:`IBMQJobManager`.
                 Defaults to `None`.
-
             runArgs (dict, optional): 
                 defaultConfig of :func:`qiskit.execute`. Defaults to `{}`.
-
             runBy (Literal[&#39;gate&#39;, &#39;operator&#39;], optional): 
                 Construct wave function via :cls:`Operater` for "operator" or :cls:`Gate` for "gate".
                 When use 'IBMQBackend' only allowed to use wave function as `Gate` instead of `Operator`.
                 Defaults to "gate".
-
             transpileArgs (dict, optional):
                 defaultConfig of :func:`qiskit.transpile`. Defaults to `{}`.
-
             decompose (Optional[int], optional): 
                 Running `QuantumCircuit` which be decomposed given times. Defaults to 2.
-
             tags (tuple, optional): 
                 Given the experiment multiple tags to make a dictionary for recongnizing it.
                 Defaults to ().
-
             defaultAnalysis (list[dict[str, Any]], optional): 
                 The analysis methods will be excuted after counts has been computed.
                 Defaults to [].
-
             serial (Optional[int], optional): 
                 Index of experiment in a multiOutput.
                 **!!ATTENTION, this should only be used by `Multimanager`!!**
                 Defaults to None.
-
             summonerID (Optional[Hashable], optional): 
                 ID of experiment of the multiManager. 
                 **!!ATTENTION, this should only be used by `Multimanager`!!**
                 Defaults to None.
-
             summonerName (Optional[str], optional): 
                 Name of experiment of the multiManager.
                 **!!ATTENTION, this should only be used by `Multimanager`!!**
                 _description_. Defaults to None.
-
             muteOutfieldsWarning (bool, optional):
                 Mute the warning when there are unused arguments detected and stored in outfields.
                 Defaults to False.
@@ -1328,7 +1314,7 @@ class QurryV5Prototype:
 
         Returns:
             Hashable: SummonerID (ID of multimanager).
-        """        
+        """
 
         initedConfigList, besummonned = self._paramsControlMulti(
             summonerName=summonerName,
