@@ -40,9 +40,9 @@ def quench(
     config = paramsControl(
         data=data,
         additionName=name,
-        plotName=f'{quantity}.quench',
+        title=f'{quantity}.quench',
         quantity=quantity,
-        saveFolder=saveFolder,
+        saveLocation=saveFolder,
         **otherArgs,
     )
 

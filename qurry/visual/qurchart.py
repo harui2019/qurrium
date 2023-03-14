@@ -1,4 +1,4 @@
-from typing import Union, NamedTuple, Optional, Literal, Callable
+from typing import Union, NamedTuple, Optional, Literal, Callable, Tuple
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes, SubplotBase
 import matplotlib.pyplot as plt
@@ -17,66 +17,86 @@ _mplExportFormat = Literal['eps', 'jpg', 'jpeg', 'pdf', 'pgf',
 
 
 class QurchartConfig(NamedTuple):
+    """
+    Congfiguration for Qurry chart module.
+    """
+    
     # plt
     yLim: Optional[tuple[float, float]] = None
+    """The y-axis limit of the plot."""
     fontSize: int = 12
+    """The font size of the plot."""
     lineStyle: str = '--'
+    """The line style of the plot."""
     dpi: int = 300
+    """The resolution of the plot."""
     exportPltObjects: bool = False
+    """Whether to export the matplotlib objects."""
 
     quantity: str = 'entropy'
-
-    plotName: str = 'Qurchart'
-    additionName: Optional[str] = None
+    """The quantity to be plotted."""
+    title: str = 'Qurchart'
+    """The title of the plot."""
+    
     filetype: _mplExportFormat = 'png'
-
+    """The file type will be exported."""
     name: str = 'Qurchart'
+    """The name of the plot."""
     filename: str = 'Qurchart.png'
-    saveFolder: Union[Path, str] = './'
-
+    """The filename of the plot."""
+    saveLoaction: Union[Path, str] = './'
+    """The save location of the plot."""
+    
+    outfields: dict[str, any] = {}
+    """The unused argument of the configuration."""
 
 def paramsControl(
     data: Union[TagList[Quantity], dict[str, dict[str, float]]],
-
-    yLim: Union[callable, tuple[float, float],
-                None, Literal['qurchart']] = None,
+    
+    yLim: Union[
+        Callable, Tuple[float, float], None, Literal['qurchart']] = None,
     fontSize: int = 12,
     lineStyle: str = '--',
     dpi: int = 300,
     exportPltObjects: bool = False,
 
     quantity: str = 'entropy',
-
-    plotName: str = 'Qurchart',
-    additionName: Optional[str] = None,
+    title: str = 'Qurchart',
     filetype: _mplExportFormat = 'png',
 
-    saveFolder: Union[Path, str] = './',
-    defaultSettings: QurchartConfig = QurchartConfig(),
+    saveLocation: Union[Path, str] = './',
     **otherArgs,
 ) -> QurchartConfig:
-    """_summary_
+    """Control the parameters of the plot.
 
     Args:
-        yLim (Union[callable, tuple[float, int], None], optional): _description_. Defaults to None.
-        fontSize (int, optional): _description_. Defaults to 12.
-        lineStyle (str, optional): _description_. Defaults to '--'.
-        format (Literal[&#39;png&#39;], optional): _description_. Defaults to 'png'.
-        dpi (int, optional): _description_. Defaults to 300.
+        data (Union[TagList[Quantity], dict[str, dict[str, float]]]): 
+            Data to be plotted.
+        yLim (Union[callable, tuple[float, int], None], optional): 
+            The y-axis limit of the plot. Defaults to None.
+        fontSize (int, optional): 
+            The font size of the plot. Defaults to 12.
+        lineStyle (str, optional): 
+            The line style of the plot. Defaults to '--'.
+        dpi (int, optional): 
+            Resolution of the plot. Defaults to 300.
+        exportPltObjects (bool, optional): 
+            Whether to export the matplotlib objects. Defaults to False.
+        quantity (str, optional): 
+            Quantity to be plotted. Defaults to 'entropy'.
+        title (str, optional): 
+            The title of the plot. Defaults to 'Qurchart'.
+        filetype (_mplExportFormat, optional): 
+            The file type will be exported. Defaults to 'png'.
+        saveLocation (Union[Path, str], optional): 
+            The save location of the plot. Defaults to './'.
 
-        quantity (str, optional): _description_. Defaults to 'entropy'.
-
-        plotType (str, optional): _description_. Defaults to '_dummy'.
-        plotName (str, optional): _description_. Defaults to 'Qurchart'.
-        additionName (Optional[str], optional): _description_. Defaults to None.
-        saveFolder (Optional[Union[Path, str]], optional): _description_. Defaults to None.
-
-        exportPltObjects (bool, optional): _description_. Defaults to False.
+    Raises:
+        TypeError: yLim needs to be 'Callable', 'tuple[float, float]', 'None'.
 
     Returns:
-        QurchartConfig: _description_
+        QurchartConfig: The configuration of the plot.
     """
-
     # yLim
     if isinstance(yLim, Callable):
         yLim = yLim(data, quantity)
@@ -89,37 +109,38 @@ def paramsControl(
         yLimResult = None
     else:
         raise TypeError(
-            f"Invalid type '{type(yLim)}', 'yLim' needs to be 'callable', 'tuple[float, float]', 'None'.")
+            f"Invalid type '{type(yLim)}', 'yLim' needs to be 'Callable', 'tuple[float, float]', 'None'.")
 
     # saveFolder
-    if isinstance(saveFolder, str):
-        saveFolder = Path(saveFolder)
+    if isinstance(saveLocation, str):
+        saveLocation = Path(saveLocation)
+    elif 'saveFolder' in otherArgs:
+        saveLocation = Path(otherArgs['saveFolder'])
 
-    if not os.path.exists(saveFolder):
-        os.mkdir(saveFolder)
+    if not os.path.exists(saveLocation):
+        os.mkdir(saveLocation)
 
-    name = f"{additionName}.{plotName}" if not additionName is None else f"{plotName}"
+    name = f"{title}"
     filename = name + f".{filetype}"
 
     if len(otherArgs) > 0:
         print(otherArgs, "dropped")
 
-    return defaultSettings._replace(
+    return QurchartConfig(
         yLim=yLimResult,
         fontSize=fontSize,
         lineStyle=lineStyle,
         dpi=dpi,
-
         exportPltObjects=exportPltObjects,
+        
         quantity=quantity,
-
-        plotName=plotName,
-        additionName=additionName,
+        title=title,
         filetype=filetype,
 
         name=name,
         filename=filename,
-        saveFolder=saveFolder,
+        saveFolder=saveLocation,
+        outfields=otherArgs,
     )
 
 
