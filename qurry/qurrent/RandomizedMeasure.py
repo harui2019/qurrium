@@ -321,6 +321,7 @@ def error_mitgation(measSystem, allSystem, nA, systemSize):
     mitiga = mitigation_equation(pn, measSystem, nA)
 
     return {
+        'errorRate': pn,
         'mitigatedPurity': mitiga,
         'mitigatedEntropy': -np.log2(mitiga)
     }
@@ -435,6 +436,7 @@ def entangled_entropy_complex(
         'puritySDAllSys': puritySDAllSys,
         'bitsStringRangeAllSys': bitStringRangeAllSys,
         # mitigated
+        'errorRate': error_mitgation_info['errorRate'],
         'mitigatedPurity': error_mitgation_info['mitigatedPurity'],
         'mitigatedEntropy': error_mitgation_info['mitigatedEntropy'],
         # info
