@@ -1,6 +1,7 @@
 from typing import Optional, NamedTuple, Iterable, Any
 from abc import abstractmethod, abstractproperty
 from datetime import datetime
+import warnings
 
 from ..hoshi import Hoshi
 from ..mori import jsonablize
@@ -169,7 +170,7 @@ class AnalysisPrototype():
             if k in main or k in side:
                 ...
             else:
-                raise ValueError(
+                warnings.warn(
                     f"Analysis main product must contain '{k}' key.")
 
         content = {k: v for k, v in main.items(

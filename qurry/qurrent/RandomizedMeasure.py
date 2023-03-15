@@ -510,15 +510,16 @@ class EntropyRandomizedAnalysis(AnalysisPrototype):
         puritySDAllSys: float
         bitsStringRangeAllSys: tuple[int, int]
 
-        mitigatedPurity: float
-        mitigatedEntropy: float
+        errorRate: Optional[float] = None
+        mitigatedPurity: Optional[float] = None
+        mitigatedEntropy: Optional[float] = None
 
-        numQubits: int
-        measure: tuple[int, int]
-        measureActually: tuple[int, int]
-        measureActuallyAllSys: tuple[int, int]
+        numQubits: Optional[int] = None
+        measure: Optional[tuple[int, int]] = None
+        measureActually: Optional[tuple[int, int]] = None
+        measureActuallyAllSys: Optional[tuple[int, int]] = None
         
-        countsNum: int
+        countsNum: Optional[int] = None
 
         def __repr__(self):
             return f"analysisContent(purity={self.purity}, entropy={self.entropy}, and others)"
