@@ -1024,7 +1024,7 @@ class ExperimentPrototype():
                 "'saveLocation' needs to be the type of 'str' or 'Path'.")
         if not os.path.exists(saveLocation):
             raise FileNotFoundError(
-                f"'SaveLoaction' does not exist, '{saveLocation}'.")
+                f"'saveLocation' does not exist, '{saveLocation}'.")
 
         export_material_set = {}
         export_set = {}
@@ -1157,7 +1157,7 @@ class ExperimentPrototype():
                 "'saveLocation' needs to be the type of 'str' or 'Path'.")
         if not os.path.exists(saveLocation):
             raise FileNotFoundError(
-                f"'SaveLoaction' does not exist, '{saveLocation}'.")
+                f"'saveLocation' does not exist, '{saveLocation}'.")
 
         exportLocation = saveLocation / name
         # TODO: use .zip to packing the experiment optionally, even tar.gz
@@ -1223,7 +1223,7 @@ class ExperimentPrototype():
                 "'saveLocation' needs to be the type of 'str' or 'Path'.")
         if not os.path.exists(saveLocation):
             raise FileNotFoundError(
-                f"'SaveLoaction' does not exist, '{saveLocation}'.")
+                f"'saveLocation' does not exist, '{saveLocation}'.")
             
         exportLocation = saveLocation / name
         if not os.path.exists(exportLocation):
@@ -1271,7 +1271,7 @@ class ExperimentPrototype():
                 "'saveLocation' needs to be the type of 'str' or 'Path'.")
         if not os.path.exists(saveLocation):
             raise FileNotFoundError(
-                f"'SaveLoaction' does not exist, '{saveLocation}'.")
+                f"'saveLocation' does not exist, '{saveLocation}'.")
         
         legacyRead = {}
         lsfolder = glob.glob(str(saveLocation / fileIndex['legacy']))

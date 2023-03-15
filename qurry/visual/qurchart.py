@@ -1,7 +1,7 @@
-from typing import Union, NamedTuple, Optional, Literal, Callable, Tuple
-from matplotlib.figure import Figure
-from matplotlib.axes import Axes, SubplotBase
-import matplotlib.pyplot as plt
+from typing import Union, NamedTuple, Optional, Literal, Callable, Tuple, Any
+# from matplotlib.figure import Figure
+# from matplotlib.axes import Axes, SubplotBase
+# import matplotlib.pyplot as plt
 
 from pathlib import Path
 from math import pi
@@ -20,7 +20,7 @@ class QurchartConfig(NamedTuple):
     """
     Congfiguration for Qurry chart module.
     """
-    
+
     # plt
     yLim: Optional[tuple[float, float]] = None
     """The y-axis limit of the plot."""
@@ -37,30 +37,31 @@ class QurchartConfig(NamedTuple):
     """The quantity to be plotted."""
     title: str = 'Qurchart'
     """The title of the plot."""
-    
+
     filetype: _mplExportFormat = 'png'
     """The file type will be exported."""
     name: str = 'Qurchart'
     """The name of the plot."""
     filename: str = 'Qurchart.png'
     """The filename of the plot."""
-    saveLoaction: Union[Path, str] = './'
+    saveLocation: Union[Path, str] = Path('./')
     """The save location of the plot."""
-    
+
     outfields: dict[str, any] = {}
     """The unused argument of the configuration."""
 
+
 def paramsControl(
     data: Union[TagList[Quantity], dict[str, dict[str, float]]],
-    
-    yLim: Union[
-        Callable, Tuple[float, float], None, Literal['qurchart']] = None,
+
+    yLim: Union[Tuple[float, float], None, Literal['qurchart']] = None,
     fontSize: int = 12,
     lineStyle: str = '--',
     dpi: int = 300,
     exportPltObjects: bool = False,
 
     quantity: str = 'entropy',
+    name: Optional[str] = None,
     title: str = 'Qurchart',
     filetype: _mplExportFormat = 'png',
 
@@ -98,29 +99,24 @@ def paramsControl(
         QurchartConfig: The configuration of the plot.
     """
     # yLim
-    if isinstance(yLim, Callable):
-        yLim = yLim(data, quantity)
-    elif yLim == 'qurchart':
-        yLim = yLimDecider(data, quantity)
-
-    if isinstance(yLim, tuple):
+    if yLim == 'qurchart':
+        yLimResult = yLimDecider(data, quantity)
+    elif isinstance(yLim, tuple):
         yLimResult = yLim
     elif yLim is None:
         yLimResult = None
     else:
+        yLimResult = None
         raise TypeError(
-            f"Invalid type '{type(yLim)}', 'yLim' needs to be 'Callable', 'tuple[float, float]', 'None'.")
+            f"Invalid type '{type(yLim)}', 'yLim' needs to be 'tuple[float, float]', 'None'.")
 
-    # saveFolder
+    # saveLocation
     if isinstance(saveLocation, str):
         saveLocation = Path(saveLocation)
-    elif 'saveFolder' in otherArgs:
-        saveLocation = Path(otherArgs['saveFolder'])
-
     if not os.path.exists(saveLocation):
         os.mkdir(saveLocation)
 
-    name = f"{title}"
+    name = f"{title}" if name is None else name
     filename = name + f".{filetype}"
 
     if len(otherArgs) > 0:
@@ -136,10 +132,10 @@ def paramsControl(
         quantity=quantity,
         title=title,
         filetype=filetype,
-
         name=name,
         filename=filename,
-        saveFolder=saveLocation,
+        saveLocation=saveLocation,
+        
         outfields=otherArgs,
     )
 
