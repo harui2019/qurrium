@@ -1,6 +1,14 @@
 from qiskit import __qiskit_version__
 from qiskit.providers import Backend, BackendV1, BackendV2
-from qiskit.providers.ibmq import AccountProvider
+
+try:
+    from qiskit.providers.ibmq import AccountProvider
+    from qiskit import IBMQ
+    qiskit_ibmq_provider_deprecated = False
+except ImportError:
+    qiskit_ibmq_provider_deprecated = True
+
+from qiskit_ibm_provider import IBMProvider
 from qiskit_aer import AerProvider
 from qiskit_aer.version import get_version_info as get_version_info_aer
 
@@ -104,8 +112,24 @@ async def _async_version_check():
     return check_msg
 
 
+class backendManager:
+    
+    
+    def __init__(
+        self,
+        hub: Optional[str] = None,
+        group: Optional[str] = None,
+        project: Optional[str] = None,
+        instance: Optional[str] = None,
+    ) -> None:
+        if qiskit_ibmq_provider_deprecated:
+            raise ImportError(
+                "Please update your qiskit-ibmq-provider to version 0.16.0 or higher.")
+
+
 class backendWrapper:
-    """The quicker method to call a backend.
+    """A wrapper for :class:`qiskit.providers.Backend` to provide more convenient way to use.
+    
 
     :cls:`QasmSimulator('qasm_simulator')` and :cls:`AerSimulator('aer_simulator')` are using same simulating methods.
     So call 'qasm_simulator' and 'aer_simulator' used in :meth:`Aer.get_backend` are a container of multiple method of simulation
@@ -184,25 +208,8 @@ class backendWrapper:
 
     def __init__(
         self,
-        realProvider: Optional[AccountProvider] = None,
+        realProvider: Optional[Union[IBMProvider, 'AccountProvider']] = None,
     ) -> None:
-
-        # version check
-        # try:
-        #     loop = asyncio.get_running_loop()
-        # except RuntimeError:  # 'RuntimeError: There is no current event loop...'
-        #     loop = None
-
-        # if loop and loop.is_running():
-        #     print('Async event loop already running. Adding coroutine to the event loop.')
-        #     tsk = loop.create_task(_async_version_check())
-        #     # ^-- https://docs.python.org/3/library/asyncio-task.html#task-object
-        #     # Optionally, a callback function can be executed when the coroutine completes
-        #     tsk.add_done_callback(lambda t: [print('eeeee'), t.result().print()])
-        # else:
-        #     print('Starting new event loop')
-        #     result = asyncio.run(_async_version_check())
-        #     print(result)
 
         self._AerProvider = AerProvider()
         self._AerOwnedBackends = self._AerProvider.backends()
@@ -229,18 +236,21 @@ class backendWrapper:
                 **self.backend_aer,
             }
             self.backend_aer["aer_gpu"].set_options(device='GPU')
-            # for k in self.backend_sim:
-            #     if 'gpu' in k:
-            #         self.backend_sim[k].set_option(device='GPU')
+
 
         self.backend_ibmq_callsign = {}
         self.backend_ibmq = {}
         self._RealProvider = None
         if not realProvider is None:
-            self._RealProvider = realProvider
-            self.backend_ibmq = {
-                b.name(): b for b in realProvider.backends()
-            }
+            self._RealProvider = IBMProvider
+            if isinstance(realProvider, IBMProvider):
+                self.backend_ibmq = {
+                    b.name: b for b in realProvider.backends()
+                }
+            else:
+                self.backend_ibmq = {
+                    b.name(): b for b in realProvider.backends()
+                }
             self.backend_ibmq_callsign = {
                 self._shorten_name(
                     bn, ['ibm_', 'ibmq_'], ['ibmq_qasm_simulator']
