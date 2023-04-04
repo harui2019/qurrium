@@ -1,6 +1,5 @@
 from qiskit.result import Result
 from qiskit.providers import Backend
-from qiskit.providers.ibmq import AccountProvider
 from qiskit_aer import AerSimulator
 
 from pathlib import Path
@@ -29,7 +28,6 @@ multicommonConfig = defaultConfig(
         'summonerName': None,
         'shots': 1024,
         'backend': AerSimulator(),
-        'provider': None,
         'saveLocation': Path('./'),
         'exportLocation': Path('./'),
         'files': {},
@@ -56,8 +54,6 @@ class MultiManager:
         """Number of shots to run the program (default: 1024), which multiple experiments shared."""
         backend: Backend
         """Backend to execute the circuits on, which multiple experiments shared."""
-        provider: Optional[AccountProvider]
-        """Provider to execute the backend on, which multiple experiments shared."""
 
         saveLocation: Union[Path, str]
         """Location of saving experiment."""

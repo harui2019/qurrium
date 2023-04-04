@@ -1,8 +1,5 @@
 from qiskit import QuantumCircuit
 from qiskit.providers import Backend
-from qiskit.providers.ibmq import IBMQBackend, IBMQJobManager, AccountProvider
-from qiskit.providers.ibmq.managed import ManagedJobSet, IBMQJobManagerInvalidStateError
-from qiskit.providers.ibmq.exceptions import IBMQError
 
 from typing import Literal, NamedTuple, Any
 from abc import abstractmethod
