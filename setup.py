@@ -18,14 +18,14 @@ with open(README_PATH) as readme_file:
 
 qiskit_main = [
     # qiskit ibmq provider dedicated
-    "requests~=2.28.0",
-    "numpy<1.24",
-    "python-dateutil==2.8.0",
-    "requests-ntlm==1.1.0",
-    "websocket-client>=1.5.1",
-    "websockets==10.0 ; python_version>='3.7'",
-    "websockets>=9.1 ; python_version<'3.7'",
-    "dataclasses>=0.8 ; python_version<'3.7'",
+    # "requests~=2.28.0",
+    # "numpy<1.24",
+    # "python-dateutil==2.8.0",
+    # "requests-ntlm==1.1.0",
+    # "websocket-client>=1.5.1",
+    # "websockets==10.0 ; python_version>='3.7'",
+    # "websockets>=9.1 ; python_version<'3.7'",
+    # "dataclasses>=0.8 ; python_version<'3.7'",
     
     "qiskit==0.41.1",
     "qiskit-aer==0.11.2",
