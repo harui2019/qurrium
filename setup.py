@@ -21,14 +21,14 @@ qiskit_main = [
     "qiskit-aer==0.11.2",
     "qiskit-ibm-provider==0.4.0",
     # qiskit ibmq provider dedicated
-    
+    "requests~=2.28.0",
+    "numpy<1.24",
+    "urllib3~=1.26.0",
+    "python-dateutil==2.8.0",
     "qiskit-ibmq-provider==0.20.1",
     "qiskit-terra==0.23.2",
-    "requests>=2.19",
     "requests-ntlm==1.1.0",
     "numpy<1.24",
-    "urllib3>=1.21.1",
-    "python-dateutil>=2.8.0",
     "websocket-client>=1.5.1",
     "websockets==10.0 ; python_version>='3.7'",
     "websockets>=9.1 ; python_version<'3.7'",
