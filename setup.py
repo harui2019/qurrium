@@ -18,9 +18,9 @@ with open(README_PATH) as readme_file:
 
 qiskit_main = [
     "qiskit==0.42.1",
-    "qiskit-terra==0.22.2",
+    "qiskit-terra",
     "qiskit-aer==0.11.1",
-    "qiskit-ibmq-provider==0.19.2",
+    "qiskit-ibmq-provider",
     "qiskit-ibm-provider",
 ]
 qiskit_gpu = [
