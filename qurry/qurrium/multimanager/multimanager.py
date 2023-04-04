@@ -15,7 +15,7 @@ from ...mori import TagList, syncControl, defaultConfig
 from ...mori.quick import quickJSON, quickRead
 from ...exceptions import (
     QurryProtectContent,
-    QurryResetAccomplished, 
+    QurryResetAccomplished,
     QurryResetSecurityActivated
 )
 from ..declare.type import Quantity
@@ -61,8 +61,12 @@ class MultiManager:
         """Location of exporting experiment, exportLocation is the final result decided by experiment."""
         files: dict[str, Union[str, dict[str, str]]]
 
-        jobsType: Literal["local", "IBMQ", "AWS_Bracket", "Azure_Q"]
-        """Type of jobs to run multiple experiments."""
+        jobsType: str
+        """Type of jobs to run multiple experiments and its pending strategy.
+        
+        - jobsType: "local", "IBMQ", "IBM", "AWS_Bracket", "Azure_Q"
+        - pendingStrategy: "default", "onetime", "each", "tags"
+        """
 
         managerRunArgs: dict[str, any]
         """Other arguments will be passed to `IBMQJobManager()`"""
@@ -100,7 +104,7 @@ class MultiManager:
         """The list of retrieved results, which multiple experiments shared."""
         allCounts: dict[Hashable, list[dict[str, int]]]
         """The dict of all counts of each experiments."""
-        
+
         def reset(
             self,
             *args,
@@ -422,7 +426,7 @@ class MultiManager:
             if k in self.multicommonparams._fields:
                 multicommons[k] = rawReadMultiConfig[k]
             elif k == 'outfields':
-                outfields = { **rawReadMultiConfig[k] }
+                outfields = {**rawReadMultiConfig[k]}
             else:
                 outfields[k] = rawReadMultiConfig[k]
 

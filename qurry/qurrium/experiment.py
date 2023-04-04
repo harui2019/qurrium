@@ -1,7 +1,6 @@
 from qiskit import QuantumCircuit
 from qiskit.result import Result
 from qiskit.providers import Backend
-from qiskit.providers.ibmq import AccountProvider
 from qiskit_aer import AerSimulator
 
 from pathlib import Path
@@ -98,8 +97,6 @@ class ExperimentPrototype():
         """Number of shots to run the program (default: 1024)."""
         backend: Backend
         """Backend to execute the circuits on."""
-        provider: Optional[AccountProvider]
-        """Provider to execute the backend on."""
         runArgs: dict
         """Arguments of `execute`."""
 

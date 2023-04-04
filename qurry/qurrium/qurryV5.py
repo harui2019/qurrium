@@ -23,7 +23,7 @@ from .declare.default import (
 )
 from .experiment import ExperimentPrototype, QurryExperiment
 from .container import WaveContainer, ExperimentContainer
-from .multimanager import MultiManager, IBMQRunner, Runner
+from .multimanager import MultiManager, IBMQRunner, IBMRunner, Runner
 
 from .utils import decomposer, get_counts
 from ..exceptions import (
@@ -760,7 +760,7 @@ class QurryV5Prototype:
         # Other arguments of experiment
         # Multiple jobs shared
         saveLocation: Union[Path, str] = Path('./'),
-        jobsType: Literal["local", "IBMQ", "AWS_Bracket", "Azure_Q"] = "local",
+        jobsType: Literal["local", "IBMQ", "IBM", "AWS_Bracket", "Azure_Q"] = "local",
         # IBMQJobManager() dedicated
         managerRunArgs: dict[str, Any] = {
             'max_experiments_per_job': 200,
@@ -1089,6 +1089,7 @@ class QurryV5Prototype:
         # Other arguments of experiment
         # Multiple jobs shared
         saveLocation: Union[Path, str] = Path('./'),
+        jobsType: Literal["IBMQ", "IBM", "AWS_Bracket", "Azure_Q"] = "IBM",
 
         filetype: TagList._availableFileType = 'json',
 
@@ -1096,6 +1097,7 @@ class QurryV5Prototype:
                                  'onetime', 'each', 'tags'] = 'default',
         # defaultMultiAnalysis: list[dict[str, Any]] = [],
         # analysisName: str = 'report',
+        
     ) -> Hashable:
         """Pending the multiple jobs on IBMQ backend or other remote backend.
 
@@ -1141,23 +1143,42 @@ class QurryV5Prototype:
             summonerName=summonerName,
             summonerID=summonerID,
             saveLocation=saveLocation,
-            jobsType=f"IBMQ.{pendingStrategy}",
+            jobsType=f"{jobsType}.{pendingStrategy}",
             filetype=filetype,
         )
         currentMultiJob = self.multimanagers[besummonned]
         assert currentMultiJob.summonerID == besummonned
 
-        self.multirunner: IBMQRunner = IBMQRunner(
-            besummonned=currentMultiJob.summonerID,
-            multiJob=currentMultiJob,
-            backend=backend,
-            experimentalContainer=self.exps,
-        )
+        if jobsType == "IBMQ":
 
-        # currentMultiJob.outfields['pendingStrategy'] = pendingStrategy
-        bependings = self.multirunner.pending(
-            pendingStrategy=pendingStrategy,
-        )
+            self.multirunner: IBMQRunner = IBMQRunner(
+                besummonned=currentMultiJob.summonerID,
+                multiJob=currentMultiJob,
+                backend=backend,
+                experimentalContainer=self.exps,
+            )
+
+            # currentMultiJob.outfields['pendingStrategy'] = pendingStrategy
+            bependings = self.multirunner.pending(
+                pendingStrategy=pendingStrategy,
+            )
+        
+        elif jobsType == "IBM":
+            self.multirunner: IBMRunner = IBMRunner(
+                besummonned=currentMultiJob.summonerID,
+                multiJob=currentMultiJob,
+                backend=backend,
+                experimentalContainer=self.exps,
+            )
+            
+            bependings = self.multirunner.pending(
+                pendingStrategy=pendingStrategy,
+            )
+            
+        else:
+            warnings.warn(
+                f"Jobstype of '{besummonned}' is {currentMultiJob.multicommons.jobsType} which is not supported.")
+            return besummonned
 
         bewritten = self.multiWrite(besummonned)
         assert bewritten == besummonned
@@ -1398,24 +1419,40 @@ class QurryV5Prototype:
         )
         currentMultiJob = self.multimanagers[besummonned]
         assert currentMultiJob.summonerID == besummonned
+        
+        jobsType, pendingStrategy = currentMultiJob.multicommons.jobsType.split('.')
+        
+        if jobsType == 'IBMQ':
 
-        if currentMultiJob.multicommons.jobsType[:4] != 'IBMQ':
+            self.multirunner: IBMQRunner = IBMQRunner(
+                besummonned=currentMultiJob.summonerID,
+                multiJob=currentMultiJob,
+                backend=backend,
+                experimentalContainer=self.exps,
+            )
+
+            beretrieveds = self.multirunner.retrieve(
+                provider=backend.provider(),
+                refresh=refresh,
+                overwrite=overwrite,
+            )
+            
+        elif jobsType == 'IBM':
+            self.multirunner: IBMRunner = IBMRunner(
+                besummonned=currentMultiJob.summonerID,
+                multiJob=currentMultiJob,
+                backend=backend,
+                experimentalContainer=self.exps,
+            )
+            
+            beretrieveds = self.multirunner.retrieve(
+                overwrite=overwrite,
+            )
+            
+        else:
             warnings.warn(
                 f"Jobstype of '{besummonned}' is {currentMultiJob.multicommons.jobsType} which is not supported.")
             return besummonned
-
-        self.multirunner: IBMQRunner = IBMQRunner(
-            besummonned=currentMultiJob.summonerID,
-            multiJob=currentMultiJob,
-            backend=backend,
-            experimentalContainer=self.exps,
-        )
-
-        beretrieveds = self.multirunner.retrieve(
-            provider=backend.provider(),
-            refresh=refresh,
-            overwrite=overwrite,
-        )
 
         print(f"| Retrieve {currentMultiJob.summonerName} completed.")
         bewritten = self.multiWrite(besummonned)
