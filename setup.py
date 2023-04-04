@@ -20,7 +20,6 @@ qiskit_main = [
     # qiskit ibmq provider dedicated
     "requests~=2.28.0",
     "numpy<1.24",
-    "urllib3==1.26.0",
     "python-dateutil==2.8.0",
     "requests-ntlm==1.1.0",
     "websocket-client>=1.5.1",
