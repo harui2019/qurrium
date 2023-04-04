@@ -18,11 +18,20 @@ with open(README_PATH) as readme_file:
 
 qiskit_main = [
     "qiskit==0.42.1",
-    "qiskit-terra",
     "qiskit-aer==0.11.1",
-    "qiskit-ibmq-provider",
     "qiskit-ibm-provider",
-    'numpy<1.24',
+    # qiskit ibmq provider dedicated
+    "qiskit-ibmq-provider",
+    "qiskit-terra>=0.18.0",
+    "requests>=2.19",
+    "requests-ntlm<=1.1.0",
+    "numpy<1.24",
+    "urllib3>=1.21.1",
+    "python-dateutil>=2.8.0",
+    "websocket-client>=1.5.1",
+    "websockets>=10.0 ; python_version>='3.7'",
+    "websockets>=9.1 ; python_version<'3.7'",
+    "dataclasses>=0.8 ; python_version<'3.7'"
 ]
 qiskit_gpu = [
     # https://peps.python.org/pep-0508/
