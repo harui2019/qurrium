@@ -9,6 +9,7 @@ except ImportError:
     qiskit_ibmq_provider_deprecated = True
 
 from qiskit_ibm_provider import IBMProvider
+from qiskit_ibm_provider.version import get_version_info as get_version_info_ibm
 from qiskit_aer import AerProvider
 from qiskit_aer.version import get_version_info as get_version_info_aer
 
@@ -77,6 +78,13 @@ def _version_check():
             'value': str(v),
             'listing_level': 2
         })
+    check_msg.newline(
+        ('txt', "'qiskit-ibm-provider' is the replacement of deprcated module 'qiskit-ibmq-provider'."))
+    check_msg.newline({
+        'type': 'itemize',
+        'description': 'qiskit-ibm-provider',
+        'value': get_version_info_ibm(),
+    })
 
     if 'qiskit-aer-gpu' in local_version_dict:
         check_msg.newline(
