@@ -144,7 +144,7 @@ def get_counts(
     counts: list[dict[str, int]] = []
     if result is None:
         counts.append({})
-        print("| Failed Job result skip, Job ID:", result.job_id)
+        print("| Failed Job result skip.")
         return counts
 
     try:
