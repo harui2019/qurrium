@@ -17,22 +17,23 @@ with open(README_PATH) as readme_file:
     README = readme_file.read()
 
 qiskit_main = [
-    "qiskit==0.41.1",
-    "qiskit-aer==0.11.2",
-    "qiskit-ibm-provider==0.4.0",
     # qiskit ibmq provider dedicated
     "requests~=2.28.0",
     "numpy<1.24",
     "urllib3~=1.26.0",
     "python-dateutil==2.8.0",
-    "qiskit-ibmq-provider==0.20.1",
-    "qiskit-terra==0.23.2",
     "requests-ntlm==1.1.0",
     "numpy<1.24",
     "websocket-client>=1.5.1",
     "websockets==10.0 ; python_version>='3.7'",
     "websockets>=9.1 ; python_version<'3.7'",
-    "dataclasses>=0.8 ; python_version<'3.7'"
+    "dataclasses>=0.8 ; python_version<'3.7'",
+    
+    "qiskit==0.41.1",
+    "qiskit-aer==0.11.2",
+    "qiskit-ibm-provider==0.4.0",
+    "qiskit-ibmq-provider==0.20.1",
+    "qiskit-terra==0.23.2"
 ]
 qiskit_gpu = [
     # https://peps.python.org/pep-0508/
