@@ -22,6 +22,7 @@ qiskit_main = [
     "qiskit-aer==0.11.1",
     "qiskit-ibmq-provider",
     "qiskit-ibm-provider",
+    'numpy<1.24',
 ]
 qiskit_gpu = [
     # https://peps.python.org/pep-0508/
