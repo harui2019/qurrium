@@ -7,7 +7,6 @@ on:
   push:
     branches: 
       - "stable"
-      - "dev"
   pull_request:
     branches: 
       - "stable"

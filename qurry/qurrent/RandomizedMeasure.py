@@ -321,6 +321,7 @@ def error_mitgation(measSystem, allSystem, nA, systemSize):
     mitiga = mitigation_equation(pn, measSystem, nA)
 
     return {
+        'errorRate': pn,
         'mitigatedPurity': mitiga,
         'mitigatedEntropy': -np.log2(mitiga)
     }
@@ -435,6 +436,7 @@ def entangled_entropy_complex(
         'puritySDAllSys': puritySDAllSys,
         'bitsStringRangeAllSys': bitStringRangeAllSys,
         # mitigated
+        'errorRate': error_mitgation_info['errorRate'],
         'mitigatedPurity': error_mitgation_info['mitigatedPurity'],
         'mitigatedEntropy': error_mitgation_info['mitigatedEntropy'],
         # info
@@ -508,15 +510,16 @@ class EntropyRandomizedAnalysis(AnalysisPrototype):
         puritySDAllSys: float
         bitsStringRangeAllSys: tuple[int, int]
 
-        mitigatedPurity: float
-        mitigatedEntropy: float
+        errorRate: Optional[float] = None
+        mitigatedPurity: Optional[float] = None
+        mitigatedEntropy: Optional[float] = None
 
-        numQubits: int
-        measure: tuple[int, int]
-        measureActually: tuple[int, int]
-        measureActuallyAllSys: tuple[int, int]
+        numQubits: Optional[int] = None
+        measure: Optional[tuple[int, int]] = None
+        measureActually: Optional[tuple[int, int]] = None
+        measureActuallyAllSys: Optional[tuple[int, int]] = None
         
-        countsNum: int
+        countsNum: Optional[int] = None
 
         def __repr__(self):
             return f"analysisContent(purity={self.purity}, entropy={self.entropy}, and others)"
