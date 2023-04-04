@@ -112,24 +112,9 @@ async def _async_version_check():
     return check_msg
 
 
-class backendManager:
-    
-    
-    def __init__(
-        self,
-        hub: Optional[str] = None,
-        group: Optional[str] = None,
-        project: Optional[str] = None,
-        instance: Optional[str] = None,
-    ) -> None:
-        if qiskit_ibmq_provider_deprecated:
-            raise ImportError(
-                "Please update your qiskit-ibmq-provider to version 0.16.0 or higher.")
-
-
 class backendWrapper:
     """A wrapper for :class:`qiskit.providers.Backend` to provide more convenient way to use.
-    
+
 
     :cls:`QasmSimulator('qasm_simulator')` and :cls:`AerSimulator('aer_simulator')` are using same simulating methods.
     So call 'qasm_simulator' and 'aer_simulator' used in :meth:`Aer.get_backend` are a container of multiple method of simulation
@@ -237,7 +222,6 @@ class backendWrapper:
             }
             self.backend_aer["aer_gpu"].set_options(device='GPU')
 
-
         self.backend_ibmq_callsign = {}
         self.backend_ibmq = {}
         self._RealProvider = None
@@ -319,3 +303,67 @@ class backendWrapper:
                 f"'{backend_name}' unknown backend or backend callsign.")
 
         return self.backend[backend_name]
+
+
+class backendManager(backendWrapper):
+    """A wrapper includes accout loading and backend loading.
+    And deal wtth either :module:`qiskit-ibmq-provider` or the older version `qiskit.providers.ibmq`."""
+
+    def __init__(
+        self,
+        hub: Optional[str] = None,
+        group: Optional[str] = None,
+        project: Optional[str] = None,
+
+        instance: Optional[str] = None,
+    ) -> None:
+
+        if instance is not None:
+            self.instance = instance
+            self.hub, self.group, self.project = instance.split('/')
+        else:
+            for name in [hub, group, project]:
+                if name is None:
+                    raise ValueError(
+                        "Please provide either instance or hub, group, project.")
+            self.instance = f'{hub}/{group}/{project}'
+            self.hub = hub
+            self.group = group
+            self.project = project
+
+        if qiskit_ibmq_provider_deprecated:
+            print("| Provider by 'qiskit_ibm_provider'.")
+            IBMProvider.load_account()
+            newProvider = IBMProvider(instance=self.instance)
+            super().__init__(realProvider=newProvider)
+        else:
+            print("| Provider by 'qiskit.providers.ibmq', which will be deprecated.")
+            IBMQ.load_account()
+            oldProvider = IBMQ.get_provider(
+                hub=self.hub, group=self.group, project=self.project)
+            super().__init__(realProvider=oldProvider)
+
+    def save_account(self, **kwargs) -> None:
+        """Save account to disk.
+
+        (The following is copied from :func:`qiskit_ibmq_provider.IBMProvider.save_account`)
+        Args:
+            token: IBM Quantum API token.
+            url: The API URL.
+                Defaults to https://auth.quantum-computing.ibm.com/api
+            instance: The hub/group/project.
+            name: Name of the account to save.
+            proxies: Proxy configuration. Supported optional keys are
+                ``urls`` (a dictionary mapping protocol or protocol and host to the URL of the proxy,
+                documented at https://docs.python-requests.org/en/latest/api/#requests.Session.proxies),
+                ``username_ntlm``, ``password_ntlm`` (username and password to enable NTLM user
+                authentication)
+            verify: Verify the server's TLS certificate.
+            overwrite: ``True`` if the existing account is to be overwritten.
+
+        """
+
+        if qiskit_ibmq_provider_deprecated:
+            IBMProvider.save_account(**kwargs)
+        else:
+            IBMQ.save_account(**kwargs)

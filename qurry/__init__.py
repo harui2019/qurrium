@@ -5,7 +5,8 @@ from .qurstrop import StringOperator
 from .qurrium import QurryV3, QurryV4 as Qurry
 
 from .tools import (
-    backendWrapper, 
+    backendWrapper,
+    backendManager,
     ResoureWatch,
     version_check,
     cmdWrapper,
