@@ -1149,7 +1149,10 @@ class QurryV5Prototype:
         currentMultiJob = self.multimanagers[besummonned]
         assert currentMultiJob.summonerID == besummonned
 
-        if jobsType == 'IBMQ' and not isinstance(backend, IBMBackend):
+        
+        if jobsType == 'IBMQ':
+            if isinstance(backend, IBMBackend) :
+                raise ValueError("| 'IBMBackend' from 'qiskit_ibm_provider' is not supported for 'IBMQ' jobsType for it only support 'IBMQBackend', change backend.")
 
             self.multirunner: IBMQRunner = IBMQRunner(
                 besummonned=currentMultiJob.summonerID,
@@ -1163,9 +1166,7 @@ class QurryV5Prototype:
                 pendingStrategy=pendingStrategy,
             )
         
-        elif jobsType == 'IBM' or jobsType == 'IBMQ':
-            if isinstance(backend, IBMBackend) and jobsType == 'IBMQ':
-                print("| 'IBMBackend' from 'qiskit_ibm_provider' is not supported for 'IBMQ' jobsType for it only support 'IBMQBackend', use 'jobsType=IBM'.")
+        elif jobsType == 'IBM':
                 
             self.multirunner: IBMRunner = IBMRunner(
                 besummonned=currentMultiJob.summonerID,
@@ -1425,7 +1426,9 @@ class QurryV5Prototype:
         
         jobsType, pendingStrategy = currentMultiJob.multicommons.jobsType.split('.')
         
-        if jobsType == 'IBMQ' and not isinstance(backend, IBMBackend):
+        if jobsType == 'IBMQ':
+            if isinstance(backend, IBMBackend) :
+                raise ValueError("| 'IBMBackend' from 'qiskit_ibm_provider' is not supported for 'IBMQ' jobsType for it only support 'IBMQBackend', change backend.")
 
             self.multirunner: IBMQRunner = IBMQRunner(
                 besummonned=currentMultiJob.summonerID,
@@ -1440,9 +1443,7 @@ class QurryV5Prototype:
                 overwrite=overwrite,
             )
             
-        elif jobsType == 'IBM' or jobsType == 'IBMQ':
-            if isinstance(backend, IBMBackend) and jobsType == 'IBMQ':
-                print("| 'IBMBackend' from 'qiskit_ibm_provider' is not supported for 'IBMQ' jobsType for it only support 'IBMQBackend', use 'jobsType=IBM'.")
+        elif jobsType == 'IBM':
             
             self.multirunner: IBMRunner = IBMRunner(
                 besummonned=currentMultiJob.summonerID,
