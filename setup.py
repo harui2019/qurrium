@@ -19,7 +19,7 @@ with open(README_PATH) as readme_file:
 qiskit_main = [
     "qiskit==0.41.2",
     "qiskit-aer==0.11.2",
-    "qiskit-ibm-provider==0.6.0",
+    "qiskit-ibm-provider==0.4.0",
     # qiskit ibmq provider dedicated
     
     "qiskit-ibmq-provider==0.20.1",
