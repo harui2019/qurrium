@@ -196,14 +196,14 @@ class IBMRunner(Runner):
         for pk, pcircs in self.currentMultiJob.beforewards.pendingPools.items():
             if len(pcircs) > 0:
                 pendingJob = pendingMapping[pk]
-                self.reports[pendingJob.job_id()] = {
-                    'time': current,
-                    'type': 'retrieve',
-                }
-                print(f"| retrieve: {pk} - {pendingJob.job_id()}")
-                print(f"| tags:", pendingJob.tags())
-
                 if pendingJob is not None:
+                    self.reports[pendingJob.job_id()] = {
+                        'time': current,
+                        'type': 'retrieve',
+                    }
+                    print(f"| retrieve: {pk} - {pendingJob.job_id()}")
+                    print(f"| tags:", pendingJob.tags())
+
                     pResult = pendingJob.result()
                     counts = get_counts(
                         result=pResult,
@@ -211,6 +211,9 @@ class IBMRunner(Runner):
                     )
                     print("| Getting Counts length:", len(counts))
                 else:
+                    print(f"| retrieve: {pk} - failed")
+                    print(f"| No available tags")
+                    
                     counts = get_counts(
                         result=None,
                         resultIdxList=[rk-pcircs[0] for rk in pcircs]
