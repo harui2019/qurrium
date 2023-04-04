@@ -17,10 +17,11 @@ with open(README_PATH) as readme_file:
     README = readme_file.read()
 
 qiskit_main = [
-    "qiskit==0.39.2",
+    "qiskit==0.42.1",
     "qiskit-terra==0.22.2",
     "qiskit-aer==0.11.1",
     "qiskit-ibmq-provider==0.19.2",
+    "qiskit-ibm-provider",
 ]
 qiskit_gpu = [
     # https://peps.python.org/pep-0508/
