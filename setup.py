@@ -30,8 +30,10 @@ qiskit_main = [
     "qiskit==0.41.1",
     "qiskit-aer==0.11.2",
     "qiskit-ibm-provider==0.4.0",
-    "qiskit-ibmq-provider==0.20.1",
-    "qiskit-terra==0.23.2"
+    "qiskit-terra==0.23.2",
+    "requests~=2.28.0",
+    "urllib3~=1.26.0",
+    "qiskit-ibmq-provider==0.20.1"
 ]
 qiskit_gpu = [
     # https://peps.python.org/pep-0508/
