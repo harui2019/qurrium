@@ -1134,6 +1134,10 @@ class QurryV5Prototype:
             Hashable: SummonerID (ID of multimanager).
         """
 
+        if jobsType == 'IBMQ':
+            if isinstance(backend, IBMBackend) :
+                raise ValueError("| 'IBMBackend' from 'qiskit_ibm_provider' is not supported for 'IBMQ' jobsType for it only support 'IBMQBackend', change backend.")
+
         besummonned = self.multiBuild(
             configList=configList,
             shots=shots,
