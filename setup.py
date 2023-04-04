@@ -40,7 +40,7 @@ qiskit_gpu = [
     "qiskit-aer-gpu; platform_system=='Linux' and python_version<='3.9'",
 ]
 bugfix = [
-    "urllib3==1.22",
+    # "urllib3==1.22",
 ]
 dependencies = [
     "tqdm",
