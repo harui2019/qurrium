@@ -17,13 +17,13 @@ with open(README_PATH) as readme_file:
     README = readme_file.read()
 
 qiskit_main = [
-    "qiskit==0.39.2",
-    "qiskit-aer==0.11.1",
-    "qiskit-ibm-provider",
+    "qiskit==0.41.2",
+    "qiskit-aer==0.11.2",
+    "qiskit-ibm-provider==0.6.0",
     # qiskit ibmq provider dedicated
     
-    "qiskit-ibmq-provider==0.19.2",
-    "qiskit-terra>=0.18.0",
+    "qiskit-ibmq-provider==0.20.1",
+    "qiskit-terra==0.23.2",
     "requests>=2.19",
     "requests-ntlm==1.1.0",
     "numpy<1.24",
