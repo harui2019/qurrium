@@ -93,7 +93,12 @@ class IBMRunner(Runner):
                 pendingJob = self.backend.run(
                     circuits=[self.circWithSerial[idx] for idx in pcircIdxs],
                     shots=self.currentMultiJob.multicommons.shots,
-                    job_tags=[self.currentMultiJob.multicommons.summonerName, *pendingTag],
+                    job_tags=[
+                        self.currentMultiJob.multicommons.summonerName,
+                        self.currentMultiJob.multicommons.summonerID,
+                        self.currentMultiJob.namingCpx.expsName,
+                        *pendingTag
+                    ],
                     **self.currentMultiJob.multicommons.managerRunArgs,
                 )
                 self.currentMultiJob.beforewards.jobID.append(
