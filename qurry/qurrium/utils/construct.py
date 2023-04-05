@@ -2,7 +2,34 @@ from qiskit import QuantumCircuit
 from qiskit.result import Result
 
 import warnings
+from multiprocessing import cpu_count
 from typing import Literal, Union, Hashable, Optional
+
+def workers_distribution(
+    workers_num: Optional[int] = None,
+    default: int = cpu_count()-2,
+) -> int:
+    if default < 1:
+        warnings.warn(
+            f"| Available worker number {cpu_count()} is equal orsmaller than 2."+
+            "This computer may not be able to run this program for the program will allocate all available threads.")
+        default = cpu_count()
+    
+    if workers_num is None:
+        launch_worker = default
+    else:
+        if workers_num > cpu_count():
+            warnings.warn(
+                f"| Worker number {workers_num} is larger than cpu count {cpu_count()}.")
+            launch_worker = default
+        elif workers_num < 1:
+            warnings.warn(
+                f"| Worker number {workers_num} is smaller than 1. Use single worker.")
+            launch_worker = 1
+        else:
+            launch_worker = workers_num
+    
+    return launch_worker
 
 
 def qubit_selector(
