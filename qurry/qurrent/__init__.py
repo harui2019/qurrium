@@ -1,6 +1,5 @@
 from typing import Literal, Union, overload
 
-from ..exceptions import UnconfiguredWarning
 from .RandomizedMeasure import EntropyRandomizedMeasure
 from .HadamardTest import EntropyHadamardTest
 
