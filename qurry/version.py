@@ -1,5 +1,5 @@
-version_main = (0, 5, 1)
-version_beta = ('beta', 0)
+version_main = (0, 6, 0)
+version_beta = ('beta', 1)
 def _beta(beta_str: str, serial: int) -> str:
     return beta_str+str(serial).rjust(2, '0')
 isBeta = False
