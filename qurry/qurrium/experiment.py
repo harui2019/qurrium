@@ -395,7 +395,10 @@ class ExperimentPrototype():
             else:
                 raise QurryProtectContent(
                     f"Can't set value to :cls:`afterward` field {key} because it's locked, use `.unlock_afterward()` to unlock before setting item .")
-
+        
+        elif key in self._deprecated:
+            print(f"| Warning: {key} is deprecated.")
+        
         else:
             raise ValueError(
                 f"{key} is not a valid field of '{self.before.__name__}' and '{self.after.__name__}'.")
