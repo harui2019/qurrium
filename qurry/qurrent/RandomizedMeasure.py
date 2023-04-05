@@ -288,7 +288,7 @@ def mitigation_equation(pser, meas_series, nA):
 
 
 @overload
-def error_mitgation(
+def depolarizing_error_mitgation(
     measSystem: float,
     allSystem: float,
     nA: int,
@@ -298,7 +298,7 @@ def error_mitgation(
 
 
 @overload
-def error_mitgation(
+def depolarizing_error_mitgation(
     measSystem: np.ndarray,
     allSystem: np.ndarray,
     nA: int,
@@ -307,7 +307,19 @@ def error_mitgation(
     ...
 
 
-def error_mitgation(measSystem, allSystem, nA, systemSize):
+def depolarizing_error_mitgation(measSystem, allSystem, nA, systemSize):
+    """Depolarizing error mitigation.
+
+    Args:
+        measSystem (Union[float, np.ndarray]): Value of the measured subsystem.
+        allSystem (Union[float, np.ndarray]): Value of the whole system.
+        nA (int): The size of the subsystem.
+        systemSize (int): The size of the system.
+
+    Returns:
+        Union[dict[str, float], dict[str, np.ndarray]]: _description_
+    """
+    
     pp, pn = solve_p(allSystem, systemSize)
     mitiga = mitigation_equation(pn, measSystem, nA)
 
@@ -355,6 +367,10 @@ def entangled_entropy_complex(
             url = {https://link.aps.org/doi/10.1103/PhysRevE.104.035309}
         }
     ```
+    
+    - Error mitigation:
+    
+        We use depolarizing error mitigation.
 
     Args:
         shots (int): Shots of the experiment on quantum machine.
@@ -410,7 +426,7 @@ def entangled_entropy_complex(
         subsystem = max(degree) - min(degree)
     else:
         subsystem = degree
-    error_mitgation_info = error_mitgation(
+    error_mitgation_info = depolarizing_error_mitgation(
         measSystem=purity,
         allSystem=purityAllSys,
         nA=subsystem,
@@ -492,32 +508,45 @@ class EntropyRandomizedAnalysis(AnalysisPrototype):
         # TODO: args hint
 
         purity: float
-        """The purity of the system."""
+        """The purity of the subsystem."""
         entropy: float
-        """The entanglement entropy of the system."""
+        """The entanglement entropy of the subsystem."""
         puritySD: float
-        """The standard deviation of the purity of the system."""
+        """The standard deviation of the purity of the subsystem."""
         purityCells: dict[int, float]
-        """The purity of each cell of the system."""
+        """The purity of each cell of the subsystem."""
         bitStringRange: tuple[int, int]
         """The qubit range of the subsystem."""
 
         purityAllSys: float
+        """The purity of the system."""
         entropyAllSys: float
+        """The entanglement entropy of the system."""
         purityCellsAllSys: dict[int, float]
+        """The purity of each cell of the system."""
         puritySDAllSys: float
+        """The standard deviation of the purity of the system."""
         bitsStringRangeAllSys: tuple[int, int]
+        """The qubit range of the all system."""
 
         errorRate: Optional[float] = None
+        """The error rate of the measurement from depolarizing error migigation calculated."""
         mitigatedPurity: Optional[float] = None
+        """The mitigated purity of the subsystem."""
         mitigatedEntropy: Optional[float] = None
+        """The mitigated entanglement entropy of the subsystem."""
 
         num_qubits: Optional[int] = None
+        """The number of qubits of the system."""
         measure: Optional[tuple[int, int]] = None
+        """The qubit range of the measurement."""
         measureActually: Optional[tuple[int, int]] = None
+        """The qubit range of the measurement actually used."""
         measureActuallyAllSys: Optional[tuple[int, int]] = None
+        """The qubit range of the measurement actually used in the all system."""
 
         countsNum: Optional[int] = None
+        """The number of counts of the experiment."""
 
         def __repr__(self):
             return f"analysisContent(purity={self.purity}, entropy={self.entropy}, and others)"
