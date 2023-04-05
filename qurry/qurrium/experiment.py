@@ -57,7 +57,6 @@ beforeConfig = defaultConfig(
     default={
         'circuit': [],
         'figOriginal': [],
-        'figTranspiled': [],
         'jobID': '',
         'expName': '',
         'sideProduct': {},
@@ -191,8 +190,6 @@ class ExperimentPrototype():
         """Circuits of experiment."""
         figOriginal: list[str]
         """Raw circuit figures which is the circuit before transpile."""
-        figTranspiled: list[str]
-        """Transpile circuit figures which is the circuit after transpile and the actual one would be executed."""
 
         # Export data
         jobID: str
@@ -334,7 +331,6 @@ class ExperimentPrototype():
         self.beforewards = self.before(
             circuit=[],
             figOriginal=[],
-            figTranspiled=[],
             jobID='',
             expName=self.args.expName,
             sideProduct={},
@@ -1312,8 +1308,6 @@ class ExperimentPrototype():
                 
             elif k == 'figRaw':
                 beforewards['figOriginal'] = legacyRead[k]
-            elif k == 'figTranspile':
-                beforewards['figTranspiled'] = legacyRead[k]
             elif k == 'dateCreate':
                 commonsinput['datetimes'] = {
                     'build': legacyRead[k],

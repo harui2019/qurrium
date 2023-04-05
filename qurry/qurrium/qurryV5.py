@@ -415,7 +415,6 @@ class QurryV5Prototype:
         assert self.exps[self.lastID].expID == self.lastExp.expID
         assert len(self.lastExp.beforewards.circuit) == 0
         assert len(self.lastExp.beforewards.figOriginal) == 0
-        assert len(self.lastExp.beforewards.figTranspiled) == 0
         assert len(self.lastExp.afterwards.result) == 0
         assert len(self.lastExp.afterwards.counts) == 0
 
@@ -498,8 +497,6 @@ class QurryV5Prototype:
             **currentExp.commons.transpileArgs
         )
         for _w in transpiledCirqs:
-            currentExp.beforewards.figTranspiled.append(
-                decomposer(_w, currentExp.commons.decompose).draw(output='text'))
             currentExp.beforewards.circuit.append(_w)
         # commons
         date = datetime.today().strftime("%Y-%m-%d_%H-%M-%S")
