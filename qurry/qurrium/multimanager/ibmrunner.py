@@ -103,7 +103,7 @@ class IBMRunner(Runner):
                     'type': 'pending',
                 }
                 print(f"| pending: {pk} - {pendingJob.job_id()}")
-                print(f"| name:", pendingJob.name())
+                print(f"| tags:", pendingJob.tags())
 
             else:
                 self.currentMultiJob.beforewards.jobID.append((None, pk))
@@ -222,7 +222,7 @@ class IBMRunner(Runner):
                 for rk in pcircs:
                     coutsTmpContainer[rk] = counts[rk-pcircs[0]]
                     print(f"| Packing Counts of {rk} length:", len(
-                        counts[rk-pcircs[0]]))
+                        counts[rk-pcircs[0]]), end='\r')
 
             else:
                 warnings.warn(f"Pending pool '{pk}' is empty.")
