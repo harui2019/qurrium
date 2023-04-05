@@ -36,5 +36,6 @@ def test_quantity(
     tgt,
 ) -> bool:
     
-    quantity = expDemo01.measure(wave=tgt[0], backend=backend)
+    ID = expDemo01.measure(wave=tgt[0], backend=backend)
+    quantity = expDemo01.exps[ID].reports[0].content._asdict()
     assert all(['entropy' in quantity, 'purity' in quantity])
