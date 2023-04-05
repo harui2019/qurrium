@@ -95,9 +95,9 @@ def densityMatrixToBloch(
             list[np.complex128]: The bloch vector.
     """
 
-    ax = np.trace(np.dot(rho, RXmatrix, dtype=np.complex128)).real
-    ay = np.trace(np.dot(rho, RYmatrix, dtype=np.complex128)).real
-    az = np.trace(np.dot(rho, RZmatrix, dtype=np.complex128)).real
+    ax = np.trace(np.dot(rho, RXmatrix)).real
+    ay = np.trace(np.dot(rho, RYmatrix)).real
+    az = np.trace(np.dot(rho, RZmatrix)).real
     return [ax, ay, az]
 
 
@@ -113,9 +113,9 @@ def qubitOpToPauliCoeff(
             list[tuple[float]]: The bloch vector divided as tuple of real number and image number.
     """
 
-    ax: np.complex128 = np.trace(np.dot(rho, RXmatrix, dtype=np.complex128))/2
-    ay: np.complex128 = np.trace(np.dot(rho, RYmatrix, dtype=np.complex128))/2
-    az: np.complex128 = np.trace(np.dot(rho, RZmatrix, dtype=np.complex128))/2
+    ax = np.trace(np.dot(rho, RXmatrix))/2
+    ay = np.trace(np.dot(rho, RYmatrix))/2
+    az = np.trace(np.dot(rho, RZmatrix))/2
     return [(np.float64(a.real), np.float64(a.imag)) for a in [ax, ay, az]]
 
 
