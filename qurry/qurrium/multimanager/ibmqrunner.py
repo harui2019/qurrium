@@ -153,12 +153,13 @@ class IBMQRunner(Runner):
             lastTimeDate = self.currentMultiJob.multicommons.datetimes[
                 retrieveTimesNamer(retrieveTimes)
             ]
-            print(f"| Last retrieve by: {retrieveTimesNamer(retrieveTimes)} at {lastTimeDate}")
+            print(
+                f"| Last retrieve by: {retrieveTimesNamer(retrieveTimes)} at {lastTimeDate}")
             print(f"| Seems to there are some retrieves before.")
             print(f"| You can use `overwrite=True` to overwrite the previous retrieve.")
 
             return self.currentMultiJob.beforewards.jobID
-        
+
         if overwrite:
             print(f"| Overwrite the previous retrieve.")
             self.currentMultiJob.afterwards.reset(

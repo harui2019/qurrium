@@ -2,7 +2,6 @@ from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.quantum_info import Operator
 
 import time
-import warnings
 import numpy as np
 from multiprocessing import Pool, cpu_count
 from pathlib import Path
@@ -45,8 +44,7 @@ def _purityCell(
     singleCountsUnderDegree = dict.fromkeys(
         [k[bitStringRange[0]:bitStringRange[1]] for k in singleCounts], 0)
     for bitString in list(singleCounts):
-        singleCountsUnderDegree[bitString[bitStringRange[0]
-            :bitStringRange[1]]] += singleCounts[bitString]
+        singleCountsUnderDegree[bitString[bitStringRange[0]                                          :bitStringRange[1]]] += singleCounts[bitString]
 
     purityCell = np.float64(0)
     for sAi, sAiMeas in singleCountsUnderDegree.items():
@@ -226,7 +224,7 @@ def entangled_entropy(
         'degree': degree,
         'measureActually': measureRange,
         'bitStringRange': bitStringRange,
-        
+
         'countsNum': len(counts),
     }
 
@@ -434,7 +432,7 @@ def entangled_entropy_complex(
         'measure': measureInfo,
         'measureActually': measureRange,
         'measureActuallyAllSys': measureRangeAllSys,
-        
+
         'countsNum': len(counts),
     }
     return quantity
@@ -510,7 +508,7 @@ class EntropyRandomizedAnalysis(AnalysisPrototype):
         measure: Optional[tuple[int, int]] = None
         measureActually: Optional[tuple[int, int]] = None
         measureActuallyAllSys: Optional[tuple[int, int]] = None
-        
+
         countsNum: Optional[int] = None
 
         def __repr__(self):
@@ -566,6 +564,7 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
 
     __name__ = 'qurrent.RandomizedExperiment'
     shortName = 'qurrent.haar.exp'
+
     class arguments(NamedTuple):
         """Arguments for the experiment."""
         expName: str = 'exps'

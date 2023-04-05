@@ -70,7 +70,8 @@ def ensembleCell(
             float: the value of two counts from qubits in ensemble average.
 
     """
-    diff = sum(s1 != s2 for s1, s2 in zip(sAi, sAj)) # hamming_distance(sAi, sAj)
+    diff = sum(s1 != s2 for s1, s2 in zip(sAi, sAj)
+               )  # hamming_distance(sAi, sAj)
     tmp: np.float64 = np.float_power(
         2, aNum, dtype=np.float64
     )*np.float_power(
