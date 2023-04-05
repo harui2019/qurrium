@@ -1,7 +1,5 @@
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 
-import time
-import warnings
 import numpy as np
 from multiprocessing import Pool, cpu_count
 from pathlib import Path
@@ -19,6 +17,22 @@ def entangle_entropy(
     shots: int,
     counts: list[dict[str, int]],
 ) -> dict[str, float]:
+    """Calculate entangled entropy with more information combined.
+
+    - Which entropy:
+    
+        The entropy we compute is the Second Order Rényi Entropy.
+
+    Args:
+        shots (int): Shots of the experiment on quantum machine.
+        counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
+
+    Raises:
+        Warning: Expected '0' and '1', but there is no such keys
+
+    Returns:
+        dict[str, float]: Quantity of the experiment.
+    """
 
     purity = -100
     entropy = -100
@@ -162,6 +176,13 @@ class EntropyHadamardExperiment(ExperimentPrototype):
 
 
 class EntropyHadamardTest(QurryV5Prototype):
+    """Hadamard test for entanglement entropy.
+
+    - Which entropy:
+    
+        The entropy we compute is the Second Order Rényi Entropy.
+
+    """
 
     __name__ = 'qurrent.Hadamard'
     shortName = 'qurrent.hadamard'

@@ -158,6 +158,10 @@ def entangled_entropy(
     _workers_num: Optional[int] = None,
 ) -> dict[str, float]:
     """Calculate entangled entropy.
+    
+    - Which entropy:
+    
+        The entropy we compute is the Second Order Rényi Entropy.
 
     - Reference:
         - Used in:
@@ -322,6 +326,10 @@ def entangled_entropy_complex(
     _workers_num: Optional[int] = None,
 ) -> dict[str, float]:
     """Calculate entangled entropy with more information combined.
+
+    - Which entropy:
+    
+        The entropy we compute is the Second Order Rényi Entropy.
 
     - Reference:
         - Used in:
@@ -629,6 +637,37 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
 
 
 class EntropyRandomizedMeasure(QurryV5Prototype):
+    """Randomized Measure Experiment.
+
+    - Which entropy:
+    
+        The entropy we compute is the Second Order Rényi Entropy.
+
+    - Reference:
+        - Used in:
+            Simple mitigation of global depolarizing errors in quantum simulations - 
+            Vovrosh, Joseph and Khosla, Kiran E. and Greenaway, Sean and Self, Christopher and Kim, M. S. and Knolle, Johannes,
+            [PhysRevE.104.035309](https://link.aps.org/doi/10.1103/PhysRevE.104.035309)
+
+        - `bibtex`:
+
+    ```bibtex
+        @article{PhysRevE.104.035309,
+            title = {Simple mitigation of global depolarizing errors in quantum simulations},
+            author = {Vovrosh, Joseph and Khosla, Kiran E. and Greenaway, Sean and Self, Christopher and Kim, M. S. and Knolle, Johannes},
+            journal = {Phys. Rev. E},
+            volume = {104},
+            issue = {3},
+            pages = {035309},
+            numpages = {8},
+            year = {2021},
+            month = {Sep},
+            publisher = {American Physical Society},
+            doi = {10.1103/PhysRevE.104.035309},
+            url = {https://link.aps.org/doi/10.1103/PhysRevE.104.035309}
+        }
+    ```
+    """
 
     __name__ = 'qurrent.Randomized'
     shortName = 'qurrent.haar'
