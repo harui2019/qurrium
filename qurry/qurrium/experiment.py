@@ -209,6 +209,7 @@ class ExperimentPrototype():
         """Counts of experiment."""
 
     _unexports = ['sideProduct', 'result']
+    _deprecated = ['figOriginal']
 
     # Analysis Property
     @classmethod
@@ -409,6 +410,8 @@ class ExperimentPrototype():
             return getattr(self.beforewards, key)
         elif key in self.afterwards._fields:
             return getattr(self.afterwards, key)
+        elif key in self._deprecated:
+            print(f"| Warning: {key} is deprecated, it will be removed in the future.")
         else:
             raise ValueError(
                 f"{key} is not a valid field of '{self.before.__name__}' and '{self.after.__name__}'.")
