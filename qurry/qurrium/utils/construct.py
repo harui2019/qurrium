@@ -1,14 +1,5 @@
 from qiskit import QuantumCircuit
 from qiskit.result import Result
-from qiskit.providers.ibmq.managed import (
-    ManagedJobSet,
-    # ManagedJob,
-    ManagedResults,
-    IBMQManagedResultDataNotAvailable,
-    # IBMQJobManagerInvalidStateError,
-    # IBMQJobManagerUnknownJobSet
-    IBMQJobManagerJobNotFound
-)
 
 import warnings
 from typing import Literal, Union, Hashable, Optional
@@ -17,7 +8,8 @@ from typing import Literal, Union, Hashable, Optional
 def qubit_selector(
     num_qubits: int,
     degree: Union[int, tuple[int, int], None] = None,
-    as_what: Literal['degree', 'unitary_set', 'unitary_loc', 'measure range'] = 'degree',
+    as_what: Literal['degree', 'unitary_set',
+                     'unitary_loc', 'measure range'] = 'degree',
 ) -> tuple[int, int]:
     """Determint the qubits to be used.
 
@@ -130,7 +122,7 @@ def decomposer(
 
 
 def get_counts(
-    result: Union[Result, ManagedResults, None],
+    result: Union[Result, None],
     num: Optional[int] = None,
     resultIdxList: Optional[list[int]] = None,
 ) -> list[dict[str, int]]:
@@ -162,16 +154,14 @@ def get_counts(
                 ...
             else:
                 if num != len(resultIdxList):
-                    warnings.warn("The number of result is not equal to the length of resultIdxList, use resultIdxList.")
-                
+                    warnings.warn(
+                        "The number of result is not equal to the length of resultIdxList, use resultIdxList.")
+
             for i in resultIdxList:
                 allMeas = result.get_counts(i)
                 counts.append(allMeas)
 
-    except IBMQManagedResultDataNotAvailable as err:
-        counts.append({})
-        print("| Failed Job result skip, Job ID:", result.job_id, err)
-    except IBMQJobManagerJobNotFound as err:
+    except Exception as err:
         counts.append({})
         print("| Failed Job result skip, Job ID:", result.job_id, err)
 
