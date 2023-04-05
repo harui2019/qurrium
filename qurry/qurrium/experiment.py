@@ -209,7 +209,10 @@ class ExperimentPrototype():
         """Counts of experiment."""
 
     _unexports = ['sideProduct', 'result']
-    _deprecated = ['figOriginal']
+    _deprecated = ['figTranspiled']
+    """Deprecated properties.
+        - `figTranspiled` is deprecated since v0.6.0.
+    """
 
     # Analysis Property
     @classmethod
