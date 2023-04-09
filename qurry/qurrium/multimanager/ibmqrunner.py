@@ -148,8 +148,9 @@ class IBMQRunner(Runner):
         retrieveTimes = len(alreadyRetrieved)
         retrieveTimesName = retrieveTimesNamer(retrieveTimes+1)
 
+        print(f"| retrieve times: {retrieveTimes}, overwrite: {overwrite}")
         if retrieveTimes > 1 and overwrite == False:
-            print(f"| retrieve times: {retrieveTimes}, overwrite: {overwrite}")
+            print("| Overwrite not triggerred, read existed data.")
             lastTimeDate = self.currentMultiJob.multicommons.datetimes[
                 retrieveTimesNamer(retrieveTimes)
             ]
