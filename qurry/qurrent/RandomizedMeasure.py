@@ -493,8 +493,8 @@ def _circuit_method_core(
 
 class EntropyRandomizedAnalysis(AnalysisPrototype):
 
-    __name__ = 'qurrent.RandomizedAnalysis'
-    shortName = 'qurrent.haar.report'
+    __name__ = 'qurrentRandomized.Analysis'
+    shortName = 'qurrent_haar.report'
 
     class analysisInput(NamedTuple):
         """To set the analysis."""
@@ -599,8 +599,8 @@ class EntropyRandomizedAnalysis(AnalysisPrototype):
 
 class EntropyRandomizedExperiment(ExperimentPrototype):
 
-    __name__ = 'qurrent.RandomizedExperiment'
-    shortName = 'qurrent.haar.exp'
+    __name__ = 'qurrentRandomized.Experiment'
+    shortName = 'qurrent_haar.exp'
 
     class arguments(NamedTuple):
         """Arguments for the experiment."""
@@ -698,8 +698,8 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
     ```
     """
 
-    __name__ = 'qurrent.Randomized'
-    shortName = 'qurrent.haar'
+    __name__ = 'qurrentRandomized'
+    shortName = 'qurrent_haar'
 
     @classmethod
     @property
@@ -760,7 +760,7 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
             raise ValueError(
                 f"unitary_loc range '{unitary_loc}' does not contain measure range '{measure}'.")
 
-        expName = f"w={waveKey}-at={times}.{self.shortName}"
+        expName = f"w={waveKey}.with{times}random.{self.shortName}"
 
         return self.experiment.filter(
             expName=expName,

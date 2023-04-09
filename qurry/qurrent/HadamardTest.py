@@ -62,8 +62,8 @@ def entangle_entropy(
 
 class EntropyHadamardAnalysis(AnalysisPrototype):
 
-    __name__ = 'qurrent.HadamardAnalysis'
-    shortName = 'qurrent.hadamard.report'
+    __name__ = 'qurrentHadamard.Analysis'
+    shortName = 'qurrent_hadamard.report'
 
     class analysisInput(NamedTuple):
         """To set the analysis."""
@@ -90,7 +90,6 @@ class EntropyHadamardAnalysis(AnalysisPrototype):
         cls,
         shots: int,
         counts: list[dict[str, int]],
-        measure: tuple[int, int] = None,
     ) -> dict[str, float]:
         """Calculate entangled entropy with more information combined.
 
@@ -121,8 +120,8 @@ class EntropyHadamardAnalysis(AnalysisPrototype):
 
 class EntropyHadamardExperiment(ExperimentPrototype):
 
-    __name__ = 'qurrent.HadamardExperiment'
-    shortName = 'qurrent.hadamard.exp'
+    __name__ = 'qurrentHadamard.Experiment'
+    shortName = 'qurrent_hadamard.exp'
 
     class arguments(NamedTuple):
         """Arguments for the experiment."""
@@ -184,8 +183,8 @@ class EntropyHadamardTest(QurryV5Prototype):
 
     """
 
-    __name__ = 'qurrent.Hadamard'
-    shortName = 'qurrent.hadamard'
+    __name__ = 'qurrentHadamard'
+    shortName = 'qurrent_hadamard'
 
     @classmethod
     @property
@@ -228,7 +227,10 @@ class EntropyHadamardTest(QurryV5Prototype):
         numQubits = self.waves[waveKey].num_qubits
         degree = qubit_selector(numQubits, degree=degree)
 
-        expName = f"w={waveKey}-deg={degree[0]}-{degree[1]}.{self.shortName}"
+        if isinstance(waveKey, (list, tuple)):
+            waveKey = '-'.join([str(i) for i in waveKey])
+
+        expName = f"w={waveKey}.subsys=from{degree[0]}to{degree[1]}.{self.shortName}"
 
         return self.experiment.filter(
             expName=expName,
