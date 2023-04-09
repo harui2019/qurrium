@@ -1,9 +1,10 @@
 from qiskit import execute, transpile, QuantumCircuit
-from qiskit_aer import AerSimulator
 from qiskit.quantum_info import Operator
 from qiskit.circuit import Gate
 from qiskit.providers import Backend
-from qiskit.providers.ibmq import AccountProvider
+from qiskit_aer import AerSimulator
+from qiskit_ibm_provider import IBMBackend
+# from qiskit.providers.ibmq import AccountProvider
 
 import gc
 import warnings
@@ -22,7 +23,7 @@ from .declare.default import (
 )
 from .experiment import ExperimentPrototype, QurryExperiment
 from .container import WaveContainer, ExperimentContainer
-from .multimanager import MultiManager, IBMQRunner, Runner
+from .multimanager import MultiManager, IBMQRunner, IBMRunner, Runner
 
 from .utils import decomposer, get_counts
 from ..exceptions import (
@@ -249,7 +250,7 @@ class QurryV5Prototype:
         expID: Optional[str] = None,
         shots: int = 1024,
         backend: Backend = AerSimulator(),
-        provider: Optional[AccountProvider] = None,
+        # provider: Optional[AccountProvider] = None,
         runArgs: dict = {},
 
         runBy: Literal['gate', 'operator'] = "gate",
@@ -286,9 +287,6 @@ class QurryV5Prototype:
                 Shots of the job. Defaults to `1024`.
             backend (Backend, optional): 
                 The quantum backend. Defaults to AerSimulator().
-            provider (Optional[AccountProvider], optional): 
-                :cls:`AccountProvider` of current backend for running :cls:`IBMQJobManager`.
-                Defaults to `None`.
             runArgs (dict, optional): 
                 defaultConfig of :func:`qiskit.execute`. Defaults to `{}`.
             runBy (Literal[&#39;gate&#39;, &#39;operator&#39;], optional): 
@@ -358,7 +356,7 @@ class QurryV5Prototype:
             expID=expID,
             shots=shots,
             backend=backend,
-            provider=provider,
+            # provider=provider,
             runArgs=runArgs,
 
             runBy=runBy,
@@ -417,7 +415,6 @@ class QurryV5Prototype:
         assert self.exps[self.lastID].expID == self.lastExp.expID
         assert len(self.lastExp.beforewards.circuit) == 0
         assert len(self.lastExp.beforewards.figOriginal) == 0
-        assert len(self.lastExp.beforewards.figTranspiled) == 0
         assert len(self.lastExp.afterwards.result) == 0
         assert len(self.lastExp.afterwards.counts) == 0
 
@@ -500,8 +497,6 @@ class QurryV5Prototype:
             **currentExp.commons.transpileArgs
         )
         for _w in transpiledCirqs:
-            currentExp.beforewards.figTranspiled.append(
-                decomposer(_w, currentExp.commons.decompose).draw(output='text'))
             currentExp.beforewards.circuit.append(_w)
         # commons
         date = datetime.today().strftime("%Y-%m-%d_%H-%M-%S")
@@ -758,11 +753,11 @@ class QurryV5Prototype:
         summonerID: Optional[str] = None,
         shots: int = 1024,
         backend: Backend = AerSimulator(),
-        provider: AccountProvider = None,
+        # provider: AccountProvider = None,
         # Other arguments of experiment
         # Multiple jobs shared
         saveLocation: Union[Path, str] = Path('./'),
-        jobsType: Literal["local", "IBMQ", "AWS_Bracket", "Azure_Q"] = "local",
+        jobsType: Literal["local", "IBMQ", "IBM", "AWS_Bracket", "Azure_Q"] = "local",
         # IBMQJobManager() dedicated
         managerRunArgs: dict[str, Any] = {
             'max_experiments_per_job': 200,
@@ -789,9 +784,6 @@ class QurryV5Prototype:
             backend (Backend, optional):
                 The quantum backend.
                 Defaults to AerSimulator().
-            provider (Optional[AccountProvider], optional):
-                :cls:`AccountProvider` of current backend for running :cls:`IBMQJobManager`.
-                Defaults to `None`.
             saveLocation (Union[Path, str], optional): 
                 Where to save the export content as `json` file.
                 If `saveLocation == None`, then cancelled the file to be exported.
@@ -846,7 +838,7 @@ class QurryV5Prototype:
                 summonerName=summonerName,
                 shots=shots,
                 backend=backend,
-                provider=provider,
+                # provider=provider,
 
                 saveLocation=saveLocation,
                 files={},
@@ -865,7 +857,7 @@ class QurryV5Prototype:
                 **config,
                 'shots': shots,
                 'backend': backend,
-                'provider': provider,
+                # 'provider': provider,
 
                 'expName': multiJob.multicommons.summonerName,
                 'saveLocation': multiJob.multicommons.saveLocation,
@@ -887,7 +879,7 @@ class QurryV5Prototype:
         summonerID: Optional[str] = None,
         shots: int = 1024,
         backend: Backend = AerSimulator(),
-        provider: AccountProvider = None,
+        # provider: AccountProvider = None,
         # IBMQJobManager() dedicated
         managerRunArgs: dict = {},
         # Other arguments of experiment
@@ -912,9 +904,6 @@ class QurryV5Prototype:
             backend (Backend, optional):
                 The quantum backend.
                 Defaults to AerSimulator().
-            provider (Optional[AccountProvider], optional):
-                :cls:`AccountProvider` of current backend for running :cls:`IBMQJobManager`.
-                Defaults to `None`.
             managerRunArgs (dict, optional):
                 defaultConfig of :func:`IBMQJobManager().run`.
                 Defaults to `{}`.
@@ -936,7 +925,7 @@ class QurryV5Prototype:
             configList=configList,
             shots=shots,
             backend=backend,
-            provider=provider,
+            # provider=provider,
             managerRunArgs=managerRunArgs,
             summonerName=summonerName,
             summonerID=summonerID,
@@ -983,7 +972,7 @@ class QurryV5Prototype:
         summonerID: Optional[str] = None,
         shots: int = 1024,
         backend: Backend = AerSimulator(),
-        provider: AccountProvider = None,
+        # provider: AccountProvider = None,
         # IBMQJobManager() dedicated
         # Other arguments of experiment
         # Multiple jobs shared
@@ -1009,9 +998,9 @@ class QurryV5Prototype:
             backend (Backend, optional):
                 The quantum backend.
                 Defaults to AerSimulator().
-            provider (Optional[AccountProvider], optional):
-                :cls:`AccountProvider` of current backend for running :cls:`IBMQJobManager`.
-                Defaults to `None`.
+            # provider (Optional[AccountProvider], optional):
+            #     :cls:`AccountProvider` of current backend for running :cls:`IBMQJobManager`.
+            #     Defaults to `None`.
             saveLocation (Union[Path, str], optional): 
                 Where to save the export content as `json` file.
                 If `saveLocation == None`, then cancelled the file to be exported.
@@ -1034,7 +1023,7 @@ class QurryV5Prototype:
             configList=configList,
             shots=shots,
             backend=backend,
-            provider=provider,
+            # provider=provider,
             managerRunArgs={},
             summonerName=summonerName,
             summonerID=summonerID,
@@ -1091,12 +1080,13 @@ class QurryV5Prototype:
         summonerID: Optional[str] = None,
         shots: int = 1024,
         backend: Backend = AerSimulator(),
-        provider: AccountProvider = None,
+        # provider: AccountProvider = None,
         # IBMQJobManager() dedicated
         managerRunArgs: dict = {},
         # Other arguments of experiment
         # Multiple jobs shared
         saveLocation: Union[Path, str] = Path('./'),
+        jobsType: Literal["IBMQ", "IBM", "AWS_Bracket", "Azure_Q"] = "IBM",
 
         filetype: TagList._availableFileType = 'json',
 
@@ -1104,6 +1094,7 @@ class QurryV5Prototype:
                                  'onetime', 'each', 'tags'] = 'default',
         # defaultMultiAnalysis: list[dict[str, Any]] = [],
         # analysisName: str = 'report',
+        
     ) -> Hashable:
         """Pending the multiple jobs on IBMQ backend or other remote backend.
 
@@ -1121,9 +1112,9 @@ class QurryV5Prototype:
             backend (Backend, optional):
                 The quantum backend.
                 Defaults to AerSimulator().
-            provider (Optional[AccountProvider], optional):
-                :cls:`AccountProvider` of current backend for running :cls:`IBMQJobManager`.
-                Defaults to `None`.
+            # provider (Optional[AccountProvider], optional):
+            #     :cls:`AccountProvider` of current backend for running :cls:`IBMQJobManager`.
+            #     Defaults to `None`.
             managerRunArgs (dict, optional):
                 defaultConfig of :func:`IBMQJobManager().run`.
                 Defaults to `{}`.
@@ -1140,32 +1131,59 @@ class QurryV5Prototype:
             Hashable: SummonerID (ID of multimanager).
         """
 
+        if jobsType == 'IBMQ':
+            if isinstance(backend, IBMBackend) :
+                raise ValueError("| 'IBMBackend' from 'qiskit_ibm_provider' is not supported for 'IBMQ' jobsType for it only support 'IBMQBackend', change backend.")
+
         besummonned = self.multiBuild(
             configList=configList,
             shots=shots,
             backend=backend,
-            provider=provider,
+            # provider=provider,
             managerRunArgs=managerRunArgs,
             summonerName=summonerName,
             summonerID=summonerID,
             saveLocation=saveLocation,
-            jobsType=f"IBMQ.{pendingStrategy}",
+            jobsType=f"{jobsType}.{pendingStrategy}",
             filetype=filetype,
         )
         currentMultiJob = self.multimanagers[besummonned]
         assert currentMultiJob.summonerID == besummonned
 
-        self.multirunner: IBMQRunner = IBMQRunner(
-            besummonned=currentMultiJob.summonerID,
-            multiJob=currentMultiJob,
-            backend=backend,
-            experimentalContainer=self.exps,
-        )
+        
+        if jobsType == 'IBMQ':
+            if isinstance(backend, IBMBackend) :
+                raise ValueError("| 'IBMBackend' from 'qiskit_ibm_provider' is not supported for 'IBMQ' jobsType for it only support 'IBMQBackend', change backend.")
 
-        # currentMultiJob.outfields['pendingStrategy'] = pendingStrategy
-        bependings = self.multirunner.pending(
-            pendingStrategy=pendingStrategy,
-        )
+            self.multirunner: IBMQRunner = IBMQRunner(
+                besummonned=currentMultiJob.summonerID,
+                multiJob=currentMultiJob,
+                backend=backend,
+                experimentalContainer=self.exps,
+            )
+
+            # currentMultiJob.outfields['pendingStrategy'] = pendingStrategy
+            bependings = self.multirunner.pending(
+                pendingStrategy=pendingStrategy,
+            )
+        
+        elif jobsType == 'IBM':
+                
+            self.multirunner: IBMRunner = IBMRunner(
+                besummonned=currentMultiJob.summonerID,
+                multiJob=currentMultiJob,
+                backend=backend,
+                experimentalContainer=self.exps,
+            )
+            
+            bependings = self.multirunner.pending(
+                pendingStrategy=pendingStrategy,
+            )
+            
+        else:
+            warnings.warn(
+                f"Jobstype of '{besummonned}' is {currentMultiJob.multicommons.jobsType} which is not supported.")
+            return besummonned
 
         bewritten = self.multiWrite(besummonned)
         assert bewritten == besummonned
@@ -1353,8 +1371,8 @@ class QurryV5Prototype:
         # IBMQJobManager() dedicated
         # Other arguments of experiment
         # Multiple jobs shared
-        backend: Backend = AerSimulator(),
-        provider: AccountProvider = None,
+        backend: IBMBackend = None,
+        # provider: AccountProvider = None,
         saveLocation: Union[Path, str] = Path('./'),
         refresh: bool = False,
         overwrite: bool = False,
@@ -1369,9 +1387,9 @@ class QurryV5Prototype:
                 Name for multimanager. Defaults to 'exps'.
             summonerID (Optional[str], optional):
                 Name for multimanager. Defaults to None.
-            backend (Backend, optional):
+            backend (IBMBackend, optional):
                 The quantum backend.
-                Defaults to AerSimulator().
+                Defaults to IBMBackend().
             provider (Optional[AccountProvider], optional):
                 :cls:`AccountProvider` of current backend for running :cls:`IBMQJobManager`.
                 Defaults to `None`.
@@ -1406,24 +1424,43 @@ class QurryV5Prototype:
         )
         currentMultiJob = self.multimanagers[besummonned]
         assert currentMultiJob.summonerID == besummonned
+        
+        jobsType, pendingStrategy = currentMultiJob.multicommons.jobsType.split('.')
+        
+        if jobsType == 'IBMQ':
+            if isinstance(backend, IBMBackend) :
+                raise ValueError("| 'IBMBackend' from 'qiskit_ibm_provider' is not supported for 'IBMQ' jobsType for it only support 'IBMQBackend', change backend.")
 
-        if currentMultiJob.multicommons.jobsType[:4] != 'IBMQ':
+            self.multirunner: IBMQRunner = IBMQRunner(
+                besummonned=currentMultiJob.summonerID,
+                multiJob=currentMultiJob,
+                backend=backend,
+                experimentalContainer=self.exps,
+            )
+
+            beretrieveds = self.multirunner.retrieve(
+                provider=backend.provider(),
+                refresh=refresh,
+                overwrite=overwrite,
+            )
+            
+        elif jobsType == 'IBM':
+            
+            self.multirunner: IBMRunner = IBMRunner(
+                besummonned=currentMultiJob.summonerID,
+                multiJob=currentMultiJob,
+                backend=backend,
+                experimentalContainer=self.exps,
+            )
+            
+            beretrieveds = self.multirunner.retrieve(
+                overwrite=overwrite,
+            )
+            
+        else:
             warnings.warn(
                 f"Jobstype of '{besummonned}' is {currentMultiJob.multicommons.jobsType} which is not supported.")
             return besummonned
-
-        self.multirunner: IBMQRunner = IBMQRunner(
-            besummonned=currentMultiJob.summonerID,
-            multiJob=currentMultiJob,
-            backend=backend,
-            experimentalContainer=self.exps,
-        )
-
-        beretrieveds = self.multirunner.retrieve(
-            provider=provider,
-            refresh=refresh,
-            overwrite=overwrite,
-        )
 
         print(f"| Retrieve {currentMultiJob.summonerName} completed.")
         bewritten = self.multiWrite(besummonned)

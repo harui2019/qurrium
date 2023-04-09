@@ -1,7 +1,6 @@
 from qiskit import QuantumCircuit
 from qiskit.result import Result
 from qiskit.providers import Backend
-from qiskit.providers.ibmq import AccountProvider
 from qiskit_aer import AerSimulator
 
 from pathlib import Path
@@ -58,7 +57,6 @@ beforeConfig = defaultConfig(
     default={
         'circuit': [],
         'figOriginal': [],
-        'figTranspiled': [],
         'jobID': '',
         'expName': '',
         'sideProduct': {},
@@ -98,8 +96,6 @@ class ExperimentPrototype():
         """Number of shots to run the program (default: 1024)."""
         backend: Backend
         """Backend to execute the circuits on."""
-        provider: Optional[AccountProvider]
-        """Provider to execute the backend on."""
         runArgs: dict
         """Arguments of `execute`."""
 
@@ -194,8 +190,6 @@ class ExperimentPrototype():
         """Circuits of experiment."""
         figOriginal: list[str]
         """Raw circuit figures which is the circuit before transpile."""
-        figTranspiled: list[str]
-        """Transpile circuit figures which is the circuit after transpile and the actual one would be executed."""
 
         # Export data
         jobID: str
@@ -215,6 +209,10 @@ class ExperimentPrototype():
         """Counts of experiment."""
 
     _unexports = ['sideProduct', 'result']
+    _deprecated = ['figTranspiled']
+    """Deprecated properties.
+        - `figTranspiled` is deprecated since v0.6.0.
+    """
 
     # Analysis Property
     @classmethod
@@ -337,7 +335,6 @@ class ExperimentPrototype():
         self.beforewards = self.before(
             circuit=[],
             figOriginal=[],
-            figTranspiled=[],
             jobID='',
             expName=self.args.expName,
             sideProduct={},
@@ -398,7 +395,10 @@ class ExperimentPrototype():
             else:
                 raise QurryProtectContent(
                     f"Can't set value to :cls:`afterward` field {key} because it's locked, use `.unlock_afterward()` to unlock before setting item .")
-
+        
+        elif key in self._deprecated:
+            print(f"| Warning: {key} is deprecated.")
+        
         else:
             raise ValueError(
                 f"{key} is not a valid field of '{self.before.__name__}' and '{self.after.__name__}'.")
@@ -416,6 +416,8 @@ class ExperimentPrototype():
             return getattr(self.beforewards, key)
         elif key in self.afterwards._fields:
             return getattr(self.afterwards, key)
+        elif key in self._deprecated:
+            print(f"| Warning: {key} is deprecated, it will be removed in the future.")
         else:
             raise ValueError(
                 f"{key} is not a valid field of '{self.before.__name__}' and '{self.after.__name__}'.")
@@ -1315,8 +1317,6 @@ class ExperimentPrototype():
                 
             elif k == 'figRaw':
                 beforewards['figOriginal'] = legacyRead[k]
-            elif k == 'figTranspile':
-                beforewards['figTranspiled'] = legacyRead[k]
             elif k == 'dateCreate':
                 commonsinput['datetimes'] = {
                     'build': legacyRead[k],

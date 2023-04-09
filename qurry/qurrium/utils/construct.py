@@ -1,23 +1,42 @@
 from qiskit import QuantumCircuit
 from qiskit.result import Result
-from qiskit.providers.ibmq.managed import (
-    ManagedJobSet,
-    # ManagedJob,
-    ManagedResults,
-    IBMQManagedResultDataNotAvailable,
-    # IBMQJobManagerInvalidStateError,
-    # IBMQJobManagerUnknownJobSet
-    IBMQJobManagerJobNotFound
-)
 
 import warnings
+from multiprocessing import cpu_count
 from typing import Literal, Union, Hashable, Optional
+
+def workers_distribution(
+    workers_num: Optional[int] = None,
+    default: int = cpu_count()-2,
+) -> int:
+    if default < 1:
+        warnings.warn(
+            f"| Available worker number {cpu_count()} is equal orsmaller than 2."+
+            "This computer may not be able to run this program for the program will allocate all available threads.")
+        default = cpu_count()
+    
+    if workers_num is None:
+        launch_worker = default
+    else:
+        if workers_num > cpu_count():
+            warnings.warn(
+                f"| Worker number {workers_num} is larger than cpu count {cpu_count()}.")
+            launch_worker = default
+        elif workers_num < 1:
+            warnings.warn(
+                f"| Worker number {workers_num} is smaller than 1. Use single worker.")
+            launch_worker = 1
+        else:
+            launch_worker = workers_num
+    
+    return launch_worker
 
 
 def qubit_selector(
     num_qubits: int,
     degree: Union[int, tuple[int, int], None] = None,
-    as_what: Literal['degree', 'unitary_set', 'unitary_loc', 'measure range'] = 'degree',
+    as_what: Literal['degree', 'unitary_set',
+                     'unitary_loc', 'measure range'] = 'degree',
 ) -> tuple[int, int]:
     """Determint the qubits to be used.
 
@@ -130,7 +149,7 @@ def decomposer(
 
 
 def get_counts(
-    result: Union[Result, ManagedResults, None],
+    result: Union[Result, None],
     num: Optional[int] = None,
     resultIdxList: Optional[list[int]] = None,
 ) -> list[dict[str, int]]:
@@ -144,7 +163,7 @@ def get_counts(
     counts: list[dict[str, int]] = []
     if result is None:
         counts.append({})
-        print("| Failed Job result skip, Job ID:", result.job_id)
+        print("| Failed Job result skip.")
         return counts
 
     try:
@@ -162,16 +181,14 @@ def get_counts(
                 ...
             else:
                 if num != len(resultIdxList):
-                    warnings.warn("The number of result is not equal to the length of resultIdxList, use resultIdxList.")
-                
+                    warnings.warn(
+                        "The number of result is not equal to the length of resultIdxList, use resultIdxList.")
+
             for i in resultIdxList:
                 allMeas = result.get_counts(i)
                 counts.append(allMeas)
 
-    except IBMQManagedResultDataNotAvailable as err:
-        counts.append({})
-        print("| Failed Job result skip, Job ID:", result.job_id, err)
-    except IBMQJobManagerJobNotFound as err:
+    except Exception as err:
         counts.append({})
         print("| Failed Job result skip, Job ID:", result.job_id, err)
 

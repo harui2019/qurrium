@@ -1,15 +1,15 @@
 import pytest
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit import QuantumRegister, QuantumCircuit
 
 from qurry.qurrent import EntropyMeasure
 from qurry.tools import backendWrapper
 
-expDemo01 = EntropyMeasure()
+expDemo01 = EntropyMeasure(method='hadamard')
 try:
     from qurry.case import trivialParamagnet
 
     wave_adds = [
-        (expDemo01.addWave(trivialParamagnet(i).wave(), i),) for i in range(6, 12, 2)
+        (expDemo01.add(trivialParamagnet(i).wave(), i),) for i in range(6, 12, 2)
     ]
 except:
     def trivialParamagnet(n) -> QuantumCircuit:
@@ -24,7 +24,7 @@ except:
     
         return qc
     wave_adds = [
-        (expDemo01.addWave(trivialParamagnet(i), i),) for i in range(6, 12, 2)
+        (expDemo01.add(trivialParamagnet(i), i),) for i in range(6, 12, 2)
     ]
 
 
@@ -36,5 +36,7 @@ def test_quantity(
     tgt,
 ) -> bool:
     
-    quantity = expDemo01.measure(wave=tgt[0], backend=backend)
+    ID = expDemo01.measure(wave=tgt[0], backend=backend)
+    expDemo01.exps[ID].analyze()
+    quantity = expDemo01.exps[ID].reports[0].content._asdict()
     assert all(['entropy' in quantity, 'purity' in quantity])

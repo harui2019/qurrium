@@ -301,5 +301,5 @@ def _remove(
     _wave_container: MutableMapping[Hashable, QuantumCircuit],
     key: Optional[Hashable] = None,
 ) -> None:
-    
+
     del _wave_container[key]

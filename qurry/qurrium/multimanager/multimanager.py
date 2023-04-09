@@ -1,6 +1,5 @@
 from qiskit.result import Result
 from qiskit.providers import Backend
-from qiskit.providers.ibmq import AccountProvider
 from qiskit_aer import AerSimulator
 
 from pathlib import Path
@@ -16,7 +15,7 @@ from ...mori import TagList, syncControl, defaultConfig
 from ...mori.quick import quickJSON, quickRead
 from ...exceptions import (
     QurryProtectContent,
-    QurryResetAccomplished, 
+    QurryResetAccomplished,
     QurryResetSecurityActivated
 )
 from ..declare.type import Quantity
@@ -29,7 +28,6 @@ multicommonConfig = defaultConfig(
         'summonerName': None,
         'shots': 1024,
         'backend': AerSimulator(),
-        'provider': None,
         'saveLocation': Path('./'),
         'exportLocation': Path('./'),
         'files': {},
@@ -56,8 +54,6 @@ class MultiManager:
         """Number of shots to run the program (default: 1024), which multiple experiments shared."""
         backend: Backend
         """Backend to execute the circuits on, which multiple experiments shared."""
-        provider: Optional[AccountProvider]
-        """Provider to execute the backend on, which multiple experiments shared."""
 
         saveLocation: Union[Path, str]
         """Location of saving experiment."""
@@ -65,8 +61,12 @@ class MultiManager:
         """Location of exporting experiment, exportLocation is the final result decided by experiment."""
         files: dict[str, Union[str, dict[str, str]]]
 
-        jobsType: Literal["local", "IBMQ", "AWS_Bracket", "Azure_Q"]
-        """Type of jobs to run multiple experiments."""
+        jobsType: str
+        """Type of jobs to run multiple experiments and its pending strategy.
+        
+        - jobsType: "local", "IBMQ", "IBM", "AWS_Bracket", "Azure_Q"
+        - pendingStrategy: "default", "onetime", "each", "tags"
+        """
 
         managerRunArgs: dict[str, any]
         """Other arguments will be passed to `IBMQJobManager()`"""
@@ -104,7 +104,7 @@ class MultiManager:
         """The list of retrieved results, which multiple experiments shared."""
         allCounts: dict[Hashable, list[dict[str, int]]]
         """The dict of all counts of each experiments."""
-        
+
         def reset(
             self,
             *args,
@@ -426,7 +426,7 @@ class MultiManager:
             if k in self.multicommonparams._fields:
                 multicommons[k] = rawReadMultiConfig[k]
             elif k == 'outfields':
-                outfields = { **rawReadMultiConfig[k] }
+                outfields = {**rawReadMultiConfig[k]}
             else:
                 outfields[k] = rawReadMultiConfig[k]
 

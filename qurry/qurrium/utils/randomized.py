@@ -3,7 +3,7 @@ from qiskit.quantum_info import random_unitary
 # from qiskit.result import Result
 
 import numpy as np
-from typing import Callable, Literal, Union
+from typing import Callable
 
 # Haar Randomized Parts V0.3.0 - Qurrium
 
@@ -24,7 +24,7 @@ makeTwoBitStrOneLiner: Callable[[int, list[str]], list[str]] = (
     )(makeTwoBitStrOneLiner(num-1, bits)) if num > 0 else bits))
 
 
-def hamming_distance(str1, str2):
+def hamming_distance(str1: str, str2: str) -> int:
     """Calculate the Hamming distance between two bit strings
 
     From `qiskit.visualization.count_visualization`.
@@ -70,11 +70,16 @@ def ensembleCell(
             float: the value of two counts from qubits in ensemble average.
 
     """
-    diff = sum(s1 != s2 for s1, s2 in zip(sAi, sAj)) # hamming_distance(sAi, sAj)
-    tmp = (
-        np.float_power(2, aNum)*np.float_power(-2, -diff)
+    diff = sum(s1 != s2 for s1, s2 in zip(sAi, sAj)
+               )  # hamming_distance(sAi, sAj)
+    tmp: np.float64 = np.float_power(
+        2, aNum, dtype=np.float64
+    )*np.float_power(
+        -2, -diff, dtype=np.float64
     )*(
-        (sAiMeas/shots)*(sAjMeas/shots)
+        np.float64(sAiMeas)/shots
+    )*(
+        np.float64(sAjMeas)/shots
     )
     return tmp
 
@@ -109,10 +114,10 @@ def qubitOpToPauliCoeff(
             list[tuple[float]]: The bloch vector divided as tuple of real number and image number.
     """
 
-    ax: np.complex128 = np.trace(np.dot(rho, RXmatrix))/2
-    ay: np.complex128 = np.trace(np.dot(rho, RYmatrix))/2
-    az: np.complex128 = np.trace(np.dot(rho, RZmatrix))/2
-    return [(float(a.real), float(a.imag)) for a in [ax, ay, az]]
+    ax = np.trace(np.dot(rho, RXmatrix))/2
+    ay = np.trace(np.dot(rho, RYmatrix))/2
+    az = np.trace(np.dot(rho, RZmatrix))/2
+    return [(np.float64(a.real), np.float64(a.imag)) for a in [ax, ay, az]]
 
 
 class haarBase:
