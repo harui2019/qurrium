@@ -12,13 +12,13 @@ from qiskit_ibm_provider.job import IBMCircuitJob
 from qiskit_ibm_provider.exceptions import IBMBackendApiError
 
 from typing import Literal, Hashable, Union, Any
-from datetime import datetime
 import warnings
 
 from .multimanager import MultiManager
 from .runner import Runner
 from ..container import ExperimentContainer
-from ..utils import get_counts
+from ..utils import get_counts, currentTime
+
 
 class IBMRunner(Runner):
     """Pending and Retrieve Jobs from IBM backend."""
@@ -78,7 +78,7 @@ class IBMRunner(Runner):
 
                 self.circWithSerial[idx+circSerialLen] = circ
 
-        current = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        current = currentTime()
         self.currentMultiJob.multicommons.datetimes['pending'] = current
 
         for pk, pcircIdxs in self.currentMultiJob.beforewards.pendingPools.items():
@@ -117,8 +117,8 @@ class IBMRunner(Runner):
         for id_exec in self.currentMultiJob.beforewards.configDict:
             self.expContainer[id_exec].commons.datetimes['pending'] = current
 
-        self.currentMultiJob.multicommons.datetimes['pendingCompleted'] = datetime.now(
-        ).strftime("%Y-%m-%d %H:%M:%S")
+        self.currentMultiJob.multicommons.datetimes['pendingCompleted'] = currentTime(
+        )
 
         return self.currentMultiJob.beforewards.jobID
 
@@ -129,6 +129,7 @@ class IBMRunner(Runner):
 
         pendingMapping: dict[Hashable, Union[IBMCircuitJob, 'IBMQJob']] = {}
         coutsTmpContainer: dict[str, dict[str, int]] = {}
+
         def retrieveTimesNamer(
             retrieveTimes): return 'retrieve.'+f'{retrieveTimes}'.rjust(3, '0')
 
@@ -143,20 +144,21 @@ class IBMRunner(Runner):
             lastTimeDate = self.currentMultiJob.multicommons.datetimes[
                 retrieveTimesNamer(retrieveTimes)
             ]
-            print(f"| Last retrieve by: {retrieveTimesNamer(retrieveTimes)} at {lastTimeDate}")
+            print(
+                f"| Last retrieve by: {retrieveTimesNamer(retrieveTimes)} at {lastTimeDate}")
             print(f"| Seems to there are some retrieves before.")
             print(f"| You can use `overwrite=True` to overwrite the previous retrieve.")
 
             return self.currentMultiJob.beforewards.jobID
-        
+
         if overwrite:
             print(f"| Overwrite the previous retrieve.")
             self.currentMultiJob.afterwards.reset(
                 security=True, muteWarning=True)
 
-        current = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        current = currentTime()
         self.currentMultiJob.multicommons.datetimes[retrieveTimesName] = current
-        
+
         if qiskit_ibmq_provider:
             if isinstance(self.backend, IBMQBackend):
                 for pendingID, pk in self.currentMultiJob.beforewards.jobID:
@@ -169,7 +171,8 @@ class IBMRunner(Runner):
                         )
                     except IBMQBackendApiError as e:
                         pendingMapping[pk] = None
-                        print(f"| Error: {e}, of jobID: {pendingID}, of pending pool: {pk}")
+                        print(
+                            f"| Error: {e}, of jobID: {pendingID}, of pending pool: {pk}")
             else:
                 provider: IBMProvider = self.backend.provider
                 for pendingID, pk in self.currentMultiJob.beforewards.jobID:
@@ -182,8 +185,9 @@ class IBMRunner(Runner):
                         )
                     except IBMBackendApiError as e:
                         pendingMapping[pk] = None
-                        print(f"| Error: {e}, of jobID: {pendingID}, of pending pool: {pk}")
-                        
+                        print(
+                            f"| Error: {e}, of jobID: {pendingID}, of pending pool: {pk}")
+
         else:
             provider: IBMProvider = self.backend.provider
             for pendingID, pk in self.currentMultiJob.beforewards.jobID:
@@ -196,7 +200,8 @@ class IBMRunner(Runner):
                     )
                 except IBMBackendApiError as e:
                     pendingMapping[pk] = None
-                    print(f"| Error: {e}, of jobID: {pendingID}, of pending pool: {pk}")
+                    print(
+                        f"| Error: {e}, of jobID: {pendingID}, of pending pool: {pk}")
 
         for pk, pcircs in self.currentMultiJob.beforewards.pendingPools.items():
             if len(pcircs) > 0:
@@ -218,7 +223,7 @@ class IBMRunner(Runner):
                 else:
                     print(f"| retrieve: {pk} - failed")
                     print(f"| No available tags")
-                    
+
                     counts = get_counts(
                         result=None,
                         resultIdxList=[rk-pcircs[0] for rk in pcircs]

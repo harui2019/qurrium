@@ -5,13 +5,12 @@ from qiskit.providers.ibmq.managed import ManagedJobSet, IBMQJobManagerInvalidSt
 from qiskit.providers.ibmq.exceptions import IBMQError
 
 from typing import Literal, NamedTuple, Hashable, Any
-from datetime import datetime
 import warnings
 
 from .multimanager import MultiManager
 from .runner import Runner
 from ..container import ExperimentContainer
-from ..utils import get_counts
+from ..utils import get_counts, currentTime
 
 
 class QurryIBMQBackendIO(NamedTuple):
@@ -86,7 +85,7 @@ class IBMQRunner(Runner):
 
                 self.circWithSerial[idx+circSerialLen] = circ
 
-        current = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        current = currentTime()
         self.currentMultiJob.multicommons.datetimes['pending'] = current
 
         for pk, pcircIdxs in self.currentMultiJob.beforewards.pendingPools.items():
@@ -125,8 +124,8 @@ class IBMQRunner(Runner):
         for id_exec in self.currentMultiJob.beforewards.configDict:
             self.expContainer[id_exec].commons.datetimes['pending'] = current
 
-        self.currentMultiJob.multicommons.datetimes['pendingCompleted'] = datetime.now(
-        ).strftime("%Y-%m-%d %H:%M:%S")
+        self.currentMultiJob.multicommons.datetimes['pendingCompleted'] = currentTime(
+        )
 
         return self.currentMultiJob.beforewards.jobID
 
@@ -166,7 +165,7 @@ class IBMQRunner(Runner):
             self.currentMultiJob.afterwards.reset(
                 security=True, muteWarning=True)
 
-        current = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        current = currentTime()
         self.currentMultiJob.multicommons.datetimes[retrieveTimesName] = current
 
         for pendingID, pk in self.currentMultiJob.beforewards.jobID:

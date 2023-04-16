@@ -8,13 +8,12 @@ from qiskit_ibm_provider import IBMBackend
 
 import gc
 import warnings
-from datetime import datetime
 from pathlib import Path
 from typing import Literal, Union, Optional, Hashable, Type, Any
 from abc import abstractmethod, abstractproperty
 
 from ..mori import TagList
-from ..tools import Gajima, ResoureWatch
+from ..tools import ResoureWatch
 from .declare.default import (
     transpileConfig,
     runConfig,
@@ -25,7 +24,7 @@ from .experiment import ExperimentPrototype, QurryExperiment
 from .container import WaveContainer, ExperimentContainer
 from .multimanager import MultiManager, IBMQRunner, IBMRunner, Runner
 
-from .utils import decomposer, get_counts
+from .utils import decomposer, get_counts, currentTime, datetimeDict
 from ..exceptions import (
     QurryUnrecongnizedArguments,
     QurryResetAccomplished,
@@ -372,7 +371,7 @@ class QurryV5Prototype:
             serial=serial,
             summonerID=summonerID,
             summonerName=summonerName,
-            datetimes={},
+            datetimes=datetimeDict(),
             **otherArgs)
 
         # TODO: levenshtein_distance check for outfields
@@ -499,7 +498,7 @@ class QurryV5Prototype:
         for _w in transpiledCirqs:
             currentExp.beforewards.circuit.append(_w)
         # commons
-        date = datetime.today().strftime("%Y-%m-%d_%H-%M-%S")
+        date = currentTime()
         currentExp.commons.datetimes['build'] = date
 
         if isinstance(saveLocation, (Path, str)):
@@ -568,7 +567,7 @@ class QurryV5Prototype:
             shots=currentExp.commons.shots,
         )
         # commons
-        date = datetime.today().strftime("%Y-%m-%d_%H-%M-%S")
+        date = currentTime()
         currentExp.commons.datetimes['run'] = date
         # beforewards
         jobID = execution.job_id()
@@ -757,7 +756,8 @@ class QurryV5Prototype:
         # Other arguments of experiment
         # Multiple jobs shared
         saveLocation: Union[Path, str] = Path('./'),
-        jobsType: Literal["local", "IBMQ", "IBM", "AWS_Bracket", "Azure_Q"] = "local",
+        jobsType: Literal["local", "IBMQ", "IBM",
+                          "AWS_Bracket", "Azure_Q"] = "local",
         # IBMQJobManager() dedicated
         managerRunArgs: dict[str, Any] = {
             'max_experiments_per_job': 200,
@@ -767,6 +767,7 @@ class QurryV5Prototype:
         isRetrieve: bool = False,
         isRead: bool = False,
         readVersion: Literal['v4', 'v5'] = 'v5',
+        readFromTarfile: bool = False,
     ) -> tuple[list[dict[str, Any]], str]:
         """Control the experiment's parameters for running multiple jobs.
 
@@ -828,6 +829,7 @@ class QurryV5Prototype:
                 summonerID=None,
                 summonerName=summonerName,
                 isRead=isRead,
+                readFromTarfile=readFromTarfile,
 
                 saveLocation=saveLocation,
                 version=readVersion,
@@ -846,7 +848,7 @@ class QurryV5Prototype:
                 jobsType=jobsType,
                 managerRunArgs=managerRunArgs,
                 filetype=filetype,
-                datetimes={},
+                datetimes=datetimeDict(),
             )
 
         self.multimanagers[multiJob.summonerID] = multiJob
@@ -1094,7 +1096,7 @@ class QurryV5Prototype:
                                  'onetime', 'each', 'tags'] = 'default',
         # defaultMultiAnalysis: list[dict[str, Any]] = [],
         # analysisName: str = 'report',
-        
+
     ) -> Hashable:
         """Pending the multiple jobs on IBMQ backend or other remote backend.
 
@@ -1132,8 +1134,9 @@ class QurryV5Prototype:
         """
 
         if jobsType == 'IBMQ':
-            if isinstance(backend, IBMBackend) :
-                raise ValueError("| 'IBMBackend' from 'qiskit_ibm_provider' is not supported for 'IBMQ' jobsType for it only support 'IBMQBackend', change backend.")
+            if isinstance(backend, IBMBackend):
+                raise ValueError(
+                    "| 'IBMBackend' from 'qiskit_ibm_provider' is not supported for 'IBMQ' jobsType for it only support 'IBMQBackend', change backend.")
 
         besummonned = self.multiBuild(
             configList=configList,
@@ -1150,10 +1153,10 @@ class QurryV5Prototype:
         currentMultiJob = self.multimanagers[besummonned]
         assert currentMultiJob.summonerID == besummonned
 
-        
         if jobsType == 'IBMQ':
-            if isinstance(backend, IBMBackend) :
-                raise ValueError("| 'IBMBackend' from 'qiskit_ibm_provider' is not supported for 'IBMQ' jobsType for it only support 'IBMQBackend', change backend.")
+            if isinstance(backend, IBMBackend):
+                raise ValueError(
+                    "| 'IBMBackend' from 'qiskit_ibm_provider' is not supported for 'IBMQ' jobsType for it only support 'IBMQBackend', change backend.")
 
             self.multirunner: IBMQRunner = IBMQRunner(
                 besummonned=currentMultiJob.summonerID,
@@ -1166,20 +1169,20 @@ class QurryV5Prototype:
             bependings = self.multirunner.pending(
                 pendingStrategy=pendingStrategy,
             )
-        
+
         elif jobsType == 'IBM':
-                
+
             self.multirunner: IBMRunner = IBMRunner(
                 besummonned=currentMultiJob.summonerID,
                 multiJob=currentMultiJob,
                 backend=backend,
                 experimentalContainer=self.exps,
             )
-            
+
             bependings = self.multirunner.pending(
                 pendingStrategy=pendingStrategy,
             )
-            
+
         else:
             warnings.warn(
                 f"Jobstype of '{besummonned}' is {currentMultiJob.multicommons.jobsType} which is not supported.")
@@ -1254,8 +1257,7 @@ class QurryV5Prototype:
             main, tales = report.export()
             multiJob.tagMapQuantity[name][
                 self.exps[k].commons.tags].append(main)
-        multiJob.multicommons.datetimes[name] = datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S")
+        multiJob.multicommons.datetimes[name] = currentTime()
 
         if _write:
             filesMulti = multiJob.write(_onlyQuantity=True)
@@ -1268,6 +1270,9 @@ class QurryV5Prototype:
         self,
         summonerID: Hashable,
         saveLocation: Optional[Union[Path, str]] = None,
+        compress: bool = False,
+        compressOverwrite: bool = False,
+        remainOnlyCompressed: bool = False,
     ) -> Hashable:
         """Write the multiJob to the file.
 
@@ -1296,12 +1301,23 @@ class QurryV5Prototype:
             saveLocation=saveLocation if saveLocation is not None else None,
         )
 
+        # TODO: tqdm -
         for id_exec in currentMultiJob.beforewards.configDict:
             print(f"| MultiWrite: {id_exec} in {summonerID}.")
             self.exps[id_exec].write(
                 saveLocation=currentMultiJob.multicommons.saveLocation,
                 mute=True,
             )
+
+        if compress:
+            currentMultiJob.compress(
+                compressOverwrite=compressOverwrite,
+                remainOnlyCompressed=remainOnlyCompressed,
+            )
+        else:
+            if compressOverwrite or remainOnlyCompressed:
+                warnings.warn(
+                    "compressOverwrite or remainOnlyCompressed is set to True, but compress is False.")
 
         return currentMultiJob.multicommons.summonerID
 
@@ -1315,6 +1331,7 @@ class QurryV5Prototype:
         # Multiple jobs shared
         saveLocation: Union[Path, str] = Path('./'),
 
+        readFromTarfile: bool = False,
         # defaultMultiAnalysis: list[dict[str, Any]] = []
         # analysisName: str = 'report',
     ) -> Hashable:
@@ -1339,6 +1356,8 @@ class QurryV5Prototype:
             summonerID=summonerID,
             saveLocation=saveLocation,
             isRead=True,
+
+            readFromTarfile=readFromTarfile,
         )
 
         assert besummonned in self.multimanagers
@@ -1376,6 +1395,7 @@ class QurryV5Prototype:
         saveLocation: Union[Path, str] = Path('./'),
         refresh: bool = False,
         overwrite: bool = False,
+        readFromTarfile: bool = False,
 
         defaultMultiAnalysis: list[dict[str, Any]] = [],
         analysisName: str = 'report',
@@ -1421,15 +1441,18 @@ class QurryV5Prototype:
             summonerName=summonerName,
             summonerID=summonerID,
             saveLocation=saveLocation,
+            readFromTarfile=readFromTarfile,
         )
         currentMultiJob = self.multimanagers[besummonned]
         assert currentMultiJob.summonerID == besummonned
-        
-        jobsType, pendingStrategy = currentMultiJob.multicommons.jobsType.split('.')
-        
+
+        jobsType, pendingStrategy = currentMultiJob.multicommons.jobsType.split(
+            '.')
+
         if jobsType == 'IBMQ':
-            if isinstance(backend, IBMBackend) :
-                raise ValueError("| 'IBMBackend' from 'qiskit_ibm_provider' is not supported for 'IBMQ' jobsType for it only support 'IBMQBackend', change backend.")
+            if isinstance(backend, IBMBackend):
+                raise ValueError(
+                    "| 'IBMBackend' from 'qiskit_ibm_provider' is not supported for 'IBMQ' jobsType for it only support 'IBMQBackend', change backend.")
 
             self.multirunner: IBMQRunner = IBMQRunner(
                 besummonned=currentMultiJob.summonerID,
@@ -1443,20 +1466,20 @@ class QurryV5Prototype:
                 refresh=refresh,
                 overwrite=overwrite,
             )
-            
+
         elif jobsType == 'IBM':
-            
+
             self.multirunner: IBMRunner = IBMRunner(
                 besummonned=currentMultiJob.summonerID,
                 multiJob=currentMultiJob,
                 backend=backend,
                 experimentalContainer=self.exps,
             )
-            
+
             beretrieveds = self.multirunner.retrieve(
                 overwrite=overwrite,
             )
-            
+
         else:
             warnings.warn(
                 f"Jobstype of '{besummonned}' is {currentMultiJob.multicommons.jobsType} which is not supported.")

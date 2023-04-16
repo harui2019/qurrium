@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Literal, Union, Optional, NamedTuple, Hashable, Type, Any
 from abc import abstractmethod, abstractclassmethod, abstractproperty
 from uuid import uuid4
-from datetime import datetime
 import gc
 import warnings
 import os
@@ -15,7 +14,7 @@ import glob
 import json
 
 from ..hoshi import Hoshi
-from ..mori import jsonablize, TagList, quickJSON, quickRead, defaultConfig
+from ..mori import jsonablize, quickJSON, quickRead, defaultConfig
 from ..exceptions import (
     QurryInvalidInherition,
     QurryExperimentCountsNotCompleted,
@@ -26,6 +25,7 @@ from ..exceptions import (
 )
 from .declare.type import Counts
 from .analysis import AnalysisPrototype, QurryAnalysis
+from .utils.datetime import currentTime, datetimeDict
 
 
 commonparamsConfig = defaultConfig(
@@ -44,11 +44,10 @@ commonparamsConfig = defaultConfig(
         'defaultAnalysis': [],
         'saveLocation': Path('./'),
         'filetype': 'json',
-        'datetimes': {},
+        'datetimes': datetimeDict(),
         'serial': None,
         'summonerID': None,
         'summonerName': None,
-        'datetimes': None,
     }
 )
 
@@ -182,7 +181,7 @@ class ExperimentPrototype():
         """Name of experiment of the multiManager."""
 
         # header
-        datetimes: dict[str, str]
+        datetimes: datetimeDict
 
     class before(NamedTuple):
         # Experiment Preparation
@@ -301,9 +300,7 @@ class ExperimentPrototype():
 
         # Dealing special arguments
         if 'datetimes' not in commons:
-            commons['datetimes'] = {
-                'bulid': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            }
+            commons['datetimes'] = datetimeDict({'bulid': currentTime()})
         if 'defaultAnalysis' in commons:
             filted_analysis = []
             for raw_input_analysis in commons['defaultAnalysis']:
@@ -395,10 +392,10 @@ class ExperimentPrototype():
             else:
                 raise QurryProtectContent(
                     f"Can't set value to :cls:`afterward` field {key} because it's locked, use `.unlock_afterward()` to unlock before setting item .")
-        
+
         elif key in self._deprecated:
             print(f"| Warning: {key} is deprecated.")
-        
+
         else:
             raise ValueError(
                 f"{key} is not a valid field of '{self.before.__name__}' and '{self.after.__name__}'.")
@@ -417,7 +414,8 @@ class ExperimentPrototype():
         elif key in self.afterwards._fields:
             return getattr(self.afterwards, key)
         elif key in self._deprecated:
-            print(f"| Warning: {key} is deprecated, it will be removed in the future.")
+            print(
+                f"| Warning: {key} is deprecated, it will be removed in the future.")
         else:
             raise ValueError(
                 f"{key} is not a valid field of '{self.before.__name__}' and '{self.after.__name__}'.")
@@ -509,8 +507,7 @@ class ExperimentPrototype():
         info.newline(('itemize', 'outfields', len(self.outfields),
                       'Number of unused arguments.', 1))
         for k, v in self.outfields.items():
-            
-            
+
             info.newline(('itemize', str(k), v, '', 2))
 
         info.newline(('itemize', 'beforewards'))
@@ -969,7 +966,7 @@ class ExperimentPrototype():
         for k in self._required_folder:
             if not os.path.exists(folder / k):
                 os.mkdir(folder / k)
-        
+
         for k, v in export_material.files.items():
             self.commons.files[k] = v
 
@@ -1188,7 +1185,7 @@ class ExperimentPrototype():
             ))
 
         return queue
-    
+
     @classmethod
     def readV4(
         cls,
@@ -1226,12 +1223,12 @@ class ExperimentPrototype():
         if not os.path.exists(saveLocation):
             raise FileNotFoundError(
                 f"'saveLocation' does not exist, '{saveLocation}'.")
-            
+
         exportLocation = saveLocation / name
         if not os.path.exists(exportLocation):
             raise FileNotFoundError(
                 f"'exportLoaction' does not exist, '{exportLocation}'.")
-        
+
         configDict = quickRead(
             filename=f'{name}.configDict.json',
             saveLocation=exportLocation,
@@ -1250,7 +1247,7 @@ class ExperimentPrototype():
             queue.append(cls._readV4_core(
                 expID, fileIndex, name, summonerID, saveLocation, encoding
             ))
-            
+
         return queue
 
     @classmethod
@@ -1259,13 +1256,13 @@ class ExperimentPrototype():
         expID: str,
         fileIndex: dict[str, str],
         summonerName: str,
-        summonerID: Optional[Hashable] = None, 
+        summonerID: Optional[Hashable] = None,
         saveLocation: Union[Path, str] = Path('./'),
 
         encoding: str = 'utf-8',
     ) -> 'ExperimentPrototype':
         ...
-        
+
         if isinstance(saveLocation, (Path, str)):
             saveLocation = Path(saveLocation)
         else:
@@ -1274,7 +1271,7 @@ class ExperimentPrototype():
         if not os.path.exists(saveLocation):
             raise FileNotFoundError(
                 f"'saveLocation' does not exist, '{saveLocation}'.")
-        
+
         legacyRead = {}
         lsfolder = glob.glob(str(saveLocation / fileIndex['legacy']))
         if len(lsfolder) == 0:
@@ -1290,7 +1287,7 @@ class ExperimentPrototype():
             tmp = Path(p)
             with open(p, 'r', encoding='utf-8') as Tales:
                 talesRead[tmp.suffixes[-2][1:]] = json.load(Tales)
-                
+
         infields = {}
         commonsinput = {
             "files": {
@@ -1304,7 +1301,7 @@ class ExperimentPrototype():
         outfields = {
             'oldTales': talesRead
         }
-        
+
         for k in legacyRead:
             if k in cls.arguments._fields:
                 infields[k] = legacyRead[k]
@@ -1314,22 +1311,22 @@ class ExperimentPrototype():
                 beforewards[k] = legacyRead[k]
             elif k in cls.after._fields:
                 afterwards[k] = legacyRead[k]
-                
+
             elif k == 'figRaw':
                 beforewards['figOriginal'] = legacyRead[k]
             elif k == 'dateCreate':
-                commonsinput['datetimes'] = {
+                commonsinput['datetimes'] = datetimeDict({
                     'build': legacyRead[k],
-                    'transformToV5': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                }
+                    'transformToV5': currentTime(),
+                })
             elif k == 'expIndex':
                 commonsinput['serial'] = legacyRead[k]
             elif k == 'tags':
                 commonsinput['serial'] = legacyRead[k]
-            
+
             else:
                 outfields[k] = legacyRead[k]
-                
+
         if "wave" in legacyRead:
             infields['waveKey'] = legacyRead['wave']
 
@@ -1338,14 +1335,15 @@ class ExperimentPrototype():
             **commonsinput,
             **outfields,
         )
-        
+
         for k, v in beforewards.items():
             instance[k] = v
         for k, v in afterwards.items():
             for vv in v:
                 instance[k].append(vv)
-                
+
         return instance
+
 
 class DummyExperiment(ExperimentPrototype):
     """The dummy experiment for testing and before first experiment runs."""

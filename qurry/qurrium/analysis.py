@@ -1,11 +1,11 @@
 from typing import Optional, NamedTuple, Iterable, Any
 from abc import abstractmethod, abstractproperty
-from datetime import datetime
 import warnings
 
 from ..hoshi import Hoshi
 from ..mori import jsonablize
 from ..exceptions import QurryInvalidInherition
+from .utils.datetime import currentTime
 
 
 class AnalysisPrototype():
@@ -82,7 +82,7 @@ class AnalysisPrototype():
 
         self.header = self.analysisHeader(
             serial=serial,
-            datetime=datetime.now().strftime("%Y-%m-%d_%H:%M:%S"),
+            datetime=currentTime(),
             summoner=summoner,
             log=log,
         )
