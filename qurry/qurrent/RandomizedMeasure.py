@@ -44,7 +44,9 @@ def _purityCell(
     singleCountsUnderDegree = dict.fromkeys(
         [k[bitStringRange[0]:bitStringRange[1]] for k in singleCounts], 0)
     for bitString in list(singleCounts):
-        singleCountsUnderDegree[bitString[bitStringRange[0]                                          :bitStringRange[1]]] += singleCounts[bitString]
+        singleCountsUnderDegree[
+            bitString[bitStringRange[0]:bitStringRange[1]]
+        ] += singleCounts[bitString]
 
     purityCell = np.float64(0)
     for sAi, sAiMeas in singleCountsUnderDegree.items():
@@ -158,9 +160,9 @@ def entangled_entropy(
     _workers_num: Optional[int] = None,
 ) -> dict[str, float]:
     """Calculate entangled entropy.
-    
+
     - Which entropy:
-    
+
         The entropy we compute is the Second Order Rényi Entropy.
 
     - Reference:
@@ -319,7 +321,7 @@ def depolarizing_error_mitgation(measSystem, allSystem, nA, systemSize):
     Returns:
         Union[dict[str, float], dict[str, np.ndarray]]: _description_
     """
-    
+
     pp, pn = solve_p(allSystem, systemSize)
     mitiga = mitigation_equation(pn, measSystem, nA)
 
@@ -340,7 +342,7 @@ def entangled_entropy_complex(
     """Calculate entangled entropy with more information combined.
 
     - Which entropy:
-    
+
         The entropy we compute is the Second Order Rényi Entropy.
 
     - Reference:
@@ -367,9 +369,9 @@ def entangled_entropy_complex(
             url = {https://link.aps.org/doi/10.1103/PhysRevE.104.035309}
         }
     ```
-    
+
     - Error mitigation:
-    
+
         We use depolarizing error mitigation.
 
     Args:
@@ -669,7 +671,7 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
     """Randomized Measure Experiment.
 
     - Which entropy:
-    
+
         The entropy we compute is the Second Order Rényi Entropy.
 
     - Reference:
