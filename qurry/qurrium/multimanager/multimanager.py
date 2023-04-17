@@ -3,12 +3,13 @@ from qiskit.providers import Backend
 from qiskit_aer import AerSimulator
 
 from pathlib import Path
-from typing import Literal, Union, Optional, NamedTuple, Hashable, overload, Any
+from typing import Literal, Union, Optional, NamedTuple, Hashable, Any
 from uuid import uuid4
-from datetime import datetime
 import os
 import gc
+import shutil
 import json
+import tarfile
 import warnings
 
 from ...mori import TagList, syncControl, defaultConfig
@@ -19,7 +20,8 @@ from ...exceptions import (
     QurryResetSecurityActivated
 )
 from ..declare.type import Quantity
-from ..utils.naming import naming
+from ..utils.iocontrol import naming
+from ..utils.datetime import currentTime, datetimeDict
 
 multicommonConfig = defaultConfig(
     name='multicommon',
@@ -34,7 +36,7 @@ multicommonConfig = defaultConfig(
         'jobsType': None,
         'managerRunArgs': None,
         'filetype': 'json',
-        'datetimes': {}
+        'datetimes': datetimeDict(),
     }
 )
 
@@ -74,7 +76,7 @@ class MultiManager:
         filetype: TagList._availableFileType
 
         # header
-        datetimes: dict[str, str]
+        datetimes: datetimeDict
 
     class before(NamedTuple):
         """`dataNeccessary` and `expsMultiMain` in V4 format."""
@@ -200,6 +202,7 @@ class MultiManager:
 
         isRead: bool = False,
         encoding: str = 'utf-8',
+        readFromTarfile: bool = False,
 
         filetype: TagList._availableFileType = 'json',
         version: Literal['v4', 'v5'] = 'v5',
@@ -250,9 +253,26 @@ class MultiManager:
             saveLocation=saveLocation,
         )
 
+        isTarfileExisted = os.path.exists(self.namingCpx.tarLocation)
+        multiConfigName = self.namingCpx.exportLocation / \
+            f"{self.namingCpx.expsName}.multiConfig.json"
+
+        if isTarfileExisted:
+            print(
+                f"| Found the tarfile '{self.namingCpx.tarName}' in '{self.namingCpx.saveLocation}', decompressing is available.")
+            if not multiConfigName.exists():
+                print(
+                    f"| No multiConfig file found, decompressing all files in the tarfile '{self.namingCpx.tarName}'.")
+                self.easydecompress()
+            elif readFromTarfile:
+                print(
+                    f"| Decompressing all files in the tarfile '{self.namingCpx.tarName}', replace all files in '{self.namingCpx.exportLocation}'.")
+                self.easydecompress()
+
         if isRead and version == 'v5':
             multiConfigName = self.namingCpx.exportLocation / \
                 f"{self.namingCpx.expsName}.multiConfig.json"
+
             if not multiConfigName.exists():
                 raise FileNotFoundError(
                     f"Can't find the multiConfig file in {multiConfigName}.")
@@ -430,16 +450,28 @@ class MultiManager:
             else:
                 outfields[k] = rawReadMultiConfig[k]
 
+        # datetimes
         if 'datetimes' not in multicommons:
-            multicommons['datetimes'] = {}
+            multicommons['datetimes'] = datetimeDict()
+        else:
+            multicommons['datetimes'] = datetimeDict(
+                **multicommons['datetimes'])
         if version == 'v4':
-            multicommons['datetimes']['v4Read'] = datetime.now().strftime(
-                "%Y-%m-%d %H:%M:%S")
-        multicommons['datetimes']['bulid'] = datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S")
+            multicommons['datetimes']['v4Read'] = currentTime()
+
+        if 'build' not in multicommons['datetimes'] and not isRead:
+            multicommons['datetimes']['bulid'] = currentTime()
+
+        if isTarfileExisted:
+            if not multiConfigName.exists():
+                multicommons['datetimes'].addSerial('decompress')
+            elif readFromTarfile:
+                multicommons['datetimes'].addSerial('decompressOverwrite')
 
         self.multicommons = self.multicommonparams(**multicommons)
         self.outfields: dict[str, Any] = outfields
+
+        assert self.namingCpx.saveLocation == self.multicommons.saveLocation, "| saveLocation is not consistent with namingCpx.saveLocation."
 
     @property
     def summonerID(self) -> str:
@@ -467,15 +499,37 @@ class MultiManager:
 
         return self.namingCpx._asdict()
 
+    def _writeMultiConfig(
+        self,
+        encoding: str = 'utf-8',
+    ) -> dict[str, Any]:
+        multiConfigName = Path(self.multicommons.exportLocation) / \
+            f"{self.multicommons.summonerName}.multiConfig.json"
+        self.multicommons.files['multiConfig'] = str(multiConfigName)
+        self.gitignore.sync('*.multiConfig.json')
+        multiConfig = {
+            **self.multicommons._asdict(),
+            'outfields': self.outfields,
+            'files': self.multicommons.files,
+        }
+        quickJSON(
+            content=multiConfig,
+            filename=multiConfigName,
+            mode='w+',
+            jsonablize=True,
+            encoding=encoding,
+        )
+
+        return multiConfig
+
     def write(
         self,
         saveLocation: Optional[Union[Path, str]] = None,
 
         indent: int = 2,
         encoding: str = 'utf-8',
-        # zip: bool = False,
         _onlyQuantity: bool = False,
-    ) -> dict:
+    ) -> dict[str, Any]:
 
         self.gitignore.read(self.multicommons.exportLocation)
         print(f"| Export multimanager...")
@@ -551,26 +605,79 @@ class MultiManager:
             self.multicommons.files['tagMapQuantity'][k] = str(filename)
         self.gitignore.sync(f"*.tagMapQuantity.{self.multicommons.filetype}")
         # multiConfig
-        multiConfigName = Path(self.multicommons.exportLocation) / \
-            f"{self.multicommons.summonerName}.multiConfig.json"
-        self.multicommons.files['multiConfig'] = str(multiConfigName)
-        self.gitignore.sync('*.multiConfig.json')
-        multiConfig = {
-            **self.multicommons._asdict(),
-            'outfields': self.outfields,
-            'files': self.multicommons.files,
-        }
-        quickJSON(
-            content=multiConfig,
-            filename=multiConfigName,
-            mode='w+',
-            jsonablize=True,
-            encoding=encoding,
-        )
+        multiConfig = self._writeMultiConfig(encoding=encoding)
 
         self.gitignore.export(self.multicommons.exportLocation)
 
         return multiConfig
+
+    def compress(
+        self,
+        compressOverwrite: bool = False,
+        remainOnlyCompressed: bool = False,
+    ) -> Path:
+
+        if remainOnlyCompressed:
+            self.multicommons.datetimes.addSerial('uncompressedRemove')
+        multiConfig = self._writeMultiConfig()
+
+        print(
+            f"| Compress multimanager of '{self.namingCpx.expsName}'...", end='/r')
+        loc = self.easycompress(overwrite=compressOverwrite)
+        print(f"| Compress multimanager of '{self.namingCpx.expsName}'...done")
+
+        if remainOnlyCompressed:
+            print(
+                f"| Remove uncompressed files in '{self.namingCpx.exportLocation}' ...", end='/r')
+            shutil.rmtree(self.multicommons.exportLocation)
+            print(
+                f"| Remove uncompressed files in '{self.namingCpx.exportLocation}' ...done")
+
+        return loc
+
+    def easycompress(
+        self,
+        overwrite: bool = False,
+    ) -> Path:
+        """Compress the exportLocation to tar.xz.
+
+        Args:
+            overwrite (bool, optional): Reproduce all the compressed files. Defaults to False.
+
+        Returns:
+            Path: Path of the compressed file.
+        """
+
+        self.multicommons.datetimes.addSerial('compressed')
+        multiConfig = self._writeMultiConfig()
+
+        isExists = os.path.exists(self.namingCpx.tarLocation)
+        if isExists and overwrite:
+            os.remove(self.namingCpx.tarLocation)
+            with tarfile.open(self.namingCpx.tarLocation, 'x:xz') as tar:
+                tar.add(
+                    self.namingCpx.exportLocation,
+                    arcname=os.path.basename(self.namingCpx.exportLocation)
+                )
+
+        else:
+            with tarfile.open(self.namingCpx.tarLocation, 'w:xz') as tar:
+                tar.add(self.namingCpx.exportLocation, arcname=os.path.basename(
+                    self.namingCpx.exportLocation))
+
+        return self.namingCpx.tarLocation
+
+    def easydecompress(self) -> Path:
+        """Decompress the tar.xz file of experiment.
+
+        Returns:
+            Path: Path of the decompressed file.
+        """
+
+        with tarfile.open(self.namingCpx.tarLocation, 'r:xz') as tar:
+            tar.extractall(self.namingCpx.saveLocation)
+
+        return self.namingCpx.tarLocation
 
     @property
     def name(self) -> Hashable:

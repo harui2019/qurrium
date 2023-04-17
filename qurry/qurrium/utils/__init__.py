@@ -5,4 +5,5 @@ from .randomized import (
     makeTwoBitStr, makeTwoBitStrOneLiner, haarBase,
     hamming_distance, ensembleCell, densityMatrixToBloch, qubitOpToPauliCoeff
 )
-from .naming import naming, namingComplex
+from .iocontrol import naming, IOComplex, FULL_SUFFIX_OF_COMPRESS_FORMAT, STAND_COMPRESS_FORMAT
+from .datetime import currentTime, datetimeDict

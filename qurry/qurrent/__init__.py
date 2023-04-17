@@ -12,7 +12,7 @@ def EntropyMeasure(
 
 @overload
 def EntropyMeasure(
-    *args, method: Union[Literal['randomized', 'base'], str], **kwargs
+    *args, method: Union[Literal['randomized', 'base'], str] = 'randomized', **kwargs
 ) -> EntropyRandomizedMeasure:
     ...
 

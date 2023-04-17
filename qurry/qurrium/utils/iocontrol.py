@@ -2,11 +2,17 @@ import os
 from pathlib import Path
 from typing import Union, NamedTuple
 
+STAND_COMPRESS_FORMAT = 'tar.xz'
+FULL_SUFFIX_OF_COMPRESS_FORMAT = f'qurry.{STAND_COMPRESS_FORMAT}'
 
-class namingComplex(NamedTuple):
+
+class IOComplex(NamedTuple):
     expsName: str
     saveLocation: Path
     exportLocation: Path
+
+    tarName: str
+    tarLocation: Path
 
 
 def naming(
@@ -17,7 +23,7 @@ def naming(
     withoutSerial: bool = False,
     _rjustLen: int = 3,
     _indexRename: int = 1,
-) -> namingComplex:
+) -> IOComplex:
     """The process of naming.
 
     Args:
@@ -51,9 +57,11 @@ def naming(
     if isRead:
         immutableName = expsName
         exportLocation = saveLocation / immutableName
-        if not os.path.exists(exportLocation):
+        tarName = f"{immutableName}.{FULL_SUFFIX_OF_COMPRESS_FORMAT}"
+        tarLocation = saveLocation / tarName
+        if not (exportLocation.exists() or tarLocation.exists()):
             raise FileNotFoundError(
-                f"Such exportation data '{immutableName}' not found at '{saveLocation}', " +
+                f"Such exportation data '{immutableName}' or '{tarName}' not found at '{saveLocation}', " +
                 "'exportsName' may be wrong or not in this folder.")
         print(
             f"| Retrieve {immutableName}...\n" +
@@ -80,8 +88,12 @@ def naming(
         )
         os.makedirs(exportLocation)
 
-    return namingComplex(
+    return IOComplex(
         expsName=immutableName,
         saveLocation=saveLocation,
         exportLocation=exportLocation,
+
+        tarName=f"{immutableName}.{FULL_SUFFIX_OF_COMPRESS_FORMAT}",
+        tarLocation=saveLocation /
+        f"{immutableName}.{FULL_SUFFIX_OF_COMPRESS_FORMAT}",
     )
