@@ -220,12 +220,14 @@ def entangled_entropy(
     purity = np.mean(purityCellList, dtype=np.float64)
     puritySD = np.std(purityCellList, dtype=np.float64)
     entropy = -np.log2(purity, dtype=np.float64)
+    entropySD = puritySD/np.log(2)/purity
 
     quantity = {
         'purity': purity,
         'entropy': entropy,
         'purityCells': purityCellDict,
         'puritySD': puritySD,
+        'entropySD': entropySD,
 
         'degree': degree,
         'measureActually': measureRange,
@@ -416,7 +418,9 @@ def entangled_entropy_complex(
     puritySDAllSys = np.std(purityCellListAllSys, dtype=np.float64)
 
     entropy = -np.log2(purity, dtype=np.float64)
-    entropyAllSys = -np.log2(purityAllSys, dtype=np.float64)
+    entropySD = puritySD/np.log(2)/purity
+    entropyAllSys = -np.log2(purityAllSys, dtype=np.float64)    
+    entropySDAllSys = puritySDAllSys/np.log(2)/purityAllSys
 
     if measure is None:
         measureInfo = 'not specified, use all qubits'
@@ -441,12 +445,14 @@ def entangled_entropy_complex(
         'entropy': entropy,
         'purityCells': purityCellDict,
         'puritySD': puritySD,
+        'entropySD': entropySD,
         'bitStringRange': bitStringRange,
         # all system
         'purityAllSys': purityAllSys,
         'entropyAllSys': entropyAllSys,
         'purityCellsAllSys': purityCellDictAllSys,
         'puritySDAllSys': puritySDAllSys,
+        'entropySDAllSys': entropySDAllSys,
         'bitsStringRangeAllSys': bitStringRangeAllSys,
         # mitigated
         'errorRate': error_mitgation_info['errorRate'],
@@ -515,6 +521,8 @@ class EntropyRandomizedAnalysis(AnalysisPrototype):
         """The entanglement entropy of the subsystem."""
         puritySD: float
         """The standard deviation of the purity of the subsystem."""
+        entropySD: Optional[float]
+        """The standard deviation of the entanglement entropy of the subsystem."""
         purityCells: dict[int, float]
         """The purity of each cell of the subsystem."""
         bitStringRange: tuple[int, int]
@@ -524,10 +532,12 @@ class EntropyRandomizedAnalysis(AnalysisPrototype):
         """The purity of the system."""
         entropyAllSys: float
         """The entanglement entropy of the system."""
-        purityCellsAllSys: dict[int, float]
-        """The purity of each cell of the system."""
         puritySDAllSys: float
         """The standard deviation of the purity of the system."""
+        entropySDAllSys: Optional[float]
+        """The standard deviation of the entanglement entropy of the system."""
+        purityCellsAllSys: dict[int, float]
+        """The purity of each cell of the system."""
         bitsStringRangeAllSys: tuple[int, int]
         """The qubit range of the all system."""
 
