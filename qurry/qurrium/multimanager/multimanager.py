@@ -12,6 +12,10 @@ import json
 import tarfile
 import warnings
 
+from ..container import ExperimentContainer
+from ..declare.type import Quantity
+from ..utils.iocontrol import naming
+from ..utils.datetime import currentTime, datetimeDict
 from ...mori import TagList, syncControl, defaultConfig
 from ...mori.quick import quickJSON, quickRead
 from ...exceptions import (
@@ -19,9 +23,6 @@ from ...exceptions import (
     QurryResetAccomplished,
     QurryResetSecurityActivated
 )
-from ..declare.type import Quantity
-from ..utils.iocontrol import naming
-from ..utils.datetime import currentTime, datetimeDict
 
 multicommonConfig = defaultConfig(
     name='multicommon',
@@ -637,6 +638,63 @@ class MultiManager:
                 f"| Remove uncompressed files in '{self.namingCpx.exportLocation}' ...done")
 
         return loc
+
+    def analyze(
+        self,
+        wave_continer: ExperimentContainer,
+        analysisName: str = 'report',
+        noSerialize: bool = False,
+        specificAnalysisArgs: dict[Hashable, Union[dict[str, Any], bool]] = {},
+        **analysisArgs: Any,
+    ) -> str:
+        """Run the analysis for multiple experiments.
+
+        Args:
+            analysisName (str, optional):
+                The name of the analysis.
+                Defaults to 'report'.
+            specificAnalysisArgs (dict[Hashable, dict[str, Any]], optional): 
+                Specific some experiment to run the analysis arguments for each experiment.
+                Defaults to {}.
+
+        Raises:
+            ValueError: No positional arguments allowed except `summonerID`.
+            ValueError: summonerID not in multimanagers.
+            ValueError: No counts in multimanagers, which experiments are not ready.
+
+        Returns:
+            Hashable: SummonerID (ID of multimanager).
+        """
+        
+        if len(self.afterwards.allCounts) == 0:
+            raise ValueError("No counts in multimanagers.")
+        
+        idx_tagMapQ = len(self.tagMapQuantity)
+        name = (
+            analysisName if noSerialize else f"{analysisName}."+f'{idx_tagMapQ+1}'.rjust(self._rjustLen, '0'))
+        self.tagMapQuantity[name] = TagList()
+        
+        for k in self.afterwards.allCounts.keys():
+            if k in specificAnalysisArgs:
+                if isinstance(specificAnalysisArgs[k], bool):
+                    if specificAnalysisArgs[k] is False:
+                        print(f"| Multimanager Analysis: {k} skipped in {self.summonerID}.")
+                        continue
+                    else:
+                        report = wave_continer[k].analyze(**analysisArgs)
+                else:
+                    report = wave_continer[k].analyze(**specificAnalysisArgs[k])
+            else:
+                report = wave_continer[k].analyze(**analysisArgs)
+                
+            wave_continer[k].write(mute=True)
+            main, tales = report.export()
+            self.tagMapQuantity[name][
+                wave_continer[k].commons.tags].append(main)
+        
+        self.multicommons.datetimes.addOnly(name)
+        
+        return name
 
     def easycompress(
         self,

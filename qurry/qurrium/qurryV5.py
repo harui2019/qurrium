@@ -1232,32 +1232,15 @@ class QurryV5Prototype:
         else:
             raise ValueError("No such summonerID in multimanagers.")
 
-        if len(multiJob.afterwards.allCounts) == 0:
-            raise ValueError("No counts in multimanagers.")
-
-        idx_tagMapQ = len(multiJob.tagMapQuantity)
-        name = (
-            analysisName if noSerialize else f"{analysisName}."+f'{idx_tagMapQ+1}'.rjust(self._rjustLen, '0'))
-        multiJob.tagMapQuantity[name] = TagList()
-
-        for k in multiJob.afterwards.allCounts.keys():
-            if k in specificAnalysisArgs:
-                if isinstance(specificAnalysisArgs[k], bool):
-                    if specificAnalysisArgs[k] is False:
-                        print(f"| MultiAnalysis: {k} skipped in {summonerID}.")
-                        continue
-                    else:
-                        report = self.exps[k].analyze(**analysisArgs)
-                else:
-                    report = self.exps[k].analyze(**specificAnalysisArgs[k])
-            else:
-                report = self.exps[k].analyze(**analysisArgs)
-
-            self.exps[k].write(mute=True)
-            main, tales = report.export()
-            multiJob.tagMapQuantity[name][
-                self.exps[k].commons.tags].append(main)
-        multiJob.multicommons.datetimes[name] = currentTime()
+        reportName = multiJob.analyze(
+            self.exps,
+            analysisName=analysisName,
+            noSerialize=noSerialize,
+            specificAnalysisArgs=specificAnalysisArgs,
+            **analysisArgs,
+        )
+        
+        print(f'| "{reportName}" has been completed.')
 
         if _write:
             filesMulti = multiJob.write(_onlyQuantity=True)
