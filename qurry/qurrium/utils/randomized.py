@@ -120,9 +120,9 @@ def qubitOpToPauliCoeff(
     return [(np.float64(a.real), np.float64(a.imag)) for a in [ax, ay, az]]
 
 
-def cycling_slice(target: Iterable, start: int, end: int, step: int) -> Iterable:
+def cycling_slice(target: Iterable, start: int, end: int, step: int = 1) -> Iterable:
     length = len(target)
-    if (start < -length) or (end >= length):
+    if (start < -length) or (end > length):
         raise IndexError("Slice out of range")
     if length <= 0:
         newString = target

@@ -18,6 +18,7 @@ from ..qurrium.utils.randomized import (
     random_unitary,
     qubitOpToPauliCoeff,
     ensembleCell,
+    cycling_slice
 )
 
 
@@ -41,12 +42,25 @@ def _purityCell(
 
     shots = sum(singleCounts.values())
 
-    singleCountsUnderDegree = dict.fromkeys(
-        [k[bitStringRange[0]:bitStringRange[1]] for k in singleCounts], 0)
-    for bitString in list(singleCounts):
-        singleCountsUnderDegree[
-            bitString[bitStringRange[0]:bitStringRange[1]]
-        ] += singleCounts[bitString]
+    dummyString = ''.join(str(ds) for ds in range(subsystemSize))
+    if dummyString[bitStringRange[0]:bitStringRange[1]] == cycling_slice(
+            dummyString, bitStringRange[0], bitStringRange[1], 1):
+
+        singleCountsUnderDegree = dict.fromkeys(
+            [k[bitStringRange[0]:bitStringRange[1]] for k in singleCounts], 0)
+        for bitString in list(singleCounts):
+            singleCountsUnderDegree[
+                bitString[bitStringRange[0]:bitStringRange[1]]
+            ] += singleCounts[bitString]
+
+    else:
+        singleCountsUnderDegree = dict.fromkeys(
+            [cycling_slice(k, bitStringRange[0], bitStringRange[1], 1) for k in singleCounts], 0)
+        for bitString in list(singleCounts):
+            singleCountsUnderDegree[
+                cycling_slice(
+                    bitString, bitStringRange[0], bitStringRange[1], 1)
+            ] += singleCounts[bitString]
 
     purityCell = np.float64(0)
     for sAi, sAiMeas in singleCountsUnderDegree.items():
@@ -109,16 +123,38 @@ def _entangled_entropy_core(
         raise ValueError(
             f"'degree' must be 'int' or 'tuple[int, int]', but get '{degree}'.")
 
+    bitStringRange = degree
+    bitStringCheck = {
+        'b > a': (bitStringRange[1] > bitStringRange[0]),
+        'a >= -subsystemSize': bitStringRange[0] >= -subsystemSize,
+        'b <= subsystemSize': bitStringRange[1] <= subsystemSize,
+        'b-a <= subsystemSize': ((bitStringRange[1] - bitStringRange[0]) <= subsystemSize),
+    }
+    if all(bitStringCheck.values()):
+        ...
+    else:
+        raise ValueError(
+            f"Invalid 'bitStringRange = {bitStringRange}'. " +
+            "Available range 'bitStringRange = [a, b)' should be" +
+            ", ".join([f" {k};" for k, v in bitStringCheck.items() if not v]))
+
     if measure is None:
         measure = qubit_selector(len(list(counts[0].keys())[0]))
 
-    if (min(degree) < min(measure)) or (max(degree) > max(measure)):
-        raise ValueError(
-            f"Measure range '{measure}' does not contain subsystem '{degree}'.")
+    dummyString = ''.join(str(ds) for ds in range(subsystemSize))
+    dummyStringSlice = cycling_slice(
+        dummyString, bitStringRange[0], bitStringRange[1], 1)
+    isAvtiveCyclingSlice = dummyString[bitStringRange[0]
+        :bitStringRange[1]] != dummyStringSlice
+    if isAvtiveCyclingSlice:
+        assert len(dummyStringSlice) == subsystemSize, (
+            f"subsystemSize {subsystemSize} does not match dummyString {dummyString}")
 
-    bitStringRange = (min(degree) - min(measure), max(degree) - min(measure))
     print(
-        f"| Subsystem size: {subsystemSize}, bitstring range: {bitStringRange}, measure range: {measure}.")
+        f"| Subsystem size: {subsystemSize}, " +
+        ('cycling ' if isAvtiveCyclingSlice else '')+
+        f"bitstring range: {bitStringRange}, " +
+        f"measure range: {measure}.")
 
     times = len(counts)
     Begin = time.time()
@@ -419,7 +455,7 @@ def entangled_entropy_complex(
 
     entropy = -np.log2(purity, dtype=np.float64)
     entropySD = puritySD/np.log(2)/purity
-    entropyAllSys = -np.log2(purityAllSys, dtype=np.float64)    
+    entropyAllSys = -np.log2(purityAllSys, dtype=np.float64)
     entropySDAllSys = puritySDAllSys/np.log(2)/purityAllSys
 
     if measure is None:
@@ -515,30 +551,30 @@ class EntropyRandomizedAnalysis(AnalysisPrototype):
         """The content of the analysis."""
         # TODO: args hint
 
-        purity: float
+        purity: Optional[float] = None
         """The purity of the subsystem."""
-        entropy: float
+        entropy: Optional[float] = None
         """The entanglement entropy of the subsystem."""
-        puritySD: float
+        puritySD: Optional[float] = None
         """The standard deviation of the purity of the subsystem."""
-        entropySD: Optional[float]
+        entropySD: Optional[float] = None
         """The standard deviation of the entanglement entropy of the subsystem."""
-        purityCells: dict[int, float]
+        purityCells: Optional[dict[int, float]] = None
         """The purity of each cell of the subsystem."""
-        bitStringRange: tuple[int, int]
+        bitStringRange: Optional[tuple[int, int]] = None
         """The qubit range of the subsystem."""
 
-        purityAllSys: float
+        purityAllSys: Optional[float] = None
         """The purity of the system."""
-        entropyAllSys: float
+        entropyAllSys: Optional[float] = None
         """The entanglement entropy of the system."""
-        puritySDAllSys: float
+        puritySDAllSys: Optional[float] = None
         """The standard deviation of the purity of the system."""
-        entropySDAllSys: Optional[float]
+        entropySDAllSys: Optional[float] = None
         """The standard deviation of the entanglement entropy of the system."""
-        purityCellsAllSys: dict[int, float]
+        purityCellsAllSys: Optional[dict[int, float]] = None
         """The purity of each cell of the system."""
-        bitsStringRangeAllSys: tuple[int, int]
+        bitsStringRangeAllSys: Optional[tuple[int, int]] = None
         """The qubit range of the all system."""
 
         errorRate: Optional[float] = None
