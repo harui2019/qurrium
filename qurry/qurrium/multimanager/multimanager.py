@@ -138,6 +138,8 @@ class MultiManager:
 
     _unexports: list[str] = ['retrievedResult']
     """The content would not be exported."""
+    _syncPrevent = ['allCounts', 'retrievedResult']
+    
     after_lock: bool = False
     """Protect the :cls:`afterward` content to be overwritten. When setitem is called and completed, it will be setted as `False` automatically."""
     mute_auto_lock: bool = False
@@ -573,7 +575,8 @@ class MultiManager:
                 filename = Path(self.multicommons.exportLocation) / \
                     f"{self.multicommons.summonerName}.{k}.json"
                 self.multicommons.files[k] = str(filename)
-                self.gitignore.sync(f"*.{k}.json")
+                if not k in self._syncPrevent:
+                    self.gitignore.sync(f"*.{k}.json")
                 quickJSON(
                     content=self[k],
                     filename=filename,
