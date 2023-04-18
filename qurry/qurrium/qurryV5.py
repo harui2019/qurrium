@@ -1270,7 +1270,7 @@ class QurryV5Prototype:
         self,
         summonerID: Hashable,
         saveLocation: Optional[Union[Path, str]] = None,
-        compress: bool = False,
+        compress: bool = True,
         compressOverwrite: bool = False,
         remainOnlyCompressed: bool = False,
     ) -> Hashable:
