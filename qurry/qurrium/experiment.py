@@ -394,7 +394,8 @@ class ExperimentPrototype():
                     f"Can't set value to :cls:`afterward` field {key} because it's locked, use `.unlock_afterward()` to unlock before setting item .")
 
         elif key in self._deprecated:
-            print(f"| Warning: {key} is deprecated.")
+            ...
+            # print(f"| Warning: {key} is deprecated.")
 
         else:
             raise ValueError(
@@ -414,8 +415,9 @@ class ExperimentPrototype():
         elif key in self.afterwards._fields:
             return getattr(self.afterwards, key)
         elif key in self._deprecated:
-            print(
-                f"| Warning: {key} is deprecated, it will be removed in the future.")
+            ...
+            # print(
+            #     f"| Warning: {key} is deprecated, it will be removed in the future.")
         else:
             raise ValueError(
                 f"{key} is not a valid field of '{self.before.__name__}' and '{self.after.__name__}'.")
