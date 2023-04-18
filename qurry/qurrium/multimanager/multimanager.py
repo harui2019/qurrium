@@ -528,7 +528,7 @@ class MultiManager:
     def write(
         self,
         saveLocation: Optional[Union[Path, str]] = None,
-
+        wave_container: Optional[ExperimentContainer] = None,
         indent: int = 2,
         encoding: str = 'utf-8',
         _onlyQuantity: bool = False,
@@ -613,6 +613,15 @@ class MultiManager:
 
         self.gitignore.export(self.multicommons.exportLocation)
 
+        if wave_container is not None:
+            # TODO: tqdm -
+            for id_exec in self.beforewards.configDict:
+                print(f"| Multimanger experiment write: {id_exec} in {self.summonerID}.")
+                wave_container[id_exec].write(
+                    saveLocation=self.multicommons.saveLocation,
+                    mute=True,
+                )
+
         return multiConfig
 
     def compress(
@@ -674,6 +683,7 @@ class MultiManager:
             analysisName if noSerialize else f"{analysisName}."+f'{idx_tagMapQ+1}'.rjust(self._rjustLen, '0'))
         self.tagMapQuantity[name] = TagList()
         
+        # TODO: tqdm -
         for k in self.afterwards.allCounts.keys():
             if k in specificAnalysisArgs:
                 if isinstance(specificAnalysisArgs[k], bool):
