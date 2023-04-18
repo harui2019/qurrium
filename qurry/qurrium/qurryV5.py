@@ -1228,11 +1228,11 @@ class QurryV5Prototype:
                 "No positional arguments allowed except `summonerID`.")
 
         if summonerID in self.multimanagers:
-            multiJob = self.multimanagers[summonerID]
+            currentMultiJob = self.multimanagers[summonerID]
         else:
             raise ValueError("No such summonerID in multimanagers.")
 
-        reportName = multiJob.analyze(
+        reportName = currentMultiJob.analyze(
             self.exps,
             analysisName=analysisName,
             noSerialize=noSerialize,
@@ -1243,11 +1243,11 @@ class QurryV5Prototype:
         print(f'| "{reportName}" has been completed.')
 
         if _write:
-            filesMulti = multiJob.write(_onlyQuantity=True)
+            filesMulti = currentMultiJob.write(_onlyQuantity=True)
         else:
             filesMulti = {}
 
-        return multiJob.multicommons.summonerID
+        return currentMultiJob.multicommons.summonerID
 
     def multiWrite(
         self,
@@ -1282,15 +1282,15 @@ class QurryV5Prototype:
 
         filesMulti = currentMultiJob.write(
             saveLocation=saveLocation if saveLocation is not None else None,
+            wave_container=self.exps,
         )
 
-        # TODO: tqdm -
-        for id_exec in currentMultiJob.beforewards.configDict:
-            print(f"| MultiWrite: {id_exec} in {summonerID}.")
-            self.exps[id_exec].write(
-                saveLocation=currentMultiJob.multicommons.saveLocation,
-                mute=True,
-            )
+        # for id_exec in currentMultiJob.beforewards.configDict:
+        #     print(f"| MultiWrite: {id_exec} in {summonerID}.")
+        #     self.exps[id_exec].write(
+        #         saveLocation=currentMultiJob.multicommons.saveLocation,
+        #         mute=True,
+            # )
 
         if compress:
             currentMultiJob.compress(
@@ -1300,7 +1300,7 @@ class QurryV5Prototype:
         else:
             if compressOverwrite or remainOnlyCompressed:
                 warnings.warn(
-                    "compressOverwrite or remainOnlyCompressed is set to True, but compress is False.")
+                    "'compressOverwrite' or 'remainOnlyCompressed' is set to True, but 'compress' is False.")
 
         return currentMultiJob.multicommons.summonerID
 
