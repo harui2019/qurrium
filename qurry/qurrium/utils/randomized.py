@@ -124,7 +124,7 @@ def cycling_slice(target: Iterable, start: int, end: int, step: int = 1) -> Iter
     length = len(target)
     sliceCheck = {
         'start <= -length': (start <= -length),
-        'end >= length': (end >= length),
+        'end >= length ': (end >= length),
     }
     if all(sliceCheck.values()):
         raise IndexError(

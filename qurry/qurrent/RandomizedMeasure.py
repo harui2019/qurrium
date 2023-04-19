@@ -148,8 +148,8 @@ def _entangled_entropy_core(
     isAvtiveCyclingSlice = dummyString[bitStringRange[0]
         :bitStringRange[1]] != dummyStringSlice
     if isAvtiveCyclingSlice:
-        assert len(dummyStringSlice) == allsystemSize, (
-            f"allsystemSize {allsystemSize} does not match dummyString {dummyString}")
+        assert len(dummyStringSlice) == subsystemSize, (
+            f"allsystemSize {subsystemSize} does not match dummyStringSlice {dummyStringSlice}")
 
     print(
         f"| Subsystem size: {subsystemSize}, AllsystemSize: {allsystemSize}" +
