@@ -111,6 +111,7 @@ def _entangled_entropy_core(
         degree = qubit_selector(len(list(counts[0].keys())[0]))
 
     # Determine subsystem size
+    allsystemSize = len(list(counts[0].keys())[0])
     if isinstance(degree, int):
         subsystemSize = degree
         degree = qubit_selector(
@@ -126,32 +127,32 @@ def _entangled_entropy_core(
     bitStringRange = degree
     bitStringCheck = {
         'b > a': (bitStringRange[1] > bitStringRange[0]),
-        'a >= -subsystemSize': bitStringRange[0] >= -subsystemSize,
-        'b <= subsystemSize': bitStringRange[1] <= subsystemSize,
-        'b-a <= subsystemSize': ((bitStringRange[1] - bitStringRange[0]) <= subsystemSize),
+        'a >= -allsystemSize': bitStringRange[0] >= -allsystemSize,
+        'b <= allsystemSize': bitStringRange[1] <= allsystemSize,
+        'b-a <= allsystemSize': ((bitStringRange[1] - bitStringRange[0]) <= allsystemSize),
     }
     if all(bitStringCheck.values()):
         ...
     else:
         raise ValueError(
-            f"Invalid 'bitStringRange = {bitStringRange}'. " +
+            f"Invalid 'bitStringRange = {bitStringRange} for allsystemSize = {allsystemSize}'. " +
             "Available range 'bitStringRange = [a, b)' should be" +
             ", ".join([f" {k};" for k, v in bitStringCheck.items() if not v]))
 
     if measure is None:
         measure = qubit_selector(len(list(counts[0].keys())[0]))
 
-    dummyString = ''.join(str(ds) for ds in range(subsystemSize))
+    dummyString = ''.join(str(ds) for ds in range(allsystemSize))
     dummyStringSlice = cycling_slice(
         dummyString, bitStringRange[0], bitStringRange[1], 1)
     isAvtiveCyclingSlice = dummyString[bitStringRange[0]
         :bitStringRange[1]] != dummyStringSlice
     if isAvtiveCyclingSlice:
-        assert len(dummyStringSlice) == subsystemSize, (
-            f"subsystemSize {subsystemSize} does not match dummyString {dummyString}")
+        assert len(dummyStringSlice) == allsystemSize, (
+            f"allsystemSize {allsystemSize} does not match dummyString {dummyString}")
 
     print(
-        f"| Subsystem size: {subsystemSize}, " +
+        f"| Subsystem size: {subsystemSize}, AllsystemSize: {allsystemSize}" +
         ('cycling ' if isAvtiveCyclingSlice else '')+
         f"bitstring range: {bitStringRange}, " +
         f"measure range: {measure}.")
