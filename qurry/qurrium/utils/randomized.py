@@ -122,8 +122,14 @@ def qubitOpToPauliCoeff(
 
 def cycling_slice(target: Iterable, start: int, end: int, step: int = 1) -> Iterable:
     length = len(target)
-    if (start <= -length) or (end >= length):
-        raise IndexError("Slice out of range")
+    sliceCheck = {
+        'start <= -length': (start <= -length),
+        'end >= length': (end >= length),
+    }
+    if all(sliceCheck.values()):
+        raise IndexError(
+            "Slice out of range"+
+            ", ".join([f" {k};" for k, v in sliceCheck.items() if not v]))
     if length <= 0:
         newString = target
     elif start < 0 and end >= 0:
