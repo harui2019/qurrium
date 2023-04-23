@@ -355,7 +355,7 @@ class backendManager(backendWrapper):
 
         instance: Optional[str] = None,
 
-        useIBMProvider: bool = False,
+        useIBMProvider: bool = True,
     ) -> None:
 
         if instance is not None:
