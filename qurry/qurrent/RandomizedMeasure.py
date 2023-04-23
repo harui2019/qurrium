@@ -844,25 +844,6 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
             ), end="\r")
         else:
             print(f"| Build circuit: {commons.waveKey}.", end="\r")
-        # for i in range(args.times):
-        #     qFunc1 = QuantumRegister(num_qubits, 'q1')
-        #     cMeas1 = ClassicalRegister(
-        #         args.measure[1]-args.measure[0], 'c1')
-        #     qcExp1 = QuantumCircuit(qFunc1, cMeas1)
-        #     qcExp1.name = f"{args.expName}-{i}"
-
-        #     qcExp1.append(self.waves.call(
-        #         wave=commons.waveKey,
-        #     ), [qFunc1[i] for i in range(num_qubits)])
-
-        #     qcExp1.barrier()
-        #     for j in range(*args.unitary_loc):
-        #         qcExp1.append(unitaryList[i][j], [j])
-
-        #     for j in range(*args.measure):
-        #         qcExp1.measure(qFunc1[j], cMeas1[j-args.measure[0]])
-
-        #     qcList.append(qcExp1)
 
         pool = Pool(args.workers_num)
         qcList = pool.starmap(
