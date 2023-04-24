@@ -156,7 +156,7 @@ class IBMRunner(Runner):
 
         if overwrite:
             print(f"| Overwrite the previous retrieve.")
-        self.currentMultiJob.afterwards.reset(security=True, muteWarning=True)
+        self.currentMultiJob.reset_afterwards(security=True, muteWarning=True)
         assert len(self.currentMultiJob.afterwards.allCounts
                    ) == 0, "All counts should be null."
 
@@ -248,9 +248,9 @@ class IBMRunner(Runner):
             print(
                 f"| Distributing to {currentID} with {len(idxCircs)} circuits."
             )
+            self.expContainer[currentID].reset_counts(
+                summonerID=self.currentMultiJob.summonerID)
             for idx in idxCircs:
-                self.expContainer[currentID].reset_counts(
-                    summonerID=self.currentMultiJob.summonerID)
                 self.expContainer[currentID].afterwards.counts.append(
                     coutsTmpContainer[idx])
             self.expContainer[currentID].commons.datetimes[

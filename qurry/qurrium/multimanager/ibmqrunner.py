@@ -225,9 +225,9 @@ class IBMQRunner(Runner):
             print(
                 f"| Distributing to {currentID} with {len(idxCircs)} circuits."
             )
+            self.expContainer[currentID].reset_counts(
+                summonerID=self.currentMultiJob.summonerID)
             for idx in idxCircs:
-                self.expContainer[currentID].reset_counts(
-                    summonerID=self.currentMultiJob.summonerID)
                 self.expContainer[currentID].afterwards.counts.append(
                     coutsTmpContainer[idx])
             self.expContainer[currentID].commons.datetimes[

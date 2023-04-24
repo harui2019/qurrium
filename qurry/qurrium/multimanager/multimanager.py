@@ -107,35 +107,35 @@ class MultiManager:
         """The list of retrieved results, which multiple experiments shared."""
         allCounts: dict[Hashable, list[dict[str, int]]]
         """The dict of all counts of each experiments."""
+        
+    def reset_afterwards(
+        self,
+        *args,
+        security: bool = False,
+        muteWarning: bool = False,
+    ) -> None:
+        """Reset the measurement and release memory for overwrite.
 
-        def reset(
-            self,
-            *args,
-            security: bool = False,
-            muteWarning: bool = False,
-        ) -> None:
-            """Reset the measurement and release memory for overwrite.
+        Args:
+            security (bool, optional): Security for reset. Defaults to `False`.
+            muteWarning (bool, optional): Mute the warning message. Defaults to `False`.
+        """
 
-            Args:
-                security (bool, optional): Security for reset. Defaults to `False`.
-                muteWarning (bool, optional): Mute the warning message. Defaults to `False`.
-            """
-
-            if security and isinstance(security, bool):
-                self.__init__(
-                    retrievedResult=TagList(),
-                    allCounts={}
-                )
-                gc.collect()
-                if not muteWarning:
-                    warnings.warn(
-                        "Afterwards reset accomplished.",
-                        QurryResetAccomplished)
-            else:
+        if security and isinstance(security, bool):
+            self.afterwards = self.afterwards._replace(
+                retrievedResult=TagList(),
+                allCounts={}
+            )
+            gc.collect()
+            if not muteWarning:
                 warnings.warn(
-                    "Reset does not execute to prevent executing accidentally, " +
-                    "if you are sure to do this, then use '.reset(security=True)'.",
-                    QurryResetSecurityActivated)
+                    "Afterwards reset accomplished.",
+                    QurryResetAccomplished)
+        else:
+            warnings.warn(
+                "Reset does not execute to prevent executing accidentally, " +
+                "if you are sure to do this, then use '.reset(security=True)'.",
+                QurryResetSecurityActivated)
 
     _unexports: list[str] = ['retrievedResult']
     """The content would not be exported."""
