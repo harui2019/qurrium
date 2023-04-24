@@ -184,7 +184,6 @@ class QurryV5Prototype:
 
     def __init__(
         self,
-        *waves: Union[QuantumCircuit, tuple[Hashable, QuantumCircuit]],
         resourceWatch: ResoureWatch = DefaultResourceWatch,
     ) -> None:
 
@@ -196,16 +195,6 @@ class QurryV5Prototype:
 
         self.waves: WaveContainer = WaveContainer()
         """The wave functions container."""
-        for w in waves:
-            if isinstance(w, QuantumCircuit):
-                self.add(w)
-            elif isinstance(w, tuple):
-                self.add(w[0], w[1])
-            else:
-                warnings.warn(
-                    f"'{w}' is a '{type(w)}' instead of 'QuantumCircuit' or 'tuple' " +
-                    "contained hashable key and 'QuantumCircuit', skipped to be adding.",
-                )
 
         self.exps: ExperimentContainer = ExperimentContainer()
         """The experiments container."""
@@ -1551,6 +1540,7 @@ class QurryV5Prototype:
     def reset(
         self,
         *args,
+        keepWave: bool = True,
         security: bool = False,
     ) -> None:
         """Reset the measurement and release memory.
@@ -1559,9 +1549,15 @@ class QurryV5Prototype:
             security (bool, optional): Security for reset. Defaults to `False`.
         """
 
+        tmpWaveContainer = {
+            k: v for k, v in self.waves.items() 
+        } if keepWave else {}
+
         if security and isinstance(security, bool):
-            self.__init__(*[(k, v) for k, v in self.waves.items()])
+            self.__init__()
             gc.collect()
+            for k, v in tmpWaveContainer.items():
+                self.add(v, k)
             warnings.warn(
                 "The measurement has reset and release memory allocating.",
                 QurryResetAccomplished)
