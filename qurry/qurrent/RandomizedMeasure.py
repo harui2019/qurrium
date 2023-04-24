@@ -153,7 +153,7 @@ def _entangled_entropy_core(
 
     print(
         f"| Subsystem size: {subsystemSize}, AllsystemSize: {allsystemSize}" +
-        ('cycling ' if isAvtiveCyclingSlice else '')+
+        ("cycling" if isAvtiveCyclingSlice else "")+", "
         f"bitstring range: {bitStringRange}, " +
         f"measure range: {measure}.")
 
