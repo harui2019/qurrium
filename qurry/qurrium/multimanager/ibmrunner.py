@@ -32,8 +32,8 @@ class IBMRunner(Runner):
         besummonned: Hashable,
         multiJob: MultiManager,
         experimentalContainer: ExperimentContainer,
-        backend: Optional[IBMBackend],
-        provider: Optional[IBMProvider],
+        backend: Optional[IBMBackend] = None,
+        provider: Optional[IBMProvider] = None,
     ):
         assert multiJob.summonerID == besummonned, (
             f"Summoner ID not match, multiJob.summonerID: {multiJob.summonerID}, besummonned: {besummonned}"

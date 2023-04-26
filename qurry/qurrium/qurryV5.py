@@ -1,7 +1,7 @@
 from qiskit import execute, transpile, QuantumCircuit
 from qiskit.quantum_info import Operator
 from qiskit.circuit import Gate
-from qiskit.providers import Backend
+from qiskit.providers import Backend, Provider
 from qiskit_aer import AerSimulator
 from qiskit_ibm_provider import IBMBackend
 # from qiskit.providers.ibmq import AccountProvider
@@ -1071,7 +1071,7 @@ class QurryV5Prototype:
         summonerID: Optional[str] = None,
         shots: int = 1024,
         backend: Backend = AerSimulator(),
-        # provider: AccountProvider = None,
+        provider: Optional[Provider] = None,
         # IBMQJobManager() dedicated
         managerRunArgs: dict = {},
         # Other arguments of experiment
@@ -1151,6 +1151,7 @@ class QurryV5Prototype:
                 besummonned=currentMultiJob.summonerID,
                 multiJob=currentMultiJob,
                 backend=backend,
+                provider=provider,
                 experimentalContainer=self.exps,
             )
 
@@ -1165,6 +1166,7 @@ class QurryV5Prototype:
                 besummonned=currentMultiJob.summonerID,
                 multiJob=currentMultiJob,
                 backend=backend,
+                provider=provider,
                 experimentalContainer=self.exps,
             )
 
