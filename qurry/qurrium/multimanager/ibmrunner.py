@@ -1,5 +1,4 @@
 from qiskit import QuantumCircuit
-from qiskit.providers import Backend
 try:
     from qiskit.providers.ibmq import IBMQBackend
     from qiskit.providers.ibmq.job import IBMQJob
@@ -11,7 +10,7 @@ from qiskit_ibm_provider import IBMBackend, IBMProvider
 from qiskit_ibm_provider.job import IBMCircuitJob
 from qiskit_ibm_provider.exceptions import IBMBackendApiError
 
-from typing import Literal, Hashable, Union, Any
+from typing import Literal, Hashable, Union, Optional
 import warnings
 
 from .multimanager import MultiManager
@@ -28,16 +27,28 @@ class IBMRunner(Runner):
 
     reports: dict[str, dict[str, str]]
 
-    def __init__(self, besummonned: Hashable, multiJob: MultiManager,
-                 backend: IBMBackend,
-                 experimentalContainer: ExperimentContainer):
+    def __init__(
+        self,
+        besummonned: Hashable,
+        multiJob: MultiManager,
+        experimentalContainer: ExperimentContainer,
+        backend: Optional[IBMBackend],
+        provider: Optional[IBMProvider],
+    ):
         assert multiJob.summonerID == besummonned, (
             f"Summoner ID not match, multiJob.summonerID: {multiJob.summonerID}, besummonned: {besummonned}"
         )
+        if backend is None and provider is None:
+            raise ValueError(
+                "Either backend or provider should be provided."
+            )
+
         self.currentMultiJob = multiJob
         """The multiJob from Qurry instance."""
         self.backend = backend
         """The backend will be use to pending and retrieve."""
+        self.provider = backend.provider() if backend is not None else provider
+        """The provider will be used to pending and retrieve."""
         self.expContainer = experimentalContainer
         """The experimental container from Qurry instance."""
 
@@ -49,7 +60,24 @@ class IBMRunner(Runner):
         self,
         pendingStrategy: Literal['default', 'onetime', 'each',
                                  'tags'] = 'default',
+        backend: Optional[IBMBackend] = None,
     ) -> list[tuple[str, str]]:
+
+        if self.backend is None:
+            if backend is None:
+                raise ValueError(
+                    "At least one of backend and provider should be given.")
+            else:
+                print(
+                    f"| Given backend and provider as {backend.name} and {backend.provider()}.")
+                self.backend = backend
+                self.provider = backend.provider()
+        else:
+            if backend is not None:
+                print(
+                    f"| Using backend and provider as {self.backend.name} and {self.backend.provider()}.")
+            else:
+                ...
 
         for id_exec in self.currentMultiJob.beforewards.configDict:
             circSerialLen = len(self.circWithSerial)
@@ -165,6 +193,7 @@ class IBMRunner(Runner):
             retrieveTimesName] = current
 
         if qiskit_ibmq_provider:
+            print("| Downgrade compatibility with qiskit-ibmq-provider.")
             if isinstance(self.backend, IBMQBackend):
                 for pendingID, pk in self.currentMultiJob.beforewards.jobID:
                     if pendingID is None:

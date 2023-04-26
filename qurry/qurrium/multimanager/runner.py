@@ -1,5 +1,7 @@
-from qiskit.providers import Backend
+from qiskit.providers import Backend, Provider
+
 from abc import abstractmethod
+from typing import Optional
 
 from .multimanager import MultiManager
 
@@ -8,7 +10,8 @@ class Runner:
     """Pending and Retrieve Jobs from remote backend."""
 
     currentManager: MultiManager
-    backend: Backend
+    backend: Optional[Backend]
+    provider: Provider
 
     pendingIDs: str
     reports: dict[str, dict]
@@ -28,7 +31,8 @@ class ThirdPartyRunner(Runner):
     """Pending and Retrieve Jobs from Third-Parties' backend."""
 
     currentManager: MultiManager
-    backend: Backend
+    backend: Optional[Backend]
+    provider: Provider
 
     pendingIDs: str
     reports: dict[str, dict]
