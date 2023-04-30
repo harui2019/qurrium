@@ -47,7 +47,7 @@ class IBMRunner(Runner):
         """The multiJob from Qurry instance."""
         self.backend = backend
         """The backend will be use to pending and retrieve."""
-        self.provider = backend.provider() if backend is not None else provider
+        self.provider = backend.provider if backend is not None else provider
         """The provider will be used to pending and retrieve."""
         self.expContainer = experimentalContainer
         """The experimental container from Qurry instance."""
