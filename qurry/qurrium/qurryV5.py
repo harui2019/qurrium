@@ -1046,6 +1046,7 @@ class QurryV5Prototype:
 
             currentMultiJob.afterwards.allCounts[currentID] = self.exps[currentID].afterwards.counts
 
+        currentMultiJob.multicommons.datetimes.addSerial('output')
         if len(defaultMultiAnalysis) > 0:
             print(f"| MultiOutput analyzing...")
             for analysis in defaultMultiAnalysis:
