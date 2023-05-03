@@ -744,6 +744,7 @@ class QurryV5Prototype:
         # provider: AccountProvider = None,
         # Other arguments of experiment
         # Multiple jobs shared
+        tags: list[str] = [],
         saveLocation: Union[Path, str] = Path('./'),
         jobsType: Literal["local", "IBMQ", "IBM",
                           "AWS_Bracket", "Azure_Q"] = "local",
@@ -831,6 +832,7 @@ class QurryV5Prototype:
                 backend=backend,
                 # provider=provider,
 
+                tags=tags,
                 saveLocation=saveLocation,
                 files={},
 
@@ -872,6 +874,7 @@ class QurryV5Prototype:
         backend: Backend = AerSimulator(),
         # provider: AccountProvider = None,
         # IBMQJobManager() dedicated
+        tags: list[str] = [],
         managerRunArgs: dict = {},
         # Other arguments of experiment
         # Multiple jobs shared
@@ -917,6 +920,7 @@ class QurryV5Prototype:
             shots=shots,
             backend=backend,
             # provider=provider,
+            tags=tags,
             managerRunArgs=managerRunArgs,
             summonerName=summonerName,
             summonerID=summonerID,
@@ -963,6 +967,7 @@ class QurryV5Prototype:
         summonerID: Optional[str] = None,
         shots: int = 1024,
         backend: Backend = AerSimulator(),
+        tags: list[str] = [],
         # provider: AccountProvider = None,
         # IBMQJobManager() dedicated
         # Other arguments of experiment
@@ -1015,6 +1020,7 @@ class QurryV5Prototype:
             shots=shots,
             backend=backend,
             # provider=provider,
+            tags=tags,
             managerRunArgs={},
             summonerName=summonerName,
             summonerID=summonerID,
@@ -1066,14 +1072,13 @@ class QurryV5Prototype:
         self,
         # configList
         configList: list = [],
-        # defaultConfig of `IBMQJobManager().run`
         # Multiple jobs shared
         summonerName: str = 'exps',
         summonerID: Optional[str] = None,
         shots: int = 1024,
         backend: Backend = AerSimulator(),
         provider: Optional[Provider] = None,
-        # IBMQJobManager() dedicated
+        tags: list[str] = [],
         managerRunArgs: dict = {},
         # Other arguments of experiment
         # Multiple jobs shared
@@ -1132,7 +1137,8 @@ class QurryV5Prototype:
             configList=configList,
             shots=shots,
             backend=backend,
-            # provider=provider,
+            provider=provider,
+            tags=tags,
             managerRunArgs=managerRunArgs,
             summonerName=summonerName,
             summonerID=summonerID,

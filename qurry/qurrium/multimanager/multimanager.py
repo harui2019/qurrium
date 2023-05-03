@@ -29,6 +29,7 @@ multicommonConfig = defaultConfig(
     default={
         'summonerID': None,
         'summonerName': None,
+        'tags': [],
         'shots': 1024,
         'backend': AerSimulator(),
         'saveLocation': Path('./'),
@@ -52,6 +53,8 @@ class MultiManager:
         """ID of experiment of the multiManager."""
         summonerName: str
         """Name of experiment of the multiManager."""
+        tags: list[str]
+        """Tags of experiment of the multiManager."""
 
         shots: int
         """Number of shots to run the program (default: 1024), which multiple experiments shared."""
@@ -354,6 +357,7 @@ class MultiManager:
                 jobsType = "multiJobs"
 
             rawReadMultiConfig = {
+                'tags': [],
                 **kwargs,
                 'summonerID': summonerID,
                 'summonerName': self.namingCpx.expsName,
@@ -419,6 +423,7 @@ class MultiManager:
 
         else:
             rawReadMultiConfig = {
+                'tags': [],
                 **kwargs,
                 'summonerID': summonerID,
                 'summonerName': self.namingCpx.expsName,

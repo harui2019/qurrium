@@ -124,7 +124,9 @@ class IBMRunner(Runner):
                     job_tags=[
                         self.currentMultiJob.multicommons.summonerName,
                         self.currentMultiJob.multicommons.summonerID,
-                        self.currentMultiJob.namingCpx.expsName, *pendingTag
+                        self.currentMultiJob.namingCpx.expsName, 
+                        *pendingTag,
+                        *self.currentMultiJob.multicommons.tags,
                     ],
                     **self.currentMultiJob.multicommons.managerRunArgs,
                 )
