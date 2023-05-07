@@ -160,7 +160,7 @@ def _real_backend_loader(
         backend_ibmq_callsign = {
             backendWrapper._shorten_name(
                 bn, ['ibm_', 'ibmq_'], ['ibmq_qasm_simulator']
-            ): bn for bn in backend_ibmq
+            ): bn for bn in [backs for backs in backend_ibmq if 'ibm' in backs]
         }
         backend_ibmq_callsign['ibmq_qasm'] = 'ibmq_qasm_simulator'
         return backend_ibmq_callsign, backend_ibmq, _RealProvider
@@ -401,25 +401,65 @@ class backendWrapper:
         check_msg = Hoshi([
             ('divider', 60),
             ('h3', 'BackendWrapper Statesheet'),
-        ], ljust_describe_len=40)
+        ], ljust_describe_len=35)
         
         for desc, backs, backs_callsign in [
-            ('Aer', self.available_aer, self.available_aer_callsign),
-            ('IBM', self.available_ibmq, self.available_ibmq_callsign),
-            ('Fake', self.available_fake, self.available_fake_callsign),
+            ('Aer', self.available_aer, self.backend_aer_callsign),
+            ('IBM', self.available_ibmq, self.backend_ibmq_callsign),
+            ('Fake', self.available_fake, self.backend_fake_callsign),
         ]:
             check_msg.divider()
             check_msg.h4(desc)
+            if 'Aer' in desc:
+                check_msg.newline({
+                    'type': 'itemize',
+                    'description': f'Aer GPU',
+                    'value': self.isAerGPU,        
+                })
+            elif 'IBM' in desc:
+                check_msg.newline({
+                    'type': 'itemize',
+                    'description': f'IBM Real Provider by',
+                    'value': (
+                        '"qiskit_ibm_provider"' if isinstance(self._RealProvider, IBMProvider) 
+                        else 'qiskit.providers.ibmq'),        
+                })
+            elif 'Fake' in desc:
+                check_msg.newline({
+                    'type': 'itemize',
+                    'description': f'Fake Provider by',
+                    'value': (
+                        'FackBackendV2' if isinstance(self._FakeProvider, FakeProviderForBackendV2) 
+                        else 'FackBackendV1'), 
+                })
             check_msg.newline({
                 'type': 'itemize',
                 'description': f'Available {desc} Backends',
-                'value': backs,
+                # 'value': backs,
             })
+            backs_len = len(backs)
+            for i in range(0, backs_len, 3):
+                tmp_backs = backs[i:i+3]
+                tmp_backs_str = ', '.join(tmp_backs) + (
+                    ',' if len(tmp_backs) == 3 else ''
+                )
+                check_msg.newline({
+                    'type': 'txt',
+                    'listing_level': 2,
+                    'text': tmp_backs_str,
+                })
+
             check_msg.newline({
                 'type': 'itemize',
                 'description': f'Available {desc} Backends Callsign',
-                'value': backs_callsign,
             })
+            for k, v in backs_callsign.items():
+                check_msg.newline({
+                    'type': 'itemize',
+                    'description': f' callsign: {k}',
+                    'value': f'for: {v}',        
+                    'listing_level': 2,
+                })
             
         return check_msg
 
