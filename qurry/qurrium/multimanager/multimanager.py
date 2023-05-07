@@ -30,10 +30,10 @@ multicommonConfig = defaultConfig(
         'summonerID': None,
         'summonerName': None,
         'tags': [],
-        'shots': 1024,
-        'backend': AerSimulator(),
-        'saveLocation': Path('./'),
-        'exportLocation': Path('./'),
+        'shots': 0,
+        'backend': None,
+        'saveLocation': None,
+        'exportLocation': None,
         'files': {},
         'jobsType': None,
         'managerRunArgs': None,
@@ -448,7 +448,7 @@ class MultiManager:
             )
             self.tagMapQuantity: dict[str, TagList[Quantity]] = {}
 
-        multicommons = {}
+        multicommons = multicommonConfig.make()
         outfields = {}
         for k in rawReadMultiConfig:
             if k in self.multicommonparams._fields:
