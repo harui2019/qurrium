@@ -195,7 +195,7 @@ class IBMRunner(Runner):
             retrieveTimesName] = current
 
         if qiskit_ibmq_provider:
-            print("| Downgrade compatibility with qiskit-ibmq-provider.")
+            print("| Downgrade compatibility with qiskit-ibmq-provider is available.")
             if isinstance(self.backend, IBMQBackend):
                 for pendingID, pk in self.currentMultiJob.beforewards.jobID:
                     if pendingID is None:
