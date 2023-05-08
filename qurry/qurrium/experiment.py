@@ -15,49 +15,53 @@ import json
 
 from ..hoshi import Hoshi
 from ..mori import jsonablize, quickJSON, quickRead, defaultConfig
-from ..exceptions import (QurryInvalidInherition,
-                          QurryExperimentCountsNotCompleted,
-                          QurryResetSecurityActivated, QurryResetAccomplished,
-                          QurryProtectContent, QurrySummonerInfoIncompletion)
+from ..exceptions import (
+    QurryInvalidInherition,
+    QurryExperimentCountsNotCompleted,
+    QurryResetSecurityActivated, QurryResetAccomplished,
+    QurryProtectContent, QurrySummonerInfoIncompletion)
 from .declare.type import Counts
 from .analysis import AnalysisPrototype, QurryAnalysis
 from .utils.datetime import currentTime, datetimeDict
 
-commonparamsConfig = defaultConfig(name='commonparams',
-                                   default={
-                                       'expID': None,
-                                       'waveKey': None,
-                                       'shots': 1024,
-                                       'backend': AerSimulator(),
-                                       'provider': None,
-                                       'runArgs': {},
-                                       'runBy': 'gate',
-                                       'transpileArgs': {},
-                                       'decompose': None,
-                                       'tags': (),
-                                       'defaultAnalysis': [],
-                                       'saveLocation': Path('./'),
-                                       'filetype': 'json',
-                                       'datetimes': datetimeDict(),
-                                       'serial': None,
-                                       'summonerID': None,
-                                       'summonerName': None,
-                                   })
+commonparamsConfig = defaultConfig(
+    name='commonparams',
+    default={
+        'expID': None,
+        'waveKey': None,
+        'shots': 1024,
+        'backend': AerSimulator(),
+        'provider': None,
+        'runArgs': {},
+        'runBy': 'gate',
+        'transpileArgs': {},
+        'decompose': None,
+        'tags': (),
+        'defaultAnalysis': [],
+        'saveLocation': Path('./'),
+        'filetype': 'json',
+        'datetimes': datetimeDict(),
+        'serial': None,
+        'summonerID': None,
+        'summonerName': None,
+    })
 
-beforeConfig = defaultConfig(name='before',
-                             default={
-                                 'circuit': [],
-                                 'figOriginal': [],
-                                 'jobID': '',
-                                 'expName': '',
-                                 'sideProduct': {},
-                             })
+beforeConfig = defaultConfig(
+    name='before',
+    default={
+        'circuit': [],
+        'figOriginal': [],
+        'jobID': '',
+        'expName': '',
+        'sideProduct': {},
+    })
 
-afterConfig = defaultConfig(name='after',
-                            default={
-                                'result': [],
-                                'counts': [],
-                            })
+afterConfig = defaultConfig(
+    name='after',
+    default={
+        'result': [],
+        'counts': [],
+    })
 
 
 class ExperimentPrototype():
@@ -534,7 +538,7 @@ class ExperimentPrototype():
                 info.newline(('itemize', str(k), str(
                     v
                 ), "If it's null meaning this experiment doesn't use online backend like IBMQ.",
-                              2))
+                    2))
             elif isinstance(v, str):
                 info.newline(('itemize', str(k), str(v), '', 2))
             else:
