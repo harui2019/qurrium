@@ -1137,7 +1137,6 @@ class QurryV5Prototype:
             configList=configList,
             shots=shots,
             backend=backend,
-            provider=provider,
             tags=tags,
             managerRunArgs=managerRunArgs,
             summonerName=summonerName,
