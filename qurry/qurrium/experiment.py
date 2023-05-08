@@ -15,6 +15,7 @@ import json
 
 from ..hoshi import Hoshi
 from ..mori import jsonablize, quickJSON, quickRead, defaultConfig
+from ..tools.backend import backendName
 from ..exceptions import (
     QurryInvalidInherition,
     QurryExperimentCountsNotCompleted,
@@ -86,8 +87,8 @@ class ExperimentPrototype():
         # Multiple jobs shared
         shots: int
         """Number of shots to run the program (default: 1024)."""
-        backend: Backend
-        """Backend to execute the circuits on."""
+        backend: Union[Backend, str]
+        """Backend to execute the circuits on, or the backend used."""
         runArgs: dict
         """Arguments of `execute`."""
 
@@ -723,6 +724,10 @@ class ExperimentPrototype():
 
         args: dict[str, Any] = jsonablize(self.args._asdict())
         commons: dict[str, Any] = jsonablize(self.commons._asdict())
+        commons['backend'] = (
+            self.commons.backend if isinstance(self.commons.backend, str) 
+            else backendName(self.commons.backend))
+        
         outfields = jsonablize(self.outfields)
         # adventures, legacy, tales
         tales = {}
@@ -1178,11 +1183,6 @@ class ExperimentPrototype():
                 f"'saveLocation' does not exist, '{saveLocation}'.")
 
         exportLocation = saveLocation / name
-        # TODO: use .zip to packing the experiment optionally, even tar.gz
-        # exportLocationSet = {
-        #     'unzip': exportLocation / name,
-        #     'zip': exportLocation / f"{str(name)}.zip",
-        # }
         if not os.path.exists(exportLocation):
             raise FileNotFoundError(
                 f"'ExportLoaction' does not exist, '{exportLocation}'.")
