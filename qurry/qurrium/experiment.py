@@ -12,6 +12,7 @@ import warnings
 import os
 import glob
 import json
+import tqdm
 
 from ..hoshi import Hoshi
 from ..mori import jsonablize, quickJSON, quickRead, defaultConfig
@@ -202,10 +203,17 @@ class ExperimentPrototype():
         """Counts of experiment."""
 
     _unexports = ['sideProduct', 'result']
+    """Unexports properties.
+    """
+    
     _deprecated = ['figTranspiled']
     """Deprecated properties.
         - `figTranspiled` is deprecated since v0.6.0.
     """
+        
+    tqdm_handleable = False
+    """Whether the method :meth:`
+    e` can handle the processing bar from :module:`tqdm`."""
 
     # Analysis Property
     @classmethod
@@ -445,6 +453,17 @@ class ExperimentPrototype():
 
     @abstractmethod
     def analyze(self, *args, **kwargs) -> AnalysisPrototype:
+        """Analyzing the example circuit results in specific method.
+
+        Args:
+            allArgs: all arguments will pass to `.quantities`.
+
+        Returns:
+            analysis: Analysis of the counts from measurement.
+        """
+
+    @abstractmethod
+    def analyze(self, pbar: Optional[tqdm.tqdm], *args, **kwargs) -> dict[str, Any]:
         """Analyzing the example circuit results in specific method.
 
         Args:

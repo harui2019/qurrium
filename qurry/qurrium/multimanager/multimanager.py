@@ -3,12 +3,13 @@ from qiskit.providers import Backend
 from qiskit_aer import AerSimulator
 
 from pathlib import Path
-from typing import Literal, Union, Optional, NamedTuple, Hashable, Any
+from typing import Literal, Union, Optional, NamedTuple, Hashable, Any, Iterable
 from uuid import uuid4
 import os
 import gc
 import shutil
 import json
+import tqdm
 import tarfile
 import warnings
 
@@ -94,10 +95,7 @@ class MultiManager:
         """The pool of pending jobs, which multiple experiments shared, it works only when executing experiments is remote."""
         circuitsMap: TagList[str]
         """The map of circuits of each experiments in the index of pending, which multiple experiments shared."""
-        jobID: list[Union[
-            tuple[Union[str, None], Union[str, tuple, Hashable, None]],
-            list[Union[str, None], Union[str, tuple, Hashable, None]]
-        ]]
+        jobID: list[Iterable[Union[str, tuple, Hashable, None]]]
         """The list of jobID in pending, which multiple experiments shared, it works only when executing experiments is remote."""
 
         tagMapExpsID: TagList[str]
@@ -140,6 +138,8 @@ class MultiManager:
                 "if you are sure to do this, then use '.reset(security=True)'.",
                 QurryResetSecurityActivated)
 
+    _rjustLen = 3
+    """The length of the string to be right-justified for serial number when duplicated."""
     _unexports: list[str] = ['retrievedResult']
     """The content would not be exported."""
     _syncPrevent = ['allCounts', 'retrievedResult']
@@ -688,19 +688,29 @@ class MultiManager:
             analysisName if noSerialize else f"{analysisName}."+f'{idx_tagMapQ+1}'.rjust(self._rjustLen, '0'))
         self.tagMapQuantity[name] = TagList()
         
-        # TODO: tqdm -
-        for k in self.afterwards.allCounts.keys():
+        allCountsProgressBar = tqdm.tqdm(
+            self.afterwards.allCounts.keys(),
+            bar_format=(
+                '| {n_fmt}/{total_fmt} - {desc} - {elapsed}'
+            ),
+        )
+        for k in allCountsProgressBar:
+            tqdm_handleable = wave_continer[k].tqdm_handleable
+            
             if k in specificAnalysisArgs:
                 if isinstance(specificAnalysisArgs[k], bool):
                     if specificAnalysisArgs[k] is False:
                         print(f"| Multimanager Analysis: {k} skipped in {self.summonerID}.")
                         continue
                     else:
-                        report = wave_continer[k].analyze(**analysisArgs)
+                        report = wave_continer[k].analyze(
+                            **analysisArgs, **({ 'pbar': allCountsProgressBar } if tqdm_handleable else {}))
                 else:
-                    report = wave_continer[k].analyze(**specificAnalysisArgs[k])
+                    report = wave_continer[k].analyze(
+                        **specificAnalysisArgs[k], **({ 'pbar': allCountsProgressBar } if tqdm_handleable else {}))
             else:
-                report = wave_continer[k].analyze(**analysisArgs)
+                report = wave_continer[k].analyze(
+                    **analysisArgs, **({ 'pbar': allCountsProgressBar } if tqdm_handleable else {}))
                 
             wave_continer[k].write(mute=True)
             main, tales = report.export()
@@ -710,6 +720,18 @@ class MultiManager:
         self.multicommons.datetimes.addOnly(name)
         
         return name
+    
+    def remove_analysis(
+        self, 
+        name: str
+    ):
+        """Removes the analysis.
+        
+        Args:
+            name (str): The name of the analysis.
+        """
+        self.tagMapQuantity.pop(name)
+        self.multicommons.datetimes.addOnly(f"{name}_remove")
 
     def easycompress(
         self,
