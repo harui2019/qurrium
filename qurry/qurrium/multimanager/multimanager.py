@@ -619,13 +619,23 @@ class MultiManager:
         self.gitignore.export(self.multicommons.exportLocation)
 
         if wave_container is not None:
-            # TODO: tqdm -
-            for id_exec in self.beforewards.configDict:
-                print(f"| Multimanger experiment write: {id_exec} in {self.summonerID}.")
+            expConfigsProgress = tqdm.tqdm(
+                self.beforewards.configDict,
+                bar_format=(
+                    '| {n_fmt}/{total_fmt} - {desc} - {elapsed}'
+                ),
+            )   
+            for i, id_exec in enumerate(expConfigsProgress):
+                expConfigsProgress.set_description(
+                    f"Multimanger experiment write: {id_exec} in {self.summonerID}.")
                 wave_container[id_exec].write(
                     saveLocation=self.multicommons.saveLocation,
                     mute=True,
                 )
+                if i == len(expConfigsProgress) - 1:
+                    expConfigsProgress.set_description(
+                        f"Multimanger experiment write in {self.summonerID}...done")
+                
 
         return multiConfig
 
@@ -700,7 +710,7 @@ class MultiManager:
             if k in specificAnalysisArgs:
                 if isinstance(specificAnalysisArgs[k], bool):
                     if specificAnalysisArgs[k] is False:
-                        print(f"| Multimanager Analysis: {k} skipped in {self.summonerID}.")
+                        allCountsProgressBar.set_description(f"Skipped {k} in {self.summonerID}.")
                         continue
                     else:
                         report = wave_continer[k].analyze(

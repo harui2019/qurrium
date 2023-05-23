@@ -1,4 +1,5 @@
 import os
+import tqdm
 from pathlib import Path
 from typing import Union, NamedTuple
 
@@ -77,16 +78,19 @@ def naming(
 
         immutableName = f"{expsName}.{str(indexRename).rjust(_rjustLen, '0')}"
         exportLocation = saveLocation / immutableName
-        while os.path.exists(exportLocation):
-            print(f"| {exportLocation} is repeat location.")
-            indexRename += 1
-            immutableName = f"{expsName}.{str(indexRename).rjust(_rjustLen, '0')}"
-            exportLocation = saveLocation / immutableName
-        print(
-            f"| Write {immutableName}...\n" +
-            f"| at: {exportLocation}"
+        
+        findIndexProgress = tqdm.tqdm(
+            range(1), 
+            bar_format='| {desc}',
         )
-        os.makedirs(exportLocation)
+        with findIndexProgress as pb:
+            while os.path.exists(exportLocation):
+                pb.set_description(f"{exportLocation} is repeat location.")
+                indexRename += 1
+                immutableName = f"{expsName}.{str(indexRename).rjust(_rjustLen, '0')}"
+                exportLocation = saveLocation / immutableName
+            pb.set_description(f'Write "{immutableName}", at location "{exportLocation}"')
+            os.makedirs(exportLocation)
 
     return IOComplex(
         expsName=immutableName,

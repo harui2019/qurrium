@@ -44,7 +44,7 @@ def _magnetic_square_core(
     counts: list[dict[str, int]],
     shots: int,
     num_qubits: int,
-    _workers_num: Optional[int] = None,
+    workers_num: Optional[int] = None,
 ) -> dict[str, float]:
     """Computing specific quantity.
     Where should be overwritten by each construction of new measurement.
@@ -55,7 +55,7 @@ def _magnetic_square_core(
     """
 
     # Determine worker number
-    launch_worker = workers_distribution(_workers_num)
+    launch_worker = workers_distribution(workers_num)
 
     length = len(counts)
     Begin = time.time()
@@ -124,7 +124,7 @@ class MagnetSquareAnalysis(AnalysisPrototype):
         counts: list[dict[str, int]],
         shots: int,
         num_qubits: int,
-        _workers_num: Optional[int] = None,
+        workers_num: Optional[int] = None,
     ) -> dict[str, float]:
         """Computing specific quantity.
         Where should be overwritten by each construction of new measurement.
@@ -138,7 +138,7 @@ class MagnetSquareAnalysis(AnalysisPrototype):
             counts=counts,
             shots=shots,
             num_qubits=num_qubits,
-            _workers_num=_workers_num,
+            workers_num=workers_num,
         )
 
 class MagnetSquareExperiment(ExperimentPrototype):
@@ -161,12 +161,12 @@ class MagnetSquareExperiment(ExperimentPrototype):
     
     def analyze(
         self,
-        _workers_num: Optional[int] = None,
+        workers_num: Optional[int] = None,
     ) -> MagnetSquareAnalysis:
         """Calculate entangled entropy with more information combined.
 
         Args:
-            _workers_num (Optional[int], optional): 
+            workers_num (Optional[int], optional): 
                 Number of multi-processing workers, 
 
         Returns:
@@ -182,7 +182,7 @@ class MagnetSquareExperiment(ExperimentPrototype):
             shots=shots,
             counts=counts,
             num_qubits=num_qubits,
-            _workers_num=_workers_num,
+            workers_num=workers_num,
         )
         
         serial = len(self.reports)

@@ -203,6 +203,7 @@ def entangled_entropy(
     degree: Union[tuple[int, int], int],
     measure: tuple[int, int] = None,
     workers_num: Optional[int] = None,
+    pbar: Optional[tqdm.tqdm] = None,
 ) -> dict[str, float]:
     """Calculate entangled entropy.
 
@@ -253,6 +254,8 @@ def entangled_entropy(
             a list of each overlap, puritySD, degree, actual measure range, bitstring range.
     """
 
+    if isinstance(pbar, tqdm.tqdm):
+        pbar.set_description(f"Calculate specific degree {degree}.")
     (
         purityCellDict,
         bitStringRange,
@@ -265,6 +268,7 @@ def entangled_entropy(
         degree=degree,
         measure=measure,
         workers_num=workers_num,
+        _hide_print=True,
     )
     purityCellList = list(purityCellDict.values())
 
@@ -904,10 +908,7 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
         } for i in range(args.times)}
 
         if isinstance(commons.serial, int):
-            print((
-                f"| Build circuit: {commons.waveKey}, worker={args.workers_num}," +
-                f" serial={commons.serial}, by={commons.summonerName}."
-            ), end="\r")
+            ...
         else:
             print(f"| Build circuit: {commons.waveKey}.", end="\r")
 
@@ -917,10 +918,7 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
                 i, circuit, args.expName, args.unitary_loc, unitaryList[i], args.measure
             ) for i in range(args.times)])
         if isinstance(commons.serial, int):
-            print(
-                f"| Build circuit: {commons.waveKey}, worker={args.workers_num}," +
-                f" serial={commons.serial}, by={commons.summonerName} done."
-            )
+            ...
         else:
             print(f"| Build circuit: {commons.waveKey} done.", end="\r")
 

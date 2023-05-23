@@ -8,6 +8,7 @@ from qiskit_ibm_provider import IBMBackend
 
 import gc
 import warnings
+import tqdm
 from pathlib import Path
 from typing import Literal, Union, Optional, Hashable, Type, Any
 from abc import abstractmethod, abstractproperty
@@ -932,8 +933,13 @@ class QurryV5Prototype:
         )
         currentMultiJob = self.multimanagers[besummonned]
         assert currentMultiJob.summonerID == besummonned
+        initedConfigListProgress = tqdm.tqdm(
+            initedConfigList,
+            bar_format='| {n_fmt}/{total_fmt} {percentage:3.0f}%|{bar}| - Experiments build - {elapsed}',
+            ascii=" ▖▘▝▗▚▞█"
+            )
 
-        for config in initedConfigList:
+        for config in initedConfigListProgress:
             currentID = self.build(**config)
             currentMultiJob.beforewards.configDict[currentID] = config
             currentMultiJob.beforewards.circuitsNum[currentID] = len(
