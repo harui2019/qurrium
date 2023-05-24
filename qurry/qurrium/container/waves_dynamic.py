@@ -218,8 +218,10 @@ def wave_container_maker(
         """
         return wavename in self
 
-    def __repr__(self):
-        return f"<{typename} with {len(self)} waves load>"
+    def __repr__(self: MutableMapping[Hashable, QuantumCircuit]):
+        inner_lines = '\n'.join('    %s: ...' % k for k in self.keys())
+        inner_lines2 = "{\n%s\n}" % inner_lines
+        return f"<{typename}={inner_lines2} with {len(self)} waves load, a customized dictionary>"
 
     class_namespace = {
         '__init__': constructor,
