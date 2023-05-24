@@ -1,3 +1,4 @@
+import tqdm
 from typing import Union, Optional, Literal
 from pathlib import Path
 
@@ -56,7 +57,14 @@ class QuantityContainer(dict[str, TagList[Quantity]]):
         """
 
         quantityOutput = {}
-        for k, v in self.items():
+        quantityProgress = tqdm.tqdm(
+            self.items(),
+            desc='exporting quantity',
+            bar_format='| {n_fmt}/{total_fmt} - {desc} - {elapsed}',
+        )
+            
+        for i, (k, v) in enumerate(quantityProgress):
+            quantityProgress.set_description(f'exporting quantity: {k}')
             filename = v.export(
                 saveLocation=saveLocation,
                 tagListName='quantity',
@@ -71,8 +79,13 @@ class QuantityContainer(dict[str, TagList[Quantity]]):
                 }
             )
             quantityOutput[k] = str(filename)
+            
+            if i == len(self) - 1:
+                quantityProgress.set_description(f'exported quantity complete')
 
         return quantityOutput
 
     def __repr__(self):
-        return f"<{self.__name__} with {len(self)} analysis results load, a customized dictionary>"
+        inner_lines = '\n'.join('    %s: ...' % k for k in self.keys())
+        inner_lines2 = "{\n%s\n}" % inner_lines
+        return f"<{self.__name__}={inner_lines2} with {len(self)} analysis results load, a customized dictionary>"

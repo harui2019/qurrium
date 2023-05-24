@@ -51,4 +51,6 @@ class ExperimentContainer(dict[Hashable, ExperimentPrototype]):
         return self.call(expID=expID)
 
     def __repr__(self):
-        return f"<{self.__name__} with {len(self)} experiments load, a customized dictionary>"
+        inner_lines = '\n'.join('    %s: ...' % k for k in self.keys())
+        inner_lines2 = "{\n%s\n}" % inner_lines
+        return f"<{self.__name__}={inner_lines2} with {len(self)} experiments load, a customized dictionary>"

@@ -220,4 +220,6 @@ class WaveContainer(dict[Hashable, QuantumCircuit]):
         return wavename in self
 
     def __repr__(self):
-        return f"<{self.__name__} with {len(self)} waves load, a customized dictionary>"
+        inner_lines = '\n'.join('    %s: ...' % k for k in self.keys())
+        inner_lines2 = "{\n%s\n}" % inner_lines
+        return f"<{self.__name__}={inner_lines2} with {len(self)} waves load, a customized dictionary>"
