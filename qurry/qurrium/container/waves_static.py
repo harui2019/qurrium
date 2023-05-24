@@ -11,6 +11,7 @@ from .waves_dynamic import _add, _remove
 
 
 class WaveContainer(dict[Hashable, QuantumCircuit]):
+    __name__ = "WaveContainer"
 
     @property
     def lastWave(self) -> QuantumCircuit:
@@ -33,9 +34,9 @@ class WaveContainer(dict[Hashable, QuantumCircuit]):
     ) -> Hashable:
 
         self.lastWaveKey = _add(
-            _wave_container=self, 
+            _wave_container=self,
             wave=wave,
-            key=key, 
+            key=key,
             replace=replace
         )
         return self.lastWaveKey
@@ -219,4 +220,4 @@ class WaveContainer(dict[Hashable, QuantumCircuit]):
         return wavename in self
 
     def __repr__(self):
-        return f"<WaveContainer with {len(self)} waves load>"
+        return f"<{self.__name__} with {len(self)} waves load, a customized dictionary>"

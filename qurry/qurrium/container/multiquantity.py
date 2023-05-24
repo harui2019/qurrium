@@ -8,6 +8,8 @@ from ...mori import TagList
 class QuantityContainer(dict[str, TagList[Quantity]]):
     """The container of analysis for :cls:`MultiManager`.
     """
+    
+    __name__ = "QuantityContainer"
 
     def __init__(self):
         super().__init__()
@@ -71,3 +73,6 @@ class QuantityContainer(dict[str, TagList[Quantity]]):
             quantityOutput[k] = str(filename)
 
         return quantityOutput
+
+    def __repr__(self):
+        return f"<{self.__name__} with {len(self)} analysis results load, a customized dictionary>"
