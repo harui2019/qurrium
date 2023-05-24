@@ -1,6 +1,5 @@
 from qiskit.result import Result
 from qiskit.providers import Backend
-from qiskit_aer import AerSimulator
 
 from pathlib import Path
 from typing import Literal, Union, Optional, NamedTuple, Hashable, Any, Iterable
@@ -13,8 +12,7 @@ import tqdm
 import tarfile
 import warnings
 
-from ..container import ExperimentContainer
-from ..declare.type import Quantity
+from ..container import ExperimentContainer, QuantityContainer
 from ..utils.iocontrol import naming
 from ..utils.datetime import currentTime, datetimeDict
 from ...mori import TagList, syncControl, defaultConfig
@@ -101,7 +99,7 @@ class MultiManager:
         jobTagList: TagList[str]
         filesTagList: TagList[str]
         indexTagList: TagList[Union[str, int]]
-        
+
         @staticmethod
         def _exportingName():
             return {
@@ -110,15 +108,15 @@ class MultiManager:
                 'pendingPools': 'pendingPools',
                 'circuitsMap': 'circuitsMap',
                 'jobID': 'jobID',
-                
+
                 'jobTagList': 'job.tagList',
                 'filesTagList': 'files.tagList',
                 'indexTagList': 'index.tagList',
             }
-        
+
         @classmethod
         def _read(
-            cls, 
+            cls,
             exportLocation: Path,
             fileLocation: dict[str, Union[Path, dict[str, str]]] = {},
             version: Literal['v5', 'v7'] = 'v5',
@@ -127,15 +125,15 @@ class MultiManager:
             return cls(
                 expsConfig=quickRead(
                     filename=(
-                        'exps.config.json' if version == 'v7' 
+                        'exps.config.json' if version == 'v7'
                         else Path(fileLocation['configDict']).name
                     ),
                     saveLocation=exportLocation,
                 ),
-                
+
                 circuitsNum=quickRead(
                     filename=(
-                        'circuitsNum.json' if version == 'v7' 
+                        'circuitsNum.json' if version == 'v7'
                         else Path(fileLocation['circuitsNum']).name
                     ),
                     saveLocation=exportLocation,
@@ -150,7 +148,7 @@ class MultiManager:
                 ),
                 jobID=quickRead(
                     filename=(
-                        'jobID.json' if version == 'v7' 
+                        'jobID.json' if version == 'v7'
                         else Path(fileLocation['jobID']).name
                     ),
                     saveLocation=exportLocation,
@@ -170,24 +168,23 @@ class MultiManager:
                 ),
             )
 
-
     class after(NamedTuple):
         """`dataStateDepending` and `dataNeccessary` in V4 format."""
         retrievedResult: TagList[Result]
         """The list of retrieved results, which multiple experiments shared."""
         allCounts: dict[Hashable, list[dict[str, int]]]
         """The dict of all counts of each experiments."""
-        
+
         @staticmethod
         def _exportingName():
             return {
                 'retrievedResult': 'retrievedResult',
                 'allCounts': 'allCounts',
             }
-        
+
         @classmethod
         def _read(
-            cls, 
+            cls,
             exportLocation: Path,
             fileLocation: dict[str, Union[Path, dict[str, str]]] = {},
             version: Literal['v5', 'v7'] = 'v5',
@@ -196,13 +193,13 @@ class MultiManager:
                 retrievedResult={},
                 allCounts=quickRead(
                     filename=(
-                        'allCounts.json' if version == 'v7' 
+                        'allCounts.json' if version == 'v7'
                         else Path(fileLocation['allCounts']).name
                     ),
                     saveLocation=exportLocation,
                 ),
             )
-        
+
     def reset_afterwards(
         self,
         *args,
@@ -238,7 +235,7 @@ class MultiManager:
     """The content would not be exported."""
     _syncPrevent = ['allCounts', 'retrievedResult']
     """The content would not be synchronized."""
-    
+
     after_lock: bool = False
     """Protect the :cls:`afterward` content to be overwritten. When setitem is called and completed, it will be setted as `False` automatically."""
     mute_auto_lock: bool = False
@@ -359,7 +356,7 @@ class MultiManager:
             f"{self.namingCpx.expsName}.multiConfig.json"
         multiConfigNameV7 = self.namingCpx.exportLocation / \
             f"multi.config.json"
-        oldFiles: dict[str, Union[str, dict[str, str]]] = {} 
+        oldFiles: dict[str, Union[str, dict[str, str]]] = {}
 
         if isTarfileExisted:
             print(
@@ -384,7 +381,7 @@ class MultiManager:
                     files: dict[str, Union[str, dict[str, str]]
                                 ] = rawReadMultiConfig['files']
                     oldFiles = rawReadMultiConfig['files'].copy()
-                    
+
                 self.beforewards = self.before._read(
                     exportLocation=self.namingCpx.exportLocation,
                     fileLocation=files,
@@ -395,9 +392,10 @@ class MultiManager:
                     fileLocation=files,
                     version='v5'
                 )
-                self.quantityContainer: dict[str, TagList[Quantity]] = {}
+                self.quantityContainer = QuantityContainer()
                 for qk in files['tagMapQuantity'].keys():
-                    self.quantityContainer[qk] = TagList.read(
+                    self.quantityContainer.read(
+                        key=qk,
                         saveLocation=self.namingCpx.exportLocation,
                         tagListName=f'tagMapQuantity',
                         name=f'{self.namingCpx.expsName}.{qk}',
@@ -410,7 +408,7 @@ class MultiManager:
                     rawReadMultiConfig['exportLocation'] = self.namingCpx.exportLocation
                     files: dict[str, Union[str, dict[str, str]]
                                 ] = rawReadMultiConfig['files']
-                    
+
                 self.beforewards = self.before._read(
                     exportLocation=self.namingCpx.exportLocation,
                     version='v7'
@@ -419,9 +417,10 @@ class MultiManager:
                     exportLocation=self.namingCpx.exportLocation,
                     version='v7'
                 )
-                self.quantityContainer: dict[str, TagList[Quantity]] = {}
+                self.quantityContainer = QuantityContainer()
                 for qk in files['quantity'].keys():
-                    self.quantityContainer[qk] = TagList.read(
+                    self.quantityContainer.read(
+                        key=qk,
                         saveLocation=self.namingCpx.exportLocation,
                         tagListName=f'quantity',
                         name=f'{qk}',
@@ -509,12 +508,12 @@ class MultiManager:
                 retrievedResult={},
                 allCounts={},
             )
-            self.quantityContainer: dict[str, TagList[Quantity]] = {
-                'oldreport': TagList.read(
-                    saveLocation=self.namingCpx.exportLocation,
-                    tagListName='tagMapQuantity',
-                ),
-            }
+            self.quantityContainer = QuantityContainer()
+            self.quantityContainer.read(
+                key='oldreport',
+                saveLocation=self.namingCpx.exportLocation,
+                tagListName='tagMapQuantity',
+            )
 
         else:
             files = {}
@@ -542,7 +541,7 @@ class MultiManager:
                 retrievedResult={},
                 allCounts={},
             )
-            self.quantityContainer: dict[str, TagList[Quantity]] = {}
+            self.quantityContainer = QuantityContainer()
 
         # multicommon prepare
         multicommons = multicommonConfig.make()
@@ -555,7 +554,7 @@ class MultiManager:
             else:
                 outfields[k] = rawReadMultiConfig[k]
 
-        ## datetimes
+        # datetimes
         if 'datetimes' not in multicommons:
             multicommons['datetimes'] = datetimeDict()
         else:
@@ -573,19 +572,20 @@ class MultiManager:
             elif readFromTarfile:
                 multicommons['datetimes'].addSerial('decompressOverwrite')
 
-        ## readV5 files re-export
+        # readV5 files re-export
         if multiConfigNameV5.exists():
             multicommons['datetimes']['v7Read'] = currentTime()
             for k, pathstr in oldFiles.items():
                 multicommons['files'].pop(k, None)
-                    
+
         self.multicommons = self.multicommonparams(**multicommons)
         self.outfields: dict[str, Any] = outfields
         assert self.namingCpx.saveLocation == self.multicommons.saveLocation, "| saveLocation is not consistent with namingCpx.saveLocation."
-        
+
         # readV5 files re-export
         if multiConfigNameV5.exists():
-            print(f'| {self.namingCpx.expsName} auto-export in "v7" format and remove "v5" format.')
+            print(
+                f'| {self.namingCpx.expsName} auto-export in "v7" format and remove "v5" format.')
             self.write()
             removeV5Progress = tqdm.tqdm(
                 oldFiles.items(),
@@ -652,33 +652,7 @@ class MultiManager:
         )
 
         return multiConfig
-    
-    def _writeQuantity(
-        self,
-        indent: int = 2,
-        encoding: str = 'utf-8',
-    ) -> dict[str, str]:
-        
-        quantityOutput = {}
-        for k, v in self.quantityContainer.items():
-            filename = v.export(
-                saveLocation=self.multicommons.exportLocation,
-                tagListName='quantity',
-                name=f'{k}',
-                filetype=self.multicommons.filetype,
-                openArgs={
-                    'mode': 'w+',
-                    'encoding': encoding,
-                },
-                jsonDumpArgs={
-                    'indent': indent,
-                }
-            )
-            quantityOutput[k] = str(filename)
-        self.gitignore.sync(f"*.quantity.{self.multicommons.filetype}")
 
-        return quantityOutput
-    
     def write(
         self,
         saveLocation: Optional[Union[Path, str]] = None,
@@ -728,7 +702,8 @@ class MultiManager:
                     }
                 )
                 self.multicommons.files[exportingName[k]] = str(filename)
-                self.gitignore.sync(f"{exportingName[k]}.{self.multicommons.filetype}")
+                self.gitignore.sync(
+                    f"{exportingName[k]}.{self.multicommons.filetype}")
 
             elif isinstance(self[k], (dict, list)):
                 filename = Path(self.multicommons.exportLocation) / \
@@ -749,8 +724,14 @@ class MultiManager:
                 warnings.warn(
                     f"'{k}' is type '{type(self[k])}' which is not supported to export.")
         # tagMapQuantity or quantity
-        self.multicommons.files['quantity'] = self._writeQuantity(
-            indent=indent, encoding=encoding)
+        self.multicommons.files['quantity'] = self.quantityContainer.write(
+            saveLocation=self.multicommons.exportLocation,
+            filetype=self.multicommons.filetype,
+            indent=indent,
+            encoding=encoding
+        )
+        self.gitignore.sync(
+            f"*.quantity.{self.multicommons.filetype}")
         # multiConfig
         multiConfig = self._writeMultiConfig(encoding=encoding)
 
@@ -762,7 +743,7 @@ class MultiManager:
                 bar_format=(
                     '| {n_fmt}/{total_fmt} - {desc} - {elapsed}'
                 ),
-            )   
+            )
             for i, id_exec in enumerate(expConfigsProgress):
                 expConfigsProgress.set_description(
                     f"Multimanger experiment write: {id_exec} in {self.summonerID}.")
@@ -773,7 +754,6 @@ class MultiManager:
                 if i == len(expConfigsProgress) - 1:
                     expConfigsProgress.set_description(
                         f"Multimanger experiment write in {self.summonerID}...done")
-                
 
         return multiConfig
 
@@ -827,15 +807,15 @@ class MultiManager:
         Returns:
             Hashable: SummonerID (ID of multimanager).
         """
-        
+
         if len(self.afterwards.allCounts) == 0:
             raise ValueError("No counts in multimanagers.")
-        
+
         idx_tagMapQ = len(self.quantityContainer)
         name = (
             analysisName if noSerialize else f"{analysisName}."+f'{idx_tagMapQ+1}'.rjust(self._rjustLen, '0'))
         self.quantityContainer[name] = TagList()
-        
+
         allCountsProgressBar = tqdm.tqdm(
             self.afterwards.allCounts.keys(),
             bar_format=(
@@ -844,41 +824,42 @@ class MultiManager:
         )
         for k in allCountsProgressBar:
             tqdm_handleable = wave_continer[k].tqdm_handleable
-            
+
             if k in specificAnalysisArgs:
                 if isinstance(specificAnalysisArgs[k], bool):
                     if specificAnalysisArgs[k] is False:
-                        allCountsProgressBar.set_description(f"Skipped {k} in {self.summonerID}.")
+                        allCountsProgressBar.set_description(
+                            f"Skipped {k} in {self.summonerID}.")
                         continue
                     else:
                         report = wave_continer[k].analyze(
-                            **analysisArgs, **({ 'pbar': allCountsProgressBar } if tqdm_handleable else {}))
+                            **analysisArgs, **({'pbar': allCountsProgressBar} if tqdm_handleable else {}))
                 else:
                     report = wave_continer[k].analyze(
-                        **specificAnalysisArgs[k], **({ 'pbar': allCountsProgressBar } if tqdm_handleable else {}))
+                        **specificAnalysisArgs[k], **({'pbar': allCountsProgressBar} if tqdm_handleable else {}))
             else:
                 report = wave_continer[k].analyze(
-                    **analysisArgs, **({ 'pbar': allCountsProgressBar } if tqdm_handleable else {}))
-                
+                    **analysisArgs, **({'pbar': allCountsProgressBar} if tqdm_handleable else {}))
+
             wave_continer[k].write(mute=True)
             main, tales = report.export()
             self.quantityContainer[name][
                 wave_continer[k].commons.tags].append(main)
-        
+
         self.multicommons.datetimes.addOnly(name)
-        
+
         return name
-    
+
     def remove_analysis(
-        self, 
+        self,
         name: str
     ):
         """Removes the analysis.
-        
+
         Args:
             name (str): The name of the analysis.
         """
-        self.quantityContainer.pop(name)
+        self.quantityContainer.remove(name)
         print(f"| Removing analysis: {name}")
         self.multicommons.datetimes.addOnly(f"{name}_remove")
 
