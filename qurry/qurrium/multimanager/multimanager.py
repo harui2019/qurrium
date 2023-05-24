@@ -682,12 +682,19 @@ class MultiManager:
             **self.after._exportingName(),
             **self.before._exportingName()
         }
+        
+        exportProgress = tqdm.tqdm(
+            self.before._fields + self.after._fields,
+            desc='exporting',
+            bar_format='| {n_fmt}/{total_fmt} - {desc} - {elapsed}',
+        )
 
         # beforewards amd afterwards
-        for k in self.before._fields + self.after._fields:
+        for i, k in enumerate(exportProgress):
             if _onlyQuantity or (k in self._unexports):
-                ...
+                exportProgress.set_description(f'{k} as {exportingName[k]} - skip')
             elif isinstance(self[k], TagList):
+                exportProgress.set_description(f'{k} as {exportingName[k]}')
                 tmp: TagList = self[k]
                 filename = tmp.export(
                     saveLocation=self.multicommons.exportLocation,
@@ -706,6 +713,7 @@ class MultiManager:
                     f"{exportingName[k]}.{self.multicommons.filetype}")
 
             elif isinstance(self[k], (dict, list)):
+                exportProgress.set_description(f'{k} as {exportingName[k]}')
                 filename = Path(self.multicommons.exportLocation) / \
                     f"{exportingName[k]}.json"
                 self.multicommons.files[exportingName[k]] = str(filename)
@@ -723,6 +731,10 @@ class MultiManager:
             else:
                 warnings.warn(
                     f"'{k}' is type '{type(self[k])}' which is not supported to export.")
+                
+            if i == len(exportProgress) - 1:
+                exportProgress.set_description(f'exporting done')
+
         # tagMapQuantity or quantity
         self.multicommons.files['quantity'] = self.quantityContainer.write(
             saveLocation=self.multicommons.exportLocation,
