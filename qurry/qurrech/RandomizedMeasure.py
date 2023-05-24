@@ -2,6 +2,7 @@ from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.quantum_info import Operator
 
 import time
+import tqdm
 import numpy as np
 from multiprocessing import Pool, cpu_count
 from pathlib import Path
@@ -47,14 +48,12 @@ def _echoCell(
     firstCountsUnderDegree = dict.fromkeys(
         [k[bitStringRange[0]:bitStringRange[1]] for k in firstCounts], 0)
     for bitString in list(firstCounts):
-        firstCountsUnderDegree[bitString[bitStringRange[0]
-            :bitStringRange[1]]] += firstCounts[bitString]
-        
+        firstCountsUnderDegree[bitString[bitStringRange[0]                                         :bitStringRange[1]]] += firstCounts[bitString]
+
     secondCountsUnderDegree = dict.fromkeys(
         [k[bitStringRange[0]:bitStringRange[1]] for k in secondCounts], 0)
     for bitString in list(secondCounts):
-        secondCountsUnderDegree[bitString[bitStringRange[0]
-            :bitStringRange[1]]] += secondCounts[bitString]
+        secondCountsUnderDegree[bitString[bitStringRange[0]                                          :bitStringRange[1]]] += secondCounts[bitString]
 
     echoCell = np.float64(0)
     for sAi, sAiMeas in firstCountsUnderDegree.items():
@@ -70,7 +69,8 @@ def _overlap_echo_core(
     counts: list[dict[str, int]],
     degree: Union[tuple[int, int], int],
     measure: tuple[int, int] = None,
-    _workers_num: Optional[int] = None,
+    workers_num: Optional[int] = None,
+    _hide_print: bool = False,
 ) -> tuple[dict[int, float], tuple[int, int], tuple[int, int]]:
     """The core function of entangled entropy.
 
@@ -79,7 +79,7 @@ def _overlap_echo_core(
         counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
         degree (Union[tuple[int, int], int]): Degree of the subsystem.
         measure (tuple[int, int], optional): Measuring range on quantum circuits. Defaults to None.
-        _workers_num (Optional[int], optional): 
+        workers_num (Optional[int], optional): 
             Number of multi-processing workers, 
             if sets to 1, then disable to using multi-processing;
             if not specified, the use 3/4 of cpu counts by `round(cpu_count*3/4)`.
@@ -98,7 +98,7 @@ def _overlap_echo_core(
     assert sample_shots == shots, f"shots {shots} does not match sample_shots {sample_shots}"
 
     # Determine worker number
-    launch_worker = workers_distribution(_workers_num)
+    launch_worker = workers_distribution(workers_num)
 
     # Determine degree
     if degree is None:
@@ -132,36 +132,44 @@ def _overlap_echo_core(
     assert times == int(times), f"counts {len(counts)} is not even."
     times = int(times)
     countsPair = list(zip(counts[:times], counts[times:]))
-    
+
     Begin = time.time()
+
+    msg = (
+        f"| Partition: {bitStringRange}, Measure: {measure}"
+    )
 
     if launch_worker == 1:
         echoCellItems = []
-        print(
-            f"| Without multi-processing to calculate overlap of {times} counts. It will take a lot of time to complete.")
+        msg += f", single process, {times} overlaps, it will take a lot of time."
+        if not _hide_print:
+            print(msg)
         for i, (c1, c2) in enumerate(countsPair):
-            print(" "*150, end="\r")
-            print(
-                f"| Calculating overlap {i} and {times+i} " +
-                f"by summarize {len(c1)*len(c2)} values - {i+1}/{times}" +
-                f" - {round(time.time() - Begin, 3)}s.", end="\r")
+            if not _hide_print:
+                print(" "*150, end="\r")
+                print(
+                    f"| Calculating overlap {i} and {times+i} " +
+                    f"by summarize {len(c1)*len(c2)} values - {i+1}/{times}" +
+                    f" - {round(time.time() - Begin, 3)}s.", end="\r")
             echoCellItems.append(_echoCell(
                 i, c1, c2, bitStringRange, subsystemSize))
 
-        print(" "*150, end="\r")
-        print(
-            f"| Calculating overlap end - {times}/{times}" +
-            f" - {round(time.time() - Begin, 3)}s.")
+        if not _hide_print:
+            print(" "*150, end="\r")
+        takeTime = round(time.time() - Begin, 3)
     else:
-        print(
-            f"| With {launch_worker} workers to calculate overlap of {times} counts.")
+        msg += f", {launch_worker} workers, {times} overlaps."
+
         pool = Pool(launch_worker)
         echoCellItems = pool.starmap(
             _echoCell, [(i, c1, c2, bitStringRange, subsystemSize) for i, (c1, c2) in enumerate(countsPair)])
-        print(f"| Calculating overlap end - {round(time.time() - Begin, 3)}s.")
+        takeTime = round(time.time() - Begin, 3)
+
+    if not _hide_print:
+        print(f"| Calculating overlap end - {takeTime}s.")
 
     purityCellDict = {k: v for k, v in echoCellItems}
-    return purityCellDict, bitStringRange, measure
+    return purityCellDict, bitStringRange, measure, msg, takeTime
 
 
 def overlap_echo(
@@ -169,7 +177,8 @@ def overlap_echo(
     counts: list[dict[str, int]],
     degree: Union[tuple[int, int], int],
     measure: tuple[int, int] = None,
-    _workers_num: Optional[int] = None,
+    workers_num: Optional[int] = None,
+    pbar: Optional[tqdm.tqdm] = None,
 ) -> dict[str, float]:
     """Calculate entangled entropy.
 
@@ -205,7 +214,7 @@ def overlap_echo(
         counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
         degree (Union[tuple[int, int], int]): Degree of the subsystem.
         measure (tuple[int, int], optional): Measuring range on quantum circuits. Defaults to None.
-        _workers_num (Optional[int], optional): 
+        workers_num (Optional[int], optional): 
             Number of multi-processing workers, 
             if sets to 1, then disable to using multi-processing;
             if not specified, the use 3/4 of cpu counts by `round(cpu_count*3/4)`.
@@ -216,12 +225,21 @@ def overlap_echo(
             a list of each overlap, puritySD, degree, actual measure range, bitstring range.
     """
 
-    echoCellDict, bitStringRange, measureRange = _overlap_echo_core(
+    if isinstance(pbar, tqdm.tqdm):
+        pbar.set_description(f"Calculate overlap with {len(counts)} counts.")
+
+    (
+        echoCellDict,
+        bitStringRange,
+        measureRange,
+        msgOfProcess,
+        takeTime,
+    ) = _overlap_echo_core(
         shots=shots,
         counts=counts,
         degree=degree,
         measure=measure,
-        _workers_num=_workers_num,
+        workers_num=workers_num,
     )
     echoCellList = list(echoCellDict.values())
 
@@ -236,7 +254,7 @@ def overlap_echo(
         'degree': degree,
         'measureActually': measureRange,
         'bitStringRange': bitStringRange,
-        
+
         'countsNum': len(counts),
     }
 
@@ -286,7 +304,6 @@ class EchoRandomizedAnalysis(AnalysisPrototype):
 
     class analysisContent(NamedTuple):
         """The content of the analysis."""
-        # TODO: args hint
 
         purity: float
         """The purity of the system."""
@@ -317,7 +334,8 @@ class EchoRandomizedAnalysis(AnalysisPrototype):
         counts: list[dict[str, int]],
         degree: Union[tuple[int, int], int],
         measure: tuple[int, int] = None,
-        _workers_num: Optional[int] = None,
+        workers_num: Optional[int] = None,
+        pbar: Optional[tqdm.tqdm] = None,
     ) -> dict[str, float]:
         """Calculate entangled entropy with more information combined.
 
@@ -326,7 +344,7 @@ class EchoRandomizedAnalysis(AnalysisPrototype):
             counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
             degree (Union[tuple[int, int], int]): Degree of the subsystem.
             measure (tuple[int, int], optional): Measuring range on quantum circuits. Defaults to None.
-            _workers_num (Optional[int], optional): 
+            workers_num (Optional[int], optional): 
                 Number of multi-processing workers, 
                 if sets to 1, then disable to using multi-processing;
                 if not specified, the use 3/4 of cpu counts by `round(cpu_count*3/4)`.
@@ -344,7 +362,8 @@ class EchoRandomizedAnalysis(AnalysisPrototype):
             counts=counts,
             degree=degree,
             measure=measure,
-            _workers_num=_workers_num,
+            workers_num=workers_num,
+            pbar=pbar,
         )
 
 
@@ -352,6 +371,7 @@ class EchoRandomizedExperiment(ExperimentPrototype):
 
     __name__ = 'qurrechRandomized.Experiment'
     shortName = 'qurrech_haar.exp'
+
     class arguments(NamedTuple):
         """Arguments for the experiment."""
         expName: str = 'exps'
@@ -371,13 +391,14 @@ class EchoRandomizedExperiment(ExperimentPrototype):
     def analyze(
         self,
         degree: Union[tuple[int, int], int],
-        _workers_num: Optional[int] = None
+        workers_num: Optional[int] = None,
+        pbar: Optional[tqdm.tqdm] = None,
     ) -> EchoRandomizedAnalysis:
         """Calculate entangled entropy with more information combined.
 
         Args:
             degree (Union[tuple[int, int], int]): Degree of the subsystem.
-            _workers_num (Optional[int], optional): 
+            workers_num (Optional[int], optional): 
                 Number of multi-processing workers, 
                 if sets to 1, then disable to using multi-processing;
                 if not specified, the use 3/4 of cpu counts by `round(cpu_count*3/4)`.
@@ -396,13 +417,34 @@ class EchoRandomizedExperiment(ExperimentPrototype):
         unitary_loc = self.args.unitary_loc
         counts = self.afterwards.counts
 
-        qs = self.analysis_container.quantities(
-            shots=shots,
-            counts=counts,
-            degree=degree,
-            measure=measure,
-            _workers_num=_workers_num,
-        )
+        if isinstance(pbar, tqdm.tqdm):
+            qs = self.analysis_container.quantities(
+                shots=shots,
+                counts=counts,
+                degree=degree,
+                measure=measure,
+                workers_num=workers_num,
+                pbar=pbar,
+            )
+
+        else:
+            pbar_selfhost = tqdm.tqdm(
+                range(1),
+                bar_format=(
+                    '| {desc} - {elapsed}'
+                ),
+            )
+
+            with pbar_selfhost as pb_self:
+                qs = self.analysis_container.quantities(
+                    shots=shots,
+                    counts=counts,
+                    degree=degree,
+                    measure=measure,
+                    workers_num=workers_num,
+                    pbar=pb_self,
+                )
+                pb_self.update()
 
         serial = len(self.reports)
         analysis = self.analysis_container(
@@ -420,6 +462,9 @@ class EchoRandomizedListen(QurryV5Prototype):
 
     __name__ = 'qurrechRandomized'
     shortName = 'qurrech_haar'
+    
+    tqdm_handleable = True
+    """The handleable of tqdm."""
 
     @classmethod
     @property
@@ -469,8 +514,9 @@ class EchoRandomizedListen(QurryV5Prototype):
         num_qubits = self.waves[waveKey].num_qubits
         num_qubits2 = self.waves[waveKey2].num_qubits
         if num_qubits != num_qubits2:
-            raise ValueError(f"The number of qubits of two wave functions must be the same, but {waveKey}: {num_qubits} != {waveKey2}: {num_qubits2}.")
-        
+            raise ValueError(
+                f"The number of qubits of two wave functions must be the same, but {waveKey}: {num_qubits} != {waveKey2}: {num_qubits2}.")
+
         if measure is None:
             measure = num_qubits
         measure = qubit_selector(
@@ -515,10 +561,7 @@ class EchoRandomizedListen(QurryV5Prototype):
         } for i in range(args.times)}
 
         if isinstance(commons.serial, int):
-            print((
-                f"| Build circuit: {commons.waveKey}, worker={args.workers_num}," +
-                f" serial={commons.serial}, by={commons.summonerName}."
-            ), end="\r")
+            ...
         else:
             print(f"| Build circuit: {commons.waveKey}.", end="\r")
         # for i in range(args.times):
@@ -549,10 +592,7 @@ class EchoRandomizedListen(QurryV5Prototype):
                 i+args.times, circuit2, args.expName, args.unitary_loc, unitaryList[i], args.measure
             ) for i in range(args.times)])
         if isinstance(commons.serial, int):
-            print(
-                f"| Build circuit: {commons.waveKey}, worker={args.workers_num}," +
-                f" serial={commons.serial}, by={commons.summonerName} done."
-            )
+            ...
         else:
             print(f"| Build circuit: {commons.waveKey} done.", end="\r")
 

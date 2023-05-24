@@ -98,7 +98,7 @@ class EntropyHadamardAnalysis(AnalysisPrototype):
             counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
             degree (Union[tuple[int, int], int]): Degree of the subsystem.
             measure (tuple[int, int], optional): Measuring range on quantum circuits. Defaults to None.
-            _workers_num (Optional[int], optional): 
+            workers_num (Optional[int], optional): 
                 Number of multi-processing workers, 
                 if sets to 1, then disable to using multi-processing;
                 if not specified, the use 3/4 of cpu counts by `round(cpu_count*3/4)`.
@@ -142,7 +142,7 @@ class EntropyHadamardExperiment(ExperimentPrototype):
 
         Args:
             degree (Union[tuple[int, int], int]): Degree of the subsystem.
-            _workers_num (Optional[int], optional): 
+            workers_num (Optional[int], optional): 
                 Number of multi-processing workers, 
                 if sets to 1, then disable to using multi-processing;
                 if not specified, the use 3/4 of cpu counts by `round(cpu_count*3/4)`.

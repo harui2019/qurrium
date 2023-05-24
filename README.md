@@ -1,15 +1,10 @@
-# Qurry 🍛 - The Measuring Tool for Renyi Entropy, Loschmidt Echo, and Magnetization Squared, The Library of Some Common Cases
+# Qurry 🍛 - The Quantum Experiment Manager for Qiskit and The Measuring Tool for Renyi Entropy, Loschmidt Echo, and More
+
 
 This is a tool to measure the Renyi entropy, Loschmidt Echo, and Magnetization Squared of given wave function. Running on **IBM Qiskit** with the function from constructing experiment object to pending the jobs to IBMQ automatically.
 
 ---
-
-## Usage
-
-Using `git clone https://github.com/harui2019/qurry-tutorial.git --recurse-submodules` to clone the repository anf its submodules.
-
----
-
+<!-- 
 ## Acknowledgments
 
 _It's a great thanks for [National Center for Theoretical Sciences, Physics Division](https://phys.ncts.ntu.edu.tw/) located [National Taiwan University](https://www.ntu.edu.tw/), which funded the development of this tool during the author [@harui2019](https://github.com/harui2019/) worked at this institution as Research Assistiant, and i also a great thanks for [IBM Quantum Hub at National Taiwan University](https://quantum.ntu.edu.tw/) providing the access right of [IBM Quantum](https://quantum-computing.ibm.com/), let us can fully test this tool and execute our experiments._
@@ -18,14 +13,14 @@ _It's a great thanks for [National Center for Theoretical Sciences, Physics Divi
 
 ![IBM Quantum Hub at National Taiwan University](https://quantum.ntu.edu.tw/wp-content/uploads/elementor/thumbs/NTU-IBMQ_LOGO1-p9ym8ap0ujw64l3clhzokyfcks6gk8jqq8h148kjk6.png)
 
----
+--- -->
 
 ## Configurate Environment
 
 - **`Python 3.9.7+` installed by Anaconda**
   - on
-    - **Ubuntu 20.04 LTS/18.04 LTS** on `x86_64` **(recommended)**
-    - **Ubuntu 20.04 LTS/18.04 LTS on Windows 10/11 WSL2** on `x86_64` **(recommended)**
+    - **Ubuntu 18.04+ LTS** on `x86_64` **(recommended)**
+    - **Ubuntu 18.04+ LTS on Windows 10/11 WSL2** on `x86_64` **(recommended)**
       - We recommend to use Linux based system, due to the GPU acceleration of `Qiskit`, `qiskit-aer-gpu` only works with Nvidia CUDA on Linux.
     - **Windows 10/11** on `x86_64`
 

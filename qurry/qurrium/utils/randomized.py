@@ -1,15 +1,16 @@
 from qiskit.visualization.counts_visualization import hamming_distance, VisualizationError
 from qiskit.quantum_info import random_unitary
-# from qiskit.result import Result
 
 import numpy as np
 from typing import Callable, Iterable
 
-# Haar Randomized Parts V0.3.0 - Qurrium
 
 RXmatrix = np.array([[0, 1], [1, 0]])
+"""Pauli-X matrix"""
 RYmatrix = np.array([[0, -1j], [1j, 0]])
+"""Pauli-Y matrix"""
 RZmatrix = np.array([[1, 0], [0, -1]])
+"""Pauli-Z matrix"""
 
 
 def makeTwoBitStr(num: int, bits: list[str] = ['']) -> list[str]:

@@ -12,52 +12,58 @@ import warnings
 import os
 import glob
 import json
+import tqdm
 
 from ..hoshi import Hoshi
 from ..mori import jsonablize, quickJSON, quickRead, defaultConfig
-from ..exceptions import (QurryInvalidInherition,
-                          QurryExperimentCountsNotCompleted,
-                          QurryResetSecurityActivated, QurryResetAccomplished,
-                          QurryProtectContent, QurrySummonerInfoIncompletion)
+from ..tools.backend import backendName
+from ..exceptions import (
+    QurryInvalidInherition,
+    QurryExperimentCountsNotCompleted,
+    QurryResetSecurityActivated, QurryResetAccomplished,
+    QurryProtectContent, QurrySummonerInfoIncompletion)
 from .declare.type import Counts
 from .analysis import AnalysisPrototype, QurryAnalysis
 from .utils.datetime import currentTime, datetimeDict
 
-commonparamsConfig = defaultConfig(name='commonparams',
-                                   default={
-                                       'expID': None,
-                                       'waveKey': None,
-                                       'shots': 1024,
-                                       'backend': AerSimulator(),
-                                       'provider': None,
-                                       'runArgs': {},
-                                       'runBy': 'gate',
-                                       'transpileArgs': {},
-                                       'decompose': None,
-                                       'tags': (),
-                                       'defaultAnalysis': [],
-                                       'saveLocation': Path('./'),
-                                       'filetype': 'json',
-                                       'datetimes': datetimeDict(),
-                                       'serial': None,
-                                       'summonerID': None,
-                                       'summonerName': None,
-                                   })
+commonparamsConfig = defaultConfig(
+    name='commonparams',
+    default={
+        'expID': None,
+        'waveKey': None,
+        'shots': 1024,
+        'backend': AerSimulator(),
+        'provider': None,
+        'runArgs': {},
+        'runBy': 'gate',
+        'transpileArgs': {},
+        'decompose': None,
+        'tags': (),
+        'defaultAnalysis': [],
+        'saveLocation': Path('./'),
+        'filetype': 'json',
+        'datetimes': datetimeDict(),
+        'serial': None,
+        'summonerID': None,
+        'summonerName': None,
+    })
 
-beforeConfig = defaultConfig(name='before',
-                             default={
-                                 'circuit': [],
-                                 'figOriginal': [],
-                                 'jobID': '',
-                                 'expName': '',
-                                 'sideProduct': {},
-                             })
+beforeConfig = defaultConfig(
+    name='before',
+    default={
+        'circuit': [],
+        'figOriginal': [],
+        'jobID': '',
+        'expName': '',
+        'sideProduct': {},
+    })
 
-afterConfig = defaultConfig(name='after',
-                            default={
-                                'result': [],
-                                'counts': [],
-                            })
+afterConfig = defaultConfig(
+    name='after',
+    default={
+        'result': [],
+        'counts': [],
+    })
 
 
 class ExperimentPrototype():
@@ -82,8 +88,8 @@ class ExperimentPrototype():
         # Multiple jobs shared
         shots: int
         """Number of shots to run the program (default: 1024)."""
-        backend: Backend
-        """Backend to execute the circuits on."""
+        backend: Union[Backend, str]
+        """Backend to execute the circuits on, or the backend used."""
         runArgs: dict
         """Arguments of `execute`."""
 
@@ -197,10 +203,17 @@ class ExperimentPrototype():
         """Counts of experiment."""
 
     _unexports = ['sideProduct', 'result']
+    """Unexports properties.
+    """
+    
     _deprecated = ['figTranspiled']
     """Deprecated properties.
         - `figTranspiled` is deprecated since v0.6.0.
     """
+        
+    tqdm_handleable = False
+    """Whether the method :meth:`
+    e` can handle the processing bar from :module:`tqdm`."""
 
     # Analysis Property
     @classmethod
@@ -449,6 +462,17 @@ class ExperimentPrototype():
             analysis: Analysis of the counts from measurement.
         """
 
+    @abstractmethod
+    def analyze(self, pbar: Optional[tqdm.tqdm], *args, **kwargs) -> dict[str, Any]:
+        """Analyzing the example circuit results in specific method.
+
+        Args:
+            allArgs: all arguments will pass to `.quantities`.
+
+        Returns:
+            analysis: Analysis of the counts from measurement.
+        """
+
     def clear_analysis(self,
                        *args,
                        security: bool = False,
@@ -534,7 +558,7 @@ class ExperimentPrototype():
                 info.newline(('itemize', str(k), str(
                     v
                 ), "If it's null meaning this experiment doesn't use online backend like IBMQ.",
-                              2))
+                    2))
             elif isinstance(v, str):
                 info.newline(('itemize', str(k), str(v), '', 2))
             else:
@@ -719,6 +743,10 @@ class ExperimentPrototype():
 
         args: dict[str, Any] = jsonablize(self.args._asdict())
         commons: dict[str, Any] = jsonablize(self.commons._asdict())
+        commons['backend'] = (
+            self.commons.backend if isinstance(self.commons.backend, str) 
+            else backendName(self.commons.backend))
+        
         outfields = jsonablize(self.outfields)
         # adventures, legacy, tales
         tales = {}
@@ -1174,11 +1202,6 @@ class ExperimentPrototype():
                 f"'saveLocation' does not exist, '{saveLocation}'.")
 
         exportLocation = saveLocation / name
-        # TODO: use .zip to packing the experiment optionally, even tar.gz
-        # exportLocationSet = {
-        #     'unzip': exportLocation / name,
-        #     'zip': exportLocation / f"{str(name)}.zip",
-        # }
         if not os.path.exists(exportLocation):
             raise FileNotFoundError(
                 f"'ExportLoaction' does not exist, '{exportLocation}'.")

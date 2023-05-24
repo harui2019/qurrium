@@ -87,7 +87,7 @@ class IBMQRunner(Runner):
             else:
                 ...
 
-        for id_exec in self.currentMultiJob.beforewards.configDict:
+        for id_exec in self.currentMultiJob.beforewards.expsConfig:
             circSerialLen = len(self.circWithSerial)
             for idx, circ in enumerate(
                     self.expContainer[id_exec].beforewards.circuit):
@@ -152,7 +152,7 @@ class IBMQRunner(Runner):
                 self.currentMultiJob.beforewards.jobID.append((None, pk))
                 warnings.warn(f"Pending pool '{pk}' is empty.")
 
-        for id_exec in self.currentMultiJob.beforewards.configDict:
+        for id_exec in self.currentMultiJob.beforewards.expsConfig:
             self.expContainer[id_exec].commons.datetimes['pending'] = current
 
         self.currentMultiJob.multicommons.datetimes[
