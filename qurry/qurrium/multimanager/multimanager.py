@@ -120,6 +120,7 @@ class MultiManager:
         def _read(
             cls, 
             exportLocation: Path,
+            fileLocation: dict[str, Union[Path, dict[str, str]]] = {},
             version: Literal['v5', 'v7'] = 'v5',
         ):
 
@@ -127,14 +128,15 @@ class MultiManager:
                 expsConfig=quickRead(
                     filename=(
                         'exps.config.json' if version == 'v7' 
-                        else f"{exportLocation}.configDict.json"
+                        else Path(fileLocation['configDict']).name
                     ),
                     saveLocation=exportLocation,
                 ),
+                
                 circuitsNum=quickRead(
                     filename=(
                         'circuitsNum.json' if version == 'v7' 
-                        else f"{exportLocation}.circuitsNum.json"
+                        else Path(fileLocation['circuitsNum']).name
                     ),
                     saveLocation=exportLocation,
                 ),
@@ -149,7 +151,7 @@ class MultiManager:
                 jobID=quickRead(
                     filename=(
                         'jobID.json' if version == 'v7' 
-                        else f"{exportLocation}.jobID.json"
+                        else Path(fileLocation['jobID']).name
                     ),
                     saveLocation=exportLocation,
                 ),
@@ -187,6 +189,7 @@ class MultiManager:
         def _read(
             cls, 
             exportLocation: Path,
+            fileLocation: dict[str, Union[Path, dict[str, str]]] = {},
             version: Literal['v5', 'v7'] = 'v5',
         ):
             return cls(
@@ -194,7 +197,7 @@ class MultiManager:
                 allCounts=quickRead(
                     filename=(
                         'allCounts.json' if version == 'v7' 
-                        else f"{exportLocation}.allCounts.json"
+                        else Path(fileLocation['allCounts']).name
                     ),
                     saveLocation=exportLocation,
                 ),
@@ -234,6 +237,7 @@ class MultiManager:
     _unexports: list[str] = ['retrievedResult']
     """The content would not be exported."""
     _syncPrevent = ['allCounts', 'retrievedResult']
+    """The content would not be synchronized."""
     
     after_lock: bool = False
     """Protect the :cls:`afterward` content to be overwritten. When setitem is called and completed, it will be setted as `False` automatically."""
@@ -383,10 +387,12 @@ class MultiManager:
                     
                 self.beforewards = self.before._read(
                     exportLocation=self.namingCpx.exportLocation,
+                    fileLocation=files,
                     version='v5'
                 )
                 self.afterwards = self.after._read(
                     exportLocation=self.namingCpx.exportLocation,
+                    fileLocation=files,
                     version='v5'
                 )
                 self.quantityContainer: dict[str, TagList[Quantity]] = {}
@@ -873,6 +879,7 @@ class MultiManager:
             name (str): The name of the analysis.
         """
         self.quantityContainer.pop(name)
+        print(f"| Removing analysis: {name}")
         self.multicommons.datetimes.addOnly(f"{name}_remove")
 
     def easycompress(
