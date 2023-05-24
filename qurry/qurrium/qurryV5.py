@@ -915,7 +915,7 @@ class QurryV5Prototype:
             Hashable: SummonerID (ID of multimanager).
         """
 
-        print(f"| MultiOutput building...")
+        print(f"| MultiManager building...")
         initedConfigList, besummonned = self._paramsControlMulti(
             configList=configList,
             shots=shots,
@@ -1160,6 +1160,7 @@ class QurryV5Prototype:
         currentMultiJob = self.multimanagers[besummonned]
         assert currentMultiJob.summonerID == besummonned
 
+        print(f"| MultiPending running...")
         if jobsType == 'IBMQ':
             if isinstance(backend, IBMBackend):
                 raise ValueError(
@@ -1248,7 +1249,6 @@ class QurryV5Prototype:
             specificAnalysisArgs=specificAnalysisArgs,
             **analysisArgs,
         )
-        
         print(f'| "{reportName}" has been completed.')
 
         if _write:
@@ -1336,6 +1336,7 @@ class QurryV5Prototype:
             Hashable: SummonerID (ID of multimanager).
         """
 
+        print(f"| MultiRead running...")
         initedConfigList, besummonned = self._paramsControlMulti(
             summonerName=summonerName,
             summonerID=summonerID,
@@ -1431,6 +1432,7 @@ class QurryV5Prototype:
         currentMultiJob = self.multimanagers[besummonned]
         assert currentMultiJob.summonerID == besummonned
 
+        print(f"| MultiRetrieve running...")
         jobsType, pendingStrategy = currentMultiJob.multicommons.jobsType.split(
             '.')
 
