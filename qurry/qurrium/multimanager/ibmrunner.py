@@ -1,5 +1,4 @@
 from qiskit import QuantumCircuit
-from qiskit.providers import Backend
 try:
     from qiskit.providers.ibmq import IBMQBackend
     from qiskit.providers.ibmq.job import IBMQJob
@@ -11,7 +10,7 @@ from qiskit_ibm_provider import IBMBackend, IBMProvider
 from qiskit_ibm_provider.job import IBMCircuitJob
 from qiskit_ibm_provider.exceptions import IBMBackendApiError
 
-from typing import Literal, Hashable, Union, Any
+from typing import Literal, Hashable, Union, Optional
 import warnings
 
 from .multimanager import MultiManager
@@ -32,15 +31,24 @@ class IBMRunner(Runner):
         self,
         besummonned: Hashable,
         multiJob: MultiManager,
-        backend: IBMBackend,
-        experimentalContainer: ExperimentContainer
+        experimentalContainer: ExperimentContainer,
+        backend: Optional[IBMBackend] = None,
+        provider: Optional[IBMProvider] = None,
     ):
         assert multiJob.summonerID == besummonned, (
-            f"Summoner ID not match, multiJob.summonerID: {multiJob.summonerID}, besummonned: {besummonned}")
+            f"Summoner ID not match, multiJob.summonerID: {multiJob.summonerID}, besummonned: {besummonned}"
+        )
+        if backend is None and provider is None:
+            raise ValueError(
+                "Either backend or provider should be provided."
+            )
+
         self.currentMultiJob = multiJob
         """The multiJob from Qurry instance."""
         self.backend = backend
         """The backend will be use to pending and retrieve."""
+        self.provider = backend.provider if backend is not None else provider
+        """The provider will be used to pending and retrieve."""
         self.expContainer = experimentalContainer
         """The experimental container from Qurry instance."""
 
@@ -50,38 +58,58 @@ class IBMRunner(Runner):
 
     def pending(
         self,
-        pendingStrategy: Literal[
-            'default', 'onetime', 'each', 'tags'] = 'default',
+        pendingStrategy: Literal['default', 'onetime', 'each',
+                                 'tags'] = 'default',
+        backend: Optional[IBMBackend] = None,
     ) -> list[tuple[str, str]]:
+
+        if self.backend is None:
+            if backend is None:
+                raise ValueError(
+                    "At least one of backend and provider should be given.")
+            else:
+                print(
+                    f"| Given backend and provider as {backend.name} and {backend.provider()}.")
+                self.backend = backend
+                self.provider = backend.provider()
+        else:
+            if backend is not None:
+                print(
+                    f"| Using backend and provider as {self.backend.name} and {self.backend.provider()}.")
+            else:
+                ...
 
         for id_exec in self.currentMultiJob.beforewards.configDict:
             circSerialLen = len(self.circWithSerial)
-            for idx, circ in enumerate(self.expContainer[id_exec].beforewards.circuit):
+            for idx, circ in enumerate(
+                    self.expContainer[id_exec].beforewards.circuit):
                 self.currentMultiJob.beforewards.circuitsMap[id_exec].append(
-                    idx+circSerialLen)
+                    idx + circSerialLen)
 
                 if pendingStrategy == 'each':
-                    self.currentMultiJob.beforewards.pendingPools[id_exec].append(
-                        idx+circSerialLen)
+                    self.currentMultiJob.beforewards.pendingPools[
+                        id_exec].append(idx + circSerialLen)
 
                 elif pendingStrategy == 'tags':
                     tags = self.expContainer[id_exec].commons.tags
                     self.currentMultiJob.beforewards.pendingPools[tags].append(
-                        idx+circSerialLen)
+                        idx + circSerialLen)
 
                 else:
                     if pendingStrategy != 'default' or pendingStrategy != 'onetime':
                         warnings.warn(
-                            f"Unknown strategy '{pendingStrategy}, use 'onetime'.")
-                    self.currentMultiJob.beforewards.pendingPools['_onetime'].append(
-                        idx+circSerialLen)
+                            f"Unknown strategy '{pendingStrategy}, use 'onetime'."
+                        )
+                    self.currentMultiJob.beforewards.pendingPools[
+                        '_onetime'].append(idx + circSerialLen)
 
-                self.circWithSerial[idx+circSerialLen] = circ
+                self.circWithSerial[idx + circSerialLen] = circ
 
         current = currentTime()
         self.currentMultiJob.multicommons.datetimes['pending'] = current
 
-        for pk, pcircIdxs in self.currentMultiJob.beforewards.pendingPools.items():
+        for pk, pcircIdxs in self.currentMultiJob.beforewards.pendingPools.items(
+        ):
             if len(pcircIdxs) > 0:
                 if pk == '_onetime':
                     pendingTag = []
@@ -96,8 +124,9 @@ class IBMRunner(Runner):
                     job_tags=[
                         self.currentMultiJob.multicommons.summonerName,
                         self.currentMultiJob.multicommons.summonerID,
-                        self.currentMultiJob.namingCpx.expsName,
-                        *pendingTag
+                        self.currentMultiJob.namingCpx.expsName, 
+                        *pendingTag,
+                        *self.currentMultiJob.multicommons.tags,
                     ],
                     **self.currentMultiJob.multicommons.managerRunArgs,
                 )
@@ -117,8 +146,8 @@ class IBMRunner(Runner):
         for id_exec in self.currentMultiJob.beforewards.configDict:
             self.expContainer[id_exec].commons.datetimes['pending'] = current
 
-        self.currentMultiJob.multicommons.datetimes['pendingCompleted'] = currentTime(
-        )
+        self.currentMultiJob.multicommons.datetimes[
+            'pendingCompleted'] = currentTime()
 
         return self.currentMultiJob.beforewards.jobID
 
@@ -130,36 +159,43 @@ class IBMRunner(Runner):
         pendingMapping: dict[Hashable, Union[IBMCircuitJob, 'IBMQJob']] = {}
         coutsTmpContainer: dict[str, dict[str, int]] = {}
 
-        def retrieveTimesNamer(
-            retrieveTimes): return 'retrieve.'+f'{retrieveTimes}'.rjust(3, '0')
+        def retrieveTimesNamer(retrieveTimes):
+            return 'retrieve.' + f'{retrieveTimes}'.rjust(3, '0')
 
         alreadyRetrieved: list[str] = [
-            datetimeTag for datetimeTag in self.currentMultiJob.multicommons.datetimes
-            if 'retrieve' in datetimeTag]
+            datetimeTag
+            for datetimeTag in self.currentMultiJob.multicommons.datetimes
+            if 'retrieve' in datetimeTag
+        ]
         retrieveTimes = len(alreadyRetrieved)
-        retrieveTimesName = retrieveTimesNamer(retrieveTimes+1)
+        retrieveTimesName = retrieveTimesNamer(retrieveTimes + 1)
 
         if retrieveTimes > 1 and overwrite == False:
             print(f"| retrieve times: {retrieveTimes}, overwrite: {overwrite}")
             lastTimeDate = self.currentMultiJob.multicommons.datetimes[
-                retrieveTimesNamer(retrieveTimes)
-            ]
+                retrieveTimesNamer(retrieveTimes)]
             print(
-                f"| Last retrieve by: {retrieveTimesNamer(retrieveTimes)} at {lastTimeDate}")
+                f"| Last retrieve by: {retrieveTimesNamer(retrieveTimes)} at {lastTimeDate}"
+            )
             print(f"| Seems to there are some retrieves before.")
-            print(f"| You can use `overwrite=True` to overwrite the previous retrieve.")
+            print(
+                f"| You can use `overwrite=True` to overwrite the previous retrieve."
+            )
 
             return self.currentMultiJob.beforewards.jobID
 
         if overwrite:
             print(f"| Overwrite the previous retrieve.")
-            self.currentMultiJob.afterwards.reset(
-                security=True, muteWarning=True)
+        self.currentMultiJob.reset_afterwards(security=True, muteWarning=True)
+        assert len(self.currentMultiJob.afterwards.allCounts
+                   ) == 0, "All counts should be null."
 
         current = currentTime()
-        self.currentMultiJob.multicommons.datetimes[retrieveTimesName] = current
+        self.currentMultiJob.multicommons.datetimes[
+            retrieveTimesName] = current
 
         if qiskit_ibmq_provider:
+            print("| Downgrade compatibility with qiskit-ibmq-provider is available.")
             if isinstance(self.backend, IBMQBackend):
                 for pendingID, pk in self.currentMultiJob.beforewards.jobID:
                     if pendingID is None:
@@ -167,12 +203,12 @@ class IBMRunner(Runner):
                         continue
                     try:
                         pendingMapping[pk] = self.backend.retrieve_job(
-                            job_id=pendingID
-                        )
+                            job_id=pendingID)
                     except IBMQBackendApiError as e:
                         pendingMapping[pk] = None
                         print(
-                            f"| Error: {e}, of jobID: {pendingID}, of pending pool: {pk}")
+                            f"| Error: {e}, of jobID: {pendingID}, of pending pool: {pk}"
+                        )
             else:
                 provider: IBMProvider = self.backend.provider
                 for pendingID, pk in self.currentMultiJob.beforewards.jobID:
@@ -181,12 +217,12 @@ class IBMRunner(Runner):
                         continue
                     try:
                         pendingMapping[pk] = provider.retrieve_job(
-                            job_id=pendingID
-                        )
+                            job_id=pendingID)
                     except IBMBackendApiError as e:
                         pendingMapping[pk] = None
                         print(
-                            f"| Error: {e}, of jobID: {pendingID}, of pending pool: {pk}")
+                            f"| Error: {e}, of jobID: {pendingID}, of pending pool: {pk}"
+                        )
 
         else:
             provider: IBMProvider = self.backend.provider
@@ -196,14 +232,15 @@ class IBMRunner(Runner):
                     continue
                 try:
                     pendingMapping[pk] = provider.retrieve_job(
-                        job_id=pendingID
-                    )
+                        job_id=pendingID)
                 except IBMBackendApiError as e:
                     pendingMapping[pk] = None
                     print(
-                        f"| Error: {e}, of jobID: {pendingID}, of pending pool: {pk}")
+                        f"| Error: {e}, of jobID: {pendingID}, of pending pool: {pk}"
+                    )
 
-        for pk, pcircs in self.currentMultiJob.beforewards.pendingPools.items():
+        for pk, pcircs in self.currentMultiJob.beforewards.pendingPools.items(
+        ):
             if len(pcircs) > 0:
                 pendingJob = pendingMapping[pk]
                 if pendingJob is not None:
@@ -217,8 +254,7 @@ class IBMRunner(Runner):
                     pResult = pendingJob.result()
                     counts = get_counts(
                         result=pResult,
-                        resultIdxList=[rk-pcircs[0] for rk in pcircs]
-                    )
+                        resultIdxList=[rk - pcircs[0] for rk in pcircs])
                     print("| Getting Counts length:", len(counts))
                 else:
                     print(f"| retrieve: {pk} - failed")
@@ -226,25 +262,30 @@ class IBMRunner(Runner):
 
                     counts = get_counts(
                         result=None,
-                        resultIdxList=[rk-pcircs[0] for rk in pcircs]
-                    )
+                        resultIdxList=[rk - pcircs[0] for rk in pcircs])
                     print("| Getting Counts length:", len(counts))
                 for rk in pcircs:
-                    coutsTmpContainer[rk] = counts[rk-pcircs[0]]
-                    print(f"| Packing Counts of {rk} length:", len(
-                        counts[rk-pcircs[0]]), end='\r')
+                    coutsTmpContainer[rk] = counts[rk - pcircs[0]]
+                    print(f"| Packing Counts of {rk} length:",
+                          len(counts[rk - pcircs[0]]),
+                          end='\r')
 
             else:
                 warnings.warn(f"Pending pool '{pk}' is empty.")
 
         print("| Distributing all circuits to their original experimemts.")
-        for currentID, idxCircs in self.currentMultiJob.beforewards.circuitsMap.items():
+        for currentID, idxCircs in self.currentMultiJob.beforewards.circuitsMap.items(
+        ):
             print(
-                f"| Distributing to {currentID} with {len(idxCircs)} circuits.")
+                f"| Distributing to {currentID} with {len(idxCircs)} circuits."
+            )
+            self.expContainer[currentID].reset_counts(
+                summonerID=self.currentMultiJob.summonerID)
             for idx in idxCircs:
                 self.expContainer[currentID].afterwards.counts.append(
                     coutsTmpContainer[idx])
-            self.expContainer[currentID].commons.datetimes[retrieveTimesName] = current
+            self.expContainer[currentID].commons.datetimes[
+                retrieveTimesName] = current
             self.currentMultiJob.afterwards.allCounts[
                 currentID] = self.expContainer[currentID].afterwards.counts
 

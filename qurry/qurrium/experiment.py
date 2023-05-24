@@ -15,60 +15,49 @@ import json
 
 from ..hoshi import Hoshi
 from ..mori import jsonablize, quickJSON, quickRead, defaultConfig
-from ..exceptions import (
-    QurryInvalidInherition,
-    QurryExperimentCountsNotCompleted,
-    QurryResetSecurityActivated,
-    QurryResetAccomplished,
-    QurryProtectContent,
-    QurrySummonerInfoIncompletion
-)
+from ..exceptions import (QurryInvalidInherition,
+                          QurryExperimentCountsNotCompleted,
+                          QurryResetSecurityActivated, QurryResetAccomplished,
+                          QurryProtectContent, QurrySummonerInfoIncompletion)
 from .declare.type import Counts
 from .analysis import AnalysisPrototype, QurryAnalysis
 from .utils.datetime import currentTime, datetimeDict
 
+commonparamsConfig = defaultConfig(name='commonparams',
+                                   default={
+                                       'expID': None,
+                                       'waveKey': None,
+                                       'shots': 1024,
+                                       'backend': AerSimulator(),
+                                       'provider': None,
+                                       'runArgs': {},
+                                       'runBy': 'gate',
+                                       'transpileArgs': {},
+                                       'decompose': None,
+                                       'tags': (),
+                                       'defaultAnalysis': [],
+                                       'saveLocation': Path('./'),
+                                       'filetype': 'json',
+                                       'datetimes': datetimeDict(),
+                                       'serial': None,
+                                       'summonerID': None,
+                                       'summonerName': None,
+                                   })
 
-commonparamsConfig = defaultConfig(
-    name='commonparams',
-    default={
-        'expID': None,
-        'waveKey': None,
-        'shots': 1024,
-        'backend': AerSimulator(),
-        'provider': None,
-        'runArgs': {},
-        'runBy': 'gate',
-        'transpileArgs': {},
-        'decompose': None,
-        'tags': (),
-        'defaultAnalysis': [],
-        'saveLocation': Path('./'),
-        'filetype': 'json',
-        'datetimes': datetimeDict(),
-        'serial': None,
-        'summonerID': None,
-        'summonerName': None,
-    }
-)
+beforeConfig = defaultConfig(name='before',
+                             default={
+                                 'circuit': [],
+                                 'figOriginal': [],
+                                 'jobID': '',
+                                 'expName': '',
+                                 'sideProduct': {},
+                             })
 
-beforeConfig = defaultConfig(
-    name='before',
-    default={
-        'circuit': [],
-        'figOriginal': [],
-        'jobID': '',
-        'expName': '',
-        'sideProduct': {},
-    }
-)
-
-afterConfig = defaultConfig(
-    name='after',
-    default={
-        'result': [],
-        'counts': [],
-    }
-)
+afterConfig = defaultConfig(name='after',
+                            default={
+                                'result': [],
+                                'counts': [],
+                            })
 
 
 class ExperimentPrototype():
@@ -215,7 +204,8 @@ class ExperimentPrototype():
 
     # Analysis Property
     @classmethod
-    def filter(cls, *args, **kwargs) -> tuple[arguments, commonparams, dict[str, Any]]:
+    def filter(cls, *args,
+               **kwargs) -> tuple[arguments, commonparams, dict[str, Any]]:
         """Filter the arguments of experiment.
 
         Raises:
@@ -238,7 +228,8 @@ class ExperimentPrototype():
             else:
                 outfields[k] = kwargs[k]
 
-        return cls.arguments(**infields), cls.commonparams(**commonsinput), outfields
+        return cls.arguments(**infields), cls.commonparams(
+            **commonsinput), outfields
 
     # analysis
     @classmethod
@@ -247,27 +238,27 @@ class ExperimentPrototype():
         """The container of analysis, it should be overwritten by each construction of new measurement.
         """
 
-    def __init__(
-        self,
-        expID: Hashable,
-        waveKey: Hashable,
-        *args,
-        serial: Optional[int] = None,
-        summonerID: Optional[Hashable] = None,
-        summonerName: Optional[str] = None,
-        **kwargs
-    ) -> None:
+    def __init__(self,
+                 expID: Hashable,
+                 waveKey: Hashable,
+                 *args,
+                 serial: Optional[int] = None,
+                 summonerID: Optional[Hashable] = None,
+                 summonerName: Optional[str] = None,
+                 **kwargs) -> None:
         """Initialize the experiment."""
 
         if len(args) > 0:
             raise ValueError(
-                f"{self.__name__} can't be initialized with positional arguments.")
+                f"{self.__name__} can't be initialized with positional arguments."
+            )
         try:
             hash(expID)
         except TypeError as e:
             expID = None
             warnings.warn(
-                "'expID' is not hashable, it will be set to generate automatically.")
+                "'expID' is not hashable, it will be set to generate automatically."
+            )
         finally:
             if expID is None:
                 expID = str(uuid4())
@@ -277,7 +268,8 @@ class ExperimentPrototype():
         for i in ['analysisInput', 'analysisContent']:
             if not hasattr(self.analysis_container, i):
                 raise QurryInvalidInherition(
-                    f"{self.__name__}._analysis_container() should be inherited from {AnalysisPrototype.__name__}.")
+                    f"{self.__name__}._analysis_container() should be inherited from {AnalysisPrototype.__name__}."
+                )
         if not 'expName' in self.arguments._fields:
             raise QurryInvalidInherition(
                 f"{self.__name__}.arguments should have 'expName'.")
@@ -285,7 +277,8 @@ class ExperimentPrototype():
             self.commonparams._fields)
         if len(duplicate_fields) > 0:
             raise QurryInvalidInherition(
-                f"{self.__name__}.arguments and {self.__name__}.commonparams should not have same fields: {duplicate_fields}.")
+                f"{self.__name__}.arguments and {self.__name__}.commonparams should not have same fields: {duplicate_fields}."
+            )
 
         params = {}
         commons = {}
@@ -306,12 +299,15 @@ class ExperimentPrototype():
             for raw_input_analysis in commons['defaultAnalysis']:
                 if isinstance(raw_input_analysis, dict):
                     filted_analysis.append(
-                        self.analysis_container.input_filter(**raw_input_analysis)[0]._asdict())
-                elif isinstance(raw_input_analysis, self.analysis_container.analysisInput):
+                        self.analysis_container.input_filter(
+                            **raw_input_analysis)[0]._asdict())
+                elif isinstance(raw_input_analysis,
+                                self.analysis_container.analysisInput):
                     filted_analysis.append(raw_input_analysis._asdict())
                 else:
                     warnings.warn(
-                        f"Analysis input {raw_input_analysis} is not a 'dict' or '.analysis_container.analysisInput', it will be ignored.")
+                        f"Analysis input {raw_input_analysis} is not a 'dict' or '.analysis_container.analysisInput', it will be ignored."
+                    )
             commons['defaultAnalysis'] = filted_analysis
         else:
             commons['defaultAnalysis'] = []
@@ -320,14 +316,12 @@ class ExperimentPrototype():
                 commons['tags'] = tuple(commons['tags'])
 
         self.args: self.arguments = self.arguments(**params)
-        self.commons = self.commonparams(
-            expID=expID,
-            serial=serial,
-            waveKey=waveKey,
-            summonerID=summonerID,
-            summonerName=summonerName,
-            **commons
-        )
+        self.commons = self.commonparams(expID=expID,
+                                         serial=serial,
+                                         waveKey=waveKey,
+                                         summonerID=summonerID,
+                                         summonerName=summonerName,
+                                         **commons)
         self.outfields: dict[str, Any] = outfields
         self.beforewards = self.before(
             circuit=[],
@@ -361,16 +355,27 @@ class ExperimentPrototype():
                 summon_msg.newline(
                     ('itemize', 'Summoner info fulfilled.', _summon_fulfill))
                 for k, v in _summon_check.items():
-                    summon_msg.newline(
-                        ('itemize', k, str(v), f'fulfilled: {not v is None}', 2))
+                    summon_msg.newline(('itemize', k, str(v),
+                                        f'fulfilled: {not v is None}', 2))
                 warnings.warn(
-                    "Summoner data is not completed, it will export in single experiment mode.", category=QurrySummonerInfoIncompletion)
+                    "Summoner data is not completed, it will export in single experiment mode.",
+                    category=QurrySummonerInfoIncompletion)
                 summon_msg.print()
 
         self.after_lock = False
         """Protect the :cls:`afterward` content to be overwritten. When setitem is called and completed, it will be setted as `False` automatically."""
         self.mute_auto_lock = False
         """Whether mute the auto-lock message."""
+
+    def reset_counts(self, summonerID: Hashable) -> None:
+        """Reset the counts of the experiment."""
+        if summonerID == self.commons.summonerID:
+            self.afterwards = self.afterwards._replace(counts=[])
+            gc.collect()
+        else:
+            warnings.warn(
+                "The summonerID is not matched, the counts will not be reset, it can only be activated by multimanager.",
+                category=QurryResetSecurityActivated)
 
     def unlock_afterward(self, mute_auto_lock: bool = False):
         """Unlock the :cls:`afterward` content to be overwritten.
@@ -391,21 +396,25 @@ class ExperimentPrototype():
                 self.afterwards = self.afterwards._replace(**{key: value})
             else:
                 raise QurryProtectContent(
-                    f"Can't set value to :cls:`afterward` field {key} because it's locked, use `.unlock_afterward()` to unlock before setting item .")
+                    f"Can't set value to :cls:`afterward` field {key} because it's locked, use `.unlock_afterward()` to unlock before setting item ."
+                )
 
         elif key in self._deprecated:
-            print(f"| Warning: {key} is deprecated.")
+            ...
+            # print(f"| Warning: {key} is deprecated.")
 
         else:
             raise ValueError(
-                f"{key} is not a valid field of '{self.before.__name__}' and '{self.after.__name__}'.")
+                f"{key} is not a valid field of '{self.before.__name__}' and '{self.after.__name__}'."
+            )
 
         gc.collect()
         if self.after_lock != False:
             self.after_lock = False
             if not self.mute_auto_lock:
                 print(
-                    f"after_lock is locked automatically now, you can unlock by using `.unlock_afterward()` to set value to :cls:`afterward`.")
+                    f"after_lock is locked automatically now, you can unlock by using `.unlock_afterward()` to set value to :cls:`afterward`."
+                )
             self.mute_auto_lock = False
 
     def __getitem__(self, key) -> Any:
@@ -414,11 +423,13 @@ class ExperimentPrototype():
         elif key in self.afterwards._fields:
             return getattr(self.afterwards, key)
         elif key in self._deprecated:
-            print(
-                f"| Warning: {key} is deprecated, it will be removed in the future.")
+            ...
+            # print(
+            #     f"| Warning: {key} is deprecated, it will be removed in the future.")
         else:
             raise ValueError(
-                f"{key} is not a valid field of '{self.before.__name__}' and '{self.after.__name__}'.")
+                f"{key} is not a valid field of '{self.before.__name__}' and '{self.after.__name__}'."
+            )
 
     # analysis
     @abstractclassmethod
@@ -428,9 +439,7 @@ class ExperimentPrototype():
         """
 
     @abstractmethod
-    def analyze(
-        self, *args, **kwargs
-    ) -> AnalysisPrototype:
+    def analyze(self, *args, **kwargs) -> AnalysisPrototype:
         """Analyzing the example circuit results in specific method.
 
         Args:
@@ -440,7 +449,10 @@ class ExperimentPrototype():
             analysis: Analysis of the counts from measurement.
         """
 
-    def clear_analysis(self, *args, security: bool = False, mute: bool = False) -> None:
+    def clear_analysis(self,
+                       *args,
+                       security: bool = False,
+                       mute: bool = False) -> None:
         """Reset the measurement and release memory.
 
         Args:
@@ -459,10 +471,10 @@ class ExperimentPrototype():
         else:
             warnings.warn(
                 "Reset does not execute to prevent executing accidentally, " +
-                "if you are sure to do this, then use '.reset(security=True)'." +
-                (
-                    "Attention: any position arguments are not available on this method."
-                    if len(args) > 0 else ""),
+                "if you are sure to do this, then use '.reset(security=True)'."
+                +
+                ("Attention: any position arguments are not available on this method."
+                 if len(args) > 0 else ""),
                 category=QurryResetSecurityActivated)
 
     # show info
@@ -474,14 +486,12 @@ class ExperimentPrototype():
         return self.commons.expID
 
     def __repr__(self) -> str:
-        return (
-            f"<{self.__name__} with expID={self.commons.expID}, " +
-            f"{self.args.__repr__()}, " +
-            f"{self.commons.__repr__()}, " +
-            f"{len(self.outfields)} unused arguments, " +
-            f"{len(self.before._fields)} preparing dates, " +
-            f"{len(self.after._fields)} experiment result datasets, " +
-            f"and {len(self.reports)} analysis>")
+        return (f"<{self.__name__} with expID={self.commons.expID}, " +
+                f"{self.args.__repr__()}, " + f"{self.commons.__repr__()}, " +
+                f"{len(self.outfields)} unused arguments, " +
+                f"{len(self.before._fields)} preparing dates, " +
+                f"{len(self.after._fields)} experiment result datasets, " +
+                f"and {len(self.reports)} analysis>")
 
     def statesheet(
         self,
@@ -501,7 +511,8 @@ class ExperimentPrototype():
         info.newline(('itemize', 'commonparams'))
         for k, v in self.commons._asdict().items():
             info.newline(('itemize', str(k), str(v), (
-                '' if k != 'expID' else "This is ID is generated by Qurry which is different from 'jobID' for pending."
+                '' if k != 'expID' else
+                "This is ID is generated by Qurry which is different from 'jobID' for pending."
             ), 2))
 
         info.newline(('itemize', 'outfields', len(self.outfields),
@@ -521,18 +532,21 @@ class ExperimentPrototype():
         for k, v in self.afterwards._asdict().items():
             if k == 'jobID':
                 info.newline(('itemize', str(k), str(
-                    v), "If it's null meaning this experiment doesn't use online backend like IBMQ.", 2))
+                    v
+                ), "If it's null meaning this experiment doesn't use online backend like IBMQ.",
+                              2))
             elif isinstance(v, str):
                 info.newline(('itemize', str(k), str(v), '', 2))
             else:
                 info.newline(('itemize', str(k), len(v), f'Number of {k}', 2))
 
-        info.newline(('itemize', 'reports', len(
-            self.reports), 'Number of analysis.', 1))
+        info.newline(('itemize', 'reports', len(self.reports),
+                      'Number of analysis.', 1))
         if reportExpanded:
             for ser, item in self.reports.items():
                 info.newline(
-                    ('itemize', 'serial', f"k={ser}, serial={item.header.serial}", None, 2))
+                    ('itemize', 'serial',
+                     f"k={ser}, serial={item.header.serial}", None, 2))
                 info.newline(('txt', item, 3))
 
         return info
@@ -699,8 +713,8 @@ class ExperimentPrototype():
         serial = self.commons.serial
         summonerID = self.commons.summonerID
         summonerName = self.commons.summonerName
-        _summon = all((not v is None)
-                      for v in [serial, summonerID, summonerID])
+        _summon = all(
+            (not v is None) for v in [serial, summonerID, summonerID])
         # args, commons, outfields
 
         args: dict[str, Any] = jsonablize(self.args._asdict())
@@ -809,41 +823,32 @@ class ExperimentPrototype():
             files[f'reports.tales.{k}'] = folder + \
                 f'tales/{filename}.{k}.reports.json'
 
-        files = {
-            k: str(Path(v)) for k, v in files.items()
-        }
+        files = {k: str(Path(v)) for k, v in files.items()}
 
-        return self.Export(
-            expID=expID,
-            expName=expName,
-            serial=serial,
-            summonerID=summonerID,
-            summonerName=summonerName,
-
-            filename=filename,
-            files=files,
-
-            args=args,
-            commons=commons,
-            outfields=outfields,
-            adventures=adventures,
-            legacy=legacy,
-            tales=tales,
-
-            reports=reports,
-            tales_reports=tales_reports
-        )
+        return self.Export(expID=expID,
+                           expName=expName,
+                           serial=serial,
+                           summonerID=summonerID,
+                           summonerName=summonerName,
+                           filename=filename,
+                           files=files,
+                           args=args,
+                           commons=commons,
+                           outfields=outfields,
+                           adventures=adventures,
+                           legacy=legacy,
+                           tales=tales,
+                           reports=reports,
+                           tales_reports=tales_reports)
 
     def write(
         self,
         saveLocation: Optional[Union[Path, str]] = None,
-
         mode: str = 'w+',
         indent: int = 2,
         encoding: str = 'utf-8',
         jsonablize: bool = False,
         # zip: bool = False,
-
         mute: bool = False,
     ) -> dict[str, str]:
         """Export the experiment data, if there is a previous export, then will overwrite.
@@ -898,7 +903,8 @@ class ExperimentPrototype():
             saveLocation = Path(self.commons.saveLocation)
             if self.commons.saveLocation is None:
                 raise ValueError(
-                    "saveLocation is None, please provide a valid saveLocation")
+                    "saveLocation is None, please provide a valid saveLocation"
+                )
         else:
             raise TypeError(
                 f"saveLocation must be Path or str, not {type(saveLocation)}")
@@ -920,7 +926,6 @@ class ExperimentPrototype():
             # 'summonerID': export_material.summonerID,
             # 'summonerName': export_material.summonerName,
             # 'filename': export_material.filename,
-
             'arguments': export_material.args,
             'commonparams': export_material.commons,
             'outfields': export_material.outfields,
@@ -958,7 +963,8 @@ class ExperimentPrototype():
                 export_set[f'reports.tales.{tk}'] = [tv]
             if f'reports.tales.{tk}' not in export_material.files:
                 warnings.warn(
-                    f"reports.tales.{tk} is not in export_names, it's not exported.")
+                    f"reports.tales.{tk} is not in export_names, it's not exported."
+                )
         # Exportation
         folder = saveLocation / Path(export_material.files['folder'])
         if not os.path.exists(folder):
@@ -970,13 +976,18 @@ class ExperimentPrototype():
         for k, v in export_material.files.items():
             self.commons.files[k] = v
 
-        for filekey, content in list(export_set.items()) + [('qurryinfo', qurryinfo)]:
+        for filekey, content in list(
+                export_set.items()) + [('qurryinfo', qurryinfo)]:
             # Exportation of qurryinfo
             if filekey == 'qurryinfo':
-                if os.path.exists(saveLocation / export_material.files['qurryinfo']):
-                    with open(saveLocation / export_material.files['qurryinfo'], 'r', encoding='utf-8') as f:
-                        qurryinfoFound: dict[str,
-                                             dict[str, str]] = json.load(f)
+                if os.path.exists(saveLocation /
+                                  export_material.files['qurryinfo']):
+                    with open(saveLocation /
+                              export_material.files['qurryinfo'],
+                              'r',
+                              encoding='utf-8') as f:
+                        qurryinfoFound: dict[str, dict[str,
+                                                       str]] = json.load(f)
                         content = {**qurryinfoFound, **content}
 
             quickJSON(
@@ -997,7 +1008,6 @@ class ExperimentPrototype():
         expID: str,
         fileIndex: dict[str, str],
         saveLocation: Union[Path, str] = Path('./'),
-
         encoding: str = 'utf-8',
     ) -> 'ExperimentPrototype':
         """Core of read function.
@@ -1031,59 +1041,65 @@ class ExperimentPrototype():
             filekeydiv = filekey.split('.')
 
             if filekey == 'args':
-                with open(saveLocation / filename, 'r', encoding=encoding) as f:
+                with open(saveLocation / filename, 'r',
+                          encoding=encoding) as f:
                     export_set['args'] = json.load(f)
                 for ak in ['arguments', 'commonparams', 'outfields']:
                     export_material_set[ak]: dict[str,
                                                   Any] = export_set['args'][ak]
 
             elif filekey == 'advent':
-                with open(saveLocation / filename, 'r', encoding=encoding) as f:
+                with open(saveLocation / filename, 'r',
+                          encoding=encoding) as f:
                     export_set['advent'] = json.load(f)
-                export_material_set['adventures']: dict[str,
-                                                        Any] = export_set['advent']['adventures']
+                export_material_set['adventures']: dict[
+                    str, Any] = export_set['advent']['adventures']
 
             elif filekey == 'legacy':
-                with open(saveLocation / filename, 'r', encoding=encoding) as f:
+                with open(saveLocation / filename, 'r',
+                          encoding=encoding) as f:
                     export_set['legacy'] = json.load(f)
-                export_material_set['legacy']: dict[str,
-                                                    Any] = export_set['legacy']['legacy']
+                export_material_set['legacy']: dict[
+                    str, Any] = export_set['legacy']['legacy']
 
             elif filekey == 'reports':
-                with open(saveLocation / filename, 'r', encoding=encoding) as f:
+                with open(saveLocation / filename, 'r',
+                          encoding=encoding) as f:
                     export_set['reports'] = json.load(f)
-                export_material_set['reports']: dict[str,
-                                                     Any] = export_set['reports']['reports']
+                export_material_set['reports']: dict[
+                    str, Any] = export_set['reports']['reports']
 
             elif filekeydiv[0] == 'tales':
-                with open(saveLocation / filename, 'r', encoding=encoding) as f:
+                with open(saveLocation / filename, 'r',
+                          encoding=encoding) as f:
                     export_set[filekey] = json.load(f)
                 if not 'tales' in export_material_set:
                     export_material_set['tales'] = {}
-                export_material_set['tales'][filekeydiv[1]
-                                             ] = export_set[filekey]
+                export_material_set['tales'][
+                    filekeydiv[1]] = export_set[filekey]
 
             elif filekeydiv[0] == 'reports' and filekeydiv[1] == 'tales':
-                with open(saveLocation / filename, 'r', encoding=encoding) as f:
+                with open(saveLocation / filename, 'r',
+                          encoding=encoding) as f:
                     export_set[filekey] = json.load(f)
                 if not 'tales_report' in export_material_set:
                     export_material_set['tales_report']: dict[str,
-                                                              dict[str, Any]] = {}
-                export_material_set['tales_report'][filekeydiv[2]
-                                                    ] = export_set[filekey]
+                                                              dict[str,
+                                                                   Any]] = {}
+                export_material_set['tales_report'][
+                    filekeydiv[2]] = export_set[filekey]
             elif filekey == 'qurryinfo' or filekey == 'folder':
                 pass
             else:
                 warnings.warn(
-                    f"Unknown filekey '{filekey}' found in the index of '{expID}'.")
+                    f"Unknown filekey '{filekey}' found in the index of '{expID}'."
+                )
 
         # Construct the experiment
         ## arguments, commonparams, outfields
-        instance = cls(
-            **export_material_set['commonparams'],
-            **export_material_set['arguments'],
-            **export_material_set['outfields']
-        )
+        instance = cls(**export_material_set['commonparams'],
+                       **export_material_set['arguments'],
+                       **export_material_set['outfields'])
         # beforewards
         # Hint: It should avoid to use ._replace
         for k, v in export_material_set['adventures'].items():
@@ -1126,7 +1142,6 @@ class ExperimentPrototype():
         cls,
         name: Union[Path, str],
         saveLocation: Union[Path, str] = Path('./'),
-
         encoding: str = 'utf-8',
     ) -> list['ExperimentPrototype']:
         """Read the experiment from file.
@@ -1172,7 +1187,8 @@ class ExperimentPrototype():
         qurryinfoLocation = exportLocation / 'qurryinfo.json'
         if not os.path.exists(qurryinfoLocation):
             raise FileNotFoundError(
-                f"'qurryinfo.json' does not exist at '{saveLocation}'. It's required for loading all experiment data.")
+                f"'qurryinfo.json' does not exist at '{saveLocation}'. It's required for loading all experiment data."
+            )
 
         with open(qurryinfoLocation, 'r', encoding=encoding) as f:
             qurryinfoFound: dict[str, dict[str, str]] = json.load(f)
@@ -1180,9 +1196,8 @@ class ExperimentPrototype():
 
         queue = []
         for expID, fileIndex in qurryinfo.items():
-            queue.append(cls._read_core(
-                expID, fileIndex, saveLocation, encoding
-            ))
+            queue.append(
+                cls._read_core(expID, fileIndex, saveLocation, encoding))
 
         return queue
 
@@ -1192,7 +1207,6 @@ class ExperimentPrototype():
         name: Union[Path, str],
         summonerID: Optional[Hashable] = None,
         saveLocation: Union[Path, str] = Path('./'),
-
         encoding: str = 'utf-8',
     ) -> list['ExperimentPrototype']:
         """Read the experiment from file made by QurryV4, it's only available for the export of multiOutput.
@@ -1238,15 +1252,17 @@ class ExperimentPrototype():
             exportLocTmp = Path(v["exportLocation"]).name
             qurryinfoV4[k] = {
                 'folder': exportLocTmp,
-                'legacy': str(Path(exportLocTmp) / 'legacy' / f"*expId={k}*.json"),
-                'tales':  str(Path(exportLocTmp) / 'tales' / f"*expId={k}*.json"),
+                'legacy':
+                str(Path(exportLocTmp) / 'legacy' / f"*expId={k}*.json"),
+                'tales':
+                str(Path(exportLocTmp) / 'tales' / f"*expId={k}*.json"),
             }
 
         queue = []
         for expID, fileIndex in qurryinfoV4.items():
-            queue.append(cls._readV4_core(
-                expID, fileIndex, name, summonerID, saveLocation, encoding
-            ))
+            queue.append(
+                cls._readV4_core(expID, fileIndex, name, summonerID,
+                                 saveLocation, encoding))
 
         return queue
 
@@ -1258,7 +1274,6 @@ class ExperimentPrototype():
         summonerName: str,
         summonerID: Optional[Hashable] = None,
         saveLocation: Union[Path, str] = Path('./'),
-
         encoding: str = 'utf-8',
     ) -> 'ExperimentPrototype':
         ...
@@ -1276,7 +1291,8 @@ class ExperimentPrototype():
         lsfolder = glob.glob(str(saveLocation / fileIndex['legacy']))
         if len(lsfolder) == 0:
             raise FileNotFoundError(
-                f"The file 'expID={expID}' not found at the legacy folder of '{fileIndex['legacy']}'.")
+                f"The file 'expID={expID}' not found at the legacy folder of '{fileIndex['legacy']}'."
+            )
         for p in lsfolder:
             with open(p, 'r', encoding=encoding) as Legacy:
                 legacyRead = json.load(Legacy)
@@ -1298,9 +1314,7 @@ class ExperimentPrototype():
         }
         beforewards = {}
         afterwards = {}
-        outfields = {
-            'oldTales': talesRead
-        }
+        outfields = {'oldTales': talesRead}
 
         for k in legacyRead:
             if k in cls.arguments._fields:
@@ -1316,8 +1330,10 @@ class ExperimentPrototype():
                 beforewards['figOriginal'] = legacyRead[k]
             elif k == 'dateCreate':
                 commonsinput['datetimes'] = datetimeDict({
-                    'build': legacyRead[k],
-                    'transformToV5': currentTime(),
+                    'build':
+                    legacyRead[k],
+                    'transformToV5':
+                    currentTime(),
                 })
             elif k == 'expIndex':
                 commonsinput['serial'] = legacyRead[k]
@@ -1364,13 +1380,11 @@ class QurryExperiment(ExperimentPrototype):
         return QurryAnalysis
 
     @classmethod
-    def quantities(
-        cls,
-        shots: int,
-        counts: list[Counts],
-        ultimate_question: str = '',
-        **otherArgs
-    ) -> dict[str, float]:
+    def quantities(cls,
+                   shots: int,
+                   counts: list[Counts],
+                   ultimate_question: str = '',
+                   **otherArgs) -> dict[str, float]:
         """Computing specific squantity.
         Where should be overwritten by each construction of new measurement.
 
@@ -1385,12 +1399,10 @@ class QurryExperiment(ExperimentPrototype):
             'utlmatic_answer': utlmatic_answer,
         }
 
-    def analyze(
-        self,
-        ultimate_question: str = '',
-        shots: Optional[int] = None,
-        **otherArgs
-    ):
+    def analyze(self,
+                ultimate_question: str = '',
+                shots: Optional[int] = None,
+                **otherArgs):
         """Analysis of the experiment.
         Where should be overwritten by each construction of new measurement.
         """
@@ -1399,7 +1411,8 @@ class QurryExperiment(ExperimentPrototype):
             shots = self.commons.shots
         if len(self.afterwards.counts) < 1:
             raise QurryExperimentCountsNotCompleted(
-                "The counts of the experiment is not completed. So there is no data to analyze.")
+                "The counts of the experiment is not completed. So there is no data to analyze."
+            )
 
         qs = self.quantities(
             shots=shots,

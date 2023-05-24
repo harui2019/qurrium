@@ -1,7 +1,7 @@
 from qiskit import execute, transpile, QuantumCircuit
 from qiskit.quantum_info import Operator
 from qiskit.circuit import Gate
-from qiskit.providers import Backend
+from qiskit.providers import Backend, Provider
 from qiskit_aer import AerSimulator
 from qiskit_ibm_provider import IBMBackend
 # from qiskit.providers.ibmq import AccountProvider
@@ -184,7 +184,6 @@ class QurryV5Prototype:
 
     def __init__(
         self,
-        *waves: Union[QuantumCircuit, tuple[Hashable, QuantumCircuit]],
         resourceWatch: ResoureWatch = DefaultResourceWatch,
     ) -> None:
 
@@ -196,16 +195,6 @@ class QurryV5Prototype:
 
         self.waves: WaveContainer = WaveContainer()
         """The wave functions container."""
-        for w in waves:
-            if isinstance(w, QuantumCircuit):
-                self.add(w)
-            elif isinstance(w, tuple):
-                self.add(w[0], w[1])
-            else:
-                warnings.warn(
-                    f"'{w}' is a '{type(w)}' instead of 'QuantumCircuit' or 'tuple' " +
-                    "contained hashable key and 'QuantumCircuit', skipped to be adding.",
-                )
 
         self.exps: ExperimentContainer = ExperimentContainer()
         """The experiments container."""
@@ -755,6 +744,7 @@ class QurryV5Prototype:
         # provider: AccountProvider = None,
         # Other arguments of experiment
         # Multiple jobs shared
+        tags: list[str] = [],
         saveLocation: Union[Path, str] = Path('./'),
         jobsType: Literal["local", "IBMQ", "IBM",
                           "AWS_Bracket", "Azure_Q"] = "local",
@@ -842,6 +832,7 @@ class QurryV5Prototype:
                 backend=backend,
                 # provider=provider,
 
+                tags=tags,
                 saveLocation=saveLocation,
                 files={},
 
@@ -883,6 +874,7 @@ class QurryV5Prototype:
         backend: Backend = AerSimulator(),
         # provider: AccountProvider = None,
         # IBMQJobManager() dedicated
+        tags: list[str] = [],
         managerRunArgs: dict = {},
         # Other arguments of experiment
         # Multiple jobs shared
@@ -928,6 +920,7 @@ class QurryV5Prototype:
             shots=shots,
             backend=backend,
             # provider=provider,
+            tags=tags,
             managerRunArgs=managerRunArgs,
             summonerName=summonerName,
             summonerID=summonerID,
@@ -974,6 +967,7 @@ class QurryV5Prototype:
         summonerID: Optional[str] = None,
         shots: int = 1024,
         backend: Backend = AerSimulator(),
+        tags: list[str] = [],
         # provider: AccountProvider = None,
         # IBMQJobManager() dedicated
         # Other arguments of experiment
@@ -1026,6 +1020,7 @@ class QurryV5Prototype:
             shots=shots,
             backend=backend,
             # provider=provider,
+            tags=tags,
             managerRunArgs={},
             summonerName=summonerName,
             summonerID=summonerID,
@@ -1057,6 +1052,7 @@ class QurryV5Prototype:
 
             currentMultiJob.afterwards.allCounts[currentID] = self.exps[currentID].afterwards.counts
 
+        currentMultiJob.multicommons.datetimes.addSerial('output')
         if len(defaultMultiAnalysis) > 0:
             print(f"| MultiOutput analyzing...")
             for analysis in defaultMultiAnalysis:
@@ -1076,14 +1072,13 @@ class QurryV5Prototype:
         self,
         # configList
         configList: list = [],
-        # defaultConfig of `IBMQJobManager().run`
         # Multiple jobs shared
         summonerName: str = 'exps',
         summonerID: Optional[str] = None,
         shots: int = 1024,
         backend: Backend = AerSimulator(),
-        # provider: AccountProvider = None,
-        # IBMQJobManager() dedicated
+        provider: Optional[Provider] = None,
+        tags: list[str] = [],
         managerRunArgs: dict = {},
         # Other arguments of experiment
         # Multiple jobs shared
@@ -1142,7 +1137,8 @@ class QurryV5Prototype:
             configList=configList,
             shots=shots,
             backend=backend,
-            # provider=provider,
+            provider=provider,
+            tags=tags,
             managerRunArgs=managerRunArgs,
             summonerName=summonerName,
             summonerID=summonerID,
@@ -1162,6 +1158,7 @@ class QurryV5Prototype:
                 besummonned=currentMultiJob.summonerID,
                 multiJob=currentMultiJob,
                 backend=backend,
+                provider=provider,
                 experimentalContainer=self.exps,
             )
 
@@ -1176,6 +1173,7 @@ class QurryV5Prototype:
                 besummonned=currentMultiJob.summonerID,
                 multiJob=currentMultiJob,
                 backend=backend,
+                provider=provider,
                 experimentalContainer=self.exps,
             )
 
@@ -1228,49 +1226,32 @@ class QurryV5Prototype:
                 "No positional arguments allowed except `summonerID`.")
 
         if summonerID in self.multimanagers:
-            multiJob = self.multimanagers[summonerID]
+            currentMultiJob = self.multimanagers[summonerID]
         else:
             raise ValueError("No such summonerID in multimanagers.")
 
-        if len(multiJob.afterwards.allCounts) == 0:
-            raise ValueError("No counts in multimanagers.")
-
-        idx_tagMapQ = len(multiJob.tagMapQuantity)
-        name = (
-            analysisName if noSerialize else f"{analysisName}."+f'{idx_tagMapQ+1}'.rjust(self._rjustLen, '0'))
-        multiJob.tagMapQuantity[name] = TagList()
-
-        for k in multiJob.afterwards.allCounts.keys():
-            if k in specificAnalysisArgs:
-                if isinstance(specificAnalysisArgs[k], bool):
-                    if specificAnalysisArgs[k] is False:
-                        print(f"| MultiAnalysis: {k} skipped in {summonerID}.")
-                        continue
-                    else:
-                        report = self.exps[k].analyze(**analysisArgs)
-                else:
-                    report = self.exps[k].analyze(**specificAnalysisArgs[k])
-            else:
-                report = self.exps[k].analyze(**analysisArgs)
-
-            self.exps[k].write(mute=True)
-            main, tales = report.export()
-            multiJob.tagMapQuantity[name][
-                self.exps[k].commons.tags].append(main)
-        multiJob.multicommons.datetimes[name] = currentTime()
+        reportName = currentMultiJob.analyze(
+            self.exps,
+            analysisName=analysisName,
+            noSerialize=noSerialize,
+            specificAnalysisArgs=specificAnalysisArgs,
+            **analysisArgs,
+        )
+        
+        print(f'| "{reportName}" has been completed.')
 
         if _write:
-            filesMulti = multiJob.write(_onlyQuantity=True)
+            filesMulti = currentMultiJob.write(_onlyQuantity=True)
         else:
             filesMulti = {}
 
-        return multiJob.multicommons.summonerID
+        return currentMultiJob.multicommons.summonerID
 
     def multiWrite(
         self,
         summonerID: Hashable,
         saveLocation: Optional[Union[Path, str]] = None,
-        compress: bool = False,
+        compress: bool = True,
         compressOverwrite: bool = False,
         remainOnlyCompressed: bool = False,
     ) -> Hashable:
@@ -1299,15 +1280,15 @@ class QurryV5Prototype:
 
         filesMulti = currentMultiJob.write(
             saveLocation=saveLocation if saveLocation is not None else None,
+            wave_container=self.exps,
         )
 
-        # TODO: tqdm -
-        for id_exec in currentMultiJob.beforewards.configDict:
-            print(f"| MultiWrite: {id_exec} in {summonerID}.")
-            self.exps[id_exec].write(
-                saveLocation=currentMultiJob.multicommons.saveLocation,
-                mute=True,
-            )
+        # for id_exec in currentMultiJob.beforewards.configDict:
+        #     print(f"| MultiWrite: {id_exec} in {summonerID}.")
+        #     self.exps[id_exec].write(
+        #         saveLocation=currentMultiJob.multicommons.saveLocation,
+        #         mute=True,
+            # )
 
         if compress:
             currentMultiJob.compress(
@@ -1317,7 +1298,7 @@ class QurryV5Prototype:
         else:
             if compressOverwrite or remainOnlyCompressed:
                 warnings.warn(
-                    "compressOverwrite or remainOnlyCompressed is set to True, but compress is False.")
+                    "'compressOverwrite' or 'remainOnlyCompressed' is set to True, but 'compress' is False.")
 
         return currentMultiJob.multicommons.summonerID
 
@@ -1568,6 +1549,7 @@ class QurryV5Prototype:
     def reset(
         self,
         *args,
+        keepWave: bool = True,
         security: bool = False,
     ) -> None:
         """Reset the measurement and release memory.
@@ -1576,9 +1558,15 @@ class QurryV5Prototype:
             security (bool, optional): Security for reset. Defaults to `False`.
         """
 
+        tmpWaveContainer = {
+            k: v for k, v in self.waves.items() 
+        } if keepWave else {}
+
         if security and isinstance(security, bool):
-            self.__init__(*[(k, v) for k, v in self.waves.items()])
+            self.__init__()
             gc.collect()
+            for k, v in tmpWaveContainer.items():
+                self.add(v, k)
             warnings.warn(
                 "The measurement has reset and release memory allocating.",
                 QurryResetAccomplished)

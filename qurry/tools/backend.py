@@ -1,5 +1,8 @@
 from qiskit import __qiskit_version__
-from qiskit.providers import Backend
+from qiskit.providers import Backend, BackendV1, BackendV2
+from qiskit.providers.fake_provider import (
+    FakeProvider, FakeProviderForBackendV2,
+    FakeBackend, FakeBackendV2)
 try:
     from qiskit.providers.ibmq import AccountProvider, IBMQBackend
     from qiskit import IBMQ
@@ -16,10 +19,14 @@ from qiskit_aer.version import get_version_info as get_version_info_aer
 import requests
 import pkg_resources
 from random import random
-from typing import Optional, Hashable, Union, overload
+from typing import Optional, Hashable, Union, overload, Callable, Literal
 
 from .command import cmdWrapper, pytorchCUDACheck
 from ..hoshi import Hoshi
+
+
+backendName: Callable[[Union[BackendV1, BackendV2]], str] = \
+    lambda back: back.name if isinstance(back, BackendV2) else back.name()
 
 
 def _local_version() -> dict[str, dict[str, any]]:
@@ -147,14 +154,9 @@ def _real_backend_loader(
     backend_ibmq_callsign = {}
     if not realProvider is None:
         _RealProvider = realProvider
-        if isinstance(realProvider, IBMProvider):
-            backend_ibmq = {
-                b.name: b for b in realProvider.backends()
-            }
-        else:
-            backend_ibmq = {
-                b.name(): b for b in realProvider.backends()
-            }
+        backend_ibmq = {
+            backendName(b): b for b in realProvider.backends()
+        }
         backend_ibmq_callsign = {
             backendWrapper._shorten_name(
                 bn, ['ibm_', 'ibmq_'], ['ibmq_qasm_simulator']
@@ -164,6 +166,52 @@ def _real_backend_loader(
         return backend_ibmq_callsign, backend_ibmq, _RealProvider
     else:
         return backend_ibmq_callsign, {}, None
+
+
+@overload
+def fack_backend_loader(
+    version: Union[Literal['v2'], str]
+) -> tuple[
+        dict[str, str],
+        dict[str, FakeBackendV2],
+        FakeProviderForBackendV2]:
+    ...
+
+
+@overload
+def fack_backend_loader(
+    version: Literal['v1']
+) -> tuple[
+        dict[str, str],
+        dict[str, FakeBackend],
+        FakeProvider]:
+    ...
+
+
+@overload
+def fack_backend_loader(
+    version: None
+) -> tuple[dict[str, str], dict[str, any], None]:
+    ...
+
+
+def fack_backend_loader(
+    version=None
+):
+    if version is None:
+        return {}, {}, None
+
+    _FakeProvider = FakeProvider() if version == 'v1' else FakeProviderForBackendV2()
+    backend_fake = {
+        backendName(b): b for b in _FakeProvider.backends()
+    }
+    backend_fake_callsign = {
+        backendWrapper._shorten_name(
+            bn, ['_v2']
+        ): bn for bn in backend_fake
+    }
+    backend_fake_callsign['fake_qasm'] = 'fake_qasm_simulator'
+    return backend_fake_callsign, backend_fake, _FakeProvider
 
 
 class backendWrapper:
@@ -237,17 +285,20 @@ class backendWrapper:
         self.backend_callsign = {
             **self.backend_ibmq_callsign,
             **self.backend_aer_callsign,
+            **self.backend_fake_callsign,
         }
 
     def _update_backend(self) -> None:
         self.backend = {
             **self.backend_ibmq,
             **self.backend_aer,
+            **self.backend_fake,
         }
 
     def __init__(
         self,
         realProvider: Optional[Union[IBMProvider, 'AccountProvider']] = None,
+        fakeVersion: Union[Literal['v1', 'v2'], None] = None,
     ) -> None:
 
         self._AerProvider = AerProvider()
@@ -264,8 +315,7 @@ class backendWrapper:
             'aer_density_gpu': 'aer_density_matrix_gpu',
         }
         self.backend_aer: dict[str, Union[Backend, AerBackend, 'IBMQBackend', IBMBackend]] = {
-            self._shorten_name(b.name(), ['_simulator']): b for b in self._AerOwnedBackends if b.name() not in [
-                # NOTE: Deprecated backend
+            self._shorten_name(backendName(b), ['_simulator']): b for b in self._AerOwnedBackends if backendName(b) not in [
                 'qasm_simulator', 'statevector_simulator', 'unitary_simulator'
             ]
         }
@@ -279,6 +329,10 @@ class backendWrapper:
         (
             self.backend_ibmq_callsign, self.backend_ibmq, self._RealProvider
         ) = _real_backend_loader(realProvider)
+
+        (
+            self.backend_fake_callsign, self.backend_fake, self._FakeProvider
+        ) = fack_backend_loader(fakeVersion)
 
         self._update_callsign()
         self._update_backend()
@@ -304,10 +358,70 @@ class backendWrapper:
             self.backend_aer_callsign[sign] = who
         elif who in self.backend_ibmq:
             self.backend_ibmq_callsign[sign] = who
+        elif who in self.backend_fake:
+            self.backend_fake_callsign[sign] = who
         else:
             raise ValueError(f"'{who}' unknown backend.")
 
         self._update_callsign()
+        
+    @property
+    def avavilable_backends(self) -> list[str]:
+        return list(self.backend.keys())
+    
+    @property
+    def avavilable_backends_callsign(self) -> list[str]:
+        return list(self.backend_callsign.keys())
+    
+    @property
+    def available_aer(self) -> list[str]:
+        return list(self.backend_aer.keys())
+    
+    @property
+    def available_aer_callsign(self) -> list[str]:
+        return list(self.backend_aer_callsign.keys())
+    
+    @property
+    def available_ibmq(self) -> list[str]:
+        return list(self.backend_ibmq.keys())
+    
+    @property
+    def available_ibmq_callsign(self) -> list[str]:
+        return list(self.backend_ibmq_callsign.keys())
+    
+    @property
+    def available_fake(self) -> list[str]:
+        return list(self.backend_fake.keys())
+    
+    @property
+    def available_fake_callsign(self) -> list[str]:
+        return list(self.backend_fake_callsign.keys())
+    
+    def statesheet(self):
+        check_msg = Hoshi([
+            ('divider', 60),
+            ('h3', 'BackendWrapper Statesheet'),
+        ], ljust_describe_len=40)
+        
+        for desc, backs, backs_callsign in [
+            ('Aer', self.available_aer, self.available_aer_callsign),
+            ('IBM', self.available_ibmq, self.available_ibmq_callsign),
+            ('Fake', self.available_fake, self.available_fake_callsign),
+        ]:
+            check_msg.divider()
+            check_msg.h4(desc)
+            check_msg.newline({
+                'type': 'itemize',
+                'description': f'Available {desc} Backends',
+                'value': backs,
+            })
+            check_msg.newline({
+                'type': 'itemize',
+                'description': f'Available {desc} Backends Callsign',
+                'value': backs_callsign,
+            })
+            
+        return check_msg
 
     def add_backend(
         self,
@@ -344,6 +458,8 @@ class backendWrapper:
 
 
 class backendManager(backendWrapper):
+    __version__ = '0.6.2'
+
     """A wrapper includes accout loading and backend loading.
     And deal wtth either :module:`qiskit-ibmq-provider` or the older version `qiskit.providers.ibmq`."""
 
@@ -355,7 +471,8 @@ class backendManager(backendWrapper):
 
         instance: Optional[str] = None,
 
-        useIBMProvider: bool = False,
+        useIBMProvider: bool = True,
+        fakeVersion: Union[Literal['v1', 'v2'], None] = None,
     ) -> None:
 
         if instance is not None:
@@ -374,13 +491,19 @@ class backendManager(backendWrapper):
         if qiskit_ibmq_provider_deprecated or useIBMProvider:
             print("| Provider by 'qiskit_ibm_provider'.")
             newProvider = IBMProvider(instance=self.instance)
-            super().__init__(realProvider=newProvider)
+            super().__init__(
+                realProvider=newProvider,
+                fakeVersion=fakeVersion,
+            )
         else:
             print("| Provider by 'qiskit.providers.ibmq', which will be deprecated.")
             IBMQ.load_account()
             oldProvider = IBMQ.get_provider(
                 hub=self.hub, group=self.group, project=self.project)
-            super().__init__(realProvider=oldProvider)
+            super().__init__(
+                realProvider=oldProvider,
+                fakeVersion=fakeVersion,
+            )
 
     def save_account(
         self,

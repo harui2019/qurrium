@@ -18,6 +18,7 @@ from ..qurrium.utils.randomized import (
     random_unitary,
     qubitOpToPauliCoeff,
     ensembleCell,
+    cycling_slice
 )
 
 
@@ -41,12 +42,25 @@ def _purityCell(
 
     shots = sum(singleCounts.values())
 
-    singleCountsUnderDegree = dict.fromkeys(
-        [k[bitStringRange[0]:bitStringRange[1]] for k in singleCounts], 0)
-    for bitString in list(singleCounts):
-        singleCountsUnderDegree[
-            bitString[bitStringRange[0]:bitStringRange[1]]
-        ] += singleCounts[bitString]
+    dummyString = ''.join(str(ds) for ds in range(subsystemSize))
+    if dummyString[bitStringRange[0]:bitStringRange[1]] == cycling_slice(
+            dummyString, bitStringRange[0], bitStringRange[1], 1):
+
+        singleCountsUnderDegree = dict.fromkeys(
+            [k[bitStringRange[0]:bitStringRange[1]] for k in singleCounts], 0)
+        for bitString in list(singleCounts):
+            singleCountsUnderDegree[
+                bitString[bitStringRange[0]:bitStringRange[1]]
+            ] += singleCounts[bitString]
+
+    else:
+        singleCountsUnderDegree = dict.fromkeys(
+            [cycling_slice(k, bitStringRange[0], bitStringRange[1], 1) for k in singleCounts], 0)
+        for bitString in list(singleCounts):
+            singleCountsUnderDegree[
+                cycling_slice(
+                    bitString, bitStringRange[0], bitStringRange[1], 1)
+            ] += singleCounts[bitString]
 
     purityCell = np.float64(0)
     for sAi, sAiMeas in singleCountsUnderDegree.items():
@@ -97,6 +111,7 @@ def _entangled_entropy_core(
         degree = qubit_selector(len(list(counts[0].keys())[0]))
 
     # Determine subsystem size
+    allsystemSize = len(list(counts[0].keys())[0])
     if isinstance(degree, int):
         subsystemSize = degree
         degree = qubit_selector(
@@ -109,16 +124,38 @@ def _entangled_entropy_core(
         raise ValueError(
             f"'degree' must be 'int' or 'tuple[int, int]', but get '{degree}'.")
 
+    bitStringRange = degree
+    bitStringCheck = {
+        'b > a': (bitStringRange[1] > bitStringRange[0]),
+        'a >= -allsystemSize': bitStringRange[0] >= -allsystemSize,
+        'b <= allsystemSize': bitStringRange[1] <= allsystemSize,
+        'b-a <= allsystemSize': ((bitStringRange[1] - bitStringRange[0]) <= allsystemSize),
+    }
+    if all(bitStringCheck.values()):
+        ...
+    else:
+        raise ValueError(
+            f"Invalid 'bitStringRange = {bitStringRange} for allsystemSize = {allsystemSize}'. " +
+            "Available range 'bitStringRange = [a, b)' should be" +
+            ", ".join([f" {k};" for k, v in bitStringCheck.items() if not v]))
+
     if measure is None:
         measure = qubit_selector(len(list(counts[0].keys())[0]))
 
-    if (min(degree) < min(measure)) or (max(degree) > max(measure)):
-        raise ValueError(
-            f"Measure range '{measure}' does not contain subsystem '{degree}'.")
+    dummyString = ''.join(str(ds) for ds in range(allsystemSize))
+    dummyStringSlice = cycling_slice(
+        dummyString, bitStringRange[0], bitStringRange[1], 1)
+    isAvtiveCyclingSlice = dummyString[bitStringRange[0]
+        :bitStringRange[1]] != dummyStringSlice
+    if isAvtiveCyclingSlice:
+        assert len(dummyStringSlice) == subsystemSize, (
+            f"allsystemSize {subsystemSize} does not match dummyStringSlice {dummyStringSlice}")
 
-    bitStringRange = (min(degree) - min(measure), max(degree) - min(measure))
     print(
-        f"| Subsystem size: {subsystemSize}, bitstring range: {bitStringRange}, measure range: {measure}.")
+        f"| Subsystem size: {subsystemSize}, AllsystemSize: {allsystemSize}" +
+        ("cycling" if isAvtiveCyclingSlice else "")+", "
+        f"bitstring range: {bitStringRange}, " +
+        f"measure range: {measure}.")
 
     times = len(counts)
     Begin = time.time()
@@ -220,12 +257,14 @@ def entangled_entropy(
     purity = np.mean(purityCellList, dtype=np.float64)
     puritySD = np.std(purityCellList, dtype=np.float64)
     entropy = -np.log2(purity, dtype=np.float64)
+    entropySD = puritySD/np.log(2)/purity
 
     quantity = {
         'purity': purity,
         'entropy': entropy,
         'purityCells': purityCellDict,
         'puritySD': puritySD,
+        'entropySD': entropySD,
 
         'degree': degree,
         'measureActually': measureRange,
@@ -416,7 +455,9 @@ def entangled_entropy_complex(
     puritySDAllSys = np.std(purityCellListAllSys, dtype=np.float64)
 
     entropy = -np.log2(purity, dtype=np.float64)
+    entropySD = puritySD/np.log(2)/purity
     entropyAllSys = -np.log2(purityAllSys, dtype=np.float64)
+    entropySDAllSys = puritySDAllSys/np.log(2)/purityAllSys
 
     if measure is None:
         measureInfo = 'not specified, use all qubits'
@@ -441,12 +482,14 @@ def entangled_entropy_complex(
         'entropy': entropy,
         'purityCells': purityCellDict,
         'puritySD': puritySD,
+        'entropySD': entropySD,
         'bitStringRange': bitStringRange,
         # all system
         'purityAllSys': purityAllSys,
         'entropyAllSys': entropyAllSys,
         'purityCellsAllSys': purityCellDictAllSys,
         'puritySDAllSys': puritySDAllSys,
+        'entropySDAllSys': entropySDAllSys,
         'bitsStringRangeAllSys': bitStringRangeAllSys,
         # mitigated
         'errorRate': error_mitgation_info['errorRate'],
@@ -509,26 +552,30 @@ class EntropyRandomizedAnalysis(AnalysisPrototype):
         """The content of the analysis."""
         # TODO: args hint
 
-        purity: float
+        purity: Optional[float] = None
         """The purity of the subsystem."""
-        entropy: float
+        entropy: Optional[float] = None
         """The entanglement entropy of the subsystem."""
-        puritySD: float
+        puritySD: Optional[float] = None
         """The standard deviation of the purity of the subsystem."""
-        purityCells: dict[int, float]
+        entropySD: Optional[float] = None
+        """The standard deviation of the entanglement entropy of the subsystem."""
+        purityCells: Optional[dict[int, float]] = None
         """The purity of each cell of the subsystem."""
-        bitStringRange: tuple[int, int]
+        bitStringRange: Optional[tuple[int, int]] = None
         """The qubit range of the subsystem."""
 
-        purityAllSys: float
+        purityAllSys: Optional[float] = None
         """The purity of the system."""
-        entropyAllSys: float
+        entropyAllSys: Optional[float] = None
         """The entanglement entropy of the system."""
-        purityCellsAllSys: dict[int, float]
-        """The purity of each cell of the system."""
-        puritySDAllSys: float
+        puritySDAllSys: Optional[float] = None
         """The standard deviation of the purity of the system."""
-        bitsStringRangeAllSys: tuple[int, int]
+        entropySDAllSys: Optional[float] = None
+        """The standard deviation of the entanglement entropy of the system."""
+        purityCellsAllSys: Optional[dict[int, float]] = None
+        """The purity of each cell of the system."""
+        bitsStringRangeAllSys: Optional[tuple[int, int]] = None
         """The qubit range of the all system."""
 
         errorRate: Optional[float] = None
@@ -797,25 +844,6 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
             ), end="\r")
         else:
             print(f"| Build circuit: {commons.waveKey}.", end="\r")
-        # for i in range(args.times):
-        #     qFunc1 = QuantumRegister(num_qubits, 'q1')
-        #     cMeas1 = ClassicalRegister(
-        #         args.measure[1]-args.measure[0], 'c1')
-        #     qcExp1 = QuantumCircuit(qFunc1, cMeas1)
-        #     qcExp1.name = f"{args.expName}-{i}"
-
-        #     qcExp1.append(self.waves.call(
-        #         wave=commons.waveKey,
-        #     ), [qFunc1[i] for i in range(num_qubits)])
-
-        #     qcExp1.barrier()
-        #     for j in range(*args.unitary_loc):
-        #         qcExp1.append(unitaryList[i][j], [j])
-
-        #     for j in range(*args.measure):
-        #         qcExp1.measure(qFunc1[j], cMeas1[j-args.measure[0]])
-
-        #     qcList.append(qcExp1)
 
         pool = Pool(args.workers_num)
         qcList = pool.starmap(

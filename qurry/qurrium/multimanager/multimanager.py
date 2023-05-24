@@ -12,6 +12,10 @@ import json
 import tarfile
 import warnings
 
+from ..container import ExperimentContainer
+from ..declare.type import Quantity
+from ..utils.iocontrol import naming
+from ..utils.datetime import currentTime, datetimeDict
 from ...mori import TagList, syncControl, defaultConfig
 from ...mori.quick import quickJSON, quickRead
 from ...exceptions import (
@@ -19,19 +23,17 @@ from ...exceptions import (
     QurryResetAccomplished,
     QurryResetSecurityActivated
 )
-from ..declare.type import Quantity
-from ..utils.iocontrol import naming
-from ..utils.datetime import currentTime, datetimeDict
 
 multicommonConfig = defaultConfig(
     name='multicommon',
     default={
         'summonerID': None,
         'summonerName': None,
-        'shots': 1024,
-        'backend': AerSimulator(),
-        'saveLocation': Path('./'),
-        'exportLocation': Path('./'),
+        'tags': [],
+        'shots': 0,
+        'backend': None,
+        'saveLocation': None,
+        'exportLocation': None,
         'files': {},
         'jobsType': None,
         'managerRunArgs': None,
@@ -51,6 +53,8 @@ class MultiManager:
         """ID of experiment of the multiManager."""
         summonerName: str
         """Name of experiment of the multiManager."""
+        tags: list[str]
+        """Tags of experiment of the multiManager."""
 
         shots: int
         """Number of shots to run the program (default: 1024), which multiple experiments shared."""
@@ -106,38 +110,40 @@ class MultiManager:
         """The list of retrieved results, which multiple experiments shared."""
         allCounts: dict[Hashable, list[dict[str, int]]]
         """The dict of all counts of each experiments."""
+        
+    def reset_afterwards(
+        self,
+        *args,
+        security: bool = False,
+        muteWarning: bool = False,
+    ) -> None:
+        """Reset the measurement and release memory for overwrite.
 
-        def reset(
-            self,
-            *args,
-            security: bool = False,
-            muteWarning: bool = False,
-        ) -> None:
-            """Reset the measurement and release memory for overwrite.
+        Args:
+            security (bool, optional): Security for reset. Defaults to `False`.
+            muteWarning (bool, optional): Mute the warning message. Defaults to `False`.
+        """
 
-            Args:
-                security (bool, optional): Security for reset. Defaults to `False`.
-                muteWarning (bool, optional): Mute the warning message. Defaults to `False`.
-            """
-
-            if security and isinstance(security, bool):
-                self.__init__(
-                    retrievedResult=TagList(),
-                    allCounts={}
-                )
-                gc.collect()
-                if not muteWarning:
-                    warnings.warn(
-                        "Afterwards reset accomplished.",
-                        QurryResetAccomplished)
-            else:
+        if security and isinstance(security, bool):
+            self.afterwards = self.afterwards._replace(
+                retrievedResult=TagList(),
+                allCounts={}
+            )
+            gc.collect()
+            if not muteWarning:
                 warnings.warn(
-                    "Reset does not execute to prevent executing accidentally, " +
-                    "if you are sure to do this, then use '.reset(security=True)'.",
-                    QurryResetSecurityActivated)
+                    "Afterwards reset accomplished.",
+                    QurryResetAccomplished)
+        else:
+            warnings.warn(
+                "Reset does not execute to prevent executing accidentally, " +
+                "if you are sure to do this, then use '.reset(security=True)'.",
+                QurryResetSecurityActivated)
 
     _unexports: list[str] = ['retrievedResult']
     """The content would not be exported."""
+    _syncPrevent = ['allCounts', 'retrievedResult']
+    
     after_lock: bool = False
     """Protect the :cls:`afterward` content to be overwritten. When setitem is called and completed, it will be setted as `False` automatically."""
     mute_auto_lock: bool = False
@@ -351,6 +357,7 @@ class MultiManager:
                 jobsType = "multiJobs"
 
             rawReadMultiConfig = {
+                'tags': [],
                 **kwargs,
                 'summonerID': summonerID,
                 'summonerName': self.namingCpx.expsName,
@@ -416,6 +423,7 @@ class MultiManager:
 
         else:
             rawReadMultiConfig = {
+                'tags': [],
                 **kwargs,
                 'summonerID': summonerID,
                 'summonerName': self.namingCpx.expsName,
@@ -440,7 +448,7 @@ class MultiManager:
             )
             self.tagMapQuantity: dict[str, TagList[Quantity]] = {}
 
-        multicommons = {}
+        multicommons = multicommonConfig.make()
         outfields = {}
         for k in rawReadMultiConfig:
             if k in self.multicommonparams._fields:
@@ -525,7 +533,7 @@ class MultiManager:
     def write(
         self,
         saveLocation: Optional[Union[Path, str]] = None,
-
+        wave_container: Optional[ExperimentContainer] = None,
         indent: int = 2,
         encoding: str = 'utf-8',
         _onlyQuantity: bool = False,
@@ -573,7 +581,8 @@ class MultiManager:
                 filename = Path(self.multicommons.exportLocation) / \
                     f"{self.multicommons.summonerName}.{k}.json"
                 self.multicommons.files[k] = str(filename)
-                self.gitignore.sync(f"*.{k}.json")
+                if not k in self._syncPrevent:
+                    self.gitignore.sync(f"*.{k}.json")
                 quickJSON(
                     content=self[k],
                     filename=filename,
@@ -609,6 +618,15 @@ class MultiManager:
 
         self.gitignore.export(self.multicommons.exportLocation)
 
+        if wave_container is not None:
+            # TODO: tqdm -
+            for id_exec in self.beforewards.configDict:
+                print(f"| Multimanger experiment write: {id_exec} in {self.summonerID}.")
+                wave_container[id_exec].write(
+                    saveLocation=self.multicommons.saveLocation,
+                    mute=True,
+                )
+
         return multiConfig
 
     def compress(
@@ -634,6 +652,64 @@ class MultiManager:
                 f"| Remove uncompressed files in '{self.namingCpx.exportLocation}' ...done")
 
         return loc
+
+    def analyze(
+        self,
+        wave_continer: ExperimentContainer,
+        analysisName: str = 'report',
+        noSerialize: bool = False,
+        specificAnalysisArgs: dict[Hashable, Union[dict[str, Any], bool]] = {},
+        **analysisArgs: Any,
+    ) -> str:
+        """Run the analysis for multiple experiments.
+
+        Args:
+            analysisName (str, optional):
+                The name of the analysis.
+                Defaults to 'report'.
+            specificAnalysisArgs (dict[Hashable, dict[str, Any]], optional): 
+                Specific some experiment to run the analysis arguments for each experiment.
+                Defaults to {}.
+
+        Raises:
+            ValueError: No positional arguments allowed except `summonerID`.
+            ValueError: summonerID not in multimanagers.
+            ValueError: No counts in multimanagers, which experiments are not ready.
+
+        Returns:
+            Hashable: SummonerID (ID of multimanager).
+        """
+        
+        if len(self.afterwards.allCounts) == 0:
+            raise ValueError("No counts in multimanagers.")
+        
+        idx_tagMapQ = len(self.tagMapQuantity)
+        name = (
+            analysisName if noSerialize else f"{analysisName}."+f'{idx_tagMapQ+1}'.rjust(self._rjustLen, '0'))
+        self.tagMapQuantity[name] = TagList()
+        
+        # TODO: tqdm -
+        for k in self.afterwards.allCounts.keys():
+            if k in specificAnalysisArgs:
+                if isinstance(specificAnalysisArgs[k], bool):
+                    if specificAnalysisArgs[k] is False:
+                        print(f"| Multimanager Analysis: {k} skipped in {self.summonerID}.")
+                        continue
+                    else:
+                        report = wave_continer[k].analyze(**analysisArgs)
+                else:
+                    report = wave_continer[k].analyze(**specificAnalysisArgs[k])
+            else:
+                report = wave_continer[k].analyze(**analysisArgs)
+                
+            wave_continer[k].write(mute=True)
+            main, tales = report.export()
+            self.tagMapQuantity[name][
+                wave_continer[k].commons.tags].append(main)
+        
+        self.multicommons.datetimes.addOnly(name)
+        
+        return name
 
     def easycompress(
         self,

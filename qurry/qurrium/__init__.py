@@ -9,7 +9,7 @@ from .declare.type import (
 from ..exceptions import *
 from .utils import (
     RXmatrix, RYmatrix, RZmatrix,
-    makeTwoBitStr, makeTwoBitStrOneLiner, haarBase,
+    makeTwoBitStr, makeTwoBitStrOneLiner, cycling_slice,
     hamming_distance, ensembleCell, densityMatrixToBloch, qubitOpToPauliCoeff,
     qubit_selector, wave_selector, decomposer,
     levenshtein_distance
