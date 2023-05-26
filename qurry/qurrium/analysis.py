@@ -189,7 +189,7 @@ class QurryAnalysis(AnalysisPrototype):
         """ULtImAte QueStIoN."""
     class analysisContent(NamedTuple):
         utlmatic_answer: int
-        """~Answer to the ultimate question of life the universe and everything.~"""
+        """~The Answer to the Ultimate Question of Life, The Universe, and Everything.~"""
         dummy: int
         """Just a dummy field."""
 

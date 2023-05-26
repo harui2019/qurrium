@@ -14,6 +14,15 @@ RZmatrix = np.array([[1, 0], [0, -1]])
 
 
 def makeTwoBitStr(num: int, bits: list[str] = ['']) -> list[str]:
+    """Make a list of bit strings with length of `num`.
+
+    Args:
+        num (int): bit string length.
+        bits (list[str], optional): The input for recurrsion. Defaults to [''].
+
+    Returns:
+        list[str]: The list of bit strings.
+    """
     return ((lambda bits: [
         *['0'+item for item in bits], *['1'+item for item in bits]
     ])(makeTwoBitStr(num-1, bits)) if num > 0 else bits)
@@ -23,6 +32,15 @@ makeTwoBitStrOneLiner: Callable[[int, list[str]], list[str]] = (
     lambda num, bits=['']: ((lambda bits: [
         *['0'+item for item in bits], *['1'+item for item in bits]]
     )(makeTwoBitStrOneLiner(num-1, bits)) if num > 0 else bits))
+"""Make a list of bit strings with length of `num`. But it's an ONE LINE code.
+
+    Args:
+        num (int): bit string length.
+        bits (list[str], optional): The input for recurrsion. Defaults to [''].
+
+    Returns:
+        list[str]: The list of bit strings.
+"""
 
 
 def hamming_distance(str1: str, str2: str) -> int:
@@ -129,7 +147,7 @@ def cycling_slice(target: Iterable, start: int, end: int, step: int = 1) -> Iter
     }
     if all(sliceCheck.values()):
         raise IndexError(
-            "Slice out of range"+
+            "Slice out of range" +
             ", ".join([f" {k};" for k, v in sliceCheck.items() if not v]))
     if length <= 0:
         newString = target

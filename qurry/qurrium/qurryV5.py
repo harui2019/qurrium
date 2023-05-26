@@ -4,7 +4,6 @@ from qiskit.circuit import Gate
 from qiskit.providers import Backend, Provider
 from qiskit_aer import AerSimulator
 from qiskit_ibm_provider import IBMBackend
-# from qiskit.providers.ibmq import AccountProvider
 
 import gc
 import warnings
@@ -935,7 +934,7 @@ class QurryV5Prototype:
         assert currentMultiJob.summonerID == besummonned
         initedConfigListProgress = tqdm.tqdm(
             initedConfigList,
-            bar_format='| {n_fmt}/{total_fmt} {percentage:3.0f}%|{bar}| - Experiments build - {elapsed}',
+            bar_format='| {n_fmt}/{total_fmt} {percentage:3.0f}%|{bar}| - Experiments build - {elapsed} < {remaining}',
             ascii=" ▖▘▝▗▚▞█"
             )
 
@@ -1040,7 +1039,7 @@ class QurryV5Prototype:
 
         experimentProgress = tqdm.tqdm(
             currentMultiJob.beforewards.expsConfig,
-            bar_format='| {n_fmt}/{total_fmt} {percentage:3.0f}%|{bar}| - Experiments running - {elapsed}',
+            bar_format='| {n_fmt}/{total_fmt} {percentage:3.0f}%|{bar}| - Experiments running - {elapsed} < {remaining}',
             ascii=" ▖▘▝▗▚▞█"
             )
 

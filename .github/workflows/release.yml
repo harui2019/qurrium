@@ -2,7 +2,8 @@ name: Create Version Tag
 on:
   push:
     branches:
-      - stable
+      - main
+      - pre-release
 jobs:
   create_tag:
     runs-on: ubuntu-latest

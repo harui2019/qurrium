@@ -6,10 +6,12 @@ name: Python package
 on:
   push:
     branches: 
-      - "stable"
+      - "main"
+      - "pre-release"
   pull_request:
     branches: 
-      - "stable"
+      - "main"
+      - "pre-release"
       - "dev"
 
 jobs:

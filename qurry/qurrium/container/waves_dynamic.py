@@ -1,5 +1,4 @@
 from qiskit import QuantumCircuit
-from qiskit.providers.ibmq import IBMQBackend
 from qiskit.providers import Backend
 from qiskit.quantum_info import Operator
 from qiskit.circuit import Gate, Instruction
@@ -53,9 +52,7 @@ def wave_container_maker(
         self: MutableMapping[Hashable, QuantumCircuit],
         wave: Union[list[Hashable], Hashable, None] = None,
         runBy: Optional[Literal['gate', 'operator',
-                                'instruction', 'copy', 'call']] = None,
-        backend: Optional[Backend] = AerProvider(
-        ).get_backend('aer_simulator'),
+                                'instruction', 'copy', 'call']] = None
     ) -> Union[list[Union[Gate, Operator, Instruction, QuantumCircuit]], Union[Gate, Operator, Instruction, QuantumCircuit]]:
         """Parse wave Circuit into `Instruction` as `Gate` or `Operator` on `QuantumCircuit`.
 
@@ -67,10 +64,6 @@ def wave_container_maker(
             runBy (Optional[str], optional):
                 Export as `Gate`, `Operator`, `Instruction` or a copy when input is `None`.
                 Defaults to `None`.
-            backend (Optional[Backend], optional):
-                Current backend which to check whether exports to `IBMQBacked`,
-                if does, then no matter what option input at `runBy` will export `Gate`.
-                Defaults to AerProvider().get_backend('aer_simulator').
 
         Returns:
             waveReturn: The result of the wave as `Gate` or `Operator`.
@@ -79,11 +72,12 @@ def wave_container_maker(
         if wave == None:
             wave = self.lastWave
         elif isinstance(wave, list):
-            return [self.get_wave(w, runBy, backend) for w in wave]
+            return [self.get_wave(w, runBy) for w in wave]
 
-        if isinstance(backend, IBMQBackend):
-            return self[wave].to_instruction()
-        elif runBy == 'operator':
+        if wave not in self:
+            raise KeyError(f"Wave {wave} not found in {self}")
+
+        if runBy == 'operator':
             return Operator(self[wave])
         elif runBy == 'gate':
             return self[wave].to_gate()
