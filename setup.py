@@ -1,7 +1,15 @@
 import os
-from setuptools import setup, find_packages
-
+from setuptools import setup, find_packages, Extension
 from distutils.util import convert_path
+from Cython.Build import cythonize, build_ext
+
+
+cy_extensions = [
+    Extension(
+        "qurry.boost.randomized", 
+        ["qurry/boost/randomized.pyx"]),
+]
+
 
 main_ns = {}
 ver_path = convert_path('./qurry/version.py')
@@ -50,6 +58,7 @@ requirement = qiskit_main + qiskit_gpu + bugfix + dependencies
 
 __author__ = "Huai-Chung Chang (harui2019@proton.me)"
 
+
 setup(
     name='qurry',
     version=__version_str__,
@@ -63,6 +72,11 @@ setup(
 
     packages=find_packages(exclude=['tests']),
     include_package_data=True,
+    ext_modules=cythonize(
+        cy_extensions,
+        language_level=3,
+    ),
+    cmdclass={'build_ext': build_ext},
 
     install_requires=requirement,
     python_requires=">=3.9",
