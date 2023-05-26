@@ -21,6 +21,21 @@ from ..qurrium.utils.randomized import (
     ensembleCell,
     cycling_slice
 )
+try:
+    from ..boost.randomized import purityCellCore
+    useCython = True
+except ImportError:
+    useCython = False
+
+
+def _purityCellCy(
+    idx: int,
+    singleCounts: dict[str, int],
+    bitStringRange: tuple[int, int],
+    subsystemSize: int,
+) -> tuple[int, float]:
+
+    return idx, purityCellCore(singleCounts, bitStringRange, subsystemSize)
 
 
 def _purityCell(
@@ -164,6 +179,8 @@ def _entangled_entropy_core(
     times = len(counts)
     Begin = time.time()
 
+    cellCalculator = (_purityCellCy if useCython else _purityCell)
+
     if launch_worker == 1:
         purityCellItems = []
         msg += f", single process, {times} overlaps, it will take a lot of time."
@@ -176,7 +193,7 @@ def _entangled_entropy_core(
                     f"| Calculating overlap {i} and {i} " +
                     f"by summarize {len(c)**2} values - {i+1}/{times}" +
                     f" - {round(time.time() - Begin, 3)}s.", end="\r")
-            purityCellItems.append(_purityCell(
+            purityCellItems.append(cellCalculator(
                 i, c, bitStringRange, subsystemSize))
 
         if not _hide_print:
@@ -188,7 +205,7 @@ def _entangled_entropy_core(
 
         pool = Pool(launch_worker)
         purityCellItems = pool.starmap(
-            _purityCell, [(i, c, bitStringRange, subsystemSize) for i, c in enumerate(counts)])
+            cellCalculator, [(i, c, bitStringRange, subsystemSize) for i, c in enumerate(counts)])
         takeTime = round(time.time() - Begin, 3)
 
     if not _hide_print:
@@ -451,7 +468,9 @@ def entangled_entropy_complex(
     """
 
     if isinstance(pbar, tqdm.tqdm):
-        pbar.set_description(f"Calculate specific partition.")
+        pbar.set_description(
+            f"Calculate specific partition" +
+            ("." if useCython else " by Pure Python, it may take a long time."))
     (
         purityCellDict,
         bitStringRange,
@@ -469,7 +488,9 @@ def entangled_entropy_complex(
     purityCellList = list(purityCellDict.values())
 
     if isinstance(pbar, tqdm.tqdm):
-        pbar.set_description(f"Calculate all system.")
+        pbar.set_description(
+            f"Calculate all system" +
+            ("." if useCython else " by Pure Python, it may take a long time."))
     (
         purityCellDictAllSys,
         bitStringRangeAllSys,
