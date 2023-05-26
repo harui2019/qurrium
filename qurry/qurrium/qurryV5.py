@@ -934,7 +934,7 @@ class QurryV5Prototype:
         assert currentMultiJob.summonerID == besummonned
         initedConfigListProgress = tqdm.tqdm(
             initedConfigList,
-            bar_format='| {n_fmt}/{total_fmt} {percentage:3.0f}%|{bar}| - Experiments build - {elapsed}',
+            bar_format='| {n_fmt}/{total_fmt} {percentage:3.0f}%|{bar}| - Experiments build - {elapsed} < {remaining}',
             ascii=" ▖▘▝▗▚▞█"
             )
 
@@ -1039,7 +1039,7 @@ class QurryV5Prototype:
 
         experimentProgress = tqdm.tqdm(
             currentMultiJob.beforewards.expsConfig,
-            bar_format='| {n_fmt}/{total_fmt} {percentage:3.0f}%|{bar}| - Experiments running - {elapsed}',
+            bar_format='| {n_fmt}/{total_fmt} {percentage:3.0f}%|{bar}| - Experiments running - {elapsed} < {remaining}',
             ascii=" ▖▘▝▗▚▞█"
             )
 

@@ -60,7 +60,7 @@ class QuantityContainer(dict[str, TagList[Quantity]]):
         quantityProgress = tqdm.tqdm(
             self.items(),
             desc='exporting quantity',
-            bar_format='| {n_fmt}/{total_fmt} - {desc} - {elapsed}',
+            bar_format='| {n_fmt}/{total_fmt} - {desc} - {elapsed} < {remaining}',
         )
             
         for i, (k, v) in enumerate(quantityProgress):

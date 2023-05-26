@@ -435,7 +435,7 @@ class EchoRandomizedExperiment(ExperimentPrototype):
             pbar_selfhost = tqdm.tqdm(
                 range(1),
                 bar_format=(
-                    '| {desc} - {elapsed}'
+                    '| {desc} - {elapsed} < {remaining}'
                 ),
             )
 

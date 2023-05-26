@@ -686,7 +686,7 @@ class MultiManager:
         exportProgress = tqdm.tqdm(
             self.before._fields + self.after._fields,
             desc='exporting',
-            bar_format='| {n_fmt}/{total_fmt} - {desc} - {elapsed}',
+            bar_format='| {n_fmt}/{total_fmt} - {desc} - {elapsed} < {remaining}',
         )
 
         # beforewards amd afterwards
@@ -753,7 +753,7 @@ class MultiManager:
             expConfigsProgress = tqdm.tqdm(
                 self.beforewards.expsConfig,
                 bar_format=(
-                    '| {n_fmt}/{total_fmt} - {desc} - {elapsed}'
+                    '| {n_fmt}/{total_fmt} - {desc} - {elapsed} < {remaining}'
                 ),
             )
             for i, id_exec in enumerate(expConfigsProgress):
@@ -831,7 +831,7 @@ class MultiManager:
         allCountsProgressBar = tqdm.tqdm(
             self.afterwards.allCounts.keys(),
             bar_format=(
-                '| {n_fmt}/{total_fmt} - Analysis: {desc} - {elapsed}'
+                '| {n_fmt}/{total_fmt} - Analysis: {desc} - {elapsed} < {remaining}'
             ),
         )
         for k in allCountsProgressBar:
