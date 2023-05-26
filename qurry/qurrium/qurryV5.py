@@ -4,7 +4,6 @@ from qiskit.circuit import Gate
 from qiskit.providers import Backend, Provider
 from qiskit_aer import AerSimulator
 from qiskit_ibm_provider import IBMBackend
-# from qiskit.providers.ibmq import AccountProvider
 
 import gc
 import warnings

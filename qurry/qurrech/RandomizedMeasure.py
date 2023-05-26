@@ -48,12 +48,16 @@ def _echoCell(
     firstCountsUnderDegree = dict.fromkeys(
         [k[bitStringRange[0]:bitStringRange[1]] for k in firstCounts], 0)
     for bitString in list(firstCounts):
-        firstCountsUnderDegree[bitString[bitStringRange[0]                                         :bitStringRange[1]]] += firstCounts[bitString]
+        firstCountsUnderDegree[
+            bitString[bitStringRange[0]:bitStringRange[1]]
+        ] += firstCounts[bitString]
 
     secondCountsUnderDegree = dict.fromkeys(
         [k[bitStringRange[0]:bitStringRange[1]] for k in secondCounts], 0)
     for bitString in list(secondCounts):
-        secondCountsUnderDegree[bitString[bitStringRange[0]                                          :bitStringRange[1]]] += secondCounts[bitString]
+        secondCountsUnderDegree[
+            bitString[bitStringRange[0]:bitStringRange[1]]
+        ] += secondCounts[bitString]
 
     echoCell = np.float64(0)
     for sAi, sAiMeas in firstCountsUnderDegree.items():
@@ -462,7 +466,7 @@ class EchoRandomizedListen(QurryV5Prototype):
 
     __name__ = 'qurrechRandomized'
     shortName = 'qurrech_haar'
-    
+
     tqdm_handleable = True
     """The handleable of tqdm."""
 
