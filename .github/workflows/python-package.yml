@@ -7,8 +7,10 @@ on:
   push:
     branches: 
       - "stable"
+      - "main"
   pull_request:
     branches: 
+      - "main"
       - "stable"
       - "dev"
 
