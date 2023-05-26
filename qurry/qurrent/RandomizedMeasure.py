@@ -35,7 +35,7 @@ def _purityCellCy(
     subsystemSize: int,
 ) -> tuple[int, float]:
 
-    return idx, purityCellCore(singleCounts, bitStringRange, subsystemSize)
+    return idx, purityCellCore(dict(singleCounts), bitStringRange, subsystemSize)
 
 
 def _purityCell(
