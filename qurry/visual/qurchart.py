@@ -10,7 +10,6 @@ import warnings
 import os
 
 from ..mori import TagList
-from ..qurrium import Quantity
 
 _mplExportFormat = Literal['eps', 'jpg', 'jpeg', 'pdf', 'pgf',
                            'png', 'ps', 'raw', 'rgba', 'svg', 'svgz', 'tif', 'tiff']
@@ -52,7 +51,7 @@ class QurchartConfig(NamedTuple):
 
 
 def paramsControl(
-    data: Union[TagList[Quantity], dict[str, dict[str, float]]],
+    data: Union[TagList[dict[str, float]], dict[str, dict[str, float]]],
 
     yLim: Union[Tuple[float, float], None, Literal['qurchart']] = None,
     fontSize: int = 12,
@@ -71,7 +70,7 @@ def paramsControl(
     """Control the parameters of the plot.
 
     Args:
-        data (Union[TagList[Quantity], dict[str, dict[str, float]]]): 
+        data (Union[TagList[dict[str, float]], dict[str, dict[str, float]]]): 
             Data to be plotted.
         yLim (Union[callable, tuple[float, int], None], optional): 
             The y-axis limit of the plot. Defaults to None.
@@ -141,7 +140,7 @@ def paramsControl(
 
 
 def yLimDecider(
-    data: Union[TagList[Quantity], dict[str, dict[str, float]]],
+    data: Union[TagList[dict[str, float]], dict[str, dict[str, float]]],
     quantity: str = 'entropy',
 ) -> tuple[float, float]:
     """Give the `ylim` of the plot.
@@ -176,7 +175,7 @@ def yLimDecider(
                 vsp.append(v)
             else:
                 raise TypeError(
-                    f"Invalid type '{type(v)}' for value in '{type(vs)}', it needs to be `Quantity`, 'int', or 'float'.")
+                    f"Invalid type '{type(v)}' for value in '{type(vs)}', it needs to be `dict[str, float]`, 'int', or 'float'.")
 
         maxSet.append(max(vsp))
         minSet.append(min(vsp))
