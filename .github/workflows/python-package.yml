@@ -48,7 +48,7 @@ jobs:
           # A bug waiting for fixing, https://github.com/pypa/setuptools/issues/3278
           # pip install --upgrade --user setuptools==58.3.0
           python -c "print('### Preparing setup.py '.ljust(70, '.'))"
-          python setup.py install
+          pip install -e .
           # python -c "print('### Preparing requirements.txt '.ljust(70, '.'))
           # if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           python -c "print('### Dependencies are ready to go '.ljust(70, '.'))"
