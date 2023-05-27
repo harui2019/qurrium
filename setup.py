@@ -1,7 +1,27 @@
 import os
+import warnings
 from setuptools import setup, find_packages, Extension
 from distutils.util import convert_path
-from Cython.Build import cythonize, build_ext
+from distutils.command.build_ext import build_ext
+
+class CustomBuildExt(build_ext):
+    def run(self):
+        try:
+            from Cython.Build import cythonize
+        except ImportError:
+            import subprocess
+            subprocess.call(['pip', 'install', 'cython'])
+            from Cython.Build import cythonize
+        
+        super().run()
+        
+def re_cythonize(extensions, **kwargs):
+    try:
+        from Cython.Build import cythonize
+        return cythonize(extensions, **kwargs)
+    except ImportError:
+        warnings.warn("Cython is not installed, please install cython manually first.")
+        exit()
 
 
 cy_extensions = [
@@ -35,7 +55,6 @@ qiskit_main = [
     "websockets>=9.1 ; python_version<'3.7'",
     "dataclasses>=0.8 ; python_version<'3.7'",
 
-    "cython>=0.27.1",
     "qiskit==0.41.1",
     "qiskit-aer==0.11.2",
     "qiskit-ibm-provider==0.4.0",
@@ -51,7 +70,7 @@ bugfix = [
 ]
 dependencies = [
     "tqdm",
-    "dask",
+    "cython>=0.27.1",
     "matplotlib",
 ]
 
@@ -73,11 +92,11 @@ setup(
 
     packages=find_packages(exclude=['tests']),
     include_package_data=True,
-    ext_modules=cythonize(
+    ext_modules=re_cythonize(
         cy_extensions,
         language_level=3,
     ),
-    cmdclass={'build_ext': build_ext},
+    cmdclass={'build_ext': CustomBuildExt},
 
     install_requires=requirement,
     python_requires=">=3.9",
