@@ -1,29 +1,25 @@
 import os
-import warnings
+import sys
+import importlib.util
 from setuptools import setup, find_packages, Extension
 from distutils.util import convert_path
-from distutils.command.build_ext import build_ext
 
-class CustomBuildExt(build_ext):
-    def run(self):
-        try:
-            print('| Trying Cython '.ljust(70, '.'))
-            from Cython.Build import cythonize
-        except ImportError:
-            import subprocess
-            print('| Cython not found, install automatically '.ljust(70, '.'))
-            subprocess.call(['pip', 'install', 'cython'])
-            from Cython.Build import cythonize
-        
-        super().run()
-        
+try:
+    importlib.util.find_spec('Cython')
+except ImportError:
+    import subprocess
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'cython'])
+
+
 def re_cythonize(extensions, **kwargs):
     try:
         from Cython.Build import cythonize
         return cythonize(extensions, **kwargs)
     except ImportError:
-        warnings.warn("Cython is not installed, please install cython manually first.")
-        exit()
+        print("| Cython is not installed.")
+        print("| Please install cython manually at first,")
+        print("| Then reinstall qurry for more powerful performance.")
+
 
 
 cy_extensions = [
@@ -98,7 +94,6 @@ setup(
         cy_extensions,
         language_level=3,
     ),
-    cmdclass={'build_ext': CustomBuildExt},
 
     install_requires=requirement,
     python_requires=">=3.9",
