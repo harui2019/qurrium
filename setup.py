@@ -7,9 +7,11 @@ from distutils.command.build_ext import build_ext
 class CustomBuildExt(build_ext):
     def run(self):
         try:
+            print('| Trying Cython '.ljust(70, '.'))
             from Cython.Build import cythonize
         except ImportError:
             import subprocess
+            print('| Cython not found, install automatically '.ljust(70, '.'))
             subprocess.call(['pip', 'install', 'cython'])
             from Cython.Build import cythonize
         
@@ -70,7 +72,6 @@ bugfix = [
 ]
 dependencies = [
     "tqdm",
-    "cython>=0.27.1",
     "matplotlib",
 ]
 
@@ -90,6 +91,7 @@ setup(
     author='Huai-Chung Chang',
     author_email='harui2019@proton.me',
 
+    setup_requires=['Cython'],
     packages=find_packages(exclude=['tests']),
     include_package_data=True,
     ext_modules=re_cythonize(
