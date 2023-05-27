@@ -2,6 +2,7 @@ import os
 from setuptools import setup, find_packages, Extension
 from distutils.util import convert_path
 
+
 def re_cythonize(extensions, **kwargs):
     try:
         from Cython.Build import cythonize
@@ -10,7 +11,6 @@ def re_cythonize(extensions, **kwargs):
         print("| Cython is not installed.")
         print("| Please install cython manually at first,")
         print("| Then reinstall qurry for more powerful performance.")
-
 
 
 cy_extensions = [
@@ -58,6 +58,7 @@ bugfix = [
     # "urllib3==1.22",
 ]
 dependencies = [
+    "cython",
     "tqdm",
     "matplotlib",
 ]
