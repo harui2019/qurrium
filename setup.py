@@ -6,7 +6,7 @@ from Cython.Build import cythonize, build_ext
 
 cy_extensions = [
     Extension(
-        "qurry.boost.randomized", 
+        "qurry.boost.randomized",
         ["qurry/boost/randomized.pyx"]),
 ]
 
@@ -34,7 +34,8 @@ qiskit_main = [
     "websockets==10.0 ; python_version>='3.7'",
     "websockets>=9.1 ; python_version<'3.7'",
     "dataclasses>=0.8 ; python_version<'3.7'",
-    
+
+    "cython>=0.27.1",
     "qiskit==0.41.1",
     "qiskit-aer==0.11.2",
     "qiskit-ibm-provider==0.4.0",
@@ -43,7 +44,7 @@ qiskit_main = [
 ]
 qiskit_gpu = [
     # https://peps.python.org/pep-0508/
-    "qiskit-aer-gpu; platform_system=='Linux' and python_version<='3.9'",
+    "qiskit-aer-gpu; platform_system=='Linux'",
 ]
 bugfix = [
     # "urllib3==1.22",
