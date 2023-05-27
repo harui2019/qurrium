@@ -1,7 +1,24 @@
 import os
-from setuptools import setup, find_packages
-
+from setuptools import setup, find_packages, Extension
 from distutils.util import convert_path
+
+
+def re_cythonize(extensions, **kwargs):
+    try:
+        from Cython.Build import cythonize
+        return cythonize(extensions, **kwargs)
+    except ImportError:
+        print("| Cython is not installed.")
+        print("| Please install cython manually at first,")
+        print("| Then reinstall qurry for more powerful performance.")
+
+
+cy_extensions = [
+    Extension(
+        "qurry.boost.randomized",
+        ["qurry/boost/randomized.pyx"]),
+]
+
 
 main_ns = {}
 ver_path = convert_path('./qurry/version.py')
@@ -26,7 +43,7 @@ qiskit_main = [
     "websockets==10.0 ; python_version>='3.7'",
     "websockets>=9.1 ; python_version<'3.7'",
     "dataclasses>=0.8 ; python_version<'3.7'",
-    
+
     "qiskit==0.41.1",
     "qiskit-aer==0.11.2",
     "qiskit-ibm-provider==0.4.0",
@@ -35,20 +52,21 @@ qiskit_main = [
 ]
 qiskit_gpu = [
     # https://peps.python.org/pep-0508/
-    "qiskit-aer-gpu; platform_system=='Linux' and python_version<='3.9'",
+    "qiskit-aer-gpu; platform_system=='Linux'",
 ]
 bugfix = [
     # "urllib3==1.22",
 ]
 dependencies = [
+    "cython",
     "tqdm",
-    "dask",
     "matplotlib",
 ]
 
 requirement = qiskit_main + qiskit_gpu + bugfix + dependencies
 
 __author__ = "Huai-Chung Chang (harui2019@proton.me)"
+
 
 setup(
     name='qurry',
@@ -63,6 +81,10 @@ setup(
 
     packages=find_packages(exclude=['tests']),
     include_package_data=True,
+    ext_modules=re_cythonize(
+        cy_extensions,
+        language_level=3,
+    ),
 
     install_requires=requirement,
     python_requires=">=3.9",

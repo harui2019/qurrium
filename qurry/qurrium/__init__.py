@@ -2,10 +2,6 @@ from .qurryV5 import QurryV5, QurryV5Prototype
 from .experiment import QurryExperiment, ExperimentPrototype
 from .analysis import QurryAnalysis, AnalysisPrototype
 
-from .declare.type import (
-    Quantity,
-    Counts,
-)
 from ..exceptions import *
 from .utils import (
     RXmatrix, RYmatrix, RZmatrix,

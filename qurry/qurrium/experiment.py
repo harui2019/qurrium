@@ -22,7 +22,6 @@ from ..exceptions import (
     QurryExperimentCountsNotCompleted,
     QurryResetSecurityActivated, QurryResetAccomplished,
     QurryProtectContent, QurrySummonerInfoIncompletion)
-from .declare.type import Counts
 from .analysis import AnalysisPrototype, QurryAnalysis
 from .utils.datetime import currentTime, datetimeDict
 
@@ -1405,7 +1404,7 @@ class QurryExperiment(ExperimentPrototype):
     @classmethod
     def quantities(cls,
                    shots: int,
-                   counts: list[Counts],
+                   counts: list[dict[str, int]],
                    ultimate_question: str = '',
                    **otherArgs) -> dict[str, float]:
         """Computing specific squantity.

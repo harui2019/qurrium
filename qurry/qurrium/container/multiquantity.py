@@ -2,20 +2,19 @@ import tqdm
 from typing import Union, Optional, Literal
 from pathlib import Path
 
-from ..declare.type import Quantity
 from ...mori import TagList
 
 
-class QuantityContainer(dict[str, TagList[Quantity]]):
+class QuantityContainer(dict[str, TagList[dict[str, float]]]):
     """The container of analysis for :cls:`MultiManager`.
     """
-    
+
     __name__ = "QuantityContainer"
 
     def __init__(self):
         super().__init__()
 
-    def remove(self, name: str) -> TagList[Quantity]:
+    def remove(self, name: str) -> TagList[dict[str, float]]:
         """Removes the analysis.
 
         Args:
@@ -62,7 +61,7 @@ class QuantityContainer(dict[str, TagList[Quantity]]):
             desc='exporting quantity',
             bar_format='| {n_fmt}/{total_fmt} - {desc} - {elapsed} < {remaining}',
         )
-            
+
         for i, (k, v) in enumerate(quantityProgress):
             quantityProgress.set_description(f'exporting quantity: {k}')
             filename = v.export(
@@ -79,7 +78,7 @@ class QuantityContainer(dict[str, TagList[Quantity]]):
                 }
             )
             quantityOutput[k] = str(filename)
-            
+
             if i == len(self) - 1:
                 quantityProgress.set_description(f'exported quantity complete')
 

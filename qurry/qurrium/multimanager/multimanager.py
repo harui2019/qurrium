@@ -633,6 +633,7 @@ class MultiManager:
     def _writeMultiConfig(
         self,
         encoding: str = 'utf-8',
+        mute: bool = False,
     ) -> dict[str, Any]:
         multiConfigName = Path(self.multicommons.exportLocation) / \
             f"multi.config.json"
@@ -649,6 +650,7 @@ class MultiManager:
             mode='w+',
             jsonablize=True,
             encoding=encoding,
+            mute=mute,
         )
 
         return multiConfig
@@ -726,6 +728,7 @@ class MultiManager:
                     jsonablize=True,
                     indent=indent,
                     encoding=encoding,
+                    mute=True,
                 )
 
             else:
@@ -745,7 +748,8 @@ class MultiManager:
         self.gitignore.sync(
             f"*.quantity.{self.multicommons.filetype}")
         # multiConfig
-        multiConfig = self._writeMultiConfig(encoding=encoding)
+        multiConfig = self._writeMultiConfig(encoding=encoding, mute=True)
+        print(f"| Export multi.config.json for {self.summonerID}")
 
         self.gitignore.export(self.multicommons.exportLocation)
 
