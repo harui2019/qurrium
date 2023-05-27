@@ -1,15 +1,6 @@
 import os
-import sys
-import importlib.util
 from setuptools import setup, find_packages, Extension
 from distutils.util import convert_path
-
-try:
-    importlib.util.find_spec('Cython')
-except ImportError:
-    import subprocess
-    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'cython'])
-
 
 def re_cythonize(extensions, **kwargs):
     try:
@@ -87,7 +78,6 @@ setup(
     author='Huai-Chung Chang',
     author_email='harui2019@proton.me',
 
-    setup_requires=['Cython'],
     packages=find_packages(exclude=['tests']),
     include_package_data=True,
     ext_modules=re_cythonize(
