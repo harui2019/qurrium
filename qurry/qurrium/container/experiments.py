@@ -1,8 +1,10 @@
 from ..experiment import ExperimentPrototype
 from typing import Union, Optional, Hashable, MutableMapping
 
+
 class ExperimentContainer(dict[Hashable, ExperimentPrototype]):
-    
+    __name__ = "ExperimentContainer"
+
     @property
     def lastExp(self) -> ExperimentPrototype:
         """The last experiment be called or used.
@@ -11,11 +13,10 @@ class ExperimentContainer(dict[Hashable, ExperimentPrototype]):
             raise ValueError("No experiment has been created.")
         else:
             return self[self.lastID]
-        
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.lastID = None
-        
 
     def call(
         self: MutableMapping[Hashable, ExperimentPrototype],
@@ -32,10 +33,10 @@ class ExperimentContainer(dict[Hashable, ExperimentPrototype]):
         Returns:
             QuantumCircuit: The circuit of wave function.
         """
-        
+
         if expID == None:
             expID = self.lastID
-            
+
         if expID in self:
             self.lastID = expID
             return self[expID]
@@ -48,3 +49,8 @@ class ExperimentContainer(dict[Hashable, ExperimentPrototype]):
     ) -> ExperimentPrototype:
 
         return self.call(expID=expID)
+
+    def __repr__(self):
+        inner_lines = '\n'.join('    %s: ...' % k for k in self.keys())
+        inner_lines2 = "{\n%s\n}" % inner_lines
+        return f"<{self.__name__}={inner_lines2} with {len(self)} experiments load, a customized dictionary>"

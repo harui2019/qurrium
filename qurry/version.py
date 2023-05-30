@@ -1,5 +1,5 @@
-version_main = (0, 6, 0)
-version_beta = ('beta', 0)
+version_main = (0, 6, 2)
+version_beta = ('beta', 1)
 isBeta = False
 
 

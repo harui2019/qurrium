@@ -4,11 +4,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.instruction import Instruction
 from qiskit.result import Result
 
-from typing import Union, Hashable, TypeVar, Generic, MutableMapping
-import warnings
-
-Counts = Union[dict[str, int], list[dict[str, int]]]
-Quantity = dict[str, float]
+from typing import Union, TypeVar
 
 # TagsValue
 T = TypeVar("T")

@@ -4,10 +4,10 @@ from qiskit.circuit import Gate
 from qiskit.providers import Backend, Provider
 from qiskit_aer import AerSimulator
 from qiskit_ibm_provider import IBMBackend
-# from qiskit.providers.ibmq import AccountProvider
 
 import gc
 import warnings
+import tqdm
 from pathlib import Path
 from typing import Literal, Union, Optional, Hashable, Type, Any
 from abc import abstractmethod, abstractproperty
@@ -805,7 +805,7 @@ class QurryV5Prototype:
 
         if summonerID in self.multimanagers:
             multiJob = self.multimanagers[summonerID]
-            return list(multiJob.beforewards.configDict.values()), multiJob.summonerID
+            return list(multiJob.beforewards.expsConfig.values()), multiJob.summonerID
 
         isRead = isRetrieve | isRead
 
@@ -914,7 +914,7 @@ class QurryV5Prototype:
             Hashable: SummonerID (ID of multimanager).
         """
 
-        print(f"| MultiOutput building...")
+        print(f"| MultiManager building...")
         initedConfigList, besummonned = self._paramsControlMulti(
             configList=configList,
             shots=shots,
@@ -932,19 +932,24 @@ class QurryV5Prototype:
         )
         currentMultiJob = self.multimanagers[besummonned]
         assert currentMultiJob.summonerID == besummonned
+        initedConfigListProgress = tqdm.tqdm(
+            initedConfigList,
+            bar_format='| {n_fmt}/{total_fmt} {percentage:3.0f}%|{bar}| - Experiments build - {elapsed} < {remaining}',
+            ascii=" ▖▘▝▗▚▞█"
+            )
 
-        for config in initedConfigList:
+        for config in initedConfigListProgress:
             currentID = self.build(**config)
-            currentMultiJob.beforewards.configDict[currentID] = config
+            currentMultiJob.beforewards.expsConfig[currentID] = config
             currentMultiJob.beforewards.circuitsNum[currentID] = len(
                 self.exps[currentID].beforewards.circuit)
             files = self.exps[currentID].write(mute=True)
 
-            currentMultiJob.beforewards.tagMapExpsID[
+            currentMultiJob.beforewards.jobTagList[
                 self.exps[currentID].commons.tags].append(currentID)
-            currentMultiJob.beforewards.tagMapFiles[
+            currentMultiJob.beforewards.filesTagList[
                 self.exps[currentID].commons.tags].append(files)
-            currentMultiJob.beforewards.tagMapIndex[
+            currentMultiJob.beforewards.indexTagList[
                 self.exps[currentID].commons.tags
             ].append(self.exps[currentID].commons.serial)
 
@@ -1032,8 +1037,14 @@ class QurryV5Prototype:
         assert currentMultiJob.summonerID == besummonned
         circSerial = []
 
+        experimentProgress = tqdm.tqdm(
+            currentMultiJob.beforewards.expsConfig,
+            bar_format='| {n_fmt}/{total_fmt} {percentage:3.0f}%|{bar}| - Experiments running - {elapsed} < {remaining}',
+            ascii=" ▖▘▝▗▚▞█"
+            )
+
         print(f"| MultiOutput running...")
-        for id_exec in currentMultiJob.beforewards.configDict:
+        for id_exec in experimentProgress:
             currentID = self.output(
                 expID=id_exec,
                 saveLocation=currentMultiJob.multicommons.saveLocation,
@@ -1137,7 +1148,6 @@ class QurryV5Prototype:
             configList=configList,
             shots=shots,
             backend=backend,
-            provider=provider,
             tags=tags,
             managerRunArgs=managerRunArgs,
             summonerName=summonerName,
@@ -1149,6 +1159,7 @@ class QurryV5Prototype:
         currentMultiJob = self.multimanagers[besummonned]
         assert currentMultiJob.summonerID == besummonned
 
+        print(f"| MultiPending running...")
         if jobsType == 'IBMQ':
             if isinstance(backend, IBMBackend):
                 raise ValueError(
@@ -1237,7 +1248,6 @@ class QurryV5Prototype:
             specificAnalysisArgs=specificAnalysisArgs,
             **analysisArgs,
         )
-        
         print(f'| "{reportName}" has been completed.')
 
         if _write:
@@ -1283,13 +1293,6 @@ class QurryV5Prototype:
             wave_container=self.exps,
         )
 
-        # for id_exec in currentMultiJob.beforewards.configDict:
-        #     print(f"| MultiWrite: {id_exec} in {summonerID}.")
-        #     self.exps[id_exec].write(
-        #         saveLocation=currentMultiJob.multicommons.saveLocation,
-        #         mute=True,
-            # )
-
         if compress:
             currentMultiJob.compress(
                 compressOverwrite=compressOverwrite,
@@ -1332,6 +1335,7 @@ class QurryV5Prototype:
             Hashable: SummonerID (ID of multimanager).
         """
 
+        print(f"| MultiRead running...")
         initedConfigList, besummonned = self._paramsControlMulti(
             summonerName=summonerName,
             summonerID=summonerID,
@@ -1427,6 +1431,7 @@ class QurryV5Prototype:
         currentMultiJob = self.multimanagers[besummonned]
         assert currentMultiJob.summonerID == besummonned
 
+        print(f"| MultiRetrieve running...")
         jobsType, pendingStrategy = currentMultiJob.multicommons.jobsType.split(
             '.')
 
@@ -1471,7 +1476,6 @@ class QurryV5Prototype:
         assert bewritten == besummonned
 
         if len(defaultMultiAnalysis) > 0:
-            print(f"| MultiRetrieve analyzing...")
             for analysis in defaultMultiAnalysis:
                 self.multiAnalysis(
                     summonerID=currentMultiJob.multicommons.summonerID,

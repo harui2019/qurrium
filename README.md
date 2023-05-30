@@ -1,12 +1,7 @@
-# Qurry 🍛 - The Measuring Tool for Renyi Entropy, Loschmidt Echo, and Magnetization Squared, The Library of Some Common Cases
+# Qurry 🍛 - The Quantum Experiment Manager for Qiskit and The Measuring Tool for Renyi Entropy, Loschmidt Echo, and More
+
 
 This is a tool to measure the Renyi entropy, Loschmidt Echo, and Magnetization Squared of given wave function. Running on **IBM Qiskit** with the function from constructing experiment object to pending the jobs to IBMQ automatically.
-
----
-
-## Usage
-
-Using `git clone https://github.com/harui2019/qurry-tutorial.git --recurse-submodules` to clone the repository anf its submodules.
 
 ---
 
@@ -14,18 +9,21 @@ Using `git clone https://github.com/harui2019/qurry-tutorial.git --recurse-submo
 
 _It's a great thanks for [National Center for Theoretical Sciences, Physics Division](https://phys.ncts.ntu.edu.tw/) located [National Taiwan University](https://www.ntu.edu.tw/), which funded the development of this tool during the author [@harui2019](https://github.com/harui2019/) worked at this institution as Research Assistiant, and i also a great thanks for [IBM Quantum Hub at National Taiwan University](https://quantum.ntu.edu.tw/) providing the access right of [IBM Quantum](https://quantum-computing.ibm.com/), let us can fully test this tool and execute our experiments._
 
-![National Center for Theoretical Sciences, Physics Division](https://phys.ncts.ntu.edu.tw/uploads/site/site_logo/607fe6dd1d41c87eae000023/logo%E6%A9%98_%E7%B6%B2%E9%A0%812.png)
-
-![IBM Quantum Hub at National Taiwan University](https://quantum.ntu.edu.tw/wp-content/uploads/elementor/thumbs/NTU-IBMQ_LOGO1-p9ym8ap0ujw64l3clhzokyfcks6gk8jqq8h148kjk6.png)
+<p><img src="https://phys.ncts.ntu.edu.tw/uploads/site/site_logo/607fe6dd1d41c87eae000023/logo橘_網頁2.png" alt="National Center for Theoretical Sciences, Physics Division" width="500" ></p>
+<p><img src="https://quantum.ntu.edu.tw/wp-content/uploads/elementor/thumbs/NTU-IBMQ_LOGO1-p9ym8ap0ujw64l3clhzokyfcks6gk8jqq8h148kjk6.png" alt="IBM Quantum Hub at National Taiwan University" width="500"></p>
 
 ---
 
-## Configurate Environment
+## Environment
 
-- **`Python 3.9.7+` installed by Anaconda**
+![Available Python Version](https://img.shields.io/badge/Python-3.9_|_3.10_|_3.11-blue?logo=python&logoColor=white)
+
+![Available System](https://img.shields.io/badge/Ubuntu-18.04+-purple?logo=Ubuntu&logoColor=white) ![Available System](https://img.shields.io/badge/Ubuntu_on_Windows_WSL-18.04+-purple?logo=Ubuntu&logoColor=white) ![Available System](https://img.shields.io/badge/Windows-10_|_11-purple?logo=Windows&logoColor=white)
+
+- **Recommended `Python 3.9.7+` installed by Anaconda**
   - on
-    - **Ubuntu 20.04 LTS/18.04 LTS** on `x86_64` **(recommended)**
-    - **Ubuntu 20.04 LTS/18.04 LTS on Windows 10/11 WSL2** on `x86_64` **(recommended)**
+    - **Ubuntu 18.04+ LTS** on `x86_64` **(recommended)**
+    - **Ubuntu 18.04+ LTS on Windows 10/11 WSL2** on `x86_64` **(recommended)**
       - We recommend to use Linux based system, due to the GPU acceleration of `Qiskit`, `qiskit-aer-gpu` only works with Nvidia CUDA on Linux.
     - **Windows 10/11** on `x86_64`
 
@@ -43,9 +41,19 @@ _It's a great thanks for [National Center for Theoretical Sciences, Physics Divi
 
 ---
 
-## Download
+## Install
 
-Use `git clone https://github.com/harui2019/qurry-tutorial.git --recurse-submodules` to download the all files.
+### Maually by Git
+
+```bash
+git clone https://github.com/harui2019/qurry.git
+cd qurry
+pip install -e .
+```
+
+### By PyPI
+
+Not available now, but coming soon
 
 ---
 
@@ -76,7 +84,7 @@ It's similar to `qurrent`.
   - From:
     **Statistical correlations between locally randomized measurements: A toolbox for probing entanglement in many-body quantum states** - A. Elben, B. Vermersch, C. F. Roos, and P. Zoller, [PhysRevA.99.052323](https://doi.org/10.1103/PhysRevA.99.052323)
 
-### `qurmagsq` - The Magnetization Squared
+<!-- ### `qurmagsq` - The Magnetization Squared
 
 - Magnetization Squared
 
@@ -84,38 +92,6 @@ It's similar to `qurrent`.
 
 - String Operators
   - Used in:
-    **Crossing a topological phase transition with a quantum computer** - Smith, Adam and Jobst, Bernhard and Green, Andrew G. and Pollmann, Frank, [PhysRevResearch.4.L022020](https://link.aps.org/doi/10.1103/PhysRevResearch.4.L022020)
-
----
-
-## The Library of Some Common Case & Other tools
-
-### `case`
-
-Some examples for the experiments.
-
-- Trivial Paramagenet
-- cat (as known as GHZ)
-- Topological Paramagnet
-  - From:
-    **Measurement of the Entanglement Spectrum of a Symmetry-Protected Topological State Using the IBM Quantum Computer** - Kenny Choo, Curt W. von Keyserlingk, Nicolas Regnault, and Titus Neupert, [PhysRevLett.121.086808](https://doi.org/10.1103/PhysRevLett.121.086808)
+    **Crossing a topological phase transition with a quantum computer** - Smith, Adam and Jobst, Bernhard and Green, Andrew G. and Pollmann, Frank, [PhysRevResearch.4.L022020](https://link.aps.org/doi/10.1103/PhysRevResearch.4.L022020) -->
 
 - More wait for adding...
-
-### `tool`
-
-- `command`
-  - `auto_cmd`: Use command in anywhere, no matter it's in `.ipynb` or '.py'.
-  - `pytorchCUDACheck`: Via pytorch to check Nvidia CUDA available.
-
-- `configuration`
-  - `Configuration`: Set the default parameters dictionary for multiple experiment.
-
-- `datasaving`
-  - `argset`: A python `dict` with attributes of each parameters like a javascript `object`.
-
-- `draw`
-  - `yLimDecider`: Give the `ylim` of the plot.
-  - `drawEntropyPlot`: Draw the figure of the result from entropy measuring with its time evolution as x-axis.
-  - `drawEntropyErrorBar`: Draw the figure of the error analysis from entropy measuring with multile waves as x-axis.
-  - `drawEntropyErrorPlot`: Draw the figure of the error analysis from entropy measuring with stand deviations of each wave as y-axis.

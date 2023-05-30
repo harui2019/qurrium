@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - main
+      - pre-release
 jobs:
   create_tag:
     runs-on: ubuntu-latest

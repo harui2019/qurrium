@@ -6,12 +6,12 @@ name: Python package
 on:
   push:
     branches: 
-      - "stable"
       - "main"
+      - "pre-release"
   pull_request:
     branches: 
       - "main"
-      - "stable"
+      - "pre-release"
       - "dev"
 
 jobs:
@@ -44,14 +44,13 @@ jobs:
           python -m pip install --upgrade pipenv wheel pip
           python -m pip install flake8 pytest matplotlib
           pip install --upgrade urllib3
-          python -m pip install --upgrade setuptools
           # A bug waiting for fixing, https://github.com/pypa/setuptools/issues/3278
           # pip install --upgrade --user setuptools==58.3.0
-          python -c "print('### Preparing setup.py')"
-          python setup.py install
-          # python -c "print('### Preparing requirements.txt')"
+          python -c "print('### Preparing setup.py '.ljust(70, '.'))"
+          pip install -e .
+          # python -c "print('### Preparing requirements.txt '.ljust(70, '.'))
           # if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          python -c "print('### Dependencies are ready to go.')"
+          python -c "print('### Dependencies are ready to go '.ljust(70, '.'))"
 
       - name: Lint with flake8
         run: |

@@ -5,6 +5,7 @@ from qiskit.providers.ibmq.exceptions import IBMQError
 
 from typing import Literal, NamedTuple, Hashable, Any, Optional
 import warnings
+import tqdm
 
 from .multimanager import MultiManager
 from .runner import Runner
@@ -87,7 +88,14 @@ class IBMQRunner(Runner):
             else:
                 ...
 
-        for id_exec in self.currentMultiJob.beforewards.configDict:
+        distributingPendingProgressBar = tqdm.tqdm(
+            self.currentMultiJob.beforewards.expsConfig,
+            bar_format=(
+                '| {n_fmt}/{total_fmt} - Preparing pending pool - {elapsed} < {remaining}'
+            ),
+        )
+
+        for id_exec in distributingPendingProgressBar:
             circSerialLen = len(self.circWithSerial)
             for idx, circ in enumerate(
                     self.expContainer[id_exec].beforewards.circuit):
@@ -116,8 +124,14 @@ class IBMQRunner(Runner):
         current = currentTime()
         self.currentMultiJob.multicommons.datetimes['pending'] = current
 
-        for pk, pcircIdxs in self.currentMultiJob.beforewards.pendingPools.items(
-        ):
+        pendingPoolProgressBar = tqdm.tqdm(
+            self.currentMultiJob.beforewards.pendingPools.items(),
+            bar_format=(
+                '| {n_fmt}/{total_fmt} - pending: {desc} - {elapsed} < {remaining}'
+            ),
+        )
+
+        for pk, pcircIdxs in pendingPoolProgressBar:
             if len(pcircIdxs) > 0:
                 if pk == '_onetime':
                     pendingName = f'{self.currentMultiJob.multicommons.summonerName}'
@@ -137,6 +151,8 @@ class IBMQRunner(Runner):
                     managerRunArgs=self.currentMultiJob.multicommons.
                     managerRunArgs,
                 )
+                pendingPoolProgressBar.set_description(
+                    f"{pk}/{pendingJob.jobID}/{pendingJob.name}")
                 self.currentMultiJob.beforewards.jobID.append(
                     (pendingJob.jobID, pk))
                 self.reports[pendingJob.jobID] = {
@@ -144,15 +160,12 @@ class IBMQRunner(Runner):
                     'type': 'pending',
                     'report': pendingJob.report
                 }
-                print(f"| pending: {pk} - {pendingJob.jobID}")
-                print(f"| report:", pendingJob.report)
-                print(f"| name:", pendingJob.name)
 
             else:
                 self.currentMultiJob.beforewards.jobID.append((None, pk))
-                warnings.warn(f"Pending pool '{pk}' is empty.")
+                warnings.warn(f"| Pending pool '{pk}' is empty.")
 
-        for id_exec in self.currentMultiJob.beforewards.configDict:
+        for id_exec in self.currentMultiJob.beforewards.expsConfig:
             self.expContainer[id_exec].commons.datetimes['pending'] = current
 
         self.currentMultiJob.multicommons.datetimes[
@@ -206,10 +219,18 @@ class IBMQRunner(Runner):
         self.currentMultiJob.multicommons.datetimes[
             retrieveTimesName] = current
 
-        for pendingID, pk in self.currentMultiJob.beforewards.jobID:
+        retrieveProgressBar = tqdm.tqdm(
+            self.currentMultiJob.beforewards.jobID,
+            bar_format=(
+                '| {n_fmt}/{total_fmt} - retrieve: {desc} - {elapsed} < {remaining}'
+            ),
+        )
+
+        for pendingID, pk in retrieveProgressBar:
             if pendingID is None:
                 warnings.warn(f"Pending pool '{pk}' is empty.")
                 continue
+            retrieveProgressBar.set_description(f"{pk}/{pendingID}")
             pendingMapping[pk] = IBMQRetrieve(
                 ibmqJobManager=self.JobManager,
                 jobID=pendingID,
@@ -217,44 +238,55 @@ class IBMQRunner(Runner):
                 refresh=refresh,
             )
 
-        for pk, pcircs in self.currentMultiJob.beforewards.pendingPools.items(
-        ):
+        pendingPoolProgressBar = tqdm.tqdm(
+            self.currentMultiJob.beforewards.pendingPools.items(),
+            bar_format=(
+                '| {n_fmt}/{total_fmt} - get counts: {desc} - {elapsed} < {remaining}'
+            ),
+        )
+
+        for pk, pcircs in pendingPoolProgressBar:
             if len(pcircs) > 0:
                 pendingJob = pendingMapping[pk]
+                pendingPoolProgressBar.set_description(
+                    f"{pk}/{pendingJob.jobID}/{pendingJob.name}")
                 self.reports[pendingJob.jobID] = {
                     'time': current,
                     'type': 'retrieve',
                     'report': pendingJob.report
                 }
-                print(f"| retrieve: {pk} - {pendingJob.jobID}")
-                print(f"| report:", pendingJob.report)
-                print(f"| name:", pendingJob.name)
 
                 if pendingJob.managedJob is not None:
                     pResult = pendingJob.managedJob.results()
                     counts = get_counts(
                         result=pResult,
                         resultIdxList=[rk - pcircs[0] for rk in pcircs])
-                    print("| Getting Counts length:", len(counts))
+                    pendingPoolProgressBar.set_description(
+                        f"{pk}/{pendingJob.jobID}/{pendingJob.name} - len: {len(counts)}")
                 else:
                     counts = get_counts(
                         result=None,
                         resultIdxList=[rk - pcircs[0] for rk in pcircs])
-                    print("| Getting Counts length:", len(counts))
+                    pendingPoolProgressBar.set_description(
+                        f"{pk}/{pendingJob.jobID}/{pendingJob.name} - len: {len(counts)}")
                 for rk in pcircs:
                     coutsTmpContainer[rk] = counts[rk - pcircs[0]]
-                    print(f"| Packing Counts of {rk} length:",
-                          len(counts[rk - pcircs[0]]))
+                    pendingPoolProgressBar.set_description(
+                        f"{pk}/{pendingJob.jobID}/{pendingJob.name} - " +
+                        f"Packing: {rk} with len {len(counts[rk - pcircs[0]])}")
 
             else:
                 warnings.warn(f"Pending pool '{pk}' is empty.")
 
-        print("| Distributing all circuits to their original experimemts.")
-        for currentID, idxCircs in self.currentMultiJob.beforewards.circuitsMap.items(
-        ):
-            print(
-                f"| Distributing to {currentID} with {len(idxCircs)} circuits."
-            )
+        distributingProgressBar = tqdm.tqdm(
+            self.currentMultiJob.beforewards.circuitsMap.items(),
+            bar_format=(
+                '| {n_fmt}/{total_fmt} - Distributing {desc} - {elapsed} < {remaining}'
+            ),
+        )
+        for currentID, idxCircs in distributingProgressBar:
+            distributingProgressBar.set_description(
+                f"{currentID} with {len(idxCircs)} circuits")
             self.expContainer[currentID].reset_counts(
                 summonerID=self.currentMultiJob.summonerID)
             for idx in idxCircs:
