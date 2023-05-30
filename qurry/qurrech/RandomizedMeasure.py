@@ -20,7 +20,23 @@ from ..qurrium.utils.randomized import (
     qubitOpToPauliCoeff,
     ensembleCell,
 )
+try:
+    from ..boost.randomized import echoCellCore
+    useCython = True
+except ImportError:
+    useCython = False
 
+
+def _echoCellCy(
+    idx: int,
+    firstCounts: dict[str, int],
+    secondCounts: dict[str, int],
+    bitStringRange: tuple[int, int],
+    subsystemSize: int,
+) -> tuple[int, float]:
+
+    return idx, echoCellCore(
+        dict(firstCounts), dict(secondCounts), bitStringRange, subsystemSize)
 
 def _echoCell(
     idx: int,
@@ -142,6 +158,8 @@ def _overlap_echo_core(
     msg = (
         f"| Partition: {bitStringRange}, Measure: {measure}"
     )
+    
+    cellCalculator = (_echoCellCy if useCython else _echoCell)
 
     if launch_worker == 1:
         echoCellItems = []
@@ -155,7 +173,7 @@ def _overlap_echo_core(
                     f"| Calculating overlap {i} and {times+i} " +
                     f"by summarize {len(c1)*len(c2)} values - {i+1}/{times}" +
                     f" - {round(time.time() - Begin, 3)}s.", end="\r")
-            echoCellItems.append(_echoCell(
+            echoCellItems.append(cellCalculator(
                 i, c1, c2, bitStringRange, subsystemSize))
 
         if not _hide_print:
@@ -166,7 +184,7 @@ def _overlap_echo_core(
 
         pool = Pool(launch_worker)
         echoCellItems = pool.starmap(
-            _echoCell, [(i, c1, c2, bitStringRange, subsystemSize) for i, (c1, c2) in enumerate(countsPair)])
+            cellCalculator, [(i, c1, c2, bitStringRange, subsystemSize) for i, (c1, c2) in enumerate(countsPair)])
         takeTime = round(time.time() - Begin, 3)
 
     if not _hide_print:
