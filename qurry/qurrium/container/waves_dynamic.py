@@ -268,6 +268,10 @@ def _add(
         Optional[Hashable]: Key of given wave function in `.waves`.
     """
 
+    if not isinstance(wave, QuantumCircuit):
+        raise TypeError(
+            f"waveCircuit should be a QuantumCircuit, not {type(wave)}")
+
     if key is None:
         key = len(_wave_container)
         _wave_container[key] = wave
