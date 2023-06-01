@@ -32,9 +32,15 @@ jobs:
         run: |
           echo '| Version: ${{ env.VERSION }} in action'
 
+      - name: Check Version Tag
+        uses: mukunku/tag-exists-action@v1.2.0
+        id: checkTag
+        with: 
+          tag: ${{ env.VERSION }}
+
       - name: Create Version Tag
         run: |
-          if git rev-parse ${{ env.VERSION }} > /dev/null 2>&1; then
+          if ${{ steps.checkTag.outputs.exists }} ; then
             echo "| Tag exists, skipped add"
           else 
             echo "| Tag doesn't exist or error in command"
