@@ -33,7 +33,7 @@ jobs:
 
       - name: Create Version Tag
         run: |
-          if git show-ref --tags ${{ env.VERSION }} --quiet; then
+          if git rev-parse ${{ env.VERSION }} > /dev/null 2>&1; then
             echo "| Tag exists, skipped add"
           else 
             echo "| Tag doesn't exist or error in command"
