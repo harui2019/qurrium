@@ -1,4 +1,5 @@
 # from https://github.com/dear-github/dear-github/issues/214#issuecomment-1060001840
+# from https://github.com/dear-github/dear-github/issues/214#issuecomment-1080042519
 
 name: draft-release-with-tag
 on:
@@ -43,29 +44,20 @@ jobs:
 
       - name: Get custom tarball name
         id: get_tarball_name
-        run: echo ::set-output name=TARBALL_NAME::vulner-${{ github.ref_name }}
+        run: echo ::set-output name=TARBALL_NAME::qurry-${{ github.ref_name }}
   
       - name: Get archived folder name for custom tarball
         id: get_archived_folder_name
-        run: echo ::set-output name=ARCHIVED_FOLDER::${{ github.repository_owner }}-vulner-$(git rev-parse --short HEAD)
+        run: echo ::set-output name=ARCHIVED_FOLDER::${{ github.repository_owner }}-qurry-$(git rev-parse --short HEAD)
   
       - name: Create custom tarball artifact
         run: |
           mkdir -p artifacts
-          tar czhvf \
-            artifacts/${{ steps.get_tarball_name.outputs.TARBALL_NAME }}.tar.gz \
+          tar czhvf ${{ steps.get_tarball_name.outputs.TARBALL_NAME }}.tar.gz \
             --exclude="*metarepo-cpe-tag*" \
             --directory=../ \
-            vulner/crates/ vulner/Cargo.lock vulner/Cargo.toml vulner/Makefile vulner/scripts/ vulner/README.md vulner/LICENSE \
-            --transform s/vulner/${{ steps.get_archived_folder_name.outputs.ARCHIVED_FOLDER }}/
-  
-      - name: Build from custom tarball artifact
-        run: |
-          mkdir -p build
-          tar xzvf artifacts/${{ steps.get_tarball_name.outputs.TARBALL_NAME }}.tar.gz \
-            --directory=build
-          cd build/${{ steps.get_archived_folder_name.outputs.ARCHIVED_FOLDER }}
-          make build
+            qurry/qurry/ qurry/docs/  qurry/pyproject.toml qurry/setup.py qurry/requirement.txt qurry/.gitignore qurry/.gitmodules qurry/README.md \
+            --transform s/qurry/${{ steps.get_archived_folder_name.outputs.ARCHIVED_FOLDER }}/
   
       - name: Create draft release
         id: create_release
@@ -87,7 +79,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.CI_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./artifacts/${{ steps.get_tarball_name.outputs.TARBALL_NAME }}.tar.gz
+          asset_path: ${{ steps.get_tarball_name.outputs.TARBALL_NAME }}.tar.gz
           asset_name: ${{ steps.get_tarball_name.outputs.TARBALL_NAME }}.tar.gz
           asset_content_type: application/gzip
   
