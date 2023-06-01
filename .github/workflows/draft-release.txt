@@ -18,6 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
+          token: ${{ secrets.CI_TOKEN }}
           submodules: true
 
       - name: Get custom tarball name
@@ -37,6 +38,7 @@ jobs:
             --directory=../ \
             vulner/crates/ vulner/Cargo.lock vulner/Cargo.toml vulner/Makefile vulner/scripts/ vulner/README.md vulner/LICENSE \
             --transform s/vulner/${{ steps.get_archived_folder_name.outputs.ARCHIVED_FOLDER }}/
+
       - name: Build from custom tarball artifact
         run: |
           mkdir -p build
@@ -44,6 +46,7 @@ jobs:
             --directory=build
           cd build/${{ steps.get_archived_folder_name.outputs.ARCHIVED_FOLDER }}
           make build
+
       - name: Create draft release
         id: create_release
         uses: actions/create-release@v1
