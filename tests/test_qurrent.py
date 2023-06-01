@@ -4,6 +4,9 @@ from qiskit import QuantumRegister, QuantumCircuit
 from qurry.qurrent import EntropyMeasure
 from qurry.tools import backendWrapper
 
+import qurry.mori as mori
+import qurry.hoshi as hoshi
+
 expDemo01 = EntropyMeasure(method='hadamard')
 try:
     from qurry.case import trivialParamagnet
