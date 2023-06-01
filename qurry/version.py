@@ -1,6 +1,6 @@
 version_main = (0, 6, 2)
 version_beta = ('beta', 1)
-isBeta = False
+isBeta = True
 
 
 def _beta(beta_str: str, serial: int) -> str:
