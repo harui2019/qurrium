@@ -46,7 +46,7 @@ _It's a great thanks for [National Center for Theoretical Sciences, Physics Divi
 ### Maually by Git
 
 ```bash
-git clone https://github.com/harui2019/qurry.git
+git clone https://github.com/harui2019/qurry.git --recursive
 cd qurry
 pip install -e .
 ```
