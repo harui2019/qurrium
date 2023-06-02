@@ -4,6 +4,7 @@ from qiskit.providers import Backend
 from pathlib import Path
 from typing import Literal, Union, Optional, NamedTuple, Hashable, Any, Iterable
 from uuid import uuid4
+from multiprocessing import Pool, cpu_count
 import os
 import gc
 import shutil
@@ -13,6 +14,7 @@ import tarfile
 import warnings
 
 from ..container import ExperimentContainer, QuantityContainer
+from ..experiment import ExperimentPrototype
 from ..utils.iocontrol import naming
 from ..utils.datetime import currentTime, datetimeDict
 from ...mori import TagList, syncControl, defaultConfig
@@ -41,6 +43,17 @@ multicommonConfig = defaultConfig(
     }
 )
 
+
+def write_caller(
+    experiment: ExperimentPrototype,
+    saveLocation: Union[Path, str],
+    summonerID: Hashable,
+) -> tuple[Hashable, dict[str, str]]:
+    return experiment.write(
+        saveLocation=saveLocation,
+        mute=True,
+        _qurryinfo_hold_access=summonerID,
+    )
 
 class MultiManager:
 
@@ -661,6 +674,7 @@ class MultiManager:
         wave_container: Optional[ExperimentContainer] = None,
         indent: int = 2,
         encoding: str = 'utf-8',
+        workers_num: Optional[int] = None,
         _onlyQuantity: bool = False,
     ) -> dict[str, Any]:
 
@@ -684,7 +698,7 @@ class MultiManager:
             **self.after._exportingName(),
             **self.before._exportingName()
         }
-        
+
         exportProgress = tqdm.tqdm(
             self.before._fields + self.after._fields,
             desc='exporting',
@@ -694,7 +708,8 @@ class MultiManager:
         # beforewards amd afterwards
         for i, k in enumerate(exportProgress):
             if _onlyQuantity or (k in self._unexports):
-                exportProgress.set_description(f'{k} as {exportingName[k]} - skip')
+                exportProgress.set_description(
+                    f'{k} as {exportingName[k]} - skip')
             elif isinstance(self[k], TagList):
                 exportProgress.set_description(f'{k} as {exportingName[k]}')
                 tmp: TagList = self[k]
@@ -734,7 +749,7 @@ class MultiManager:
             else:
                 warnings.warn(
                     f"'{k}' is type '{type(self[k])}' which is not supported to export.")
-                
+
             if i == len(exportProgress) - 1:
                 exportProgress.set_description(f'exporting done')
 
@@ -753,23 +768,60 @@ class MultiManager:
 
         self.gitignore.export(self.multicommons.exportLocation)
 
+        qurryinfos = {}
+        qurryinfosLoc = saveLocation / self.multicommons.exportLocation / 'qurryinfo.json'
+        if os.path.exists(qurryinfosLoc):
+            with open(qurryinfosLoc, 'r', encoding='utf-8') as f:
+                qurryinfoFound: dict[
+                    str, dict[str, str]] = json.load(f)
+                qurryinfos = {**qurryinfoFound, **qurryinfos}
+
+        if workers_num is None:
+            workers_num = int(cpu_count() - 2)
+        pool = Pool(workers_num)
+
         if wave_container is not None:
-            expConfigsProgress = tqdm.tqdm(
-                self.beforewards.expsConfig,
-                bar_format=(
-                    '| {n_fmt}/{total_fmt} - {desc} - {elapsed} < {remaining}'
-                ),
-            )
-            for i, id_exec in enumerate(expConfigsProgress):
-                expConfigsProgress.set_description(
-                    f"Multimanger experiment write: {id_exec} in {self.summonerID}.")
-                wave_container[id_exec].write(
-                    saveLocation=self.multicommons.saveLocation,
-                    mute=True,
-                )
-                if i == len(expConfigsProgress) - 1:
-                    expConfigsProgress.set_description(
-                        f"Multimanger experiment write in {self.summonerID}...done")
+            # expConfigsProgress = tqdm.tqdm(
+            #     self.beforewards.expsConfig,
+            #     bar_format=(
+            #         '| {n_fmt}/{total_fmt} - {desc} - {elapsed} < {remaining}'
+            #     ),
+            # )
+            # for i, id_exec in enumerate(expConfigsProgress):
+            #     expConfigsProgress.set_description(
+            #         f"Multimanger experiment write: {id_exec} in {self.summonerID}.")
+            #     exportExpID, exportQurryInfo = wave_container[id_exec].write(
+            #         saveLocation=self.multicommons.saveLocation,
+            #         mute=True,
+            #         _qurryinfo_hold_access=self.summonerID,
+            #     )
+            #     qurryinfos[exportExpID] = exportQurryInfo
+            #     if i == len(expConfigsProgress) - 1:
+            #         expConfigsProgress.set_description(
+            #             f"Multimanger experiment write in {self.summonerID}...done")
+            print(f"| Export each experiments for {self.summonerID}")
+            exportQurryInfoItems = pool.starmap(
+                write_caller,
+                [
+                    (
+                        wave_container[id_exec],
+                        self.multicommons.saveLocation,
+                        self.summonerID,
+                        qurryinfos,
+                    )
+                    for id_exec in self.beforewards.expsConfig
+                ])
+            qurryinfos = {**qurryinfos, **{k: v for k, v in exportQurryInfoItems}}
+
+        quickJSON(
+            content=qurryinfos,
+            filename=qurryinfosLoc,
+            mode='w+',
+            indent=indent,
+            encoding=encoding,
+            jsonablize=True,
+            mute=True,
+        )
 
         return multiConfig
 

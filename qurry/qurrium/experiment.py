@@ -204,12 +204,12 @@ class ExperimentPrototype():
     _unexports = ['sideProduct', 'result']
     """Unexports properties.
     """
-    
+
     _deprecated = ['figTranspiled']
     """Deprecated properties.
         - `figTranspiled` is deprecated since v0.6.0.
     """
-        
+
     tqdm_handleable = False
     """Whether the method :meth:`
     e` can handle the processing bar from :module:`tqdm`."""
@@ -743,9 +743,9 @@ class ExperimentPrototype():
         args: dict[str, Any] = jsonablize(self.args._asdict())
         commons: dict[str, Any] = jsonablize(self.commons._asdict())
         commons['backend'] = (
-            self.commons.backend if isinstance(self.commons.backend, str) 
+            self.commons.backend if isinstance(self.commons.backend, str)
             else backendName(self.commons.backend))
-        
+
         outfields = jsonablize(self.outfields)
         # adventures, legacy, tales
         tales = {}
@@ -877,9 +877,9 @@ class ExperimentPrototype():
         jsonablize: bool = False,
         # zip: bool = False,
         mute: bool = False,
-    ) -> dict[str, str]:
+        _qurryinfo_hold_access: Optional[Hashable] = None,
+    ) -> tuple[Hashable, dict[str, str]]:
         """Export the experiment data, if there is a previous export, then will overwrite.
-        Replacement of :func:`QurryV4().writeLegacy`
 
         - example of filename:
 
@@ -917,6 +917,12 @@ class ExperimentPrototype():
                 Encoding method, for :func:`mori.quickJSON`. Defaults to 'utf-8'.
             jsonablize (bool, optional): 
                 Whether to transpile all object to jsonable via :func:`mori.jsonablize`, for :func:`mori.quickJSON`. Defaults to False.
+            mute (bool, optional):
+                Whether to mute the output, for :func:`mori.quickJSON`. Defaults to False.
+            qurryinfo_hold (Hashable, optional):
+                Whether to hold the I/O of `qurryinfo`, then export by :cls:`multimanager`, 
+                it should be control by :cls:`multimanager`. 
+                Defaults to None.
 
         Returns:
             dict[any]: the export content.
@@ -1007,14 +1013,16 @@ class ExperimentPrototype():
                 export_set.items()) + [('qurryinfo', qurryinfo)]:
             # Exportation of qurryinfo
             if filekey == 'qurryinfo':
-                if os.path.exists(saveLocation /
-                                  export_material.files['qurryinfo']):
-                    with open(saveLocation /
-                              export_material.files['qurryinfo'],
-                              'r',
-                              encoding='utf-8') as f:
-                        qurryinfoFound: dict[str, dict[str,
-                                                       str]] = json.load(f)
+                if (_qurryinfo_hold_access == self.commons.summonerID
+                        and self.commons.summonerID is not None):
+                    ...
+                elif os.path.exists(
+                        saveLocation / export_material.files['qurryinfo']):
+                    with open(
+                            saveLocation / export_material.files['qurryinfo'],
+                            'r', encoding='utf-8') as f:
+                        qurryinfoFound: dict[
+                            str, dict[str, str]] = json.load(f)
                         content = {**qurryinfoFound, **content}
 
             quickJSON(
@@ -1027,7 +1035,7 @@ class ExperimentPrototype():
                 mute=mute,
             )
 
-        return export_material.files
+        return self.commons.expID, export_material.files
 
     @classmethod
     def _read_core(
@@ -1123,7 +1131,7 @@ class ExperimentPrototype():
                 )
 
         # Construct the experiment
-        ## arguments, commonparams, outfields
+        # arguments, commonparams, outfields
         instance = cls(**export_material_set['commonparams'],
                        **export_material_set['arguments'],
                        **export_material_set['outfields'])

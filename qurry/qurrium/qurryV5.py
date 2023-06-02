@@ -8,9 +8,11 @@ from qiskit_ibm_provider import IBMBackend
 import gc
 import warnings
 import tqdm
+import inspect
 from pathlib import Path
 from typing import Literal, Union, Optional, Hashable, Type, Any
 from abc import abstractmethod, abstractproperty
+from multiprocessing import Pool, cpu_count
 
 from ..mori import TagList
 from ..tools import ResoureWatch
@@ -24,7 +26,7 @@ from .experiment import ExperimentPrototype, QurryExperiment
 from .container import WaveContainer, ExperimentContainer
 from .multimanager import MultiManager, IBMQRunner, IBMRunner, Runner
 
-from .utils import decomposer, get_counts, currentTime, datetimeDict
+from .utils import get_counts, currentTime, datetimeDict, decomposer_and_drawer
 from ..exceptions import (
     QurryUnrecongnizedArguments,
     QurryResetAccomplished,
@@ -47,7 +49,6 @@ class QurryV5Prototype:
     A qiskit Macro.
     ~Create countless adventure, legacy and tales.~
     """
-    __version__ = (0, 5, 0)
     __name__ = 'QurryV5Prototype'
     shortName = 'qurry'
 
@@ -57,10 +58,6 @@ class QurryV5Prototype:
     def experiment(cls) -> Type[ExperimentPrototype]:
         """The container class responding to this QurryV5 class.
         """
-
-    # @abstractproperty
-    # def multimanager(self) -> property:
-    #     return property()
 
     # Wave
     def add(
@@ -254,6 +251,7 @@ class QurryV5Prototype:
         summonerName: Optional[str] = None,
 
         muteOutfieldsWarning: bool = False,
+        _pbar: Optional[tqdm.tqdm] = None,
         **otherArgs: Any
     ) -> Hashable:
         """Control the experiment's general parameters.
@@ -323,6 +321,8 @@ class QurryV5Prototype:
             assert self.exps.lastExp is not None
             assert self.exps.lastID == self.lastID
             return self.lastID
+        if isinstance(_pbar, tqdm.tqdm):
+            _pbar.set_description(f"Generating experiment... ")
 
         # wave
         if isinstance(wave, QuantumCircuit):
@@ -339,6 +339,8 @@ class QurryV5Prototype:
         commons: ExperimentPrototype.commonparams
         outfields: dict[str, Any]
         # Given parameters and default parameters
+        if isinstance(_pbar, tqdm.tqdm):
+            _pbar.set_description(f"Prepaing parameters...")
         ctrlArgs, commons, outfields = self.paramsControl(
             waveKey=waveKey,
             expID=expID,
@@ -386,9 +388,13 @@ class QurryV5Prototype:
                         f'analysis input filter found index {index} in "defaultAnalysis" failed: {e}')
 
         # config check
+        if isinstance(_pbar, tqdm.tqdm):
+            _pbar.set_description(f"Checking parameters... ")
         containChecker(commons.transpileArgs, transpileConfig)
         containChecker(commons.runArgs, runConfig)
 
+        if isinstance(_pbar, tqdm.tqdm):
+            _pbar.set_description(f"Create experiment instance... ")
         newExps = self.experiment(
             **ctrlArgs._asdict(),
             **commons._asdict(),
@@ -430,7 +436,10 @@ class QurryV5Prototype:
         indent: int = 2,
         encoding: str = 'utf-8',
         jsonablize: bool = False,
+
+        workers_num: Optional[int] = None,
         _exportMute: bool = True,
+        _pbar: Optional[tqdm.tqdm] = None,
         **allArgs: Any,
     ) -> Hashable:
         """Construct the quantum circuit of experiment.
@@ -461,8 +470,15 @@ class QurryV5Prototype:
             raise ValueError(
                 f"{self.__name__} can't be initialized with positional arguments.")
 
+        if workers_num is None:
+            workers_num = int(cpu_count() - 2)
+        pool = Pool(workers_num)
+
         # preparing
-        IDNow = self._paramsControlMain(**allArgs)
+        if isinstance(_pbar, tqdm.tqdm):
+            _pbar.set_description_str(f"Parameter loading...")
+
+        IDNow = self._paramsControlMain(**allArgs, _pbar=_pbar)
         assert IDNow in self.exps, f"ID {IDNow} not found."
         assert self.exps[IDNow].commons.expID == IDNow
         currentExp = self.exps[IDNow]
@@ -471,14 +487,32 @@ class QurryV5Prototype:
             return IDNow
 
         # circuit
-        cirqs = self.method(IDNow)
+        if isinstance(_pbar, tqdm.tqdm):
+            _pbar.set_description_str(f"Circuit creating...")
+
+        howTheMethodGetArgs = inspect.signature(self.method).parameters
+        if '_pbar' in howTheMethodGetArgs:
+            if howTheMethodGetArgs['_pbar'].annotation == Optional[tqdm.tqdm]:
+                cirqs = self.method(IDNow, _pbar=_pbar)
+            else:
+                cirqs = self.method(IDNow)
+        else:
+            cirqs = self.method(IDNow)
 
         # draw original
-        for _w in cirqs:
-            currentExp.beforewards.figOriginal.append(
-                decomposer(_w, currentExp.commons.decompose).draw(output='text'))
+        if isinstance(_pbar, tqdm.tqdm):
+            _pbar.set_description_str(
+                f"Circuit drawing by {workers_num} workers...")
+        figOriginals: list[str] = pool.starmap(
+            decomposer_and_drawer,
+            [(_w, currentExp.commons.decompose) for _w in cirqs]
+        )
+        for wd in figOriginals:
+            currentExp.beforewards.figOriginal.append(wd)
 
         # transpile
+        if isinstance(_pbar, tqdm.tqdm):
+            _pbar.set_description_str(f"Circuit transpiling...")
         transpiledCirqs: list[QuantumCircuit] = transpile(
             cirqs,
             backend=currentExp.commons.backend,
@@ -490,6 +524,9 @@ class QurryV5Prototype:
         date = currentTime()
         currentExp.commons.datetimes['build'] = date
 
+        if isinstance(_pbar, tqdm.tqdm):
+            _pbar.set_description_str(f"Setup data exporting...")
+        # export may be slow, consider export at finish or something
         if isinstance(saveLocation, (Path, str)):
             currentExp.write(
                 saveLocation=saveLocation,
@@ -934,12 +971,16 @@ class QurryV5Prototype:
         assert currentMultiJob.summonerID == besummonned
         initedConfigListProgress = tqdm.tqdm(
             initedConfigList,
-            bar_format='| {n_fmt}/{total_fmt} {percentage:3.0f}%|{bar}| - Experiments build - {elapsed} < {remaining}',
+            bar_format='| {n_fmt}/{total_fmt} {percentage:3.0f}%|{bar}| - {desc} - {elapsed} < {remaining}',
             ascii=" ▖▘▝▗▚▞█"
-            )
+        )
 
+        initedConfigListProgress.set_description("MultiManager building...")
         for config in initedConfigListProgress:
-            currentID = self.build(**config)
+            currentID = self.build(
+                **config,
+                _pbar=initedConfigListProgress,
+            )
             currentMultiJob.beforewards.expsConfig[currentID] = config
             currentMultiJob.beforewards.circuitsNum[currentID] = len(
                 self.exps[currentID].beforewards.circuit)
@@ -1020,6 +1061,7 @@ class QurryV5Prototype:
             Hashable: SummonerID (ID of multimanager).
         """
 
+        print(f"| MultiOutput running...")
         besummonned = self.multiBuild(
             configList=configList,
             shots=shots,
@@ -1041,9 +1083,8 @@ class QurryV5Prototype:
             currentMultiJob.beforewards.expsConfig,
             bar_format='| {n_fmt}/{total_fmt} {percentage:3.0f}%|{bar}| - Experiments running - {elapsed} < {remaining}',
             ascii=" ▖▘▝▗▚▞█"
-            )
+        )
 
-        print(f"| MultiOutput running...")
         for id_exec in experimentProgress:
             currentID = self.output(
                 expID=id_exec,
@@ -1563,7 +1604,7 @@ class QurryV5Prototype:
         """
 
         tmpWaveContainer = {
-            k: v for k, v in self.waves.items() 
+            k: v for k, v in self.waves.items()
         } if keepWave else {}
 
         if security and isinstance(security, bool):
