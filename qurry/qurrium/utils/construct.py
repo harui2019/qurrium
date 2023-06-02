@@ -148,6 +148,23 @@ def decomposer(
     return qcResult
 
 
+def decomposer_and_drawer(
+    qc: QuantumCircuit,
+    decompose: int = 2,
+) -> str:
+    """Decompose the circuit with giving times and draw it.
+
+    Args:
+        qc (QuantumCircuit): The circuit wanted to be decomposed.
+        decompose (int, optional):  Decide the times of decomposing the circuit.
+            Draw quantum circuit with composed circuit. Defaults to 2.
+
+    Returns:
+        str: The drawing of decomposed circuit.
+    """
+    return decomposer(qc, decompose).draw('text')
+
+
 def get_counts(
     result: Union[Result, None],
     num: Optional[int] = None,

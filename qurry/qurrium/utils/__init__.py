@@ -1,4 +1,4 @@
-from .construct import qubit_selector, wave_selector, decomposer, get_counts, workers_distribution
+from .construct import qubit_selector, wave_selector, decomposer, get_counts, workers_distribution, decomposer_and_drawer
 from .inputfixer import levenshtein_distance
 from .randomized import (
     RXmatrix, RYmatrix, RZmatrix,
