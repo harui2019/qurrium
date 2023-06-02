@@ -16,10 +16,13 @@ from ..qurrium import (
 )
 from ..qurrium.utils import workers_distribution
 from ..qurrium.utils.randomized import (
-    random_unitary,
-    qubitOpToPauliCoeff,
+
     ensembleCell,
-    cycling_slice
+    cycling_slice,
+
+    local_random_unitary,
+    local_random_unitary_operators,
+    local_random_unitary_pauli_coeff
 )
 try:
     from ..boost.randomized import purityCellCore
@@ -164,7 +167,7 @@ def _entangled_entropy_core(
     dummyString = ''.join(str(ds) for ds in range(allsystemSize))
     dummyStringSlice = cycling_slice(
         dummyString, bitStringRange[0], bitStringRange[1], 1)
-    isAvtiveCyclingSlice = dummyString[bitStringRange[0]                                       :bitStringRange[1]] != dummyStringSlice
+    isAvtiveCyclingSlice = dummyString[bitStringRange[0]:bitStringRange[1]] != dummyStringSlice
     if isAvtiveCyclingSlice:
         assert len(dummyStringSlice) == subsystemSize, (
             f"| All system size '{subsystemSize}' does not match dummyStringSlice '{dummyStringSlice}'")
@@ -614,7 +617,6 @@ class EntropyRandomizedAnalysis(AnalysisPrototype):
 
     class analysisContent(NamedTuple):
         """The content of the analysis."""
-        # TODO: args hint
 
         purity: Optional[float] = None
         """The purity of the subsystem."""
@@ -914,6 +916,7 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
     def method(
         self,
         expID: Hashable,
+        _pbar: Optional[tqdm.tqdm] = None,
     ) -> list[QuantumCircuit]:
 
         assert expID in self.exps
@@ -924,33 +927,53 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
         circuit = self.waves[commons.waveKey]
         num_qubits = circuit.num_qubits
 
-        unitaryList = {i: {
-            j: random_unitary(2) for j in range(*args.unitary_loc)
-        } for i in range(args.times)}
-
-        if isinstance(commons.serial, int):
-            ...
-        else:
-            print(f"| Build circuit: {commons.waveKey}.", end="\r")
-
         pool = Pool(args.workers_num)
+
+        if isinstance(_pbar, tqdm.tqdm):
+            _pbar.set_description(
+                f"Preparing {args.times} random unitary with {args.workers_num} workers.")
+        unitaryList = pool.starmap(
+            local_random_unitary, [(args.unitary_loc, None) for _ in range(args.times)])
+
+        # unitaryList = {i: {
+        #     j: random_unitary(2) for j in range(*args.unitary_loc)
+        # } for i in range(args.times)}
+
+        if isinstance(_pbar, tqdm.tqdm):
+            _pbar.set_description(
+                f"Building {args.times} circuits with {args.workers_num} workers.")
         qcList = pool.starmap(
             _circuit_method_core, [(
                 i, circuit, args.expName, args.unitary_loc, unitaryList[i], args.measure
             ) for i in range(args.times)])
-        if isinstance(commons.serial, int):
-            ...
-        else:
-            print(f"| Build circuit: {commons.waveKey} done.", end="\r")
 
+        if isinstance(_pbar, tqdm.tqdm):
+            _pbar.set_description(
+                f"Writing 'unitaryOP' with {args.workers_num} workers.")
+        unitaryOPList = pool.starmap(
+            local_random_unitary_operators,
+            [(args.unitary_loc, unitaryList[i]) for i in range(args.times)])
         currentExp.beforewards.sideProduct['unitaryOP'] = {
-            k: {i: np.array(v[i]).tolist() for i in range(*args.unitary_loc)}
-            for k, v in unitaryList.items()}
-        currentExp.beforewards.sideProduct['randomized'] = {i: {
-            j: qubitOpToPauliCoeff(
-                unitaryList[i][j])
-            for j in range(*args.unitary_loc)
-        } for i in range(args.times)}
+            i: v for i, v in enumerate(unitaryOPList)}
+
+        # currentExp.beforewards.sideProduct['unitaryOP'] = {
+        #     k: {i: np.array(v[i]).tolist() for i in range(*args.unitary_loc)}
+        #     for k, v in unitaryList.items()}
+
+        if isinstance(_pbar, tqdm.tqdm):
+            _pbar.set_description(
+                f"Writing 'randomized' with {args.workers_num} workers.")
+        randomizedList = pool.starmap(
+            local_random_unitary_pauli_coeff,
+            [(args.unitary_loc, unitaryOPList[i]) for i in range(args.times)])
+        currentExp.beforewards.sideProduct['randomized'] = {
+            i: v for i, v in enumerate(randomizedList)}
+
+        # currentExp.beforewards.sideProduct['randomized'] = {i: {
+        #     j: qubitOpToPauliCoeff(
+        #         unitaryList[i][j])
+        #     for j in range(*args.unitary_loc)
+        # } for i in range(args.times)}
 
         return qcList
 
