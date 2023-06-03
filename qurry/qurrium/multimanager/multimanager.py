@@ -770,18 +770,18 @@ class MultiManager:
 
         self.gitignore.export(self.multicommons.exportLocation)
 
-        qurryinfos = {}
-        qurryinfosLoc = self.multicommons.exportLocation / 'qurryinfo.json'
-        if os.path.exists(saveLocation / qurryinfosLoc):
-            with open(saveLocation / qurryinfosLoc, 'r', encoding='utf-8') as f:
-                qurryinfoFound: dict[
-                    str, dict[str, str]] = json.load(f)
-                qurryinfos = {**qurryinfoFound, **qurryinfos}
-
         if workers_num is None:
             workers_num = int(cpu_count() - 2)
 
         if wave_container is not None:
+            qurryinfos = {}
+            qurryinfosLoc = self.multicommons.exportLocation / 'qurryinfo.json'
+            if os.path.exists(saveLocation / qurryinfosLoc):
+                with open(saveLocation / qurryinfosLoc, 'r', encoding='utf-8') as f:
+                    qurryinfoFound: dict[
+                        str, dict[str, str]] = json.load(f)
+                    qurryinfos = {**qurryinfoFound, **qurryinfos}
+            
             # expConfigsProgress = tqdm.tqdm(
             #     self.beforewards.expsConfig,
             #     bar_format=(
@@ -818,15 +818,15 @@ class MultiManager:
             qurryinfos = {**qurryinfos, **
                           {k: v for k, v in exportQurryInfoItems}}
 
-        quickJSON(
-            content=qurryinfos,
-            filename=qurryinfosLoc,
-            mode='w+',
-            indent=indent,
-            encoding=encoding,
-            jsonablize=True,
-            mute=True,
-        )
+            quickJSON(
+                content=qurryinfos,
+                filename=qurryinfosLoc,
+                mode='w+',
+                indent=indent,
+                encoding=encoding,
+                jsonablize=True,
+                mute=True,
+            )
 
         return multiConfig
 
