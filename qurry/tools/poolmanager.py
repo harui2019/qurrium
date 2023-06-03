@@ -1,1 +1,0 @@
-# Ready for issue #75 https://github.com/harui2019/qurry/issues/75
