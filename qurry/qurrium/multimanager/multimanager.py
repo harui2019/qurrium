@@ -771,16 +771,15 @@ class MultiManager:
         self.gitignore.export(self.multicommons.exportLocation)
 
         qurryinfos = {}
-        qurryinfosLoc = saveLocation / self.multicommons.exportLocation / 'qurryinfo.json'
-        if os.path.exists(qurryinfosLoc):
-            with open(qurryinfosLoc, 'r', encoding='utf-8') as f:
+        qurryinfosLoc = self.multicommons.exportLocation / 'qurryinfo.json'
+        if os.path.exists(saveLocation / qurryinfosLoc):
+            with open(saveLocation / qurryinfosLoc, 'r', encoding='utf-8') as f:
                 qurryinfoFound: dict[
                     str, dict[str, str]] = json.load(f)
                 qurryinfos = {**qurryinfoFound, **qurryinfos}
 
         if workers_num is None:
             workers_num = int(cpu_count() - 2)
-        pool = Pool(workers_num)
 
         if wave_container is not None:
             # expConfigsProgress = tqdm.tqdm(
