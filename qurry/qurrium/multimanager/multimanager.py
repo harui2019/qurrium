@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Literal, Union, Optional, NamedTuple, Hashable, Any, Iterable
 from uuid import uuid4
 from multiprocessing import Pool, cpu_count
+from tqdm.contrib.concurrent import process_map
 import os
 import gc
 import shutil
@@ -45,15 +46,16 @@ multicommonConfig = defaultConfig(
 
 
 def write_caller(
-    experiment: ExperimentPrototype,
-    saveLocation: Union[Path, str],
-    summonerID: Hashable,
+    iterable: tuple[ExperimentPrototype, Union[Path, str], Hashable]
 ) -> tuple[Hashable, dict[str, str]]:
+    experiment, saveLocation, summonerID = iterable
+
     return experiment.write(
         saveLocation=saveLocation,
         mute=True,
         _qurryinfo_hold_access=summonerID,
     )
+
 
 class MultiManager:
 
@@ -646,7 +648,7 @@ class MultiManager:
     def _writeMultiConfig(
         self,
         encoding: str = 'utf-8',
-        mute: bool = False,
+        mute: bool = True,
     ) -> dict[str, Any]:
         multiConfigName = Path(self.multicommons.exportLocation) / \
             f"multi.config.json"
@@ -799,19 +801,23 @@ class MultiManager:
             #     if i == len(expConfigsProgress) - 1:
             #         expConfigsProgress.set_description(
             #             f"Multimanger experiment write in {self.summonerID}...done")
-            print(f"| Export each experiments for {self.summonerID}")
-            exportQurryInfoItems = pool.starmap(
+            print(
+                f"| Export datas of {len(self.beforewards.expsConfig)} experiments for {self.summonerID}")
+            exportQurryInfoItems = process_map(
                 write_caller,
                 [
                     (
                         wave_container[id_exec],
                         self.multicommons.saveLocation,
                         self.summonerID,
-                        qurryinfos,
                     )
                     for id_exec in self.beforewards.expsConfig
-                ])
-            qurryinfos = {**qurryinfos, **{k: v for k, v in exportQurryInfoItems}}
+                ],
+                bar_format='| {n_fmt}/{total_fmt} {percentage:3.0f}%|{bar}| - writing... - {elapsed} < {remaining}',
+                ascii=" ▖▘▝▗▚▞█"
+            )
+            qurryinfos = {**qurryinfos, **
+                          {k: v for k, v in exportQurryInfoItems}}
 
         quickJSON(
             content=qurryinfos,

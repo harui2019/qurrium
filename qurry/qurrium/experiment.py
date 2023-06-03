@@ -6,6 +6,7 @@ from qiskit_aer import AerSimulator
 from pathlib import Path
 from typing import Literal, Union, Optional, NamedTuple, Hashable, Type, Any
 from abc import abstractmethod, abstractclassmethod, abstractproperty
+from multiprocessing import Pool, cpu_count
 from uuid import uuid4
 import gc
 import warnings
@@ -1178,6 +1179,7 @@ class ExperimentPrototype():
         name: Union[Path, str],
         saveLocation: Union[Path, str] = Path('./'),
         encoding: str = 'utf-8',
+        workers_num: Optional[int] = None,
     ) -> list['ExperimentPrototype']:
         """Read the experiment from file.
         Replacement of :func:`QurryV4().readLegacy`
@@ -1213,7 +1215,7 @@ class ExperimentPrototype():
             raise FileNotFoundError(
                 f"'ExportLoaction' does not exist, '{exportLocation}'.")
 
-        qurryinfo = {}
+        qurryinfo: dict[str, dict[str, str]] = {}
         qurryinfoLocation = exportLocation / 'qurryinfo.json'
         if not os.path.exists(qurryinfoLocation):
             raise FileNotFoundError(
@@ -1224,12 +1226,20 @@ class ExperimentPrototype():
             qurryinfoFound: dict[str, dict[str, str]] = json.load(f)
             qurryinfo = {**qurryinfoFound, **qurryinfo}
 
-        queue = []
-        for expID, fileIndex in qurryinfo.items():
-            queue.append(
-                cls._read_core(expID, fileIndex, saveLocation, encoding))
+        if workers_num is None:
+            workers_num = int(cpu_count() - 2)
+        pool = Pool(workers_num)
 
-        return queue
+        # quene = []
+        # for expID, fileIndex in qurryinfo.items():
+        #     quene.append(
+        #         cls._read_core(expID, fileIndex, saveLocation, encoding))
+        print(f"| {len(qurryinfo)} experiments found, loading by {workers_num} workers.")
+        quene = pool.starmap(
+            cls._read_core,
+            [(expID, fileIndex, saveLocation, encoding) for expID, fileIndex in qurryinfo.items()])
+
+        return quene
 
     @classmethod
     def readV4(

@@ -56,6 +56,10 @@ class QuantityContainer(dict[str, TagList[dict[str, float]]]):
         """
 
         quantityOutput = {}
+        if len(self) == 0:
+            print(f"| No quantity to export.")
+            return quantityOutput
+        
         quantityProgress = tqdm.tqdm(
             self.items(),
             desc='exporting quantity',
