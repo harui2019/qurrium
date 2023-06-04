@@ -4,7 +4,6 @@ from qiskit.providers import Backend
 from pathlib import Path
 from typing import Literal, Union, Optional, NamedTuple, Hashable, Any, Iterable
 from uuid import uuid4
-from multiprocessing import Pool, cpu_count
 from tqdm.contrib.concurrent import process_map
 import os
 import gc
@@ -782,24 +781,6 @@ class MultiManager:
                         str, dict[str, str]] = json.load(f)
                     qurryinfos = {**qurryinfoFound, **qurryinfos}
 
-            # expConfigsProgress = qurryProgressBar(
-            #     self.beforewards.expsConfig,
-            #     bar_format=(
-            #         '| {n_fmt}/{total_fmt} - {desc} - {elapsed} < {remaining}'
-            #     ),
-            # )
-            # for i, id_exec in enumerate(expConfigsProgress):
-            #     expConfigsProgress.set_description(
-            #         f"Multimanger experiment write: {id_exec} in {self.summonerID}.")
-            #     exportExpID, exportQurryInfo = wave_container[id_exec].write(
-            #         saveLocation=self.multicommons.saveLocation,
-            #         mute=True,
-            #         _qurryinfo_hold_access=self.summonerID,
-            #     )
-            #     qurryinfos[exportExpID] = exportQurryInfo
-            #     if i == len(expConfigsProgress) - 1:
-            #         expConfigsProgress.set_description(
-            #             f"Multimanger experiment write in {self.summonerID}...done")
             print(
                 f"| Export datas of {len(self.beforewards.expsConfig)} experiments for {self.summonerID}")
             exportQurryInfoItems = process_map(

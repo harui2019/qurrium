@@ -1229,10 +1229,6 @@ class ExperimentPrototype():
             workers_num = DEFAULT_POOL_SIZE
         pool = ProcessManager(workers_num)
 
-        # quene = []
-        # for expID, fileIndex in qurryinfo.items():
-        #     quene.append(
-        #         cls._read_core(expID, fileIndex, saveLocation, encoding))
         print(f"| {len(qurryinfo)} experiments found, loading by {workers_num} workers.")
         quene = pool.starmap(
             cls._read_core,
