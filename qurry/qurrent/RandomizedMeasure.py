@@ -4,7 +4,6 @@ from qiskit.quantum_info import Operator
 import time
 import tqdm
 import numpy as np
-from multiprocessing import Pool, cpu_count
 from pathlib import Path
 from typing import Union, Optional, NamedTuple, Hashable, Iterable, Type, overload, Any
 
@@ -14,7 +13,6 @@ from ..qurrium import (
     AnalysisPrototype,
     qubit_selector
 )
-from ..qurrium.utils import workers_distribution
 from ..qurrium.utils.randomized import (
     ensembleCell,
     cycling_slice,
@@ -23,7 +21,7 @@ from ..qurrium.utils.randomized import (
     local_random_unitary_operators,
     local_random_unitary_pauli_coeff
 )
-from ..tools import qurryProgressBar
+from ..tools import qurryProgressBar, ProcessManager, workers_distribution, DEFAULT_POOL_SIZE
 try:
     from ..boost.randomized import purityCellCore
     useCython = True
@@ -206,7 +204,7 @@ def _entangled_entropy_core(
     else:
         msg += f", {launch_worker} workers, {times} overlaps."
 
-        pool = Pool(launch_worker)
+        pool = ProcessManager(launch_worker)
         purityCellItems = pool.starmap(
             cellCalculator, [(i, c, bitStringRange, subsystemSize) for i, c in enumerate(counts)])
         takeTime = round(time.time() - Begin, 3)
@@ -728,7 +726,7 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
         times: int = 100
         measure: tuple[int, int] = None
         unitary_loc: tuple[int, int] = None
-        workers_num: int = int(cpu_count() - 2)
+        workers_num: int = DEFAULT_POOL_SIZE
 
     @classmethod
     @property
@@ -925,7 +923,7 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
         circuit = self.waves[commons.waveKey]
         num_qubits = circuit.num_qubits
 
-        pool = Pool(args.workers_num)
+        pool = ProcessManager(args.workers_num)
 
         if isinstance(_pbar, tqdm.tqdm):
             _pbar.set_description(

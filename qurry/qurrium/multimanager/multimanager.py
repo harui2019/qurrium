@@ -17,7 +17,7 @@ from ..container import ExperimentContainer, QuantityContainer
 from ..experiment import ExperimentPrototype
 from ..utils.iocontrol import naming
 from ..utils.datetime import currentTime, datetimeDict
-from ...tools import qurryProgressBar
+from ...tools import qurryProgressBar, DEFAULT_POOL_SIZE
 from ...mori import TagList, syncControl, defaultConfig
 from ...mori.quick import quickJSON, quickRead
 from ...exceptions import (
@@ -771,7 +771,7 @@ class MultiManager:
         self.gitignore.export(self.multicommons.exportLocation)
 
         if workers_num is None:
-            workers_num = int(cpu_count() - 2)
+            workers_num = DEFAULT_POOL_SIZE
 
         if wave_container is not None:
             qurryinfos = {}

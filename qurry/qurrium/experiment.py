@@ -6,7 +6,6 @@ from qiskit_aer import AerSimulator
 from pathlib import Path
 from typing import Literal, Union, Optional, NamedTuple, Hashable, Type, Any
 from abc import abstractmethod, abstractclassmethod, abstractproperty
-from multiprocessing import Pool, cpu_count
 from uuid import uuid4
 import gc
 import warnings
@@ -17,7 +16,7 @@ import tqdm
 
 from ..hoshi import Hoshi
 from ..mori import jsonablize, quickJSON, quickRead, defaultConfig
-from ..tools.backend import backendName
+from ..tools import backendName, ProcessManager, DEFAULT_POOL_SIZE
 from ..exceptions import (
     QurryInvalidInherition,
     QurryExperimentCountsNotCompleted,
@@ -1227,8 +1226,8 @@ class ExperimentPrototype():
             qurryinfo = {**qurryinfoFound, **qurryinfo}
 
         if workers_num is None:
-            workers_num = int(cpu_count() - 2)
-        pool = Pool(workers_num)
+            workers_num = DEFAULT_POOL_SIZE
+        pool = ProcessManager(workers_num)
 
         # quene = []
         # for expID, fileIndex in qurryinfo.items():
