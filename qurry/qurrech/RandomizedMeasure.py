@@ -20,6 +20,7 @@ from ..qurrium.utils.randomized import (
     qubitOpToPauliCoeff,
     ensembleCell,
 )
+from ..tools import qurryProgressBar
 try:
     from ..boost.randomized import echoCellCore
     useCython = True
@@ -37,6 +38,7 @@ def _echoCellCy(
 
     return idx, echoCellCore(
         dict(firstCounts), dict(secondCounts), bitStringRange, subsystemSize)
+
 
 def _echoCell(
     idx: int,
@@ -158,7 +160,7 @@ def _overlap_echo_core(
     msg = (
         f"| Partition: {bitStringRange}, Measure: {measure}"
     )
-    
+
     cellCalculator = (_echoCellCy if useCython else _echoCell)
 
     if launch_worker == 1:
@@ -450,11 +452,9 @@ class EchoRandomizedExperiment(ExperimentPrototype):
             )
 
         else:
-            pbar_selfhost = tqdm.tqdm(
+            pbar_selfhost = qurryProgressBar(
                 range(1),
-                bar_format=(
-                    '| {desc} - {elapsed} < {remaining}'
-                ),
+                bar_format='simple',
             )
 
             with pbar_selfhost as pb_self:

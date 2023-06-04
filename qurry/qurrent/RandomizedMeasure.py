@@ -16,7 +16,6 @@ from ..qurrium import (
 )
 from ..qurrium.utils import workers_distribution
 from ..qurrium.utils.randomized import (
-
     ensembleCell,
     cycling_slice,
 
@@ -24,6 +23,7 @@ from ..qurrium.utils.randomized import (
     local_random_unitary_operators,
     local_random_unitary_pauli_coeff
 )
+from ..tools import qurryProgressBar
 try:
     from ..boost.randomized import purityCellCore
     useCython = True
@@ -777,11 +777,9 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
             )
 
         else:
-            pbar_selfhost = tqdm.tqdm(
+            pbar_selfhost = qurryProgressBar(
                 range(1),
-                bar_format=(
-                    '| {desc} - {elapsed} < {remaining}'
-                ),
+                bar_format='simple',
             )
 
             with pbar_selfhost as pb_self:

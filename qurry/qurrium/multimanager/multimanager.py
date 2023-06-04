@@ -10,7 +10,6 @@ import os
 import gc
 import shutil
 import json
-import tqdm
 import tarfile
 import warnings
 
@@ -18,6 +17,7 @@ from ..container import ExperimentContainer, QuantityContainer
 from ..experiment import ExperimentPrototype
 from ..utils.iocontrol import naming
 from ..utils.datetime import currentTime, datetimeDict
+from ...tools import qurryProgressBar
 from ...mori import TagList, syncControl, defaultConfig
 from ...mori.quick import quickJSON, quickRead
 from ...exceptions import (
@@ -602,7 +602,7 @@ class MultiManager:
             print(
                 f'| {self.namingCpx.expsName} auto-export in "v7" format and remove "v5" format.')
             self.write()
-            removeV5Progress = tqdm.tqdm(
+            removeV5Progress = qurryProgressBar(
                 oldFiles.items(),
                 bar_format='| {percentage:3.0f}%[{bar}] - remove v5 - {desc} - {elapsed}',
             )
@@ -701,10 +701,10 @@ class MultiManager:
             **self.before._exportingName()
         }
 
-        exportProgress = tqdm.tqdm(
+        exportProgress = qurryProgressBar(
             self.before._fields + self.after._fields,
             desc='exporting',
-            bar_format='| {n_fmt}/{total_fmt} - {desc} - {elapsed} < {remaining}',
+            bar_format='qurry-barless',
         )
 
         # beforewards amd afterwards
@@ -781,8 +781,8 @@ class MultiManager:
                     qurryinfoFound: dict[
                         str, dict[str, str]] = json.load(f)
                     qurryinfos = {**qurryinfoFound, **qurryinfos}
-            
-            # expConfigsProgress = tqdm.tqdm(
+
+            # expConfigsProgress = qurryProgressBar(
             #     self.beforewards.expsConfig,
             #     bar_format=(
             #         '| {n_fmt}/{total_fmt} - {desc} - {elapsed} < {remaining}'
@@ -889,7 +889,7 @@ class MultiManager:
             analysisName if noSerialize else f"{analysisName}."+f'{idx_tagMapQ+1}'.rjust(self._rjustLen, '0'))
         self.quantityContainer[name] = TagList()
 
-        allCountsProgressBar = tqdm.tqdm(
+        allCountsProgressBar = qurryProgressBar(
             self.afterwards.allCounts.keys(),
             bar_format=(
                 '| {n_fmt}/{total_fmt} - Analysis: {desc} - {elapsed} < {remaining}'

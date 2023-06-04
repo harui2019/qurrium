@@ -12,10 +12,9 @@ import inspect
 from pathlib import Path
 from typing import Literal, Union, Optional, Hashable, Type, Any
 from abc import abstractmethod, abstractproperty
-from multiprocessing import Pool, cpu_count
 
 from ..mori import TagList
-from ..tools import ResoureWatch
+from ..tools import ResoureWatch, qurryProgressBar, ProcessManager
 from .declare.default import (
     transpileConfig,
     runConfig,
@@ -470,9 +469,7 @@ class QurryV5Prototype:
             raise ValueError(
                 f"{self.__name__} can't be initialized with positional arguments.")
 
-        if workers_num is None:
-            workers_num = int(cpu_count() - 2)
-        pool = Pool(workers_num)
+        pool = ProcessManager(workers_num)
 
         # preparing
         if isinstance(_pbar, tqdm.tqdm):
@@ -969,11 +966,7 @@ class QurryV5Prototype:
         )
         currentMultiJob = self.multimanagers[besummonned]
         assert currentMultiJob.summonerID == besummonned
-        initedConfigListProgress = tqdm.tqdm(
-            initedConfigList,
-            bar_format='| {n_fmt}/{total_fmt} {percentage:3.0f}%|{bar}| - {desc} - {elapsed} < {remaining}',
-            ascii=" ▖▘▝▗▚▞█"
-        )
+        initedConfigListProgress = qurryProgressBar(initedConfigList)
 
         initedConfigListProgress.set_description("MultiManager building...")
         for config in initedConfigListProgress:
@@ -1079,13 +1072,11 @@ class QurryV5Prototype:
         assert currentMultiJob.summonerID == besummonned
         circSerial = []
 
-        experimentProgress = tqdm.tqdm(
-            currentMultiJob.beforewards.expsConfig,
-            bar_format='| {n_fmt}/{total_fmt} {percentage:3.0f}%|{bar}| - Experiments running - {elapsed} < {remaining}',
-            ascii=" ▖▘▝▗▚▞█"
-        )
+        experimentProgress = qurryProgressBar(
+            currentMultiJob.beforewards.expsConfig)
 
         for id_exec in experimentProgress:
+            experimentProgress.set_description("Experiments running...")
             currentID = self.output(
                 expID=id_exec,
                 saveLocation=currentMultiJob.multicommons.saveLocation,

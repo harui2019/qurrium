@@ -1,7 +1,8 @@
 import os
-import tqdm
 from pathlib import Path
 from typing import Union, NamedTuple
+
+from ...tools import qurryProgressBar
 
 STAND_COMPRESS_FORMAT = 'tar.xz'
 FULL_SUFFIX_OF_COMPRESS_FORMAT = f'qurry.{STAND_COMPRESS_FORMAT}'
@@ -78,18 +79,17 @@ def naming(
 
         immutableName = f"{expsName}.{str(indexRename).rjust(_rjustLen, '0')}"
         exportLocation = saveLocation / immutableName
-        
-        findIndexProgress = tqdm.tqdm(
-            range(1), 
-            bar_format='| {desc}',
-        )
+
+        findIndexProgress = qurryProgressBar(
+            range(1), bar_format='| {desc}')
         with findIndexProgress as pb:
             while os.path.exists(exportLocation):
                 pb.set_description(f"{exportLocation} is repeat location.")
                 indexRename += 1
                 immutableName = f"{expsName}.{str(indexRename).rjust(_rjustLen, '0')}"
                 exportLocation = saveLocation / immutableName
-            pb.set_description(f'Write "{immutableName}", at location "{exportLocation}"')
+            pb.set_description(
+                f'Write "{immutableName}", at location "{exportLocation}"')
             os.makedirs(exportLocation)
 
     return IOComplex(
