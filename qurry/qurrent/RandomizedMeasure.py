@@ -16,6 +16,7 @@ from ..qurrium import (
 from ..qurrium.utils.randomized import (
     ensembleCell,
     cycling_slice,
+    random_unitary,
 
     local_random_unitary,
     local_random_unitary_operators,
@@ -928,12 +929,18 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
         if isinstance(_pbar, tqdm.tqdm):
             _pbar.set_description(
                 f"Preparing {args.times} random unitary with {args.workers_num} workers.")
-        unitaryList = pool.starmap(
-            local_random_unitary, [(args.unitary_loc, None) for _ in range(args.times)])
+            
+        # DO NOT USE MULTI-PROCESSING HERE !!!!!
+        # See https://github.com/numpy/numpy/issues/9650
+        # And https://github.com/harui2019/qurry/issues/78
+        # The random seed will be duplicated in each process,
+        # and it will make duplicated result.
+        # unitaryList = pool.starmap(
+        #     local_random_unitary, [(args.unitary_loc, None) for _ in range(args.times)])
 
-        # unitaryList = {i: {
-        #     j: random_unitary(2) for j in range(*args.unitary_loc)
-        # } for i in range(args.times)}
+        unitaryList = {i: {
+            j: random_unitary(2) for j in range(*args.unitary_loc)
+        } for i in range(args.times)}
 
         if isinstance(_pbar, tqdm.tqdm):
             _pbar.set_description(

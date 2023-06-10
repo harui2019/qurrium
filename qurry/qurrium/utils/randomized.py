@@ -2,7 +2,7 @@ from qiskit.visualization.counts_visualization import hamming_distance, Visualiz
 from qiskit.quantum_info import random_unitary, Operator
 
 import numpy as np
-from typing import Callable, Iterable
+from typing import Callable, Iterable, Union
 
 
 RXmatrix = np.array([[0, 1], [1, 0]])
@@ -154,7 +154,7 @@ def local_random_unitary(
 
 def local_random_unitary_operators(
     unitary_loc: tuple[int, int],
-    unitary_op_list: list[np.ndarray],
+    unitary_op_list: Union[list[np.ndarray], dict[int, Operator]],
 ) -> dict[int, list[np.ndarray]]:
     return {
         i: np.array(unitary_op_list[i]).tolist() for i in range(*unitary_loc)
