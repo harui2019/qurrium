@@ -700,19 +700,21 @@ class MultiManager:
             **self.before._exportingName()
         }
 
-        exportProgress = qurryProgressBar(
-            self.before._fields + self.after._fields,
-            desc='exporting',
-            bar_format='qurry-barless',
-        )
+        # exportProgress = qurryProgressBar(
+        #     self.before._fields + self.after._fields,
+        #     desc='exporting',
+        #     bar_format='qurry-barless',
+        # )
 
         # beforewards amd afterwards
-        for i, k in enumerate(exportProgress):
+        for i, k in enumerate((self.before._fields + self.after._fields)):
             if _onlyQuantity or (k in self._unexports):
-                exportProgress.set_description(
-                    f'{k} as {exportingName[k]} - skip')
+                # exportProgress.set_description(
+                #     f'{k} as {exportingName[k]} - skip')
+                print(f"| {k} as {exportingName[k]} - skip")
             elif isinstance(self[k], TagList):
-                exportProgress.set_description(f'{k} as {exportingName[k]}')
+                # exportProgress.set_description(f'{k} as {exportingName[k]}')
+                print(f"| {k} as {exportingName[k]}")
                 tmp: TagList = self[k]
                 filename = tmp.export(
                     saveLocation=self.multicommons.exportLocation,
@@ -731,7 +733,8 @@ class MultiManager:
                     f"{exportingName[k]}.{self.multicommons.filetype}")
 
             elif isinstance(self[k], (dict, list)):
-                exportProgress.set_description(f'{k} as {exportingName[k]}')
+                # exportProgress.set_description(f'{k} as {exportingName[k]}')
+                print(f"| {k} as {exportingName[k]}")
                 filename = Path(self.multicommons.exportLocation) / \
                     f"{exportingName[k]}.json"
                 self.multicommons.files[exportingName[k]] = str(filename)
@@ -751,8 +754,9 @@ class MultiManager:
                 warnings.warn(
                     f"'{k}' is type '{type(self[k])}' which is not supported to export.")
 
-            if i == len(exportProgress) - 1:
-                exportProgress.set_description(f'exporting done')
+            # if i == len(exportProgress) - 1:
+            #     exportProgress.set_description(f'exporting done')
+            print(f"| Exporting done")
 
         # tagMapQuantity or quantity
         self.multicommons.files['quantity'] = self.quantityContainer.write(
@@ -822,13 +826,13 @@ class MultiManager:
         multiConfig = self._writeMultiConfig()
 
         print(
-            f"| Compress multimanager of '{self.namingCpx.expsName}'...", end='/r')
+            f"| Compress multimanager of '{self.namingCpx.expsName}'...", end='\r')
         loc = self.easycompress(overwrite=compressOverwrite)
         print(f"| Compress multimanager of '{self.namingCpx.expsName}'...done")
 
         if remainOnlyCompressed:
             print(
-                f"| Remove uncompressed files in '{self.namingCpx.exportLocation}' ...", end='/r')
+                f"| Remove uncompressed files in '{self.namingCpx.exportLocation}' ...", end='\r')
             shutil.rmtree(self.multicommons.exportLocation)
             print(
                 f"| Remove uncompressed files in '{self.namingCpx.exportLocation}' ...done")
