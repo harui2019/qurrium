@@ -67,7 +67,7 @@ class QuantityContainer(dict[str, TagList[dict[str, float]]]):
         )
 
         for i, (k, v) in enumerate(quantityProgress):
-            quantityProgress.set_description(f'exporting quantity: {k}')
+            quantityProgress.set_description_str(f'exporting quantity: {k}')
             filename = v.export(
                 saveLocation=saveLocation,
                 tagListName='quantity',
@@ -84,7 +84,7 @@ class QuantityContainer(dict[str, TagList[dict[str, float]]]):
             quantityOutput[k] = str(filename)
 
             if i == len(self) - 1:
-                quantityProgress.set_description(f'exported quantity complete')
+                quantityProgress.set_description_str(f'exported quantity complete')
 
         return quantityOutput
 

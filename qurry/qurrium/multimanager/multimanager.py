@@ -607,13 +607,13 @@ class MultiManager:
             )
             for k, pathstr in removeV5Progress:
                 if isinstance(pathstr, str):
-                    removeV5Progress.set_description(f'{k}')
+                    removeV5Progress.set_description_str(f'{k}')
                     path = Path(pathstr)
                     if path.exists():
                         path.unlink()
                 elif isinstance(pathstr, dict):
                     for k2, pathstr2 in pathstr.items():
-                        removeV5Progress.set_description(f'{k} - {k2}')
+                        removeV5Progress.set_description_str(f'{k} - {k2}')
                         path = Path(pathstr2)
                         if path.exists():
                             path.unlink()
@@ -709,10 +709,10 @@ class MultiManager:
         # beforewards amd afterwards
         for i, k in enumerate(exportProgress):
             if _onlyQuantity or (k in self._unexports):
-                exportProgress.set_description(
+                exportProgress.set_description_str(
                     f'{k} as {exportingName[k]} - skip')
             elif isinstance(self[k], TagList):
-                exportProgress.set_description(f'{k} as {exportingName[k]}')
+                exportProgress.set_description_str(f'{k} as {exportingName[k]}')
                 tmp: TagList = self[k]
                 filename = tmp.export(
                     saveLocation=self.multicommons.exportLocation,
@@ -731,7 +731,7 @@ class MultiManager:
                     f"{exportingName[k]}.{self.multicommons.filetype}")
 
             elif isinstance(self[k], (dict, list)):
-                exportProgress.set_description(f'{k} as {exportingName[k]}')
+                exportProgress.set_description_str(f'{k} as {exportingName[k]}')
                 filename = Path(self.multicommons.exportLocation) / \
                     f"{exportingName[k]}.json"
                 self.multicommons.files[exportingName[k]] = str(filename)
@@ -752,7 +752,7 @@ class MultiManager:
                     f"'{k}' is type '{type(self[k])}' which is not supported to export.")
 
             if i == len(exportProgress) - 1:
-                exportProgress.set_description(f'exporting done')
+                exportProgress.set_description_str(f'exporting done')
 
         # tagMapQuantity or quantity
         self.multicommons.files['quantity'] = self.quantityContainer.write(
@@ -882,7 +882,7 @@ class MultiManager:
             if k in specificAnalysisArgs:
                 if isinstance(specificAnalysisArgs[k], bool):
                     if specificAnalysisArgs[k] is False:
-                        allCountsProgressBar.set_description(
+                        allCountsProgressBar.set_description_str(
                             f"Skipped {k} in {self.summonerID}.")
                         continue
                     else:

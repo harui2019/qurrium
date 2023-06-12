@@ -84,11 +84,11 @@ def naming(
         #     range(1), bar_format='| {desc}')
         # with findIndexProgress as pb:
         #     while os.path.exists(exportLocation):
-        #         pb.set_description(f"{exportLocation} is repeat location.")
+        #         pb.set_description_str(f"{exportLocation} is repeat location.")
         #         indexRename += 1
         #         immutableName = f"{expsName}.{str(indexRename).rjust(_rjustLen, '0')}"
         #         exportLocation = saveLocation / immutableName
-        #     pb.set_description(
+        #     pb.set_description_str(
         #         f'Write "{immutableName}", at location "{exportLocation}"')
         #     os.makedirs(exportLocation)
         

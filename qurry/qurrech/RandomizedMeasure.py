@@ -248,7 +248,7 @@ def overlap_echo(
     """
 
     if isinstance(pbar, tqdm.tqdm):
-        pbar.set_description(f"Calculate overlap with {len(counts)} counts.")
+        pbar.set_description_str(f"Calculate overlap with {len(counts)} counts.")
 
     (
         echoCellDict,

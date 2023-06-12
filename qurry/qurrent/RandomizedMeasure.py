@@ -274,7 +274,7 @@ def entangled_entropy(
     """
 
     if isinstance(pbar, tqdm.tqdm):
-        pbar.set_description(f"Calculate specific degree {degree}.")
+        pbar.set_description_str(f"Calculate specific degree {degree}.")
     (
         purityCellDict,
         bitStringRange,
@@ -470,7 +470,7 @@ def entangled_entropy_complex(
     """
 
     if isinstance(pbar, tqdm.tqdm):
-        pbar.set_description(
+        pbar.set_description_str(
             f"Calculate specific partition" +
             ("." if useCython else " by Pure Python, it may take a long time."))
     (
@@ -490,7 +490,7 @@ def entangled_entropy_complex(
     purityCellList = list(purityCellDict.values())
 
     if isinstance(pbar, tqdm.tqdm):
-        pbar.set_description(
+        pbar.set_description_str(
             f"Calculate all system" +
             ("." if useCython else " by Pure Python, it may take a long time."))
     (
@@ -927,7 +927,7 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
         pool = ProcessManager(args.workers_num)
 
         if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description(
+            _pbar.set_description_str(
                 f"Preparing {args.times} random unitary with {args.workers_num} workers.")
             
         # DO NOT USE MULTI-PROCESSING HERE !!!!!
@@ -943,7 +943,7 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
         } for i in range(args.times)}
 
         if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description(
+            _pbar.set_description_str(
                 f"Building {args.times} circuits with {args.workers_num} workers.")
         qcList = pool.starmap(
             _circuit_method_core, [(
@@ -951,7 +951,7 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
             ) for i in range(args.times)])
 
         if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description(
+            _pbar.set_description_str(
                 f"Writing 'unitaryOP' with {args.workers_num} workers.")
         unitaryOPList = pool.starmap(
             local_random_unitary_operators,
@@ -964,7 +964,7 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
         #     for k, v in unitaryList.items()}
 
         if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description(
+            _pbar.set_description_str(
                 f"Writing 'randomized' with {args.workers_num} workers.")
         randomizedList = pool.starmap(
             local_random_unitary_pauli_coeff,

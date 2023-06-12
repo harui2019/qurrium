@@ -151,7 +151,7 @@ class IBMQRunner(Runner):
                     managerRunArgs=self.currentMultiJob.multicommons.
                     managerRunArgs,
                 )
-                pendingPoolProgressBar.set_description(
+                pendingPoolProgressBar.set_description_str(
                     f"{pk}/{pendingJob.jobID}/{pendingJob.name}")
                 self.currentMultiJob.beforewards.jobID.append(
                     (pendingJob.jobID, pk))
@@ -230,7 +230,7 @@ class IBMQRunner(Runner):
             if pendingID is None:
                 warnings.warn(f"Pending pool '{pk}' is empty.")
                 continue
-            retrieveProgressBar.set_description(f"{pk}/{pendingID}")
+            retrieveProgressBar.set_description_str(f"{pk}/{pendingID}")
             pendingMapping[pk] = IBMQRetrieve(
                 ibmqJobManager=self.JobManager,
                 jobID=pendingID,
@@ -248,7 +248,7 @@ class IBMQRunner(Runner):
         for pk, pcircs in pendingPoolProgressBar:
             if len(pcircs) > 0:
                 pendingJob = pendingMapping[pk]
-                pendingPoolProgressBar.set_description(
+                pendingPoolProgressBar.set_description_str(
                     f"{pk}/{pendingJob.jobID}/{pendingJob.name}")
                 self.reports[pendingJob.jobID] = {
                     'time': current,
@@ -261,17 +261,17 @@ class IBMQRunner(Runner):
                     counts = get_counts(
                         result=pResult,
                         resultIdxList=[rk - pcircs[0] for rk in pcircs])
-                    pendingPoolProgressBar.set_description(
+                    pendingPoolProgressBar.set_description_str(
                         f"{pk}/{pendingJob.jobID}/{pendingJob.name} - len: {len(counts)}")
                 else:
                     counts = get_counts(
                         result=None,
                         resultIdxList=[rk - pcircs[0] for rk in pcircs])
-                    pendingPoolProgressBar.set_description(
+                    pendingPoolProgressBar.set_description_str(
                         f"{pk}/{pendingJob.jobID}/{pendingJob.name} - len: {len(counts)}")
                 for rk in pcircs:
                     coutsTmpContainer[rk] = counts[rk - pcircs[0]]
-                    pendingPoolProgressBar.set_description(
+                    pendingPoolProgressBar.set_description_str(
                         f"{pk}/{pendingJob.jobID}/{pendingJob.name} - " +
                         f"Packing: {rk} with len {len(counts[rk - pcircs[0]])}")
 
@@ -285,7 +285,7 @@ class IBMQRunner(Runner):
             ),
         )
         for currentID, idxCircs in distributingProgressBar:
-            distributingProgressBar.set_description(
+            distributingProgressBar.set_description_str(
                 f"{currentID} with {len(idxCircs)} circuits")
             self.expContainer[currentID].reset_counts(
                 summonerID=self.currentMultiJob.summonerID)

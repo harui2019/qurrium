@@ -321,13 +321,15 @@ class QurryV5Prototype:
             assert self.exps.lastID == self.lastID
             return self.lastID
         if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description(f"Generating experiment... ")
+            _pbar.set_description_str(f"Generating experiment... ")
 
         # wave
         if isinstance(wave, QuantumCircuit):
             waveKey = self.add(wave)
         elif isinstance(wave, Hashable):
-            if not self.has(wave):
+            if wave == None:
+                ...
+            elif not self.has(wave):
                 raise KeyError(f"Wave '{wave}' not found in '.waves'")
             waveKey = wave
         else:
@@ -339,7 +341,7 @@ class QurryV5Prototype:
         outfields: dict[str, Any]
         # Given parameters and default parameters
         if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description(f"Prepaing parameters...")
+            _pbar.set_description_str(f"Prepaing parameters...")
         ctrlArgs, commons, outfields = self.paramsControl(
             waveKey=waveKey,
             expID=expID,
@@ -388,12 +390,12 @@ class QurryV5Prototype:
 
         # config check
         if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description(f"Checking parameters... ")
+            _pbar.set_description_str(f"Checking parameters... ")
         containChecker(commons.transpileArgs, transpileConfig)
         containChecker(commons.runArgs, runConfig)
 
         if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description(f"Create experiment instance... ")
+            _pbar.set_description_str(f"Create experiment instance... ")
         newExps = self.experiment(
             **ctrlArgs._asdict(),
             **commons._asdict(),
@@ -968,7 +970,7 @@ class QurryV5Prototype:
         assert currentMultiJob.summonerID == besummonned
         initedConfigListProgress = qurryProgressBar(initedConfigList)
 
-        initedConfigListProgress.set_description("MultiManager building...")
+        initedConfigListProgress.set_description_str("MultiManager building...")
         for config in initedConfigListProgress:
             currentID = self.build(
                 **config,
@@ -1076,7 +1078,7 @@ class QurryV5Prototype:
             currentMultiJob.beforewards.expsConfig)
 
         for id_exec in experimentProgress:
-            experimentProgress.set_description("Experiments running...")
+            experimentProgress.set_description_str("Experiments running...")
             currentID = self.output(
                 expID=id_exec,
                 saveLocation=currentMultiJob.multicommons.saveLocation,
@@ -1416,6 +1418,7 @@ class QurryV5Prototype:
 
         defaultMultiAnalysis: list[dict[str, Any]] = [],
         analysisName: str = 'report',
+        skipCompress: bool = False
     ) -> Hashable:
         """Retrieve the multiJob from the remote backend.
 
@@ -1504,7 +1507,7 @@ class QurryV5Prototype:
             return besummonned
 
         print(f"| Retrieve {currentMultiJob.summonerName} completed.")
-        bewritten = self.multiWrite(besummonned)
+        bewritten = self.multiWrite(besummonned, compress=not skipCompress)
         assert bewritten == besummonned
 
         if len(defaultMultiAnalysis) > 0:

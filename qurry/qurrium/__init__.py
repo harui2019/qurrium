@@ -1,8 +1,8 @@
 from .qurryV5 import QurryV5, QurryV5Prototype
 from .experiment import QurryExperiment, ExperimentPrototype
 from .analysis import QurryAnalysis, AnalysisPrototype
+from .wavesqurry import WavesExecuter, WavesQurryExperiment, WavesQurryAnalysis
 
-from ..exceptions import *
 from .utils import (
     RXmatrix, RYmatrix, RZmatrix,
     makeTwoBitStr, makeTwoBitStrOneLiner, cycling_slice,
