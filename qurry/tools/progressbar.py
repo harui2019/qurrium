@@ -1,4 +1,4 @@
-from tqdm import tqdm as real_tqdm
+from tqdm.auto import tqdm as real_tqdm
 from typing import Optional, Iterable, TypeVar, Iterable, Iterator
 
 DEFAULT_BAR_FORMAT = {
