@@ -1,4 +1,5 @@
 import tqdm
+from typing import Optional, Iterable, Any, TypeVar
 
 DEFAULT_BAR_FORMAT = {
     'simple': '| {desc} - {elapsed} < {remaining}',
@@ -13,8 +14,9 @@ PROGRESSBAR_ASCII = {
     'boolen-eq': " =",
 }
 
+T = TypeVar('T')
 
-class qurryProgressBar(tqdm.tqdm):
+class qurryProgressBar(tqdm.tqdm[T]):
 
     @staticmethod
     def default_setup(
@@ -38,6 +40,7 @@ class qurryProgressBar(tqdm.tqdm):
 
     def __init__(
         self,
+        iterable: Optional[Iterable[T]] = None,
         *args,
         bar_format: str = 'qurry-full',
         ascii: str = '4squares',
@@ -48,6 +51,7 @@ class qurryProgressBar(tqdm.tqdm):
         self.actual_ascii = result_setup['ascii']
 
         super().__init__(
+            iterable=iterable,
             *args,
             bar_format=self.actual_bar_format,
             ascii=self.actual_ascii,

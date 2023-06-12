@@ -277,7 +277,8 @@ class IBMRunner(Runner):
                     retrieveProgressBar.set_description(
                         f"{pk}/{pendingID} - Error: {e}")
                     pendingMapping[pk] = None
-
+        retrieveProgressBar.close()
+        
         pendingPoolProgressBar = qurryProgressBar(
             self.currentMultiJob.beforewards.pendingPools.items(),
             bar_format=(
