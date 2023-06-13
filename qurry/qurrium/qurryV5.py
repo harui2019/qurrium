@@ -372,7 +372,7 @@ class QurryV5Prototype:
                 warnings.warn(
                     f"The following keys are not recognized as arguments for main process of experiment: " +
                     f"{list(outfields.keys())}'" +
-                    ', but are still kept in experiment record.',
+                    ', but still kept in experiment record.',
                     QurryUnrecongnizedArguments
                 )
 
