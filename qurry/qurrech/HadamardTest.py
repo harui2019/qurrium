@@ -50,7 +50,6 @@ class EntropyHadamardAnalysis(AnalysisPrototype):
 
     class analysisContent(NamedTuple):
         """The content of the analysis."""
-        # TODO: args hint
 
         echo: float
         """The purity of the system."""
