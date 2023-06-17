@@ -8,7 +8,6 @@ from .utils import (
     makeTwoBitStr, makeTwoBitStrOneLiner, cycling_slice,
     hamming_distance, ensembleCell, densityMatrixToBloch, qubitOpToPauliCoeff,
     qubit_selector, wave_selector, decomposer,
-    levenshtein_distance
 )
 
 pauliMatrix = {

@@ -26,6 +26,7 @@ from .container import WaveContainer, ExperimentContainer
 from .multimanager import MultiManager, IBMQRunner, IBMRunner, Runner
 
 from .utils import get_counts, currentTime, datetimeDict, decomposer_and_drawer
+from .utils.inputfixer import outfields_check, outfields_hint
 from ..exceptions import (
     QurryUnrecongnizedArguments,
     QurryResetAccomplished,
@@ -366,15 +367,9 @@ class QurryV5Prototype:
             datetimes=datetimeDict(),
             **otherArgs)
 
-        # TODO: levenshtein_distance check for outfields
-        if len(outfields) > 0:
-            if not muteOutfieldsWarning:
-                warnings.warn(
-                    f"The following keys are not recognized as arguments for main process of experiment: " +
-                    f"{list(outfields.keys())}'" +
-                    ', but still kept in experiment record.',
-                    QurryUnrecongnizedArguments
-                )
+        outfield_maybe, outfields_unknown = outfields_check(
+            outfields, ctrlArgs._fields+commons._fields)
+        outfields_hint(outfield_maybe, outfields_unknown, muteOutfieldsWarning)
 
         if len(commons.defaultAnalysis) > 0:
             for index, analyze_input in enumerate(commons.defaultAnalysis):

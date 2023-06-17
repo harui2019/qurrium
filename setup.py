@@ -17,6 +17,9 @@ cy_extensions = [
     Extension(
         "qurry.boost.randomized",
         ["qurry/boost/randomized.pyx"]),
+    Extension(
+        "qurry.boost.inputfixer",
+        ["qurry/boost/inputfixer.pyx"]),
 ]
 
 
