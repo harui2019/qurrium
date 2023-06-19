@@ -112,7 +112,7 @@ def outfields_check(
 ) -> tuple[dict[str, list[str]], list[str]]:
 
     if len(outfields) == 0:
-        return {}
+        return {}, []
 
     outfield_maybe = {}
     for k in outfields.keys():
