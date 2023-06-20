@@ -182,7 +182,6 @@ class WavesExecuter(QurryV5Prototype):
         self,
         waves: Iterable[Hashable] = [],
         expName: str = 'exps',
-        sampling: int = 1,
         *args,
         saveLocation: Optional[Union[Path, str]] = None,
         mode: str = 'w+',
@@ -206,8 +205,6 @@ class WavesExecuter(QurryV5Prototype):
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
                 This name is also used for creating a folder to store the exports.
                 Defaults to `'exps'`.
-            sampling (int, optional):
-                The number of sampling. Defaults to 1.
             saveLocation (Optional[Union[Path, str]], optional):
                 The location to save the experiment. If None, will not save.
                 Defaults to None.
@@ -231,7 +228,6 @@ class WavesExecuter(QurryV5Prototype):
             wave=None,
             waves=waves,
             expName=expName,
-            sampling=sampling,
             saveLocation=None,
             **otherArgs,
         )
