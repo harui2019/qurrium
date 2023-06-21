@@ -4,7 +4,6 @@ from qiskit.quantum_info import Operator
 import time
 import tqdm
 import numpy as np
-from multiprocessing import Pool, cpu_count
 from pathlib import Path
 from typing import Union, Optional, NamedTuple, Hashable, Iterable, Type, overload, Any
 
@@ -14,13 +13,16 @@ from ..qurrium import (
     AnalysisPrototype,
     qubit_selector
 )
-from ..qurrium.utils import workers_distribution
 from ..qurrium.utils.randomized import (
-    random_unitary,
-    qubitOpToPauliCoeff,
     ensembleCell,
-    cycling_slice
+    cycling_slice,
+    random_unitary,
+
+    local_random_unitary,
+    local_random_unitary_operators,
+    local_random_unitary_pauli_coeff
 )
+from ..tools import qurryProgressBar, ProcessManager, workers_distribution, DEFAULT_POOL_SIZE
 try:
     from ..boost.randomized import purityCellCore
     useCython = True
@@ -164,7 +166,7 @@ def _entangled_entropy_core(
     dummyString = ''.join(str(ds) for ds in range(allsystemSize))
     dummyStringSlice = cycling_slice(
         dummyString, bitStringRange[0], bitStringRange[1], 1)
-    isAvtiveCyclingSlice = dummyString[bitStringRange[0]                                       :bitStringRange[1]] != dummyStringSlice
+    isAvtiveCyclingSlice = dummyString[bitStringRange[0]:bitStringRange[1]] != dummyStringSlice
     if isAvtiveCyclingSlice:
         assert len(dummyStringSlice) == subsystemSize, (
             f"| All system size '{subsystemSize}' does not match dummyStringSlice '{dummyStringSlice}'")
@@ -203,7 +205,7 @@ def _entangled_entropy_core(
     else:
         msg += f", {launch_worker} workers, {times} overlaps."
 
-        pool = Pool(launch_worker)
+        pool = ProcessManager(launch_worker)
         purityCellItems = pool.starmap(
             cellCalculator, [(i, c, bitStringRange, subsystemSize) for i, c in enumerate(counts)])
         takeTime = round(time.time() - Begin, 3)
@@ -272,7 +274,7 @@ def entangled_entropy(
     """
 
     if isinstance(pbar, tqdm.tqdm):
-        pbar.set_description(f"Calculate specific degree {degree}.")
+        pbar.set_description_str(f"Calculate specific degree {degree}.")
     (
         purityCellDict,
         bitStringRange,
@@ -468,7 +470,7 @@ def entangled_entropy_complex(
     """
 
     if isinstance(pbar, tqdm.tqdm):
-        pbar.set_description(
+        pbar.set_description_str(
             f"Calculate specific partition" +
             ("." if useCython else " by Pure Python, it may take a long time."))
     (
@@ -488,7 +490,7 @@ def entangled_entropy_complex(
     purityCellList = list(purityCellDict.values())
 
     if isinstance(pbar, tqdm.tqdm):
-        pbar.set_description(
+        pbar.set_description_str(
             f"Calculate all system" +
             ("." if useCython else " by Pure Python, it may take a long time."))
     (
@@ -614,7 +616,6 @@ class EntropyRandomizedAnalysis(AnalysisPrototype):
 
     class analysisContent(NamedTuple):
         """The content of the analysis."""
-        # TODO: args hint
 
         purity: Optional[float] = None
         """The purity of the subsystem."""
@@ -726,7 +727,7 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
         times: int = 100
         measure: tuple[int, int] = None
         unitary_loc: tuple[int, int] = None
-        workers_num: int = int(cpu_count() - 2)
+        workers_num: int = DEFAULT_POOL_SIZE
 
     @classmethod
     @property
@@ -775,11 +776,9 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
             )
 
         else:
-            pbar_selfhost = tqdm.tqdm(
+            pbar_selfhost = qurryProgressBar(
                 range(1),
-                bar_format=(
-                    '| {desc} - {elapsed} < {remaining}'
-                ),
+                bar_format='simple',
             )
 
             with pbar_selfhost as pb_self:
@@ -914,6 +913,7 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
     def method(
         self,
         expID: Hashable,
+        _pbar: Optional[tqdm.tqdm] = None,
     ) -> list[QuantumCircuit]:
 
         assert expID in self.exps
@@ -924,33 +924,59 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
         circuit = self.waves[commons.waveKey]
         num_qubits = circuit.num_qubits
 
+        pool = ProcessManager(args.workers_num)
+
+        if isinstance(_pbar, tqdm.tqdm):
+            _pbar.set_description_str(
+                f"Preparing {args.times} random unitary with {args.workers_num} workers.")
+            
+        # DO NOT USE MULTI-PROCESSING HERE !!!!!
+        # See https://github.com/numpy/numpy/issues/9650
+        # And https://github.com/harui2019/qurry/issues/78
+        # The random seed will be duplicated in each process,
+        # and it will make duplicated result.
+        # unitaryList = pool.starmap(
+        #     local_random_unitary, [(args.unitary_loc, None) for _ in range(args.times)])
+
         unitaryList = {i: {
             j: random_unitary(2) for j in range(*args.unitary_loc)
         } for i in range(args.times)}
 
-        if isinstance(commons.serial, int):
-            ...
-        else:
-            print(f"| Build circuit: {commons.waveKey}.", end="\r")
-
-        pool = Pool(args.workers_num)
+        if isinstance(_pbar, tqdm.tqdm):
+            _pbar.set_description_str(
+                f"Building {args.times} circuits with {args.workers_num} workers.")
         qcList = pool.starmap(
             _circuit_method_core, [(
                 i, circuit, args.expName, args.unitary_loc, unitaryList[i], args.measure
             ) for i in range(args.times)])
-        if isinstance(commons.serial, int):
-            ...
-        else:
-            print(f"| Build circuit: {commons.waveKey} done.", end="\r")
 
+        if isinstance(_pbar, tqdm.tqdm):
+            _pbar.set_description_str(
+                f"Writing 'unitaryOP' with {args.workers_num} workers.")
+        unitaryOPList = pool.starmap(
+            local_random_unitary_operators,
+            [(args.unitary_loc, unitaryList[i]) for i in range(args.times)])
         currentExp.beforewards.sideProduct['unitaryOP'] = {
-            k: {i: np.array(v[i]).tolist() for i in range(*args.unitary_loc)}
-            for k, v in unitaryList.items()}
-        currentExp.beforewards.sideProduct['randomized'] = {i: {
-            j: qubitOpToPauliCoeff(
-                unitaryList[i][j])
-            for j in range(*args.unitary_loc)
-        } for i in range(args.times)}
+            i: v for i, v in enumerate(unitaryOPList)}
+
+        # currentExp.beforewards.sideProduct['unitaryOP'] = {
+        #     k: {i: np.array(v[i]).tolist() for i in range(*args.unitary_loc)}
+        #     for k, v in unitaryList.items()}
+
+        if isinstance(_pbar, tqdm.tqdm):
+            _pbar.set_description_str(
+                f"Writing 'randomized' with {args.workers_num} workers.")
+        randomizedList = pool.starmap(
+            local_random_unitary_pauli_coeff,
+            [(args.unitary_loc, unitaryOPList[i]) for i in range(args.times)])
+        currentExp.beforewards.sideProduct['randomized'] = {
+            i: v for i, v in enumerate(randomizedList)}
+
+        # currentExp.beforewards.sideProduct['randomized'] = {i: {
+        #     j: qubitOpToPauliCoeff(
+        #         unitaryList[i][j])
+        #     for j in range(*args.unitary_loc)
+        # } for i in range(args.times)}
 
         return qcList
 

@@ -4,17 +4,19 @@ from qiskit.providers import Backend
 from pathlib import Path
 from typing import Literal, Union, Optional, NamedTuple, Hashable, Any, Iterable
 from uuid import uuid4
+from tqdm.contrib.concurrent import process_map
 import os
 import gc
 import shutil
 import json
-import tqdm
 import tarfile
 import warnings
 
 from ..container import ExperimentContainer, QuantityContainer
+from ..experiment import ExperimentPrototype
 from ..utils.iocontrol import naming
 from ..utils.datetime import currentTime, datetimeDict
+from ...tools import qurryProgressBar, DEFAULT_POOL_SIZE
 from ...mori import TagList, syncControl, defaultConfig
 from ...mori.quick import quickJSON, quickRead
 from ...exceptions import (
@@ -40,6 +42,18 @@ multicommonConfig = defaultConfig(
         'datetimes': datetimeDict(),
     }
 )
+
+
+def write_caller(
+    iterable: tuple[ExperimentPrototype, Union[Path, str], Hashable]
+) -> tuple[Hashable, dict[str, str]]:
+    experiment, saveLocation, summonerID = iterable
+
+    return experiment.write(
+        saveLocation=saveLocation,
+        mute=True,
+        _qurryinfo_hold_access=summonerID,
+    )
 
 
 class MultiManager:
@@ -587,19 +601,19 @@ class MultiManager:
             print(
                 f'| {self.namingCpx.expsName} auto-export in "v7" format and remove "v5" format.')
             self.write()
-            removeV5Progress = tqdm.tqdm(
+            removeV5Progress = qurryProgressBar(
                 oldFiles.items(),
                 bar_format='| {percentage:3.0f}%[{bar}] - remove v5 - {desc} - {elapsed}',
             )
             for k, pathstr in removeV5Progress:
                 if isinstance(pathstr, str):
-                    removeV5Progress.set_description(f'{k}')
+                    removeV5Progress.set_description_str(f'{k}')
                     path = Path(pathstr)
                     if path.exists():
                         path.unlink()
                 elif isinstance(pathstr, dict):
                     for k2, pathstr2 in pathstr.items():
-                        removeV5Progress.set_description(f'{k} - {k2}')
+                        removeV5Progress.set_description_str(f'{k} - {k2}')
                         path = Path(pathstr2)
                         if path.exists():
                             path.unlink()
@@ -633,7 +647,7 @@ class MultiManager:
     def _writeMultiConfig(
         self,
         encoding: str = 'utf-8',
-        mute: bool = False,
+        mute: bool = True,
     ) -> dict[str, Any]:
         multiConfigName = Path(self.multicommons.exportLocation) / \
             f"multi.config.json"
@@ -661,6 +675,7 @@ class MultiManager:
         wave_container: Optional[ExperimentContainer] = None,
         indent: int = 2,
         encoding: str = 'utf-8',
+        workers_num: Optional[int] = None,
         _onlyQuantity: bool = False,
     ) -> dict[str, Any]:
 
@@ -684,19 +699,20 @@ class MultiManager:
             **self.after._exportingName(),
             **self.before._exportingName()
         }
-        
-        exportProgress = tqdm.tqdm(
+
+        exportProgress = qurryProgressBar(
             self.before._fields + self.after._fields,
             desc='exporting',
-            bar_format='| {n_fmt}/{total_fmt} - {desc} - {elapsed} < {remaining}',
+            bar_format='qurry-barless',
         )
 
         # beforewards amd afterwards
         for i, k in enumerate(exportProgress):
             if _onlyQuantity or (k in self._unexports):
-                exportProgress.set_description(f'{k} as {exportingName[k]} - skip')
+                exportProgress.set_description_str(
+                    f'{k} as {exportingName[k]} - skip')
             elif isinstance(self[k], TagList):
-                exportProgress.set_description(f'{k} as {exportingName[k]}')
+                exportProgress.set_description_str(f'{k} as {exportingName[k]}')
                 tmp: TagList = self[k]
                 filename = tmp.export(
                     saveLocation=self.multicommons.exportLocation,
@@ -715,7 +731,7 @@ class MultiManager:
                     f"{exportingName[k]}.{self.multicommons.filetype}")
 
             elif isinstance(self[k], (dict, list)):
-                exportProgress.set_description(f'{k} as {exportingName[k]}')
+                exportProgress.set_description_str(f'{k} as {exportingName[k]}')
                 filename = Path(self.multicommons.exportLocation) / \
                     f"{exportingName[k]}.json"
                 self.multicommons.files[exportingName[k]] = str(filename)
@@ -734,9 +750,9 @@ class MultiManager:
             else:
                 warnings.warn(
                     f"'{k}' is type '{type(self[k])}' which is not supported to export.")
-                
+
             if i == len(exportProgress) - 1:
-                exportProgress.set_description(f'exporting done')
+                exportProgress.set_description_str(f'exporting done')
 
         # tagMapQuantity or quantity
         self.multicommons.files['quantity'] = self.quantityContainer.write(
@@ -753,23 +769,45 @@ class MultiManager:
 
         self.gitignore.export(self.multicommons.exportLocation)
 
+        if workers_num is None:
+            workers_num = DEFAULT_POOL_SIZE
+
         if wave_container is not None:
-            expConfigsProgress = tqdm.tqdm(
-                self.beforewards.expsConfig,
-                bar_format=(
-                    '| {n_fmt}/{total_fmt} - {desc} - {elapsed} < {remaining}'
-                ),
+            qurryinfos = {}
+            qurryinfosLoc = self.multicommons.exportLocation / 'qurryinfo.json'
+            if os.path.exists(saveLocation / qurryinfosLoc):
+                with open(saveLocation / qurryinfosLoc, 'r', encoding='utf-8') as f:
+                    qurryinfoFound: dict[
+                        str, dict[str, str]] = json.load(f)
+                    qurryinfos = {**qurryinfoFound, **qurryinfos}
+
+            print(
+                f"| Export datas of {len(self.beforewards.expsConfig)} experiments for {self.summonerID}")
+            exportQurryInfoItems = process_map(
+                write_caller,
+                [
+                    (
+                        wave_container[id_exec],
+                        self.multicommons.saveLocation,
+                        self.summonerID,
+                    )
+                    for id_exec in self.beforewards.expsConfig
+                ],
+                bar_format='| {n_fmt}/{total_fmt} {percentage:3.0f}%|{bar}| - writing... - {elapsed} < {remaining}',
+                ascii=" ▖▘▝▗▚▞█"
             )
-            for i, id_exec in enumerate(expConfigsProgress):
-                expConfigsProgress.set_description(
-                    f"Multimanger experiment write: {id_exec} in {self.summonerID}.")
-                wave_container[id_exec].write(
-                    saveLocation=self.multicommons.saveLocation,
-                    mute=True,
-                )
-                if i == len(expConfigsProgress) - 1:
-                    expConfigsProgress.set_description(
-                        f"Multimanger experiment write in {self.summonerID}...done")
+            qurryinfos = {**qurryinfos, **
+                          {k: v for k, v in exportQurryInfoItems}}
+
+            quickJSON(
+                content=qurryinfos,
+                filename=qurryinfosLoc,
+                mode='w+',
+                indent=indent,
+                encoding=encoding,
+                jsonablize=True,
+                mute=True,
+            )
 
         return multiConfig
 
@@ -784,13 +822,13 @@ class MultiManager:
         multiConfig = self._writeMultiConfig()
 
         print(
-            f"| Compress multimanager of '{self.namingCpx.expsName}'...", end='/r')
+            f"| Compress multimanager of '{self.namingCpx.expsName}'...", end='\r')
         loc = self.easycompress(overwrite=compressOverwrite)
         print(f"| Compress multimanager of '{self.namingCpx.expsName}'...done")
 
         if remainOnlyCompressed:
             print(
-                f"| Remove uncompressed files in '{self.namingCpx.exportLocation}' ...", end='/r')
+                f"| Remove uncompressed files in '{self.namingCpx.exportLocation}' ...", end='\r')
             shutil.rmtree(self.multicommons.exportLocation)
             print(
                 f"| Remove uncompressed files in '{self.namingCpx.exportLocation}' ...done")
@@ -832,7 +870,7 @@ class MultiManager:
             analysisName if noSerialize else f"{analysisName}."+f'{idx_tagMapQ+1}'.rjust(self._rjustLen, '0'))
         self.quantityContainer[name] = TagList()
 
-        allCountsProgressBar = tqdm.tqdm(
+        allCountsProgressBar = qurryProgressBar(
             self.afterwards.allCounts.keys(),
             bar_format=(
                 '| {n_fmt}/{total_fmt} - Analysis: {desc} - {elapsed} < {remaining}'
@@ -844,7 +882,7 @@ class MultiManager:
             if k in specificAnalysisArgs:
                 if isinstance(specificAnalysisArgs[k], bool):
                     if specificAnalysisArgs[k] is False:
-                        allCountsProgressBar.set_description(
+                        allCountsProgressBar.set_description_str(
                             f"Skipped {k} in {self.summonerID}.")
                         continue
                     else:

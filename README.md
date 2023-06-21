@@ -18,14 +18,15 @@ _It's a great thanks for [National Center for Theoretical Sciences, Physics Divi
 
 ![Available Python Version](https://img.shields.io/badge/Python-3.9_|_3.10_|_3.11-blue?logo=python&logoColor=white)
 
-![Available System](https://img.shields.io/badge/Ubuntu-18.04+-purple?logo=Ubuntu&logoColor=white) ![Available System](https://img.shields.io/badge/Ubuntu_on_Windows_WSL-18.04+-purple?logo=Ubuntu&logoColor=white) ![Available System](https://img.shields.io/badge/Windows-10_|_11-purple?logo=Windows&logoColor=white)
+![Available System](https://img.shields.io/badge/Ubuntu-18.04+-purple?logo=Ubuntu&logoColor=white) ![Available System](https://img.shields.io/badge/Ubuntu_on_Windows_WSL-18.04+-purple?logo=Ubuntu&logoColor=white)
+ <!-- ![Available System](https://img.shields.io/badge/Windows-10_|_11-purple?logo=Windows&logoColor=white) -->
 
 - **Recommended `Python 3.9.7+` installed by Anaconda**
   - on
     - **Ubuntu 18.04+ LTS** on `x86_64` **(recommended)**
     - **Ubuntu 18.04+ LTS on Windows 10/11 WSL2** on `x86_64` **(recommended)**
       - We recommend to use Linux based system, due to the GPU acceleration of `Qiskit`, `qiskit-aer-gpu` only works with Nvidia CUDA on Linux.
-    - **Windows 10/11** on `x86_64`
+    - ~~**Windows 10/11** on `x86_64`~~ currenyly with issues on `multiprocessing` module on Windows.
 
   - currently with issues on
     - **MacOS 12 Monterey** on **`arm64 (Apple Silicon, M1 chips)`**

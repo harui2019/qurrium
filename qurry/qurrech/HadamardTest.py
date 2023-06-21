@@ -1,7 +1,6 @@
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 
 import numpy as np
-from multiprocessing import Pool, cpu_count
 from pathlib import Path
 from typing import Union, Optional, NamedTuple, Hashable, Iterable, Type, Any
 
@@ -51,7 +50,6 @@ class EntropyHadamardAnalysis(AnalysisPrototype):
 
     class analysisContent(NamedTuple):
         """The content of the analysis."""
-        # TODO: args hint
 
         echo: float
         """The purity of the system."""

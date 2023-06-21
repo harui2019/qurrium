@@ -5,12 +5,12 @@ from qiskit.providers.ibmq.exceptions import IBMQError
 
 from typing import Literal, NamedTuple, Hashable, Any, Optional
 import warnings
-import tqdm
 
 from .multimanager import MultiManager
 from .runner import Runner
 from ..container import ExperimentContainer
 from ..utils import get_counts, currentTime
+from ...tools import qurryProgressBar
 
 
 class QurryIBMQBackendIO(NamedTuple):
@@ -88,7 +88,7 @@ class IBMQRunner(Runner):
             else:
                 ...
 
-        distributingPendingProgressBar = tqdm.tqdm(
+        distributingPendingProgressBar = qurryProgressBar(
             self.currentMultiJob.beforewards.expsConfig,
             bar_format=(
                 '| {n_fmt}/{total_fmt} - Preparing pending pool - {elapsed} < {remaining}'
@@ -124,7 +124,7 @@ class IBMQRunner(Runner):
         current = currentTime()
         self.currentMultiJob.multicommons.datetimes['pending'] = current
 
-        pendingPoolProgressBar = tqdm.tqdm(
+        pendingPoolProgressBar = qurryProgressBar(
             self.currentMultiJob.beforewards.pendingPools.items(),
             bar_format=(
                 '| {n_fmt}/{total_fmt} - pending: {desc} - {elapsed} < {remaining}'
@@ -151,7 +151,7 @@ class IBMQRunner(Runner):
                     managerRunArgs=self.currentMultiJob.multicommons.
                     managerRunArgs,
                 )
-                pendingPoolProgressBar.set_description(
+                pendingPoolProgressBar.set_description_str(
                     f"{pk}/{pendingJob.jobID}/{pendingJob.name}")
                 self.currentMultiJob.beforewards.jobID.append(
                     (pendingJob.jobID, pk))
@@ -219,7 +219,7 @@ class IBMQRunner(Runner):
         self.currentMultiJob.multicommons.datetimes[
             retrieveTimesName] = current
 
-        retrieveProgressBar = tqdm.tqdm(
+        retrieveProgressBar = qurryProgressBar(
             self.currentMultiJob.beforewards.jobID,
             bar_format=(
                 '| {n_fmt}/{total_fmt} - retrieve: {desc} - {elapsed} < {remaining}'
@@ -230,7 +230,7 @@ class IBMQRunner(Runner):
             if pendingID is None:
                 warnings.warn(f"Pending pool '{pk}' is empty.")
                 continue
-            retrieveProgressBar.set_description(f"{pk}/{pendingID}")
+            retrieveProgressBar.set_description_str(f"{pk}/{pendingID}")
             pendingMapping[pk] = IBMQRetrieve(
                 ibmqJobManager=self.JobManager,
                 jobID=pendingID,
@@ -238,7 +238,7 @@ class IBMQRunner(Runner):
                 refresh=refresh,
             )
 
-        pendingPoolProgressBar = tqdm.tqdm(
+        pendingPoolProgressBar = qurryProgressBar(
             self.currentMultiJob.beforewards.pendingPools.items(),
             bar_format=(
                 '| {n_fmt}/{total_fmt} - get counts: {desc} - {elapsed} < {remaining}'
@@ -248,7 +248,7 @@ class IBMQRunner(Runner):
         for pk, pcircs in pendingPoolProgressBar:
             if len(pcircs) > 0:
                 pendingJob = pendingMapping[pk]
-                pendingPoolProgressBar.set_description(
+                pendingPoolProgressBar.set_description_str(
                     f"{pk}/{pendingJob.jobID}/{pendingJob.name}")
                 self.reports[pendingJob.jobID] = {
                     'time': current,
@@ -261,31 +261,31 @@ class IBMQRunner(Runner):
                     counts = get_counts(
                         result=pResult,
                         resultIdxList=[rk - pcircs[0] for rk in pcircs])
-                    pendingPoolProgressBar.set_description(
+                    pendingPoolProgressBar.set_description_str(
                         f"{pk}/{pendingJob.jobID}/{pendingJob.name} - len: {len(counts)}")
                 else:
                     counts = get_counts(
                         result=None,
                         resultIdxList=[rk - pcircs[0] for rk in pcircs])
-                    pendingPoolProgressBar.set_description(
+                    pendingPoolProgressBar.set_description_str(
                         f"{pk}/{pendingJob.jobID}/{pendingJob.name} - len: {len(counts)}")
                 for rk in pcircs:
                     coutsTmpContainer[rk] = counts[rk - pcircs[0]]
-                    pendingPoolProgressBar.set_description(
+                    pendingPoolProgressBar.set_description_str(
                         f"{pk}/{pendingJob.jobID}/{pendingJob.name} - " +
                         f"Packing: {rk} with len {len(counts[rk - pcircs[0]])}")
 
             else:
                 warnings.warn(f"Pending pool '{pk}' is empty.")
 
-        distributingProgressBar = tqdm.tqdm(
+        distributingProgressBar = qurryProgressBar(
             self.currentMultiJob.beforewards.circuitsMap.items(),
             bar_format=(
                 '| {n_fmt}/{total_fmt} - Distributing {desc} - {elapsed} < {remaining}'
             ),
         )
         for currentID, idxCircs in distributingProgressBar:
-            distributingProgressBar.set_description(
+            distributingProgressBar.set_description_str(
                 f"{currentID} with {len(idxCircs)} circuits")
             self.expContainer[currentID].reset_counts(
                 summonerID=self.currentMultiJob.summonerID)

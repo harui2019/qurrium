@@ -2,7 +2,7 @@ from .qurmagsq import MagnetSquare
 from .qurrech import EchoListen
 from .qurrent import EntropyMeasure
 # from .qurstrop import StringOperator
-from .qurrium import QurryV5 as Qurry
+from .qurrium import QurryV5 as Qurry, WavesExecuter
 
 from .tools import (
     backendWrapper,

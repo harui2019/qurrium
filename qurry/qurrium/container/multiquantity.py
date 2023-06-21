@@ -1,7 +1,7 @@
-import tqdm
 from typing import Union, Optional, Literal
 from pathlib import Path
 
+from ...tools import qurryProgressBar
 from ...mori import TagList
 
 
@@ -56,14 +56,18 @@ class QuantityContainer(dict[str, TagList[dict[str, float]]]):
         """
 
         quantityOutput = {}
-        quantityProgress = tqdm.tqdm(
+        if len(self) == 0:
+            print(f"| No quantity to export.")
+            return quantityOutput
+        
+        quantityProgress = qurryProgressBar(
             self.items(),
             desc='exporting quantity',
-            bar_format='| {n_fmt}/{total_fmt} - {desc} - {elapsed} < {remaining}',
+            bar_format='qurry-barless',
         )
 
         for i, (k, v) in enumerate(quantityProgress):
-            quantityProgress.set_description(f'exporting quantity: {k}')
+            quantityProgress.set_description_str(f'exporting quantity: {k}')
             filename = v.export(
                 saveLocation=saveLocation,
                 tagListName='quantity',
@@ -80,7 +84,7 @@ class QuantityContainer(dict[str, TagList[dict[str, float]]]):
             quantityOutput[k] = str(filename)
 
             if i == len(self) - 1:
-                quantityProgress.set_description(f'exported quantity complete')
+                quantityProgress.set_description_str(f'exported quantity complete')
 
         return quantityOutput
 

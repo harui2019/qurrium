@@ -1,7 +1,8 @@
 import os
-import tqdm
 from pathlib import Path
 from typing import Union, NamedTuple
+
+from ...tools import qurryProgressBar
 
 STAND_COMPRESS_FORMAT = 'tar.xz'
 FULL_SUFFIX_OF_COMPRESS_FORMAT = f'qurry.{STAND_COMPRESS_FORMAT}'
@@ -78,19 +79,27 @@ def naming(
 
         immutableName = f"{expsName}.{str(indexRename).rjust(_rjustLen, '0')}"
         exportLocation = saveLocation / immutableName
+
+        # findIndexProgress = qurryProgressBar(
+        #     range(1), bar_format='| {desc}')
+        # with findIndexProgress as pb:
+        #     while os.path.exists(exportLocation):
+        #         pb.set_description_str(f"{exportLocation} is repeat location.")
+        #         indexRename += 1
+        #         immutableName = f"{expsName}.{str(indexRename).rjust(_rjustLen, '0')}"
+        #         exportLocation = saveLocation / immutableName
+        #     pb.set_description_str(
+        #         f'Write "{immutableName}", at location "{exportLocation}"')
+        #     os.makedirs(exportLocation)
         
-        findIndexProgress = tqdm.tqdm(
-            range(1), 
-            bar_format='| {desc}',
-        )
-        with findIndexProgress as pb:
-            while os.path.exists(exportLocation):
-                pb.set_description(f"{exportLocation} is repeat location.")
-                indexRename += 1
-                immutableName = f"{expsName}.{str(indexRename).rjust(_rjustLen, '0')}"
-                exportLocation = saveLocation / immutableName
-            pb.set_description(f'Write "{immutableName}", at location "{exportLocation}"')
-            os.makedirs(exportLocation)
+        while os.path.exists(exportLocation):
+            print(f"| {exportLocation} is repeat location.")
+            indexRename += 1
+            immutableName = f"{expsName}.{str(indexRename).rjust(_rjustLen, '0')}"
+            exportLocation = saveLocation / immutableName
+        print(
+            f'| Write "{immutableName}", at location "{exportLocation}"')
+        os.makedirs(exportLocation)
 
     return IOComplex(
         expsName=immutableName,

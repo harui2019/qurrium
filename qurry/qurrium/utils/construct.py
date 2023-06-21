@@ -2,34 +2,7 @@ from qiskit import QuantumCircuit
 from qiskit.result import Result
 
 import warnings
-from multiprocessing import cpu_count
 from typing import Literal, Union, Hashable, Optional
-
-def workers_distribution(
-    workers_num: Optional[int] = None,
-    default: int = cpu_count()-2,
-) -> int:
-    if default < 1:
-        warnings.warn(
-            f"| Available worker number {cpu_count()} is equal orsmaller than 2."+
-            "This computer may not be able to run this program for the program will allocate all available threads.")
-        default = cpu_count()
-    
-    if workers_num is None:
-        launch_worker = default
-    else:
-        if workers_num > cpu_count():
-            warnings.warn(
-                f"| Worker number {workers_num} is larger than cpu count {cpu_count()}.")
-            launch_worker = default
-        elif workers_num < 1:
-            warnings.warn(
-                f"| Worker number {workers_num} is smaller than 1. Use single worker.")
-            launch_worker = 1
-        else:
-            launch_worker = workers_num
-    
-    return launch_worker
 
 
 def qubit_selector(
@@ -146,6 +119,23 @@ def decomposer(
     for t in range(decompose):
         qcResult = qcResult.decompose()
     return qcResult
+
+
+def decomposer_and_drawer(
+    qc: QuantumCircuit,
+    decompose: int = 2,
+) -> str:
+    """Decompose the circuit with giving times and draw it.
+
+    Args:
+        qc (QuantumCircuit): The circuit wanted to be decomposed.
+        decompose (int, optional):  Decide the times of decomposing the circuit.
+            Draw quantum circuit with composed circuit. Defaults to 2.
+
+    Returns:
+        str: The drawing of decomposed circuit.
+    """
+    return decomposer(qc, decompose).draw('text')
 
 
 def get_counts(

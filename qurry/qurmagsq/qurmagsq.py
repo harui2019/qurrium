@@ -2,19 +2,17 @@ from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.quantum_info import Operator
 
 import time
-import warnings
 import numpy as np
-from multiprocessing import Pool, cpu_count
 from pathlib import Path
 from itertools import permutations
 from typing import Union, Optional, NamedTuple, Hashable, Type, Any
 
+from ..tools import ProcessManager, workers_distribution, DEFAULT_POOL_SIZE
 from ..qurrium import (
     QurryV5Prototype,
     ExperimentPrototype,
     AnalysisPrototype,
 )
-from ..qurrium.utils import workers_distribution
 
 
 def _magnetsqCell(
@@ -82,7 +80,7 @@ def _magnetic_square_core(
     else:
         print(
             f"| With {launch_worker} workers to calculate overlap of {length} counts.")
-        pool = Pool(launch_worker)
+        pool = ProcessManager(launch_worker)
         magnetsqCellList = pool.starmap(
             _magnetsqCell, [(i, c, shots) for i, c in enumerate(counts)])
         print(f"| Calculating overlap end - {round(time.time() - Begin, 3)}s.")
@@ -150,7 +148,7 @@ class MagnetSquareExperiment(ExperimentPrototype):
         """Arguments for the experiment."""
         expName: str = 'exps'
         num_qubits: int = 0
-        workers_num: int = int(cpu_count() - 2)
+        workers_num: int = DEFAULT_POOL_SIZE
         
     @classmethod
     @property
@@ -285,7 +283,7 @@ class MagnetSquare(QurryV5Prototype):
         assert circuit.num_qubits == args.num_qubits
 
         permut = [b for b in permutations([a for a in range(args.num_qubits)], 2)]
-        pool = Pool(args.workers_num)
+        pool = ProcessManager(args.workers_num)
 
         qcList = pool.starmap(
             _circuit_method_core, [(

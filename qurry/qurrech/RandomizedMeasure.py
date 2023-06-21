@@ -4,7 +4,6 @@ from qiskit.quantum_info import Operator
 import time
 import tqdm
 import numpy as np
-from multiprocessing import Pool, cpu_count
 from pathlib import Path
 from typing import Union, Optional, NamedTuple, Hashable, Iterable, Type, Any
 
@@ -14,12 +13,12 @@ from ..qurrium import (
     AnalysisPrototype,
     qubit_selector
 )
-from ..qurrium.utils import workers_distribution
 from ..qurrium.utils.randomized import (
     random_unitary,
     qubitOpToPauliCoeff,
     ensembleCell,
 )
+from ..tools import qurryProgressBar, ProcessManager, workers_distribution, DEFAULT_POOL_SIZE
 try:
     from ..boost.randomized import echoCellCore
     useCython = True
@@ -37,6 +36,7 @@ def _echoCellCy(
 
     return idx, echoCellCore(
         dict(firstCounts), dict(secondCounts), bitStringRange, subsystemSize)
+
 
 def _echoCell(
     idx: int,
@@ -158,7 +158,7 @@ def _overlap_echo_core(
     msg = (
         f"| Partition: {bitStringRange}, Measure: {measure}"
     )
-    
+
     cellCalculator = (_echoCellCy if useCython else _echoCell)
 
     if launch_worker == 1:
@@ -182,7 +182,7 @@ def _overlap_echo_core(
     else:
         msg += f", {launch_worker} workers, {times} overlaps."
 
-        pool = Pool(launch_worker)
+        pool = ProcessManager(launch_worker)
         echoCellItems = pool.starmap(
             cellCalculator, [(i, c1, c2, bitStringRange, subsystemSize) for i, (c1, c2) in enumerate(countsPair)])
         takeTime = round(time.time() - Begin, 3)
@@ -248,7 +248,7 @@ def overlap_echo(
     """
 
     if isinstance(pbar, tqdm.tqdm):
-        pbar.set_description(f"Calculate overlap with {len(counts)} counts.")
+        pbar.set_description_str(f"Calculate overlap with {len(counts)} counts.")
 
     (
         echoCellDict,
@@ -401,7 +401,7 @@ class EchoRandomizedExperiment(ExperimentPrototype):
         times: int = 100
         measure: tuple[int, int] = None
         unitary_loc: tuple[int, int] = None
-        workers_num: int = int(cpu_count() - 2)
+        workers_num: int = DEFAULT_POOL_SIZE
 
     @classmethod
     @property
@@ -450,11 +450,9 @@ class EchoRandomizedExperiment(ExperimentPrototype):
             )
 
         else:
-            pbar_selfhost = tqdm.tqdm(
+            pbar_selfhost = qurryProgressBar(
                 range(1),
-                bar_format=(
-                    '| {desc} - {elapsed} < {remaining}'
-                ),
+                bar_format='simple',
             )
 
             with pbar_selfhost as pb_self:
@@ -606,7 +604,7 @@ class EchoRandomizedListen(QurryV5Prototype):
 
         #     qcList.append(qcExp1)
 
-        pool = Pool(args.workers_num)
+        pool = ProcessManager(args.workers_num)
         qcList = pool.starmap(
             _circuit_method_core, [(
                 i, circuit, args.expName, args.unitary_loc, unitaryList[i], args.measure

@@ -1,8 +1,8 @@
 from qiskit.visualization.counts_visualization import hamming_distance, VisualizationError
-from qiskit.quantum_info import random_unitary
+from qiskit.quantum_info import random_unitary, Operator
 
 import numpy as np
-from typing import Callable, Iterable
+from typing import Callable, Iterable, Union
 
 
 RXmatrix = np.array([[0, 1], [1, 0]])
@@ -122,7 +122,7 @@ def densityMatrixToBloch(
 
 
 def qubitOpToPauliCoeff(
-    rho: np.array
+    rho: np.ndarray
 ) -> list[tuple[float]]:
     """Convert a random unitary operator matrix to a Bloch vector.
 
@@ -132,11 +132,42 @@ def qubitOpToPauliCoeff(
         Returns:
             list[tuple[float]]: The bloch vector divided as tuple of real number and image number.
     """
+    # Please let me know the outcome of the final duel between you guys.
+    # Numpy and Cython, about the issue https://github.com/cython/cython/issues/3573
+    # How the fxxk to write this sxxt, numpy code in cython?
+    # This function would nerver be rewritten in cython until this issue done.
 
     ax = np.trace(np.dot(rho, RXmatrix))/2
     ay = np.trace(np.dot(rho, RYmatrix))/2
     az = np.trace(np.dot(rho, RZmatrix))/2
     return [(np.float64(a.real), np.float64(a.imag)) for a in [ax, ay, az]]
+
+
+def local_random_unitary(
+    unitary_loc: tuple[int, int],
+    seed: int = None
+) -> dict[int, Operator]:
+    return {
+        j: random_unitary(2, seed) for j in range(*unitary_loc)
+    }
+
+
+def local_random_unitary_operators(
+    unitary_loc: tuple[int, int],
+    unitary_op_list: Union[list[np.ndarray], dict[int, Operator]],
+) -> dict[int, list[np.ndarray]]:
+    return {
+        i: np.array(unitary_op_list[i]).tolist() for i in range(*unitary_loc)
+    }
+
+
+def local_random_unitary_pauli_coeff(
+    unitary_loc: tuple[int, int],
+    unitary_op_list: list[np.ndarray],
+) -> dict[int, list[tuple[float, float]]]:
+    return {
+        i: qubitOpToPauliCoeff(unitary_op_list[i]) for i in range(*unitary_loc)
+    }
 
 
 def cycling_slice(target: Iterable, start: int, end: int, step: int = 1) -> Iterable:
