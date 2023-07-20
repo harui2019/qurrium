@@ -1129,7 +1129,8 @@ class ExperimentPrototype():
                 warnings.warn(
                     f"Unknown filekey '{filekey}' found in the index of '{expID}'."
                 )
-
+        del export_set
+        gc.collect()
         # Construct the experiment
         # arguments, commonparams, outfields
         instance = cls(**export_material_set['commonparams'],
@@ -1165,11 +1166,12 @@ class ExperimentPrototype():
                         sides[k] = {}
                         mains[k] = {}
                     sides[k][tk] = v
-
+        del export_material_set
+        gc.collect()
         # print(mains, sides, 'mains, sides')
         for k, v in mains.items():
             instance.reports[k] = cls.analysis_container.read(v, sides[k])
-
+        
         return instance
 
     @classmethod
