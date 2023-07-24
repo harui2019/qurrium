@@ -101,12 +101,13 @@ class ExtraBackendAccessor:
     backendType: backendChoiceLiteral = None
     """The backend type been used."""
 
-    def __init__(self,
-                 multiManager: MultiManager,
-                 experimentContainer: ExperimentContainer,
-                 backend: Backend,
-                 backendType: backendChoiceLiteral,
-                 ):
+    def __init__(
+        self,
+        multimanager: MultiManager,
+        experimentContainer: ExperimentContainer,
+        backend: Backend,
+        backendType: backendChoiceLiteral,
+    ):
 
         if backendType == 'IBMQ':
             if not BACKEND_AVAILABLE['IBMQ']:
@@ -123,8 +124,8 @@ class ExtraBackendAccessor:
                     "which is different from 'IBMQBackend'.")
 
             self.multirunner: IBMQRunner = IBMQRunner(
-                besummonned=multiManager.summonerID,
-                multimanager=multiManager,
+                besummonned=multimanager.summonerID,
+                multimanager=multimanager,
                 backend=backend,
                 experimentalContainer=experimentContainer,
             )
@@ -136,8 +137,8 @@ class ExtraBackendAccessor:
             from .ibmrunner import IBMRunner, IBMBackend
 
             self.multirunner: IBMRunner = IBMRunner(
-                besummonned=multiManager.summonerID,
-                multimanager=multiManager,
+                besummonned=multimanager.summonerID,
+                multimanager=multimanager,
                 backend=backend,
                 experimentalContainer=experimentContainer,
             )
