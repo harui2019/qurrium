@@ -169,7 +169,7 @@ class ExperimentPrototype():
         # Arguments for multi-experiment
         serial: Optional[int]
         """Index of experiment in a multiOutput."""
-        summonerID: Optional[Hashable]
+        summonerID: Optional[str]
         """ID of experiment of the multiManager."""
         summonerName: Optional[str]
         """Name of experiment of the multiManager."""
@@ -250,14 +250,16 @@ class ExperimentPrototype():
         """The container of analysis, it should be overwritten by each construction of new measurement.
         """
 
-    def __init__(self,
-                 expID: Hashable,
-                 waveKey: Hashable,
-                 *args,
-                 serial: Optional[int] = None,
-                 summonerID: Optional[Hashable] = None,
-                 summonerName: Optional[str] = None,
-                 **kwargs) -> None:
+    def __init__(
+        self,
+        expID: str,
+        waveKey: Hashable,
+        *args,
+        serial: Optional[int] = None,
+        summonerID: Optional[str] = None,
+        summonerName: Optional[str] = None,
+        **kwargs
+    ) -> None:
         """Initialize the experiment."""
 
         if len(args) > 0:
@@ -379,7 +381,7 @@ class ExperimentPrototype():
         self.mute_auto_lock = False
         """Whether mute the auto-lock message."""
 
-    def reset_counts(self, summonerID: Hashable) -> None:
+    def reset_counts(self, summonerID: str) -> None:
         """Reset the counts of the experiment."""
         if summonerID == self.commons.summonerID:
             self.afterwards = self.afterwards._replace(counts=[])
@@ -586,7 +588,7 @@ class ExperimentPrototype():
         # Arguments for multi-experiment
         serial: Optional[int] = None
         """Index of experiment in a multiOutput, which will be packed into `.args.json`."""
-        summonerID: Optional[Hashable] = None
+        summonerID: Optional[str] = None
         """ID of experiment of the multiManager, which will be packed into `.args.json`."""
         summonerName: Optional[str] = None
         """Name of experiment of the multiManager, which will be packed into `.args.json`."""
@@ -852,21 +854,23 @@ class ExperimentPrototype():
 
         files = {k: str(Path(v)) for k, v in files.items()}
 
-        return self.Export(expID=expID,
-                           expName=expName,
-                           serial=serial,
-                           summonerID=summonerID,
-                           summonerName=summonerName,
-                           filename=filename,
-                           files=files,
-                           args=args,
-                           commons=commons,
-                           outfields=outfields,
-                           adventures=adventures,
-                           legacy=legacy,
-                           tales=tales,
-                           reports=reports,
-                           tales_reports=tales_reports)
+        return self.Export(
+            expID=expID,
+            expName=expName,
+            serial=serial,
+            summonerID=summonerID,
+            summonerName=summonerName,
+            filename=filename,
+            files=files,
+            args=args,
+            commons=commons,
+            outfields=outfields,
+            adventures=adventures,
+            legacy=legacy,
+            tales=tales,
+            reports=reports,
+            tales_reports=tales_reports
+        )
 
     def write(
         self,
@@ -877,8 +881,8 @@ class ExperimentPrototype():
         jsonablize: bool = False,
         # zip: bool = False,
         mute: bool = False,
-        _qurryinfo_hold_access: Optional[Hashable] = None,
-    ) -> tuple[Hashable, dict[str, str]]:
+        _qurryinfo_hold_access: Optional[str] = None,
+    ) -> tuple[str, dict[str, str]]:
         """Export the experiment data, if there is a previous export, then will overwrite.
 
         - example of filename:
@@ -919,7 +923,7 @@ class ExperimentPrototype():
                 Whether to transpile all object to jsonable via :func:`mori.jsonablize`, for :func:`mori.quickJSON`. Defaults to False.
             mute (bool, optional):
                 Whether to mute the output, for :func:`mori.quickJSON`. Defaults to False.
-            qurryinfo_hold (Hashable, optional):
+            _qurryinfo_hold_access (str, optional):
                 Whether to hold the I/O of `qurryinfo`, then export by :cls:`multimanager`, 
                 it should be control by :cls:`multimanager`. 
                 Defaults to None.
@@ -1171,7 +1175,7 @@ class ExperimentPrototype():
         # print(mains, sides, 'mains, sides')
         for k, v in mains.items():
             instance.reports[k] = cls.analysis_container.read(v, sides[k])
-        
+
         return instance
 
     @classmethod
@@ -1231,7 +1235,8 @@ class ExperimentPrototype():
             workers_num = DEFAULT_POOL_SIZE
         pool = ProcessManager(workers_num)
 
-        print(f"| {len(qurryinfo)} experiments found, loading by {workers_num} workers.")
+        print(
+            f"| {len(qurryinfo)} experiments found, loading by {workers_num} workers.")
         quene = pool.starmap(
             cls._read_core,
             [(expID, fileIndex, saveLocation, encoding) for expID, fileIndex in qurryinfo.items()])
@@ -1242,7 +1247,7 @@ class ExperimentPrototype():
     def readV4(
         cls,
         name: Union[Path, str],
-        summonerID: Optional[Hashable] = None,
+        summonerID: Optional[str] = None,
         saveLocation: Union[Path, str] = Path('./'),
         encoding: str = 'utf-8',
     ) -> list['ExperimentPrototype']:
@@ -1309,7 +1314,7 @@ class ExperimentPrototype():
         expID: str,
         fileIndex: dict[str, str],
         summonerName: str,
-        summonerID: Optional[Hashable] = None,
+        summonerID: Optional[str] = None,
         saveLocation: Union[Path, str] = Path('./'),
         encoding: str = 'utf-8',
     ) -> 'ExperimentPrototype':

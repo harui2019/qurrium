@@ -219,7 +219,7 @@ class EchoHadamardTest(QurryV5Prototype):
 
     def method(
         self,
-        expID: Hashable,
+        expID: str,
     ) -> list[QuantumCircuit]:
 
         assert expID in self.exps

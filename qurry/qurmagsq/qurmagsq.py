@@ -272,7 +272,7 @@ class MagnetSquare(QurryV5Prototype):
         
     def method(
         self,
-        expID: Hashable,
+        expID: str,
     ) -> list[QuantumCircuit]:
 
         assert expID in self.exps
@@ -310,7 +310,7 @@ class MagnetSquare(QurryV5Prototype):
         encoding: str = 'utf-8',
         jsonablize: bool = False,
         **otherArgs: any
-    ) -> Hashable:
+    ) -> str:
         """
 
         Args:
