@@ -23,7 +23,7 @@ from .declare.default import (
 from .experiment import ExperimentPrototype, QurryExperiment
 from .container import WaveContainer, ExperimentContainer
 from .multimanager import MultiManager
-from .runner import Runner, backendChoiceLiteral, ExtraBackendAccessor
+from .runner import backendChoiceLiteral, ExtraBackendAccessor
 
 from .utils import get_counts, currentTime, datetimeDict, decomposer_and_drawer
 from .utils.inputfixer import outfields_check, outfields_hint
@@ -774,8 +774,7 @@ class QurryV5Prototype:
         # Multiple jobs shared
         tags: list[str] = [],
         saveLocation: Union[Path, str] = Path('./'),
-        jobsType: Literal["local", "IBMQ", "IBM",
-                          "AWS_Bracket", "Azure_Q"] = "local",
+        jobsType: backendChoiceLiteral = "local",
         # IBMQJobManager() dedicated
         managerRunArgs: dict[str, Any] = {
             'max_experiments_per_job': 200,
@@ -910,7 +909,7 @@ class QurryV5Prototype:
         # Other arguments of experiment
         # Multiple jobs shared
         saveLocation: Union[Path, str] = Path('./'),
-        jobsType: Literal["local", "IBMQ", "AWS_Bracket", "Azure_Q"] = 'local',
+        jobsType: Union[Literal["local"], backendChoiceLiteral] = 'local',
         filetype: TagList._availableFileType = 'json',
     ) -> str:
         """Buling the experiment's parameters for running multiple jobs.
@@ -1123,7 +1122,7 @@ class QurryV5Prototype:
         # Other arguments of experiment
         # Multiple jobs shared
         saveLocation: Union[Path, str] = Path('./'),
-        jobsType: Literal["IBMQ", "IBM", "AWS_Bracket", "Azure_Q"] = "IBM",
+        jobsType: backendChoiceLiteral = "IBM",
 
         filetype: TagList._availableFileType = 'json',
 
@@ -1182,12 +1181,12 @@ class QurryV5Prototype:
 
         print(f"| MultiPending running...")
         self.accessor = ExtraBackendAccessor(
-            multiManager=currentMultimanager,
+            multimanager=currentMultimanager,
             experimentContainer=self.exps,
             backend=backend,
             backendType=jobsType,
         )
-        bependings = self.multirunner.pending(
+        bependings = self.accessor.pending(
             pendingStrategy=pendingStrategy,
         )
         bewritten = self.multiWrite(besummonned)
@@ -1430,7 +1429,7 @@ class QurryV5Prototype:
             '.')
 
         self.accessor = ExtraBackendAccessor(
-            multiManager=currentMultimanager,
+            multimanager=currentMultimanager,
             experimentContainer=self.exps,
             backend=backend,
             backendType=jobsType,
