@@ -29,7 +29,7 @@ class QurryIBMQBackendIO(NamedTuple):
 class IBMQRunner(Runner):
     """Pending and Retrieve Jobs from IBMQ backend."""
 
-    currentMultiManager: MultiManager
+    currentMultimanager: MultiManager
     backend: Optional[IBMQBackend]
     provider: AccountProvider
 
@@ -54,7 +54,7 @@ class IBMQRunner(Runner):
                 "At least one of backend and provider should be given."
             )
 
-        self.currentMultiManager = multimanager
+        self.currentMultimanager = multimanager
         """The multimanager from Qurry instance."""
         self.backend = backend
         """The backend will be use to pending and retrieve."""
@@ -93,7 +93,7 @@ class IBMQRunner(Runner):
                 ...
 
         distributingPendingProgressBar = qurryProgressBar(
-            self.currentMultiManager.beforewards.expsConfig,
+            self.currentMultimanager.beforewards.expsConfig,
             bar_format=(
                 '| {n_fmt}/{total_fmt} - Preparing pending pool - {elapsed} < {remaining}'
             ),
@@ -103,16 +103,16 @@ class IBMQRunner(Runner):
             circSerialLen = len(self.circWithSerial)
             for idx, circ in enumerate(
                     self.expContainer[id_exec].beforewards.circuit):
-                self.currentMultiManager.beforewards.circuitsMap[id_exec].append(
+                self.currentMultimanager.beforewards.circuitsMap[id_exec].append(
                     idx + circSerialLen)
 
                 if pendingStrategy == 'each':
-                    self.currentMultiManager.beforewards.pendingPools[
+                    self.currentMultimanager.beforewards.pendingPools[
                         id_exec].append(idx + circSerialLen)
 
                 elif pendingStrategy == 'tags':
                     tags = self.expContainer[id_exec].commons.tags
-                    self.currentMultiManager.beforewards.pendingPools[tags].append(
+                    self.currentMultimanager.beforewards.pendingPools[tags].append(
                         idx + circSerialLen)
 
                 else:
@@ -120,16 +120,16 @@ class IBMQRunner(Runner):
                         warnings.warn(
                             f"Unknown strategy '{pendingStrategy}, use 'onetime'."
                         )
-                    self.currentMultiManager.beforewards.pendingPools[
+                    self.currentMultimanager.beforewards.pendingPools[
                         '_onetime'].append(idx + circSerialLen)
 
                 self.circWithSerial[idx + circSerialLen] = circ
 
         current = currentTime()
-        self.currentMultiManager.multicommons.datetimes['pending'] = current
+        self.currentMultimanager.multicommons.datetimes['pending'] = current
 
         pendingPoolProgressBar = qurryProgressBar(
-            self.currentMultiManager.beforewards.pendingPools.items(),
+            self.currentMultimanager.beforewards.pendingPools.items(),
             bar_format=(
                 '| {n_fmt}/{total_fmt} - pending: {desc} - {elapsed} < {remaining}'
             ),
@@ -138,11 +138,11 @@ class IBMQRunner(Runner):
         for pk, pcircIdxs in pendingPoolProgressBar:
             if len(pcircIdxs) > 0:
                 if pk == '_onetime':
-                    pendingName = f'{self.currentMultiManager.multicommons.summonerName}'
+                    pendingName = f'{self.currentMultimanager.multicommons.summonerName}'
                 elif isinstance(pk, (list, tuple)):
-                    pendingName = f'{self.currentMultiManager.multicommons.summonerName}-{"-".join(pk)}'
+                    pendingName = f'{self.currentMultimanager.multicommons.summonerName}-{"-".join(pk)}'
                 else:
-                    pendingName = f'{self.currentMultiManager.multicommons.summonerName}-{pk}'
+                    pendingName = f'{self.currentMultimanager.multicommons.summonerName}-{pk}'
 
                 pendingJob = IBMQPending(
                     ibmqJobManager=self.JobManager,
@@ -150,14 +150,14 @@ class IBMQRunner(Runner):
                         self.circWithSerial[idx] for idx in pcircIdxs
                     ],
                     backend=self.backend,
-                    shots=self.currentMultiManager.multicommons.shots,
+                    shots=self.currentMultimanager.multicommons.shots,
                     name=pendingName,
-                    managerRunArgs=self.currentMultiManager.multicommons.
+                    managerRunArgs=self.currentMultimanager.multicommons.
                     managerRunArgs,
                 )
                 pendingPoolProgressBar.set_description_str(
                     f"{pk}/{pendingJob.jobID}/{pendingJob.name}")
-                self.currentMultiManager.beforewards.jobID.append(
+                self.currentMultimanager.beforewards.jobID.append(
                     (pendingJob.jobID, pk))
                 self.reports[pendingJob.jobID] = {
                     'time': current,
@@ -166,16 +166,16 @@ class IBMQRunner(Runner):
                 }
 
             else:
-                self.currentMultiManager.beforewards.jobID.append((None, pk))
+                self.currentMultimanager.beforewards.jobID.append((None, pk))
                 warnings.warn(f"| Pending pool '{pk}' is empty.")
 
-        for id_exec in self.currentMultiManager.beforewards.expsConfig:
+        for id_exec in self.currentMultimanager.beforewards.expsConfig:
             self.expContainer[id_exec].commons.datetimes['pending'] = current
 
-        self.currentMultiManager.multicommons.datetimes[
+        self.currentMultimanager.multicommons.datetimes[
             'pendingCompleted'] = currentTime()
 
-        return self.currentMultiManager.beforewards.jobID
+        return self.currentMultimanager.beforewards.jobID
 
     def retrieve(
         self,
@@ -192,7 +192,7 @@ class IBMQRunner(Runner):
 
         alreadyRetrieved: list[str] = [
             datetimeTag
-            for datetimeTag in self.currentMultiManager.multicommons.datetimes
+            for datetimeTag in self.currentMultimanager.multicommons.datetimes
             if 'retrieve' in datetimeTag
         ]
         retrieveTimes = len(alreadyRetrieved)
@@ -201,7 +201,7 @@ class IBMQRunner(Runner):
         print(f"| retrieve times: {retrieveTimes}, overwrite: {overwrite}")
         if retrieveTimes > 1 and overwrite == False:
             print("| Overwrite not triggerred, read existed data.")
-            lastTimeDate = self.currentMultiManager.multicommons.datetimes[
+            lastTimeDate = self.currentMultimanager.multicommons.datetimes[
                 retrieveTimesNamer(retrieveTimes)]
             print(
                 f"| Last retrieve by: {retrieveTimesNamer(retrieveTimes)} at {lastTimeDate}"
@@ -211,20 +211,20 @@ class IBMQRunner(Runner):
                 f"| You can use `overwrite=True` to overwrite the previous retrieve."
             )
 
-            return self.currentMultiManager.beforewards.jobID
+            return self.currentMultimanager.beforewards.jobID
 
         if overwrite:
             print(f"| Overwrite the previous retrieve.")
-        self.currentMultiManager.afterwards.reset(security=True, muteWarning=True)
-        assert len(self.currentMultiManager.afterwards.allCounts
+        self.currentMultimanager.reset_afterwards(security=True, muteWarning=True)
+        assert len(self.currentMultimanager.afterwards.allCounts
                    ) == 0, "All counts should be null."
 
         current = currentTime()
-        self.currentMultiManager.multicommons.datetimes[
+        self.currentMultimanager.multicommons.datetimes[
             retrieveTimesName] = current
 
         retrieveProgressBar = qurryProgressBar(
-            self.currentMultiManager.beforewards.jobID,
+            self.currentMultimanager.beforewards.jobID,
             bar_format=(
                 '| {n_fmt}/{total_fmt} - retrieve: {desc} - {elapsed} < {remaining}'
             ),
@@ -243,7 +243,7 @@ class IBMQRunner(Runner):
             )
 
         pendingPoolProgressBar = qurryProgressBar(
-            self.currentMultiManager.beforewards.pendingPools.items(),
+            self.currentMultimanager.beforewards.pendingPools.items(),
             bar_format=(
                 '| {n_fmt}/{total_fmt} - get counts: {desc} - {elapsed} < {remaining}'
             ),
@@ -283,7 +283,7 @@ class IBMQRunner(Runner):
                 warnings.warn(f"Pending pool '{pk}' is empty.")
 
         distributingProgressBar = qurryProgressBar(
-            self.currentMultiManager.beforewards.circuitsMap.items(),
+            self.currentMultimanager.beforewards.circuitsMap.items(),
             bar_format=(
                 '| {n_fmt}/{total_fmt} - Distributing {desc} - {elapsed} < {remaining}'
             ),
@@ -292,16 +292,16 @@ class IBMQRunner(Runner):
             distributingProgressBar.set_description_str(
                 f"{currentID} with {len(idxCircs)} circuits")
             self.expContainer[currentID].reset_counts(
-                summonerID=self.currentMultiManager.summonerID)
+                summonerID=self.currentMultimanager.summonerID)
             for idx in idxCircs:
                 self.expContainer[currentID].afterwards.counts.append(
                     coutsTmpContainer[idx])
             self.expContainer[currentID].commons.datetimes[
                 retrieveTimesName] = current
-            self.currentMultiManager.afterwards.allCounts[
+            self.currentMultimanager.afterwards.allCounts[
                 currentID] = self.expContainer[currentID].afterwards.counts
 
-        return self.currentMultiManager.beforewards.jobID
+        return self.currentMultimanager.beforewards.jobID
 
 
 def IBMQPending(
