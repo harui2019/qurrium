@@ -68,6 +68,8 @@ with open(README_PATH) as readme_file:
 
 # requirement = qiskit_main + qiskit_gpu + bugfix + dependencies
 install_requires = [
+    "qiskit>=0.32.2",
+    "qiskit-aer>=0.9.1",
     "cython",
     "tqdm",
     "matplotlib",
