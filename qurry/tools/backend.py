@@ -4,29 +4,67 @@ from qiskit.providers.fake_provider import (
     FakeProvider, FakeProviderForBackendV2,
     FakeBackend, FakeBackendV2)
 
-# try:
-#     from qiskit.providers.ibmq import AccountProvider, IBMQBackend
-#     from qiskit import IBMQ
-#     qiskit_ibmq_provider_deprecated = False
-# except ImportError:
-#     qiskit_ibmq_provider_deprecated = True
-
-# from qiskit_ibm_provider import IBMProvider, IBMBackend
-# from qiskit_ibm_provider.version import get_version_info as get_version_info_ibm
-
 from qiskit_aer import AerProvider
 from qiskit_aer.backends.aerbackend import AerBackend
 from qiskit_aer.version import get_version_info as get_version_info_aer
 
 import requests
 import pkg_resources
+import warnings
 from random import random
 from typing import Optional, Hashable, Union, overload, Callable, Literal
 
-from .command import cmdWrapper, pytorchCUDACheck
-from ..qurrium.runner import BACKEND_AVAILABLE
+from .command import pytorchCUDACheck
+from ..exceptions import QurryExtraPackageRequired
 from ..hoshi import Hoshi
 
+
+
+class DummyProvider(Provider):
+    """A dummy provider for :class:`qurry.tools.backend.backendWrapper` to use when the real provider is not available,
+    And it will print a warning message when you try to use it. 
+    Also it is a cheatsheet for type checking in this scenario.
+    
+    """    
+
+    @staticmethod
+    def save_account(**kwargs):
+        warnings.warn(
+            "The real provider is not available, please check your installation.",
+            QurryExtraPackageRequired
+        )
+        
+    @staticmethod
+    def load_account(**kwargs):
+        warnings.warn(
+            "The real provider is not available, please check your installation.",
+            QurryExtraPackageRequired
+        )
+        
+    @staticmethod
+    def get_provider():
+        warnings.warn(
+            "The real provider is not available, please check your installation.",
+            QurryExtraPackageRequired
+        )
+
+
+try:
+    from qiskit_ibm_provider import IBMProvider
+    from qiskit_ibm_provider.version import get_version_info as get_version_info_ibm
+    IBM_AVAILABLE = True
+except ImportError:
+    IBMProvider = DummyProvider
+    get_version_info_ibm = lambda: 'Not available, please install it first.'
+    IBM_AVAILABLE = False
+    
+try:
+    from qiskit import IBMQ
+    IBMQ_AVAILABLE = True
+except ImportError:
+    IBMQ = DummyProvider
+    IBM_AVAILABLE = False
+    
 
 backendName: Callable[[Union[BackendV1, BackendV2]], str] = \
     lambda back: back.name if isinstance(back, BackendV2) else back.name()
@@ -90,8 +128,7 @@ def _version_check():
         })
     check_msg.newline(
         ('txt', "'qiskit-ibm-provider' is the replacement of deprcated module 'qiskit-ibmq-provider'."))
-    if BACKEND_AVAILABLE['IBM']:
-        from qiskit_ibm_provider.version import get_version_info as get_version_info_ibm
+    if IBM_AVAILABLE:
         check_msg.newline({
             'type': 'itemize',
             'description': 'qiskit-ibm-provider',
@@ -414,17 +451,16 @@ class backendWrapper:
                     'value': self.isAerGPU,
                 })
             elif 'IBM' in desc:
-                if BACKEND_AVAILABLE['IBM'] and BACKEND_AVAILABLE['IBMQ']:
-                    from qiskit_ibm_provider import IBMProvider
+                if IBM_AVAILABLE and IBMQ_AVAILABLE:
                     value_txt = (
                         '"qiskit_ibm_provider"' if isinstance(self._RealProvider, IBMProvider)
                         else 'qiskit.providers.ibmq')
-                elif BACKEND_AVAILABLE['IBM']:
+                elif IBM_AVAILABLE:
                     value_txt = '"qiskit_ibm_provider"'
-                elif BACKEND_AVAILABLE['IBMQ']:
+                elif IBMQ_AVAILABLE:
                     value_txt = 'qiskit.providers.ibmq'
                 else:
-                    value_txt = 'Not available, please install it first.'
+                    value_txt = 'Not available, please install them first.'
                 check_msg.newline({
                     'type': 'itemize',
                     'description': f'IBM Real Provider by',
@@ -534,10 +570,8 @@ class backendManager(backendWrapper):
             self.group = group
             self.project = project
 
-        if BACKEND_AVAILABLE['IBM'] and BACKEND_AVAILABLE['IBMQ']:
-            from qiskit_ibm_provider import IBMProvider
-            from qiskit import IBMQ
-            if useIBMProvider or not BACKEND_AVAILABLE['IBMQ']:
+        if IBM_AVAILABLE and IBMQ_AVAILABLE:
+            if useIBMProvider:
                 print("| Provider by 'qiskit_ibm_provider'.")
                 newProvider = IBMProvider(instance=self.instance)
                 super().__init__(
@@ -554,8 +588,7 @@ class backendManager(backendWrapper):
                     fakeVersion=fakeVersion,
                 )
 
-        elif BACKEND_AVAILABLE['IBM']:
-            from qiskit_ibm_provider import IBMProvider
+        elif IBM_AVAILABLE:
             print("| Provider by 'qiskit_ibm_provider' is only available.")
             newProvider = IBMProvider(instance=self.instance)
             super().__init__(
@@ -563,8 +596,7 @@ class backendManager(backendWrapper):
                 fakeVersion=fakeVersion,
             )
 
-        elif BACKEND_AVAILABLE['IBMQ']:
-            from qiskit import IBMQ
+        elif IBMQ_AVAILABLE:
             print(
                 "| Provider by 'qiskit.providers.ibmq' is only available, which will be deprecated.")
             IBMQ.load_account()
@@ -606,21 +638,17 @@ class backendManager(backendWrapper):
 
         """
 
-        if BACKEND_AVAILABLE['IBM'] and BACKEND_AVAILABLE['IBMQ']:
-            from qiskit_ibm_provider import IBMProvider
-            from qiskit import IBMQ
+        if IBM_AVAILABLE and IBMQ_AVAILABLE:
             if useIBMProvider:
                 IBMProvider.save_account(**kwargs)
             else:
                 IBMQ.save_account(**kwargs)
 
-        elif BACKEND_AVAILABLE['IBM']:
-            from qiskit_ibm_provider import IBMProvider
+        elif IBM_AVAILABLE:
             print("| Provider by 'qiskit_ibm_provider' is only available.")
             IBMProvider.save_account(**kwargs)
 
-        elif BACKEND_AVAILABLE['IBMQ']:
-            from qiskit import IBMQ
+        elif IBMQ_AVAILABLE:
             print(
                 "| Provider by 'qiskit.providers.ibmq' is only available, which will be deprecated.")
             IBMQ.save_account(**kwargs)

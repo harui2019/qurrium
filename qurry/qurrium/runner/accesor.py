@@ -1,6 +1,6 @@
 from qiskit.providers import Backend
 
-from typing import Literal
+from typing import Literal, Union
 
 from .runner import Runner
 from ..multimanager import MultiManager
@@ -54,7 +54,10 @@ def acessibility() -> dict[str, bool]:
     return result
 
 
-BACKEND_AVAILABLE = acessibility()
+BACKEND_AVAILABLE: dict[
+    Union[str, backendChoiceLiteral], 
+    bool
+] = dict.fromkeys(acessibility())
 """Acessibility of extra backend.
 
 If you want to use extra backend, you should install the extra package first.

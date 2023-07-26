@@ -13,7 +13,7 @@ from typing import Literal, Union, Optional, Hashable, Type, Any
 from abc import abstractmethod, abstractproperty
 
 from ..mori import TagList
-from ..tools import qurryProgressBar, ProcessManager
+from ..tools import ResoureWatch, qurryProgressBar, ProcessManager
 from .declare.default import (
     transpileConfig,
     runConfig,
@@ -40,7 +40,7 @@ def defaultCircuit(numQubit: int) -> QuantumCircuit:
         numQubit, numQubit, name=f'qurry_default_{numQubit}')
 
 
-# DefaultResourceWatch = ResoureWatch()
+DefaultResourceWatch = ResoureWatch()
 
 
 class QurryV5Prototype:
@@ -180,14 +180,14 @@ class QurryV5Prototype:
 
     def __init__(
         self,
-        # resourceWatch: ResoureWatch = DefaultResourceWatch,
+        resourceWatch: ResoureWatch = DefaultResourceWatch,
     ) -> None:
 
-        #     if isinstance(resourceWatch, ResoureWatch):
-        #         self.resourceWatch = resourceWatch
-        #     else:
-        #         raise TypeError(
-        #             f"resourceWatch must be a ResoureWatch instance, not {type(resourceWatch)}")
+        if isinstance(resourceWatch, ResoureWatch):
+            self.resourceWatch = resourceWatch
+        else:
+            raise TypeError(
+                f"resourceWatch must be a ResoureWatch instance, not {type(resourceWatch)}")
 
         self.waves: WaveContainer = WaveContainer()
         """The wave functions container."""
