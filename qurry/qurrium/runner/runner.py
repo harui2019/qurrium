@@ -3,15 +3,18 @@ from qiskit.providers import Backend, Provider
 from abc import abstractmethod
 from typing import Optional
 
-from .multimanager import MultiManager
+from ..multimanager import MultiManager
 
 
 class Runner:
     """Pending and Retrieve Jobs from remote backend."""
 
-    currentManager: MultiManager
+    currentMultimanager: MultiManager
+    """The current :cls:`Multimanager` been used."""
     backend: Optional[Backend]
+    """The backend been used."""
     provider: Provider
+    """The provider used for this backend."""
 
     pendingIDs: str
     reports: dict[str, dict]
@@ -30,7 +33,7 @@ class Runner:
 class ThirdPartyRunner(Runner):
     """Pending and Retrieve Jobs from Third-Parties' backend."""
 
-    currentManager: MultiManager
+    currentMultimanager: MultiManager
     backend: Optional[Backend]
     provider: Provider
 
@@ -45,7 +48,7 @@ class ThirdPartyRunner(Runner):
         max_experiments: int = 200,
         **otherArgs: any
     ):
-        self.currentManager = manager
+        self.currentMultimanager = manager
         self.backend = backend
         self.circWithSerial = {}
 

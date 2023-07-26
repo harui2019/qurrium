@@ -912,7 +912,7 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
 
     def method(
         self,
-        expID: Hashable,
+        expID: str,
         _pbar: Optional[tqdm.tqdm] = None,
     ) -> list[QuantumCircuit]:
 
@@ -994,7 +994,7 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
         encoding: str = 'utf-8',
         jsonablize: bool = False,
         **otherArgs: any
-    ) -> Hashable:
+    ) -> str:
         """
 
         Args:

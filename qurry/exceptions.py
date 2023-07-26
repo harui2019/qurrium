@@ -21,6 +21,12 @@ class QurryInvalidInherition(QurryError):
 class QurryExperimentCountsNotCompleted(QurryError):
     """Experiment is not completed."""
 
+class QurryExtraPackageRequired(QurryError, ImportError):
+    """Extra package required for Qurry."""
+    
+class QurryInvalidArgument(QurryError):
+    """Invalid argument for Qurry."""
+    
 
 # General Warning
 class QurryWarning(Warning):

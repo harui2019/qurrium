@@ -62,7 +62,7 @@ jobs:
           tar czhvf ${{ steps.get_tarball_name.outputs.TARBALL_NAME }}.tar.gz \
             --exclude="*metarepo-cpe-tag*" \
             --directory=../ \
-            qurry/qurry/ qurry/docs/  qurry/pyproject.toml qurry/setup.py qurry/requirements.txt qurry/.gitignore qurry/.gitmodules qurry/README.md \
+            qurry/qurry/ qurry/pyproject.toml qurry/setup.py qurry/requirements.txt qurry/.gitignore qurry/.gitmodules qurry/README.md \
             --transform s/qurry/${{ steps.get_archived_folder_name.outputs.ARCHIVED_FOLDER }}/
   
       - name: Create draft release
