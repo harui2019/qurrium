@@ -1,7 +1,10 @@
 from qiskit import QuantumCircuit
 from qiskit.result import Result
 from qiskit.providers import Backend
-from qiskit_aer import AerSimulator
+try:
+    from qiskit_aer import AerSimulator
+except ImportError:
+    from qiskit.providers.aer import AerSimulator
 
 from pathlib import Path
 from typing import Literal, Union, Optional, NamedTuple, Hashable, Type, Any

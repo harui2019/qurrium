@@ -1,8 +1,6 @@
 from qiskit import QuantumCircuit
-from qiskit.providers import Backend
 from qiskit.quantum_info import Operator
 from qiskit.circuit import Gate, Instruction
-from qiskit_aer import AerProvider
 
 import warnings
 from typing import Literal, Union, Optional, Hashable, MutableMapping, Type, TypeVar

@@ -2,7 +2,10 @@ from qiskit import execute, transpile, QuantumCircuit
 from qiskit.quantum_info import Operator
 from qiskit.providers import Backend
 from qiskit.circuit import Gate
-from qiskit_aer import AerSimulator
+try:
+    from qiskit_aer import AerSimulator
+except ImportError:
+    from qiskit.providers.aer import AerSimulator
 
 import gc
 import warnings
