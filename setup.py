@@ -72,6 +72,7 @@ install_requires = [
     "qiskit-aer>=0.10.4",
     "tqdm",
     "matplotlib",
+    "requests~=2.28.0",
 ]
 
 __author__ = "Huai-Chung Chang (harui2019@proton.me)"
