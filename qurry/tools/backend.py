@@ -1,12 +1,31 @@
+"""
+=============================================
+Aer Import Point
+=============================================
+
+For qiskit-aer has been divided into two packages since qiskit some version,
+So it needs to be imported differently by trying to import qiskit-aer first,
+
+"""
+
 from qiskit import __qiskit_version__
 from qiskit.providers import Backend, BackendV1, BackendV2, Provider
 from qiskit.providers.fake_provider import (
     FakeProvider, FakeProviderForBackendV2,
     FakeBackend, FakeBackendV2)
 
-from qiskit_aer import AerProvider
-from qiskit_aer.backends.aerbackend import AerBackend
-from qiskit_aer.version import get_version_info as get_version_info_aer
+try:
+    from qiskit_aer import AerProvider
+    from qiskit_aer.backends.aerbackend import AerBackend
+    from qiskit_aer.version import get_version_info as get_version_info_aer
+    aer_version_info = get_version_info_aer()
+    aer_import_point = 'qiskit_aer'
+except ImportError:
+    from qiskit.providers.aer import AerProvider
+    from qiskit.providers.aer.backends.aerbackend import AerBackend
+    from qiskit.providers.aer.version import VERSION
+    aer_version_info = VERSION
+    aer_import_point = 'qiskit.providers.aer'
 
 import requests
 import pkg_resources
@@ -147,7 +166,8 @@ def _version_check():
         check_msg.newline({
             'type': 'itemize',
             'description': 'qiskit-aer',
-            'value': get_version_info_aer(),
+            'value': '{}, imported from {}'.format(
+                aer_version_info, aer_import_point),
         })
         check_msg.newline({
             'type': 'itemize',
