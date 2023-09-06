@@ -40,7 +40,7 @@ def acessibility() -> dict[str, bool]:
         ...
 
     try:
-        from .ibmqrunner import IBMQRunner
+        from .ibmrunner import IBMRunner
         result['IBM'] = True
     except QurryExtraPackageRequired:
         ...
