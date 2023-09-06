@@ -1,9 +1,9 @@
 from typing import Optional
 import warnings
 
-from ...exceptions import QurryInheritionNoEffect
-from ...mori import defaultConfig
-from ...tools.watch import ResoureWatch
+from ..exceptions import QurryInheritionNoEffect
+from ..mori import defaultConfig
+from ..tools.watch import ResoureWatch
 
 transpileConfig = defaultConfig(
     name='transpileArgs',

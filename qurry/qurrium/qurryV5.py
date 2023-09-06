@@ -17,7 +17,7 @@ from abc import abstractmethod, abstractproperty
 
 from ..mori import TagList
 from ..tools import ResoureWatch, qurryProgressBar, ProcessManager
-from .declare.default import (
+from ..declare.default import (
     transpileConfig,
     runConfig,
     managerRunConfig,
