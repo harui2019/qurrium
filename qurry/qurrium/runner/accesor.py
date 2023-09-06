@@ -57,7 +57,7 @@ def acessibility() -> dict[str, bool]:
 BACKEND_AVAILABLE: dict[
     Union[str, backendChoiceLiteral], 
     bool
-] = dict.fromkeys(acessibility())
+] = acessibility()
 """Acessibility of extra backend.
 
 If you want to use extra backend, you should install the extra package first.
