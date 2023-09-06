@@ -37,13 +37,13 @@ def acessibility() -> dict[str, bool]:
         from .ibmqrunner import IBMQRunner
         result['IBMQ'] = True
     except QurryExtraPackageRequired:
-        ...
+        result['IBMQ'] = False
 
     try:
         from .ibmrunner import IBMRunner
         result['IBM'] = True
     except QurryExtraPackageRequired:
-        ...
+        result['IBM'] = False
 
     # try:
     #     from .qulacsrunner import QulacsRunner
