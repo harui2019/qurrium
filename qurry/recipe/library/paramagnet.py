@@ -52,7 +52,7 @@ class TrivialParamagnet(Qurecipe):
 
     """
 
-    def method(self) -> QuantumCircuit:
+    def method(self) -> list[QuantumCircuit]:
         """Construct the example circuit.
 
         Returns:
@@ -64,7 +64,7 @@ class TrivialParamagnet(Qurecipe):
         
         [qc.h(q[i]) for i in range(self.params.num_qubits)]
 
-        return qc
+        return [qc]
 
     def __init__(
         self,
@@ -145,7 +145,7 @@ class GHZ(Qurecipe):
 
     """
 
-    def method(self) -> QuantumCircuit:
+    def method(self) -> list[QuantumCircuit]:
         """Construct the example circuit.
 
         Returns:
@@ -156,7 +156,7 @@ class GHZ(Qurecipe):
         qc.h(q[0])
         [qc.cx(q[i], q[i+1]) for i in range(self.params.num_qubits-1)]
 
-        return qc
+        return [qc]
 
     def __init__(
         self,
@@ -287,7 +287,7 @@ class TopologicalParamagnet(Qurecipe):
 
     """
 
-    def method(self) -> QuantumCircuit:
+    def method(self) -> list[QuantumCircuit]:
         """Construct the example circuit.
 
         Returns:
@@ -305,7 +305,7 @@ class TopologicalParamagnet(Qurecipe):
             qPairNum if border_cond == 'period' else qPairNum-1
         )]
 
-        return qc
+        return [qc]
 
     class arguments(NamedTuple):
         num_qubits: int = 2

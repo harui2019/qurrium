@@ -8,7 +8,7 @@ class Intracell(Qurecipe):
     """The entangled circuit `intracell`.
     """
 
-    def method(self) -> QuantumCircuit:
+    def method(self) -> list[QuantumCircuit]:
         """Construct the example circuit.
 
         Returns:
@@ -31,7 +31,7 @@ class Intracell(Qurecipe):
             qc.x(i+1)
             qc.cx(i, i+1)
 
-        return qc
+        return [qc]
 
     class arguments(NamedTuple):
         num_qubits: int = 1
