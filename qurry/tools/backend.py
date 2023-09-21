@@ -636,6 +636,7 @@ class backendManager(backendWrapper):
 
     def save_account(
         self,
+        *args,
         useIBMProvider: bool = True,
         **kwargs
     ) -> None:
@@ -657,6 +658,10 @@ class backendManager(backendWrapper):
             overwrite: ``True`` if the existing account is to be overwritten.
 
         """
+        if len(args) > 0:
+            raise ValueError(
+                "Please use keyword arguments to provide the parameters, "+
+                "For example: `.save_account(token='your_token')`")
 
         if IBM_AVAILABLE and IBMQ_AVAILABLE:
             if useIBMProvider:
