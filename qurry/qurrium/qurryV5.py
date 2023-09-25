@@ -60,6 +60,7 @@ class QurryV5Prototype:
     def experiment(cls) -> Type[ExperimentPrototype]:
         """The container class responding to this QurryV5 class.
         """
+        raise NotImplementedError
 
     # Wave
     def add(
@@ -227,6 +228,7 @@ class QurryV5Prototype:
     @abstractmethod
     def paramsControl(self) -> tuple[ExperimentPrototype.arguments, ExperimentPrototype.commonparams, dict[str, Any]]:
         """Control the experiment's parameters."""
+        raise NotImplementedError
 
     def _paramsControlMain(
         self,
@@ -423,6 +425,7 @@ class QurryV5Prototype:
             Union[QuantumCircuit, list[QuantumCircuit]]:
                 The quantum circuit of experiment.
         """
+        raise NotImplementedError
 
     def build(
         self,

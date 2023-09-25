@@ -34,7 +34,10 @@ from random import random
 from typing import Optional, Hashable, Union, overload, Callable, Literal
 
 from .command import pytorchCUDACheck
-from ..exceptions import QurryExtraPackageRequired
+from ..exceptions import (
+    QurryExtraPackageRequired,
+    QurryPositionalArgumentNotSupported,
+)
 from ..hoshi import Hoshi
 
 
@@ -644,6 +647,7 @@ class backendManager(backendWrapper):
 
         (The following is copied from :func:`qiskit_ibmq_provider.IBMProvider.save_account`)
         Args:
+            useIBMProvider: Using provider by 'qiskit_ibm_provider' instead of 'qiskit.providers.ibmq'.
             token: IBM Quantum API token.
             url: The API URL.
                 Defaults to https://auth.quantum-computing.ibm.com/api
@@ -659,7 +663,7 @@ class backendManager(backendWrapper):
 
         """
         if len(args) > 0:
-            raise ValueError(
+            raise QurryPositionalArgumentNotSupported(
                 "Please use keyword arguments to provide the parameters, "+
                 "For example: `.save_account(token='your_token')`")
 
