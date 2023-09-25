@@ -5,7 +5,7 @@ import time
 import tqdm
 import numpy as np
 from pathlib import Path
-from typing import Union, Optional, NamedTuple, Hashable, Iterable, Type, overload, Any
+from typing import Union, Optional, NamedTuple, Hashable, Iterable, Type, Literal, overload, Any
 
 from ..qurrium import (
     QurryV5Prototype,
@@ -415,6 +415,7 @@ def entangled_entropy_complex(
     measure: tuple[int, int] = None,
     workers_num: Optional[int] = None,
     pbar: Optional[tqdm.tqdm] = None,
+    all_system_source: Optional['EntropyRandomizedAnalysis'] = None,
 ) -> dict[str, float]:
     """Calculate entangled entropy with more information combined.
 
@@ -488,26 +489,40 @@ def entangled_entropy_complex(
         _hide_print=True,
     )
     purityCellList = list(purityCellDict.values())
-
-    if isinstance(pbar, tqdm.tqdm):
-        pbar.set_description_str(
-            f"Calculate all system" +
-            ("." if useCython else " by Pure Python, it may take a long time."))
-    (
-        purityCellDictAllSys,
-        bitStringRangeAllSys,
-        measureRangeAllSys,
-        msgOfProcessAllSys,
-        takeTimeAllSys,
-    ) = _entangled_entropy_core(
-        shots=shots,
-        counts=counts,
-        degree=None,
-        measure=measure,
-        workers_num=workers_num,
-        _hide_print=True,
-    )
-    purityCellListAllSys = list(purityCellDictAllSys.values())
+    
+    if all_system_source is None:
+        if isinstance(pbar, tqdm.tqdm):
+            pbar.set_description_str(
+                f"Calculate all system" +
+                ("." if useCython else " by Pure Python, it may take a long time."))
+        (
+            purityCellDictAllSys,
+            bitStringRangeAllSys,
+            measureRangeAllSys,
+            msgOfProcessAllSys,
+            takeTimeAllSys,
+        ) = _entangled_entropy_core(
+            shots=shots,
+            counts=counts,
+            degree=None,
+            measure=measure,
+            workers_num=workers_num,
+            _hide_print=True,
+        )
+        purityCellListAllSys = list(purityCellDictAllSys.values())
+        source = 'independent'
+    else:
+        source = str(all_system_source.header)
+        if isinstance(pbar, tqdm.tqdm):
+            pbar.set_description_str(
+                "Using existing all system from '{}'".format(source))
+        purityCellDictAllSys = all_system_source.analysisContent.purityCells
+        assert purityCellDictAllSys is not None, "all_system_sourceanalysisContent.purityCells is None"
+        purityCellListAllSys = list(purityCellDictAllSys.values())
+        bitStringRangeAllSys = all_system_source.analysisContent.bitStringRange
+        measureRangeAllSys = all_system_source.analysisContent.measureActually
+        msgOfProcessAllSys = f"Use all system from {source}."
+        takeTimeAllSys = 0
 
     if isinstance(pbar, tqdm.tqdm):
         pbar.set_description_str(
@@ -551,6 +566,7 @@ def entangled_entropy_complex(
         'entropySD': entropySD,
         'bitStringRange': bitStringRange,
         # all system
+        'allSystemSource': source,  # 'independent' or 'header of analysis'
         'purityAllSys': purityAllSys,
         'entropyAllSys': entropyAllSys,
         'purityCellsAllSys': purityCellDictAllSys,
@@ -630,6 +646,8 @@ class EntropyRandomizedAnalysis(AnalysisPrototype):
         bitStringRange: Optional[tuple[int, int]] = None
         """The qubit range of the subsystem."""
 
+        allSystemSource: Optional[Union[str, Literal['independent']]] = None
+        """The source of the all system."""
         purityAllSys: Optional[float] = None
         """The purity of the system."""
         entropyAllSys: Optional[float] = None
@@ -682,6 +700,7 @@ class EntropyRandomizedAnalysis(AnalysisPrototype):
         measure: tuple[int, int] = None,
         workers_num: Optional[int] = None,
         pbar: Optional[tqdm.tqdm] = None,
+        all_system_source: Optional['EntropyRandomizedAnalysis'] = None,
     ) -> dict[str, float]:
         """Calculate entangled entropy with more information combined.
 
@@ -695,6 +714,8 @@ class EntropyRandomizedAnalysis(AnalysisPrototype):
                 if sets to 1, then disable to using multi-processing;
                 if not specified, the use 3/4 of cpu counts by `round(cpu_count*3/4)`.
                 Defaults to None.
+            pbar (Optional[tqdm.tqdm], optional): The tqdm handle. Defaults to None.
+            independent_all_system (bool, optional): The source of all system to calculate error mitigation. Defaults to False.
 
         Returns:
             dict[str, float]: A dictionary contains 
@@ -710,6 +731,7 @@ class EntropyRandomizedAnalysis(AnalysisPrototype):
             measure=measure,
             workers_num=workers_num,
             pbar=pbar,
+            all_system_source=all_system_source,
         )
 
 
@@ -741,6 +763,7 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
         degree: Union[tuple[int, int], int],
         workers_num: Optional[int] = None,
         pbar: Optional[tqdm.tqdm] = None,
+        independent_all_system: bool = False,
     ) -> EntropyRandomizedAnalysis:
         """Calculate entangled entropy with more information combined.
 
@@ -760,10 +783,21 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
         """
 
         self.args: EntropyRandomizedExperiment.arguments
+        self.reports: dict[int, EntropyRandomizedAnalysis]
         shots = self.commons.shots
         measure = self.args.measure
         unitary_loc = self.args.unitary_loc
         counts = self.afterwards.counts
+        
+        available_all_system_source = [
+            k for k, v in self.reports.items()
+            if v.analysisContent.allSystemSource == 'independent'
+        ]
+        
+        if len(available_all_system_source) > 0 and not independent_all_system:
+            all_system_source = self.reports[available_all_system_source[-1]]
+        else:
+            all_system_source = None
 
         if isinstance(pbar, tqdm.tqdm):
             qs = self.analysis_container.quantities(
@@ -773,6 +807,7 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
                 measure=measure,
                 workers_num=workers_num,
                 pbar=pbar,
+                all_system_source=all_system_source,
             )
 
         else:
@@ -929,7 +964,7 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
         if isinstance(_pbar, tqdm.tqdm):
             _pbar.set_description_str(
                 f"Preparing {args.times} random unitary with {args.workers_num} workers.")
-            
+
         # DO NOT USE MULTI-PROCESSING HERE !!!!!
         # See https://github.com/numpy/numpy/issues/9650
         # And https://github.com/harui2019/qurry/issues/78
