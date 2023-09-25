@@ -30,6 +30,60 @@ except ImportError:
     useCython = False
 
 
+class EntropyAnalysisContent(NamedTuple):
+    """The content of the analysis."""
+
+    purity: Optional[float] = None
+    """The purity of the subsystem."""
+    entropy: Optional[float] = None
+    """The entanglement entropy of the subsystem."""
+    puritySD: Optional[float] = None
+    """The standard deviation of the purity of the subsystem."""
+    entropySD: Optional[float] = None
+    """The standard deviation of the entanglement entropy of the subsystem."""
+    purityCells: Optional[dict[int, float]] = None
+    """The purity of each cell of the subsystem."""
+    bitStringRange: Optional[tuple[int, int]] = None
+    """The qubit range of the subsystem."""
+
+    allSystemSource: Optional[Union[str, Literal['independent']]] = None
+    """The source of the all system."""
+    purityAllSys: Optional[float] = None
+    """The purity of the system."""
+    entropyAllSys: Optional[float] = None
+    """The entanglement entropy of the system."""
+    puritySDAllSys: Optional[float] = None
+    """The standard deviation of the purity of the system."""
+    entropySDAllSys: Optional[float] = None
+    """The standard deviation of the entanglement entropy of the system."""
+    purityCellsAllSys: Optional[dict[int, float]] = None
+    """The purity of each cell of the system."""
+    bitsStringRangeAllSys: Optional[tuple[int, int]] = None
+    """The qubit range of the all system."""
+
+    errorRate: Optional[float] = None
+    """The error rate of the measurement from depolarizing error migigation calculated."""
+    mitigatedPurity: Optional[float] = None
+    """The mitigated purity of the subsystem."""
+    mitigatedEntropy: Optional[float] = None
+    """The mitigated entanglement entropy of the subsystem."""
+
+    num_qubits: Optional[int] = None
+    """The number of qubits of the system."""
+    measure: Optional[tuple[int, int]] = None
+    """The qubit range of the measurement."""
+    measureActually: Optional[tuple[int, int]] = None
+    """The qubit range of the measurement actually used."""
+    measureActuallyAllSys: Optional[tuple[int, int]] = None
+    """The qubit range of the measurement actually used in the all system."""
+
+    countsNum: Optional[int] = None
+    """The number of counts of the experiment."""
+
+    def __repr__(self):
+        return f"analysisContent(purity={self.purity}, entropy={self.entropy}, and others)"
+
+
 def _purityCellCy(
     idx: int,
     singleCounts: dict[str, int],
@@ -166,7 +220,8 @@ def _entangled_entropy_core(
     dummyString = ''.join(str(ds) for ds in range(allsystemSize))
     dummyStringSlice = cycling_slice(
         dummyString, bitStringRange[0], bitStringRange[1], 1)
-    isAvtiveCyclingSlice = dummyString[bitStringRange[0]:bitStringRange[1]] != dummyStringSlice
+    isAvtiveCyclingSlice = dummyString[bitStringRange[0]
+        :bitStringRange[1]] != dummyStringSlice
     if isAvtiveCyclingSlice:
         assert len(dummyStringSlice) == subsystemSize, (
             f"| All system size '{subsystemSize}' does not match dummyStringSlice '{dummyStringSlice}'")
@@ -489,7 +544,7 @@ def entangled_entropy_complex(
         _hide_print=True,
     )
     purityCellList = list(purityCellDict.values())
-    
+
     if all_system_source is None:
         if isinstance(pbar, tqdm.tqdm):
             pbar.set_description_str(
@@ -512,15 +567,16 @@ def entangled_entropy_complex(
         purityCellListAllSys = list(purityCellDictAllSys.values())
         source = 'independent'
     else:
+        content: EntropyAnalysisContent = all_system_source.content
         source = str(all_system_source.header)
         if isinstance(pbar, tqdm.tqdm):
             pbar.set_description_str(
                 "Using existing all system from '{}'".format(source))
-        purityCellDictAllSys = all_system_source.analysisContent.purityCells
-        assert purityCellDictAllSys is not None, "all_system_sourceanalysisContent.purityCells is None"
+        purityCellDictAllSys = content.purityCellsAllSys
+        assert purityCellDictAllSys is not None, "all_system_source.content.purityCells is None"
         purityCellListAllSys = list(purityCellDictAllSys.values())
-        bitStringRangeAllSys = all_system_source.analysisContent.bitStringRange
-        measureRangeAllSys = all_system_source.analysisContent.measureActually
+        bitStringRangeAllSys = content.bitStringRange
+        measureRangeAllSys = content.measureActually
         msgOfProcessAllSys = f"Use all system from {source}."
         takeTimeAllSys = 0
 
@@ -630,58 +686,9 @@ class EntropyRandomizedAnalysis(AnalysisPrototype):
         shots: int
         unitary_loc: tuple[int, int] = None
 
-    class analysisContent(NamedTuple):
-        """The content of the analysis."""
-
-        purity: Optional[float] = None
-        """The purity of the subsystem."""
-        entropy: Optional[float] = None
-        """The entanglement entropy of the subsystem."""
-        puritySD: Optional[float] = None
-        """The standard deviation of the purity of the subsystem."""
-        entropySD: Optional[float] = None
-        """The standard deviation of the entanglement entropy of the subsystem."""
-        purityCells: Optional[dict[int, float]] = None
-        """The purity of each cell of the subsystem."""
-        bitStringRange: Optional[tuple[int, int]] = None
-        """The qubit range of the subsystem."""
-
-        allSystemSource: Optional[Union[str, Literal['independent']]] = None
-        """The source of the all system."""
-        purityAllSys: Optional[float] = None
-        """The purity of the system."""
-        entropyAllSys: Optional[float] = None
-        """The entanglement entropy of the system."""
-        puritySDAllSys: Optional[float] = None
-        """The standard deviation of the purity of the system."""
-        entropySDAllSys: Optional[float] = None
-        """The standard deviation of the entanglement entropy of the system."""
-        purityCellsAllSys: Optional[dict[int, float]] = None
-        """The purity of each cell of the system."""
-        bitsStringRangeAllSys: Optional[tuple[int, int]] = None
-        """The qubit range of the all system."""
-
-        errorRate: Optional[float] = None
-        """The error rate of the measurement from depolarizing error migigation calculated."""
-        mitigatedPurity: Optional[float] = None
-        """The mitigated purity of the subsystem."""
-        mitigatedEntropy: Optional[float] = None
-        """The mitigated entanglement entropy of the subsystem."""
-
-        num_qubits: Optional[int] = None
-        """The number of qubits of the system."""
-        measure: Optional[tuple[int, int]] = None
-        """The qubit range of the measurement."""
-        measureActually: Optional[tuple[int, int]] = None
-        """The qubit range of the measurement actually used."""
-        measureActuallyAllSys: Optional[tuple[int, int]] = None
-        """The qubit range of the measurement actually used in the all system."""
-
-        countsNum: Optional[int] = None
-        """The number of counts of the experiment."""
-
-        def __repr__(self):
-            return f"analysisContent(purity={self.purity}, entropy={self.entropy}, and others)"
+    analysisContent = EntropyAnalysisContent
+    """The content of the analysis."""
+    # It works ...
 
     @property
     def default_side_product_fields(self) -> Iterable[str]:
@@ -788,12 +795,12 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
         measure = self.args.measure
         unitary_loc = self.args.unitary_loc
         counts = self.afterwards.counts
-        
+
         available_all_system_source = [
             k for k, v in self.reports.items()
-            if v.analysisContent.allSystemSource == 'independent'
+            if v.content.allSystemSource == 'independent'
         ]
-        
+
         if len(available_all_system_source) > 0 and not independent_all_system:
             all_system_source = self.reports[available_all_system_source[-1]]
         else:
