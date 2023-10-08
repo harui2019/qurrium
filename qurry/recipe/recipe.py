@@ -16,6 +16,10 @@ AER_BACKEND: AerSimulator = AerProvider().get_backend('aer_simulator')
 
 
 class Qurecipe:
+    """The abstract class to define a case.
+        Position for `qurry.recipe`
+        See https://github.com/harui2019/qurry/issues/82
+    """
 
     # params
     @abstractmethod
