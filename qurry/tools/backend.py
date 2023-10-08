@@ -41,13 +41,12 @@ from ..exceptions import (
 from ..hoshi import Hoshi
 
 
-
 class DummyProvider(Provider):
     """A dummy provider for :class:`qurry.tools.backend.backendWrapper` to use when the real provider is not available,
     And it will print a warning message when you try to use it. 
     Also it is a cheatsheet for type checking in this scenario.
-    
-    """    
+
+    """
 
     @staticmethod
     def save_account(**kwargs):
@@ -55,14 +54,14 @@ class DummyProvider(Provider):
             "The real provider is not available, please check your installation.",
             QurryExtraPackageRequired
         )
-        
+
     @staticmethod
     def load_account(**kwargs):
         warnings.warn(
             "The real provider is not available, please check your installation.",
             QurryExtraPackageRequired
         )
-        
+
     @staticmethod
     def get_provider():
         warnings.warn(
@@ -77,16 +76,16 @@ try:
     IBM_AVAILABLE = True
 except ImportError:
     IBMProvider = DummyProvider
-    get_version_info_ibm = lambda: 'Not available, please install it first.'
+    def get_version_info_ibm(): return 'Not available, please install it first.'
     IBM_AVAILABLE = False
-    
+
 try:
     from qiskit import IBMQ
     IBMQ_AVAILABLE = True
 except ImportError:
     IBMQ = DummyProvider
     IBM_AVAILABLE = False
-    
+
 
 backendName: Callable[[Union[BackendV1, BackendV2]], str] = \
     lambda back: back.name if isinstance(back, BackendV2) else back.name()
@@ -639,6 +638,7 @@ class backendManager(backendWrapper):
 
     def save_account(
         self,
+        token: str,
         *args,
         useIBMProvider: bool = True,
         **kwargs
@@ -664,20 +664,23 @@ class backendManager(backendWrapper):
         """
         if len(args) > 0:
             raise QurryPositionalArgumentNotSupported(
-                "Please use keyword arguments to provide the parameters, "+
+                "Please use keyword arguments to provide the parameters, " +
                 "For example: `.save_account(token='your_token')`")
 
         if IBM_AVAILABLE and IBMQ_AVAILABLE:
             if useIBMProvider:
-                IBMProvider.save_account(**kwargs)
+                IBMProvider.save_account(token=token, **kwargs)
             else:
-                IBMQ.save_account(**kwargs)
+                IBMQ.save_account(token=token, **kwargs)
 
         elif IBM_AVAILABLE:
             print("| Provider by 'qiskit_ibm_provider' is only available.")
-            IBMProvider.save_account(**kwargs)
+            IBMProvider.save_account(token=token, **kwargs)
 
         elif IBMQ_AVAILABLE:
             print(
                 "| Provider by 'qiskit.providers.ibmq' is only available, which will be deprecated.")
-            IBMQ.save_account(**kwargs)
+            IBMQ.save_account(token=token, **kwargs)
+            
+        else:
+            assert False, "No IBM or IBMQ provider available."
