@@ -83,14 +83,6 @@ class TrivialParamagnet(Qurecipe):
             name=name,
             num_qubits=num_qubits,
         )
-        self._expected({
-            'purity': {
-                'all': 0,
-            },
-            'entropy': {
-                'all': 1,
-            },
-        })
 
 
 class GHZ(Qurecipe):

@@ -1,11 +1,66 @@
 from qiskit import QuantumCircuit, QuantumRegister
-from typing import Literal, NamedTuple, Union
+from typing import Literal, NamedTuple
 
 from ..recipe import Qurecipe
 
 
 class Intracell(Qurecipe):
     """The entangled circuit `intracell`.
+
+    ### `intracell-minus`, `singlet` At 8 qubits:
+
+    ```
+        ┌───┐┌───┐     
+    q0: ┤ X ├┤ H ├──■──
+        ├───┤└───┘┌─┴─┐
+    q1: ┤ X ├─────┤ X ├
+        ├───┤┌───┐└───┘
+    q2: ┤ X ├┤ H ├──■──
+        ├───┤└───┘┌─┴─┐
+    q3: ┤ X ├─────┤ X ├
+        ├───┤┌───┐└───┘
+    q4: ┤ X ├┤ H ├──■──
+        ├───┤└───┘┌─┴─┐
+    q5: ┤ X ├─────┤ X ├
+        ├───┤┌───┐└───┘
+    q6: ┤ X ├┤ H ├──■──
+        ├───┤└───┘┌─┴─┐
+    q7: ┤ X ├─────┤ X ├
+        └───┘     └───┘
+    ```
+
+    ### `intracell-plus` At 8 qubits:
+
+    ```
+        ┌───┐     
+    q0: ┤ H ├──■──
+        ├───┤┌─┴─┐
+    q1: ┤ X ├┤ X ├
+        ├───┤└───┘
+    q2: ┤ H ├──■──
+        ├───┤┌─┴─┐
+    q3: ┤ X ├┤ X ├
+        ├───┤└───┘
+    q4: ┤ H ├──■──
+        ├───┤┌─┴─┐
+    q5: ┤ X ├┤ X ├
+        ├───┤└───┘
+    q6: ┤ H ├──■──
+        ├───┤┌─┴─┐
+    q7: ┤ X ├┤ X ├
+        └───┘└───┘
+    ```
+
+    Args:
+        num_qubits (int): Number of qubits.
+        state (str, optional): 
+            Choosing the state. There are 'singlet', 'minus', 'plus' which 'minus' is same as 'singlet'.
+            Defaults to "singlet".
+        name (str, optional): Name of case. Defaults to "intracell".
+
+    Raises:
+        ValueError: When given number of qubits is not even.
+
     """
 
     def method(self) -> list[QuantumCircuit]:
@@ -48,9 +103,10 @@ class Intracell(Qurecipe):
         """Initializing the case.
 
         Args:
-            numQubits (int): Number of qubits.
-            state (str, optional): Boundary condition is `open` or `period`.
-                Defaults to "period".
+            num_qubits (int): Number of qubits.
+            state (str, optional): 
+                Choosing the state. There are 'singlet', 'minus', 'plus' which 'minus' is same as 'singlet'.
+                Defaults to "singlet".
             name (str, optional): Name of case. Defaults to "intracell".
 
         Raises:
@@ -67,8 +123,6 @@ class Intracell(Qurecipe):
             num_qubits=num_qubits,
             state=state,
         )
-        self._expected({
-        })
 
 
 def Singlet(
@@ -77,12 +131,34 @@ def Singlet(
 ) -> Intracell:
     """One of the state 'singlet' of The entangled circuit `intracell`.
 
-    Args:
-        numQubits (int): Number of qubits.
-        name (str, optional): Name of cases. Defaults to "singlet".
+    ### `intracell-minus`, `singlet` At 8 qubits:
 
-    Returns:
-        _type_: _description_
+    ```
+        ┌───┐┌───┐     
+    q0: ┤ X ├┤ H ├──■──
+        ├───┤└───┘┌─┴─┐
+    q1: ┤ X ├─────┤ X ├
+        ├───┤┌───┐└───┘
+    q2: ┤ X ├┤ H ├──■──
+        ├───┤└───┘┌─┴─┐
+    q3: ┤ X ├─────┤ X ├
+        ├───┤┌───┐└───┘
+    q4: ┤ X ├┤ H ├──■──
+        ├───┤└───┘┌─┴─┐
+    q5: ┤ X ├─────┤ X ├
+        ├───┤┌───┐└───┘
+    q6: ┤ X ├┤ H ├──■──
+        ├───┤└───┘┌─┴─┐
+    q7: ┤ X ├─────┤ X ├
+        └───┘     └───┘
+    ```
+
+    Args:
+        num_qubits (int): Number of qubits.
+        name (str, optional): Name of case. Defaults to "intracell".
+
+    Raises:
+        ValueError: When given number of qubits is not even.
     """
     return Intracell(
         num_qubits=num_qubits,

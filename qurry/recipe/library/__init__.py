@@ -6,7 +6,7 @@ from .intracell import Singlet, Intracell
 from ..recipe import Qurecipe
 from ..exceptions import QurecipeCaseNotFoundError
 
-CASE_SET: dict[str, Qurecipe] = {
+CaseDictionary: dict[str, Qurecipe] = {
     "trivialParamagnet": TrivialParamagnet,
     "trivialPM": TrivialParamagnet,
     "cat": GHZ,
@@ -25,12 +25,12 @@ def get_case(
     """Get a case from the library.
 
     Args:
-        name (str): Name of the case in :prop:`CASE_SET`.
+        name (str): Name of the case in :prop:`CaseDictionary`.
 
     Returns:
         Qurecipe: The case.
     """
-    if name in CASE_SET:
-        return CASE_SET[name]
+    if name in CaseDictionary:
+        return CaseDictionary[name]
     else:
         raise QurecipeCaseNotFoundError(f"Qurecipe '{name}' not found.")

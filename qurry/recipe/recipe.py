@@ -2,17 +2,14 @@ from qiskit import QuantumCircuit, QuantumRegister, transpile
 from qiskit.quantum_info import Operator
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.instruction import Instruction
-# try:
-# from qiskit_aer import AerProvider, AerSimulator
-# except ImportError:
-#     from qiskit.providers.aer import AerProvider, AerSimulator
-from qiskit_aer import AerProvider, AerSimulator
+try:
+    from qiskit_aer import AerProvider, AerSimulator
+except ImportError:
+    from qiskit.providers.aer import AerProvider, AerSimulator
 
 import warnings
-from typing import Union, NamedTuple, Iterable, Literal, Optional, overload
+from typing import Union, NamedTuple, Literal, Optional, overload
 from abc import abstractmethod
-
-from ..declare.type import waveGetter, waveReturn, QubitSpecifier
 
 
 AER_BACKEND: AerSimulator = AerProvider().get_backend('aer_simulator')
@@ -104,7 +101,7 @@ class Qurecipe:
         _c: QuantumCircuit,
         _i: int,
         remake: bool = False,
-    ) -> waveReturn:
+    ) -> Union[Gate, Operator, Instruction, QuantumCircuit]:
         ...
 
     @overload
@@ -114,7 +111,7 @@ class Qurecipe:
         _c: Optional[QuantumCircuit] = None,
         _i: Optional[int] = None,
         remake: bool = False,
-    ) -> list[waveReturn]:
+    ) -> Union[list[Gate], list[Operator], list[Instruction], list[QuantumCircuit]]:
         ...
 
     # wave return
@@ -181,8 +178,14 @@ class Qurecipe:
         index: Optional[Union[int, Literal['all']]] = None,
         type_as: Literal['gate', 'operator', 'instruction', 'copy'] = 'copy',
         remake: bool = False,
-    ) -> waveGetter[waveReturn]:
-        _w: waveGetter[waveReturn] = self._wave_return(
+    ) -> Union[
+        Gate, Operator, Instruction, QuantumCircuit,
+        list[Gate], list[Operator], list[Instruction], list[QuantumCircuit]
+    ]:
+        _w: Union[
+            Gate, Operator, Instruction, QuantumCircuit,
+            list[Gate], list[Operator], list[Instruction], list[QuantumCircuit]
+        ] = self._wave_return(
             type_as=type_as, remake=remake)
         assert isinstance(_w, list), "return type is not list"
 
