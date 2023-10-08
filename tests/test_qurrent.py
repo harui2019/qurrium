@@ -1,4 +1,5 @@
 import pytest
+import warnings
 from qiskit import QuantumRegister, QuantumCircuit
 
 from qurry.qurrent import EntropyMeasure
@@ -9,12 +10,13 @@ import qurry.hoshi as hoshi
 
 expDemo01 = EntropyMeasure(method='hadamard')
 try:
-    from qurry.case import trivialParamagnet
+    from qurry.recipe.library import TrivialParamagnet
 
     wave_adds = [
-        (expDemo01.add(trivialParamagnet(i).wave(), i),) for i in range(6, 12, 2)
+        (expDemo01.add(TrivialParamagnet(i).wave(), i),) for i in range(6, 12, 2)
     ]
 except:
+    warnings.warn("TrivialParamagnet not found. Use the following instead.")
     def trivialParamagnet(n) -> QuantumCircuit:
         """Construct the example circuit.
 
