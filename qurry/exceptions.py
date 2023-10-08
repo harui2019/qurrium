@@ -27,6 +27,9 @@ class QurryExtraPackageRequired(QurryError, ImportError):
 class QurryInvalidArgument(QurryError):
     """Invalid argument for Qurry."""
     
+class QurryPositionalArgumentNotSupported(QurryError, ValueError):
+    """Positional argument is not supported."""
+    
 
 # General Warning
 class QurryWarning(Warning):

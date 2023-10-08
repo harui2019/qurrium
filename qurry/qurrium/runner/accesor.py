@@ -37,13 +37,13 @@ def acessibility() -> dict[str, bool]:
         from .ibmqrunner import IBMQRunner
         result['IBMQ'] = True
     except QurryExtraPackageRequired:
-        ...
+        result['IBMQ'] = False
 
     try:
-        from .ibmqrunner import IBMQRunner
+        from .ibmrunner import IBMRunner
         result['IBM'] = True
     except QurryExtraPackageRequired:
-        ...
+        result['IBM'] = False
 
     # try:
     #     from .qulacsrunner import QulacsRunner
@@ -57,7 +57,7 @@ def acessibility() -> dict[str, bool]:
 BACKEND_AVAILABLE: dict[
     Union[str, backendChoiceLiteral], 
     bool
-] = dict.fromkeys(acessibility())
+] = acessibility()
 """Acessibility of extra backend.
 
 If you want to use extra backend, you should install the extra package first.
