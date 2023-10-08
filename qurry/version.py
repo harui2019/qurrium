@@ -1,5 +1,5 @@
 version_main = (0, 6, 4)
-version_dev = ('dev', 8)
+version_dev = ('dev', 9)
 isDev = True
 
 
