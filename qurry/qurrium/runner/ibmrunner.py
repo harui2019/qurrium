@@ -138,13 +138,13 @@ class IBMRunner(Runner):
                 pendingJob = self.backend.run(
                     circuits=[self.circWithSerial[idx] for idx in pcircIdxs],
                     shots=self.currentMultimanager.multicommons.shots,
-                    job_tags=[
+                    job_tags=[str(s) for s in [
                         self.currentMultimanager.multicommons.summonerName,
                         self.currentMultimanager.multicommons.summonerID,
                         self.currentMultimanager.namingCpx.expsName,
                         *pendingTag,
                         *self.currentMultimanager.multicommons.tags,
-                    ],
+                    ]],
                     **self.currentMultimanager.multicommons.managerRunArgs,
                 )
                 pendingPoolProgressBar.set_description_str(
