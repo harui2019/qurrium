@@ -18,6 +18,8 @@ from typing import Literal, Hashable, Union, Optional
 import warnings
 import time
 
+from typing import Iterable
+
 from .runner import Runner
 from ..multimanager import MultiManager
 from ..container import ExperimentContainer
@@ -243,6 +245,10 @@ class IBMRunner(Runner):
                     if pendingID is None:
                         warnings.warn(f"Pending pool '{pk}' is empty.")
                         continue
+                    if isinstance(pk, str):
+                        ...
+                    elif isinstance(pk, Iterable) and not isinstance(pk, tuple):
+                        pk = tuple(pk)
                     try:
                         retrieveProgressBar.set_description_str(
                             f"{pk}/{pendingID}", refresh=True)
