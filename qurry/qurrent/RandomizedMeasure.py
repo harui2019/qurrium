@@ -22,12 +22,13 @@ from ..qurrium.utils.randomized import (
     local_random_unitary_operators,
     local_random_unitary_pauli_coeff
 )
-from ..tools import qurryProgressBar, ProcessManager, workers_distribution, DEFAULT_POOL_SIZE
-try:
-    from ..boost.randomized import purityCellCore
-    useCython = True
-except ImportError:
-    useCython = False
+from ..tools import (
+    qurryProgressBar,
+    ProcessManager,
+    workers_distribution,
+    DEFAULT_POOL_SIZE
+)
+from ..boost.randomized import purityCellCore
 
 
 class EntropyAnalysisContent(NamedTuple):
@@ -149,6 +150,7 @@ def _entangled_entropy_core(
     degree: Union[tuple[int, int], int],
     measure: tuple[int, int] = None,
     workers_num: Optional[int] = None,
+    use_cython: bool = True,
     _hide_print: bool = False,
 ) -> tuple[dict[int, float], tuple[int, int], tuple[int, int], str, int]:
     """The core function of entangled entropy.
@@ -161,8 +163,9 @@ def _entangled_entropy_core(
         workers_num (Optional[int], optional): 
             Number of multi-processing workers, 
             if sets to 1, then disable to using multi-processing;
-            if not specified, the use 3/4 of cpu counts by `round(cpu_count*3/4)`.
+            if not specified, then use the number of all cpu counts - 2 by `cpu_count() - 2`.
             Defaults to None.
+        use_cython (bool, optional): Use cython to calculate purity cell. Defaults to True.
         _hide_print (bool, optional): Hide print. Defaults to False.
 
     Raises:
@@ -220,8 +223,7 @@ def _entangled_entropy_core(
     dummyString = ''.join(str(ds) for ds in range(allsystemSize))
     dummyStringSlice = cycling_slice(
         dummyString, bitStringRange[0], bitStringRange[1], 1)
-    isAvtiveCyclingSlice = dummyString[bitStringRange[0]
-        :bitStringRange[1]] != dummyStringSlice
+    isAvtiveCyclingSlice = dummyString[bitStringRange[0]                                       :bitStringRange[1]] != dummyStringSlice
     if isAvtiveCyclingSlice:
         assert len(dummyStringSlice) == subsystemSize, (
             f"| All system size '{subsystemSize}' does not match dummyStringSlice '{dummyStringSlice}'")
@@ -236,7 +238,7 @@ def _entangled_entropy_core(
     times = len(counts)
     Begin = time.time()
 
-    cellCalculator = (_purityCellCy if useCython else _purityCell)
+    cellCalculator = (_purityCellCy if use_cython else _purityCell)
 
     if launch_worker == 1:
         purityCellItems = []
@@ -278,6 +280,7 @@ def entangled_entropy(
     measure: tuple[int, int] = None,
     workers_num: Optional[int] = None,
     pbar: Optional[tqdm.tqdm] = None,
+    use_cython: bool = True,
 ) -> dict[str, float]:
     """Calculate entangled entropy.
 
@@ -320,8 +323,10 @@ def entangled_entropy(
         workers_num (Optional[int], optional): 
             Number of multi-processing workers, 
             if sets to 1, then disable to using multi-processing;
-            if not specified, the use 3/4 of cpu counts by `round(cpu_count*3/4)`.
+            if not specified, then use the number of all cpu counts - 2 by `cpu_count() - 2`.
             Defaults to None.
+        pbar (Optional[tqdm.tqdm], optional): Progress bar. Defaults to None.
+        use_cython (bool, optional): Use cython to calculate purity cell. Defaults to True.
 
     Returns:
         dict[str, float]: A dictionary contains purity, entropy, 
@@ -343,6 +348,7 @@ def entangled_entropy(
         measure=measure,
         workers_num=workers_num,
         _hide_print=True,
+        use_cython=use_cython,
     )
     purityCellList = list(purityCellDict.values())
 
@@ -471,6 +477,7 @@ def entangled_entropy_complex(
     workers_num: Optional[int] = None,
     pbar: Optional[tqdm.tqdm] = None,
     all_system_source: Optional['EntropyRandomizedAnalysis'] = None,
+    use_cython: bool = True,
 ) -> dict[str, float]:
     """Calculate entangled entropy with more information combined.
 
@@ -515,8 +522,12 @@ def entangled_entropy_complex(
         workers_num (Optional[int], optional): 
             Number of multi-processing workers, 
             if sets to 1, then disable to using multi-processing;
-            if not specified, the use 3/4 of cpu counts by `round(cpu_count*3/4)`.
+            if not specified, then use the number of all cpu counts - 2 by `cpu_count() - 2`.
             Defaults to None.
+        pbar (Optional[tqdm.tqdm], optional): Progress bar. Defaults to None.
+        all_system_source (Optional['EntropyRandomizedAnalysis'], optional):
+            The source of the all system. Defaults to None.
+        use_cython (bool, optional): Use cython to calculate purity cell. Defaults to True.
 
     Returns:
         dict[str, float]: A dictionary contains 
@@ -528,7 +539,7 @@ def entangled_entropy_complex(
     if isinstance(pbar, tqdm.tqdm):
         pbar.set_description_str(
             f"Calculate specific partition" +
-            ("." if useCython else " by Pure Python, it may take a long time."))
+            ("." if use_cython else " by Pure Python, it may take a long time."))
     (
         purityCellDict,
         bitStringRange,
@@ -549,7 +560,7 @@ def entangled_entropy_complex(
         if isinstance(pbar, tqdm.tqdm):
             pbar.set_description_str(
                 f"Calculate all system" +
-                ("." if useCython else " by Pure Python, it may take a long time."))
+                ("." if use_cython else " by Pure Python, it may take a long time."))
         (
             purityCellDictAllSys,
             bitStringRangeAllSys,
@@ -719,7 +730,7 @@ class EntropyRandomizedAnalysis(AnalysisPrototype):
             workers_num (Optional[int], optional): 
                 Number of multi-processing workers, 
                 if sets to 1, then disable to using multi-processing;
-                if not specified, the use 3/4 of cpu counts by `round(cpu_count*3/4)`.
+                if not specified, then use the number of all cpu counts - 2 by `cpu_count() - 2`.
                 Defaults to None.
             pbar (Optional[tqdm.tqdm], optional): The tqdm handle. Defaults to None.
             independent_all_system (bool, optional): The source of all system to calculate error mitigation. Defaults to False.
@@ -779,7 +790,7 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
             workers_num (Optional[int], optional): 
                 Number of multi-processing workers, 
                 if sets to 1, then disable to using multi-processing;
-                if not specified, the use 3/4 of cpu counts by `round(cpu_count*3/4)`.
+                if not specified, then use the number of all cpu counts - 2 by `cpu_count() - 2`.
                 Defaults to None.
 
         Returns:

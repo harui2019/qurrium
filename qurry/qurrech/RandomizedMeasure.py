@@ -18,12 +18,13 @@ from ..qurrium.utils.randomized import (
     qubitOpToPauliCoeff,
     ensembleCell,
 )
-from ..tools import qurryProgressBar, ProcessManager, workers_distribution, DEFAULT_POOL_SIZE
-try:
-    from ..boost.randomized import echoCellCore
-    useCython = True
-except ImportError:
-    useCython = False
+from ..tools import (
+    qurryProgressBar,
+    ProcessManager,
+    workers_distribution,
+    DEFAULT_POOL_SIZE
+)
+from ..boost.randomized import echoCellCore
 
 
 def _echoCellCy(
@@ -90,6 +91,7 @@ def _overlap_echo_core(
     degree: Union[tuple[int, int], int],
     measure: tuple[int, int] = None,
     workers_num: Optional[int] = None,
+    use_cython: bool = True,
     _hide_print: bool = False,
 ) -> tuple[dict[int, float], tuple[int, int], tuple[int, int]]:
     """The core function of entangled entropy.
@@ -102,8 +104,10 @@ def _overlap_echo_core(
         workers_num (Optional[int], optional): 
             Number of multi-processing workers, 
             if sets to 1, then disable to using multi-processing;
-            if not specified, the use 3/4 of cpu counts by `round(cpu_count*3/4)`.
+            if not specified, then use the number of all cpu counts - 2 by `cpu_count() - 2`.
             Defaults to None.
+        use_cython (bool, optional): Use cython to calculate purity cell. Defaults to True.
+        _hide_print (bool, optional): Hide print. Defaults to False.
 
     Raises:
         ValueError: Get degree neither 'int' nor 'tuple[int, int]'.
@@ -159,7 +163,7 @@ def _overlap_echo_core(
         f"| Partition: {bitStringRange}, Measure: {measure}"
     )
 
-    cellCalculator = (_echoCellCy if useCython else _echoCell)
+    cellCalculator = (_echoCellCy if use_cython else _echoCell)
 
     if launch_worker == 1:
         echoCellItems = []
@@ -201,6 +205,7 @@ def overlap_echo(
     measure: tuple[int, int] = None,
     workers_num: Optional[int] = None,
     pbar: Optional[tqdm.tqdm] = None,
+    use_cython: bool = True,
 ) -> dict[str, float]:
     """Calculate entangled entropy.
 
@@ -239,8 +244,12 @@ def overlap_echo(
         workers_num (Optional[int], optional): 
             Number of multi-processing workers, 
             if sets to 1, then disable to using multi-processing;
-            if not specified, the use 3/4 of cpu counts by `round(cpu_count*3/4)`.
+            if not specified, then use the number of all cpu counts - 2 by `cpu_count() - 2`.
             Defaults to None.
+        pbar (Optional[tqdm.tqdm], optional): Progress bar. Defaults to None.
+        all_system_source (Optional['EntropyRandomizedAnalysis'], optional):
+            The source of the all system. Defaults to None.
+        use_cython (bool, optional): Use cython to calculate purity cell. Defaults to True.
 
     Returns:
         dict[str, float]: A dictionary contains purity, entropy, 
@@ -248,7 +257,8 @@ def overlap_echo(
     """
 
     if isinstance(pbar, tqdm.tqdm):
-        pbar.set_description_str(f"Calculate overlap with {len(counts)} counts.")
+        pbar.set_description_str(
+            f"Calculate overlap with {len(counts)} counts.")
 
     (
         echoCellDict,
@@ -262,6 +272,7 @@ def overlap_echo(
         degree=degree,
         measure=measure,
         workers_num=workers_num,
+        use_cython=use_cython,
     )
     echoCellList = list(echoCellDict.values())
 
@@ -358,6 +369,7 @@ class EchoRandomizedAnalysis(AnalysisPrototype):
         measure: tuple[int, int] = None,
         workers_num: Optional[int] = None,
         pbar: Optional[tqdm.tqdm] = None,
+        use_cython: bool = True,
     ) -> dict[str, float]:
         """Calculate entangled entropy with more information combined.
 
@@ -369,9 +381,11 @@ class EchoRandomizedAnalysis(AnalysisPrototype):
             workers_num (Optional[int], optional): 
                 Number of multi-processing workers, 
                 if sets to 1, then disable to using multi-processing;
-                if not specified, the use 3/4 of cpu counts by `round(cpu_count*3/4)`.
+                if not specified, then use the number of all cpu counts - 2 by `cpu_count() - 2`.
                 Defaults to None.
-
+            pbar (Optional[tqdm.tqdm], optional): Progress bar. Defaults to None.
+            use_cython (bool, optional): Use cython to calculate purity cell. Defaults to True.
+            
         Returns:
             dict[str, float]: A dictionary contains 
                 purity, entropy, a list of each overlap, puritySD, 
@@ -386,6 +400,8 @@ class EchoRandomizedAnalysis(AnalysisPrototype):
             measure=measure,
             workers_num=workers_num,
             pbar=pbar,
+            _hide_print=True,
+            use_cython=use_cython,
         )
 
 
@@ -423,7 +439,7 @@ class EchoRandomizedExperiment(ExperimentPrototype):
             workers_num (Optional[int], optional): 
                 Number of multi-processing workers, 
                 if sets to 1, then disable to using multi-processing;
-                if not specified, the use 3/4 of cpu counts by `round(cpu_count*3/4)`.
+                if not specified, then use the number of all cpu counts - 2 by `cpu_count() - 2`.
                 Defaults to None.
 
         Returns:
