@@ -17,8 +17,9 @@ import glob
 import json
 import tqdm
 
-from ..hoshi import Hoshi
-from ..mori import jsonablize, quickJSON, quickRead, defaultConfig
+from ..capsule import jsonablize, quickJSON, quickRead
+from ..capsule.hoshi import Hoshi
+from ..capsule.mori import DefaultConfig
 from ..tools import backendName, ProcessManager, DEFAULT_POOL_SIZE
 from ..exceptions import (
     QurryInvalidInherition,
@@ -28,7 +29,7 @@ from ..exceptions import (
 from .analysis import AnalysisPrototype, QurryAnalysis
 from .utils.datetime import currentTime, datetimeDict
 
-commonparamsConfig = defaultConfig(
+commonparamsConfig = DefaultConfig(
     name='commonparams',
     default={
         'expID': None,
@@ -50,7 +51,7 @@ commonparamsConfig = defaultConfig(
         'summonerName': None,
     })
 
-beforeConfig = defaultConfig(
+beforeConfig = DefaultConfig(
     name='before',
     default={
         'circuit': [],
@@ -60,7 +61,7 @@ beforeConfig = defaultConfig(
         'sideProduct': {},
     })
 
-afterConfig = defaultConfig(
+afterConfig = DefaultConfig(
     name='after',
     default={
         'result': [],

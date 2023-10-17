@@ -1,5 +1,6 @@
-from ..experiment import ExperimentPrototype
 from typing import Union, Optional, Hashable, MutableMapping
+
+from ..experiment import ExperimentPrototype
 
 
 class ExperimentContainer(dict[Hashable, ExperimentPrototype]):

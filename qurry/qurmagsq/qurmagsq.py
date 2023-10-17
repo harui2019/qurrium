@@ -7,7 +7,11 @@ from pathlib import Path
 from itertools import permutations
 from typing import Union, Optional, NamedTuple, Hashable, Type, Any
 
-from ..tools import ProcessManager, workers_distribution, DEFAULT_POOL_SIZE
+from ..tools import (
+    ProcessManager, 
+    workers_distribution, 
+    DEFAULT_POOL_SIZE
+)
 from ..qurrium import (
     QurryV5Prototype,
     ExperimentPrototype,

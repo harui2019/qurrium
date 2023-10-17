@@ -2,8 +2,8 @@ from typing import Optional, NamedTuple, Iterable, Any
 from abc import abstractmethod, abstractproperty
 import warnings
 
-from ..hoshi import Hoshi
-from ..mori import jsonablize
+from ..capsule import jsonablize
+from ..capsule.hoshi import Hoshi
 from ..exceptions import QurryInvalidInherition
 from .utils.datetime import currentTime
 

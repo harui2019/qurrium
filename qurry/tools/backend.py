@@ -38,7 +38,7 @@ from ..exceptions import (
     QurryExtraPackageRequired,
     QurryPositionalArgumentNotSupported,
 )
-from ..hoshi import Hoshi
+from ..capsule.hoshi import Hoshi
 
 
 class DummyProvider(Provider):

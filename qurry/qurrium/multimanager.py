@@ -17,15 +17,15 @@ from .experiment import ExperimentPrototype
 from .utils.iocontrol import naming
 from .utils.datetime import currentTime, datetimeDict
 from ..tools import qurryProgressBar, DEFAULT_POOL_SIZE
-from ..mori import TagList, syncControl, defaultConfig
-from ..mori.quick import quickJSON, quickRead
+from ..capsule import quickJSON, quickRead
+from ..capsule.mori import TagList, syncControl, DefaultConfig
 from ..exceptions import (
     QurryProtectContent,
     QurryResetAccomplished,
     QurryResetSecurityActivated
 )
 
-multicommonConfig = defaultConfig(
+multicommonConfig = DefaultConfig(
     name='multicommon',
     default={
         'summonerID': None,

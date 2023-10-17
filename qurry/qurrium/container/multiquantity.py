@@ -2,7 +2,7 @@ from typing import Union, Optional, Literal
 from pathlib import Path
 
 from ...tools import qurryProgressBar
-from ...mori import TagList
+from ...capsule.mori import TagList
 
 
 class QuantityContainer(dict[str, TagList[dict[str, float]]]):

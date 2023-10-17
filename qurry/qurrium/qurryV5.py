@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Literal, Union, Optional, Hashable, Type, Any
 from abc import abstractmethod, abstractproperty
 
-from ..mori import TagList
+from ..capsule.mori import TagList
 from ..tools import ResoureWatch, qurryProgressBar, ProcessManager
 from ..declare.default import (
     transpileConfig,
