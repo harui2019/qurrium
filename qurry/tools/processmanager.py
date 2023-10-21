@@ -3,7 +3,7 @@ from tqdm.contrib.concurrent import process_map
 from multiprocessing import Pool, cpu_count
 from typing import Optional, Iterable, Callable, TypeVar, Any
 
-from .progressbar import qurryProgressBar
+from .progressbar import qurryProgressBar, default_setup
 # Ready for issue #75 https://github.com/harui2019/qurry/issues/75
 
 DEFAULT_POOL_SIZE = cpu_count() - 2
@@ -76,7 +76,7 @@ class ProcessManager:
         ascii: str = '4squares',
         **kwargs,
     ) -> list[T_map]:
-        result_setup = qurryProgressBar.default_setup(bar_format, ascii)
+        result_setup = default_setup(bar_format, ascii)
         actual_bar_format = result_setup['bar_format']
         actual_ascii = result_setup['ascii']
 
