@@ -1,6 +1,5 @@
 from qiskit.result import Result
 from qiskit.providers import Backend
-
 from pathlib import Path
 from typing import Literal, Union, Optional, NamedTuple, Hashable, Any, Iterable
 from uuid import uuid4
@@ -18,7 +17,7 @@ from .utils.iocontrol import naming
 from .utils.datetime import currentTime, datetimeDict
 from ..tools import qurryProgressBar, DEFAULT_POOL_SIZE
 from ..capsule import quickJSON, quickRead
-from ..capsule.mori import TagList, syncControl, DefaultConfig
+from ..capsule.mori import TagList, GitSyncControl, DefaultConfig
 from ..exceptions import (
     QurryProtectContent,
     QurryResetAccomplished,
@@ -358,7 +357,7 @@ class MultiManager:
             else:
                 ...
 
-        self.gitignore = syncControl()
+        self.gitignore = GitSyncControl()
         self.namingCpx = naming(
             isRead=isRead,
             expsName=summonerName,
@@ -618,14 +617,6 @@ class MultiManager:
                         if path.exists():
                             path.unlink()
 
-    @property
-    def summonerID(self) -> str:
-        return self.multicommons.summonerID
-
-    @property
-    def summonerName(self) -> str:
-        return self.multicommons.summonerName
-
     def updateSaveLocation(
         self,
         saveLocation: Union[Path, str],
@@ -712,7 +703,8 @@ class MultiManager:
                 exportProgress.set_description_str(
                     f'{k} as {exportingName[k]} - skip')
             elif isinstance(self[k], TagList):
-                exportProgress.set_description_str(f'{k} as {exportingName[k]}')
+                exportProgress.set_description_str(
+                    f'{k} as {exportingName[k]}')
                 tmp: TagList = self[k]
                 filename = tmp.export(
                     saveLocation=self.multicommons.exportLocation,
@@ -731,7 +723,8 @@ class MultiManager:
                     f"{exportingName[k]}.{self.multicommons.filetype}")
 
             elif isinstance(self[k], (dict, list)):
-                exportProgress.set_description_str(f'{k} as {exportingName[k]}')
+                exportProgress.set_description_str(
+                    f'{k} as {exportingName[k]}')
                 filename = Path(self.multicommons.exportLocation) / \
                     f"{exportingName[k]}.json"
                 self.multicommons.files[exportingName[k]] = str(filename)
