@@ -5,8 +5,8 @@ from qiskit import QuantumRegister, QuantumCircuit
 from qurry.qurrent import EntropyMeasure
 from qurry.tools import backendWrapper
 
-import qurry.mori as mori
-import qurry.hoshi as hoshi
+import qurry.capsule.mori as mori
+import qurry.capsule.hoshi as hoshi
 
 expDemo01 = EntropyMeasure(method='hadamard')
 try:
