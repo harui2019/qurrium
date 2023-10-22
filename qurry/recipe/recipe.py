@@ -137,7 +137,10 @@ class Qurecipe:
             remake (bool, optional): Regenerate instruction. Defaults to False.
 
         Returns:
-            waveGetter[waveReturn]: Instrunction.
+            Union[
+                list[Union[Gate, Operator, Instruction, QuantumCircuit]], 
+                Union[Gate, Operator, Instruction, QuantumCircuit]
+            ]: Instrunction.
         """
 
         if _i is None:

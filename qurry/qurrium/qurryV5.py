@@ -437,7 +437,7 @@ class QurryV5Prototype:
         jsonablize: bool = False,
 
         workers_num: Optional[int] = None,
-        _exportMute: bool = True,
+        _export_mute: bool = True,
         _pbar: Optional[tqdm.tqdm] = None,
         **allArgs: Any,
     ) -> Hashable:
@@ -456,7 +456,7 @@ class QurryV5Prototype:
                 The encoding of json file. Defaults to 'utf-8'.
             jsonablize (bool, optional):
                 Whether to jsonablize the experiment output. Defaults to False.
-            _exportMute (bool, optional):
+            _export_mute (bool, optional):
                 Whether to mute the export hint. Defaults to True.
 
             allArgs: all arguments will handle by `self.paramsControl()` and export as specific format.
@@ -531,7 +531,7 @@ class QurryV5Prototype:
                 indent=indent,
                 encoding=encoding,
                 jsonablize=jsonablize,
-                mute=_exportMute,
+                mute=_export_mute,
             )
 
         return IDNow
@@ -544,7 +544,7 @@ class QurryV5Prototype:
         indent: int = 2,
         encoding: str = 'utf-8',
         jsonablize: bool = False,
-        _exportMute: bool = True,
+        _export_mute: bool = True,
         **allArgs: Any,
     ) -> Hashable:
         """Export the result after running the job.
@@ -561,7 +561,7 @@ class QurryV5Prototype:
                 The encoding of json file. Defaults to 'utf-8'.
             jsonablize (bool, optional):
                 Whether to jsonablize the experiment output. Defaults to False.
-            _exportMute (bool, optional):
+            _export_mute (bool, optional):
                 Whether to mute the export hint. Defaults to True.
 
             allArgs: all arguments will handle by `self.paramsControl()` and export as specific format.
@@ -607,7 +607,7 @@ class QurryV5Prototype:
                 indent=indent,
                 encoding=encoding,
                 jsonablize=jsonablize,
-                mute=_exportMute,
+                mute=_export_mute,
             )
 
         return IDNow
@@ -620,7 +620,7 @@ class QurryV5Prototype:
         indent: int = 2,
         encoding: str = 'utf-8',
         jsonablize: bool = False,
-        _exportMute: bool = False,
+        _export_mute: bool = False,
         **allArgs: Any,
     ) -> Hashable:
         """Export the result after running the job.
@@ -637,7 +637,7 @@ class QurryV5Prototype:
                 The encoding of json file. Defaults to 'utf-8'.
             jsonablize (bool, optional):
                 Whether to jsonablize the experiment output. Defaults to False.
-            _exportMute (bool, optional):
+            _export_mute (bool, optional):
                 Whether to mute the export hint. Defaults to True.
 
             allArgs: all arguments will handle by `self.paramsControl()` and export as specific format.
@@ -682,7 +682,7 @@ class QurryV5Prototype:
                 indent=indent,
                 encoding=encoding,
                 jsonablize=jsonablize,
-                mute=_exportMute,
+                mute=_export_mute,
             )
 
         return IDNow
@@ -695,7 +695,7 @@ class QurryV5Prototype:
         indent: int = 2,
         encoding: str = 'utf-8',
         jsonablize: bool = False,
-        _exportMute: bool = False,
+        _export_mute: bool = False,
 
         **otherArgs: Any
     ):
@@ -725,7 +725,7 @@ class QurryV5Prototype:
                 The encoding of json file. Defaults to 'utf-8'.
             jsonablize (bool, optional):
                 Whether to jsonablize the experiment output. Defaults to False.
-            _exportMute (bool, optional):
+            _export_mute (bool, optional):
                 Whether to mute the export hint. Defaults to True.
 
             otherArgs (Any):
@@ -757,7 +757,7 @@ class QurryV5Prototype:
                 indent=indent,
                 encoding=encoding,
                 jsonablize=jsonablize,
-                mute=_exportMute,
+                mute=_export_mute,
             )
 
         return IDNow
@@ -787,10 +787,10 @@ class QurryV5Prototype:
         },
         filetype: TagList._availableFileType = 'json',
 
-        isRetrieve: bool = False,
-        isRead: bool = False,
-        readVersion: Literal['v4', 'v5'] = 'v5',
-        readFromTarfile: bool = False,
+        is_retrieve: bool = False,
+        is_read: bool = False,
+        read_version: Literal['v4', 'v5'] = 'v5',
+        read_from_tarfile: bool = False,
     ) -> tuple[list[dict[str, Any]], str]:
         """Control the experiment's parameters for running multiple jobs.
 
@@ -825,13 +825,13 @@ class QurryV5Prototype:
                 }`.
             jobsType (Literal[&quot;local&quot;, &quot;IBMQ&quot;, &quot;AWS_Bracket&quot;, &quot;Azure_Q&quot;], optional): 
                 What types of the backend will run on. Defaults to "local".
-            isRetrieve (bool, optional):
+            is_retrieve (bool, optional):
                 Whether this jobs will retrieve the pending experiment after initializing.
                 Defaults to `False`.
-            isRead (bool, optional): 
+            is_read (bool, optional): 
                 Whether this jobs will read the existed experiment data during initializing.
                 Defaults to False.
-            readVersion (Literal['v4', 'v5'], optional):
+            read_version (Literal['v4', 'v5'], optional):
                 The version of the data to be read.
                 Defaults to 'v5'.
 
@@ -844,22 +844,22 @@ class QurryV5Prototype:
             currentMultimanager = self.multimanagers[summonerID]
             return list(currentMultimanager.beforewards.expsConfig.values()), currentMultimanager.summonerID
 
-        isRead = isRetrieve | isRead
+        is_read = is_retrieve | is_read
 
         for config, checker in [
             (managerRunArgs, managerRunConfig),
         ]:
             containChecker(config, checker)
 
-        if isRead:
+        if is_read:
             currentMultimanager = MultiManager(
                 summonerID=None,
                 summonerName=summonerName,
-                isRead=isRead,
-                readFromTarfile=readFromTarfile,
+                is_read=is_read,
+                read_from_tarfile=read_from_tarfile,
 
                 saveLocation=saveLocation,
-                version=readVersion,
+                version=read_version,
             )
         else:
             currentMultimanager = MultiManager(
@@ -962,8 +962,8 @@ class QurryV5Prototype:
             summonerID=summonerID,
             saveLocation=saveLocation,
             jobsType=jobsType,
-            isRetrieve=False,
-            isRead=False,
+            is_retrieve=False,
+            is_read=False,
             filetype=filetype,
         )
         currentMultimanager = self.multimanagers[besummonned]
@@ -1083,7 +1083,7 @@ class QurryV5Prototype:
             currentID = self.output(
                 expID=id_exec,
                 saveLocation=currentMultimanager.multicommons.saveLocation,
-                _exportMute=True,
+                _export_mute=True,
             )
 
             circSerialLen = len(circSerial)
@@ -1313,7 +1313,7 @@ class QurryV5Prototype:
         # Multiple jobs shared
         saveLocation: Union[Path, str] = Path('./'),
 
-        readFromTarfile: bool = False,
+        read_from_tarfile: bool = False,
         # defaultMultiAnalysis: list[dict[str, Any]] = []
         # analysisName: str = 'report',
     ) -> Hashable:
@@ -1338,9 +1338,9 @@ class QurryV5Prototype:
             summonerName=summonerName,
             summonerID=summonerID,
             saveLocation=saveLocation,
-            isRead=True,
+            is_read=True,
 
-            readFromTarfile=readFromTarfile,
+            read_from_tarfile=read_from_tarfile,
         )
 
         assert besummonned in self.multimanagers
@@ -1378,7 +1378,7 @@ class QurryV5Prototype:
         saveLocation: Union[Path, str] = Path('./'),
         refresh: bool = False,
         overwrite: bool = False,
-        readFromTarfile: bool = False,
+        read_from_tarfile: bool = False,
 
         defaultMultiAnalysis: list[dict[str, Any]] = [],
         analysisName: str = 'report',
@@ -1425,7 +1425,7 @@ class QurryV5Prototype:
             summonerName=summonerName,
             summonerID=summonerID,
             saveLocation=saveLocation,
-            readFromTarfile=readFromTarfile,
+            read_from_tarfile=read_from_tarfile,
         )
         currentMultimanager = self.multimanagers[besummonned]
         assert currentMultimanager.summonerID == besummonned
@@ -1505,8 +1505,8 @@ class QurryV5Prototype:
             summonerName=summonerName,
             summonerID=summonerID,
             saveLocation=saveLocation,
-            isRead=True,
-            readVersion='v4',
+            is_read=True,
+            read_version='v4',
         )
 
         assert besummonned in self.multimanagers

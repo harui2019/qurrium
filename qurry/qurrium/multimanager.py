@@ -311,9 +311,9 @@ class MultiManager:
         summonerName: str,
         saveLocation: Union[Path, str] = Path('./'),
 
-        isRead: bool = False,
+        is_read: bool = False,
         encoding: str = 'utf-8',
-        readFromTarfile: bool = False,
+        read_from_tarfile: bool = False,
 
         filetype: TagList._availableFileType = 'json',
         version: Literal['v4', 'v5'] = 'v5',
@@ -328,7 +328,7 @@ class MultiManager:
             saveLocation (Union[Path, str]): _description_
             initedConfigList (list): _description_
             state (Literal[&quot;init&quot;, &quot;pending&quot;, &quot;completed&quot;]): _description_
-            isRead (bool, optional): _description_. Defaults to False.
+            is_read (bool, optional): _description_. Defaults to False.
             overwrite (bool, optional): _description_. Defaults to False.
 
         Raises:
@@ -347,7 +347,7 @@ class MultiManager:
                 "'expID' is not hashable, it will be set to generate automatically.")
         finally:
             if summonerID is None:
-                if isRead:
+                if is_read:
                     if version == 'v5':
                         summonerID = ''
                     else:
@@ -359,7 +359,7 @@ class MultiManager:
 
         self.gitignore = GitSyncControl()
         self.namingCpx = naming(
-            isRead=isRead,
+            is_read=is_read,
             expsName=summonerName,
             saveLocation=saveLocation,
         )
@@ -378,12 +378,12 @@ class MultiManager:
                 print(
                     f"| No multi.config file found, decompressing all files in the tarfile '{self.namingCpx.tarName}'.")
                 self.easydecompress()
-            elif readFromTarfile:
+            elif read_from_tarfile:
                 print(
                     f"| Decompressing all files in the tarfile '{self.namingCpx.tarName}', replace all files in '{self.namingCpx.exportLocation}'.")
                 self.easydecompress()
 
-        if isRead and version == 'v5':
+        if is_read and version == 'v5':
 
             if multiConfigNameV5.exists():
                 print("| Found the multiConfig.json, reading in 'v5' file structure.")
@@ -444,7 +444,7 @@ class MultiManager:
                 raise FileNotFoundError(
                     f"Can't find the multi.config file in '{self.namingCpx.expsName}'.")
 
-        elif isRead and version == 'v4':
+        elif is_read and version == 'v4':
             print("| Reading in 'v4' format.")
             files = {}
             dataDummyJobs: dict[any] = {}
@@ -576,13 +576,13 @@ class MultiManager:
         if version == 'v4':
             multicommons['datetimes']['v4Read'] = currentTime()
 
-        if 'build' not in multicommons['datetimes'] and not isRead:
+        if 'build' not in multicommons['datetimes'] and not is_read:
             multicommons['datetimes']['bulid'] = currentTime()
 
         if isTarfileExisted:
             if not multiConfigNameV5.exists() or not multiConfigNameV7.exists():
                 multicommons['datetimes'].addSerial('decompress')
-            elif readFromTarfile:
+            elif read_from_tarfile:
                 multicommons['datetimes'].addSerial('decompressOverwrite')
 
         # readV5 files re-export

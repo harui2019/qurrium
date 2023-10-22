@@ -62,7 +62,10 @@ class WaveContainer(dict[Hashable, QuantumCircuit]):
                 Defaults to `None`.
 
         Returns:
-            waveReturn: The result of the wave as `Gate` or `Operator`.
+            Union[
+                list[Union[Gate, Operator, Instruction, QuantumCircuit]], 
+                Union[Gate, Operator, Instruction, QuantumCircuit]
+            ]: The result of the wave as `Gate` or `Operator`.
         """
 
         if wave == None:
