@@ -12,10 +12,6 @@ T = TypeVar("T")
 KT = TypeVar("KT")
 VT = TypeVar("VT")
 
-# waveGetter methods
-waveGetter = Union[list[T], T]
-waveReturn = Union[Gate, Operator, Instruction, QuantumCircuit]
-
 QubitSpecifier = Union[
     Qubit,
     QuantumRegister,
