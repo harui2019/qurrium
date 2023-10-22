@@ -5,7 +5,7 @@ from .wavesqurry import WavesExecuter, WavesQurryExperiment, WavesQurryAnalysis
 
 from .utils import (
     RXmatrix, RYmatrix, RZmatrix,
-    makeTwoBitStr, makeTwoBitStrOneLiner, cycling_slice,
+    make_two_bit_str, makeTwoBitStrOneLiner, cycling_slice,
     hamming_distance, ensembleCell, densityMatrixToBloch, qubitOpToPauliCoeff,
     qubit_selector, wave_selector, decomposer,
 )

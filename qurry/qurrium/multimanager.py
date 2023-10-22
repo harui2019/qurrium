@@ -653,7 +653,7 @@ class MultiManager:
             content=multiConfig,
             filename=multiConfigName,
             mode='w+',
-            jsonablize=True,
+            jsonable=True,
             encoding=encoding,
             mute=mute,
         )
@@ -734,7 +734,7 @@ class MultiManager:
                     content=self[k],
                     filename=filename,
                     mode='w+',
-                    jsonablize=True,
+                    jsonable=True,
                     indent=indent,
                     encoding=encoding,
                     mute=True,
@@ -798,7 +798,7 @@ class MultiManager:
                 mode='w+',
                 indent=indent,
                 encoding=encoding,
-                jsonablize=True,
+                jsonable=True,
                 mute=True,
             )
 

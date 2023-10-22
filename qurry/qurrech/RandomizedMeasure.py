@@ -1,12 +1,14 @@
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit.quantum_info import Operator
-
 import time
 import tqdm
+import warnings
 import numpy as np
 from pathlib import Path
 from typing import Union, Optional, NamedTuple, Hashable, Iterable, Type, Any
 
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit.quantum_info import Operator
+
+from ..exceptions import QurryCythonImportError
 from ..qurrium import (
     QurryV5Prototype,
     ExperimentPrototype,
@@ -24,7 +26,14 @@ from ..tools import (
     workers_distribution,
     DEFAULT_POOL_SIZE
 )
-from ..boost.randomized import echoCellCore
+try:
+    from ..boost.randomized import echoCellCore  # type: ignore
+    CYTHON_AVAILABLE = True
+    FAILED_PYX_IMPORT = None
+except ImportError as err:
+    FAILED_PYX_IMPORT = err
+    CYTHON_AVAILABLE = False
+    def echoCellCore(*args, **kwargs): return 0.0
 
 
 def _echoCellCy(
@@ -163,7 +172,14 @@ def _overlap_echo_core(
         f"| Partition: {bitStringRange}, Measure: {measure}"
     )
 
-    cellCalculator = (_echoCellCy if use_cython else _echoCell)
+    if not (CYTHON_AVAILABLE and use_cython):
+        warnings.warn(
+            "Cython is not available, using python to calculate purity cell." +
+            " More infomation about this error: {}".format(FAILED_PYX_IMPORT),
+            category=QurryCythonImportError
+        )
+    cellCalculator = (_echoCellCy if (
+        use_cython and CYTHON_AVAILABLE) else _echoCell)
 
     if launch_worker == 1:
         echoCellItems = []
@@ -385,7 +401,7 @@ class EchoRandomizedAnalysis(AnalysisPrototype):
                 Defaults to None.
             pbar (Optional[tqdm.tqdm], optional): Progress bar. Defaults to None.
             use_cython (bool, optional): Use cython to calculate purity cell. Defaults to True.
-            
+
         Returns:
             dict[str, float]: A dictionary contains 
                 purity, entropy, a list of each overlap, puritySD, 
@@ -400,7 +416,6 @@ class EchoRandomizedAnalysis(AnalysisPrototype):
             measure=measure,
             workers_num=workers_num,
             pbar=pbar,
-            _hide_print=True,
             use_cython=use_cython,
         )
 
@@ -702,7 +717,7 @@ class EchoRandomizedListen(QurryV5Prototype):
                 mode=mode,
                 indent=indent,
                 encoding=encoding,
-                jsonablize=jsonablize,
+                jsonable=jsonablize,
             )
 
         return IDNow

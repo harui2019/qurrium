@@ -30,6 +30,9 @@ class QurryInvalidArgument(QurryError):
 class QurryPositionalArgumentNotSupported(QurryError, ValueError):
     """Positional argument is not supported."""
     
+class QurryCythonImportError(QurryError, ImportError):
+    """Cython import error."""
+    
 
 # General Warning
 class QurryWarning(Warning):

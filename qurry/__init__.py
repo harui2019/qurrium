@@ -6,8 +6,8 @@ from .qurrium import QurryV5 as Qurry, WavesExecuter
 # from .recipe import Qurecipe
 
 from .tools import (
-    backendWrapper,
-    backendManager,
+    BackendWrapper,
+    BackendManager,
     ResoureWatch,
     version_check,
     cmdWrapper,

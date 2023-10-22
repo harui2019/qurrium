@@ -3,10 +3,12 @@ from qiskit.quantum_info import Operator
 
 import time
 import tqdm
+import warnings
 import numpy as np
 from pathlib import Path
 from typing import Union, Optional, NamedTuple, Hashable, Iterable, Type, Literal, overload, Any
 
+from ..exceptions import QurryCythonImportError
 from ..qurrium import (
     QurryV5Prototype,
     ExperimentPrototype,
@@ -28,7 +30,14 @@ from ..tools import (
     workers_distribution,
     DEFAULT_POOL_SIZE
 )
-from ..boost.randomized import purityCellCore
+try:
+    from ..boost.randomized import purityCellCore # type: ignore
+    cython_available = True
+    failed_pyx_import = None
+except ImportError as err:
+    failed_pyx_import = err
+    cython_available = False
+    purityCellCore = lambda *args: 0.0
 
 
 class EntropyAnalysisContent(NamedTuple):
@@ -223,7 +232,7 @@ def _entangled_entropy_core(
     dummyString = ''.join(str(ds) for ds in range(allsystemSize))
     dummyStringSlice = cycling_slice(
         dummyString, bitStringRange[0], bitStringRange[1], 1)
-    isAvtiveCyclingSlice = dummyString[bitStringRange[0]                                       :bitStringRange[1]] != dummyStringSlice
+    isAvtiveCyclingSlice = dummyString[bitStringRange[0]:bitStringRange[1]] != dummyStringSlice
     if isAvtiveCyclingSlice:
         assert len(dummyStringSlice) == subsystemSize, (
             f"| All system size '{subsystemSize}' does not match dummyStringSlice '{dummyStringSlice}'")
@@ -238,7 +247,14 @@ def _entangled_entropy_core(
     times = len(counts)
     Begin = time.time()
 
-    cellCalculator = (_purityCellCy if use_cython else _purityCell)
+    if not (cython_available and use_cython):
+        warnings.warn(
+            "Cython is not available, using python to calculate purity cell." +
+            " More infomation about this error: {}".format(failed_pyx_import),
+            category=QurryCythonImportError
+        )
+    cellCalculator = (_purityCellCy if (
+        use_cython and cython_available) else _purityCell)
 
     if launch_worker == 1:
         purityCellItems = []
@@ -1090,7 +1106,7 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
                 mode=mode,
                 indent=indent,
                 encoding=encoding,
-                jsonablize=jsonablize,
+                jsonable=jsonablize,
             )
 
         return IDNow

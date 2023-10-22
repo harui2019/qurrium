@@ -1,9 +1,13 @@
-from qiskit.visualization.counts_visualization import hamming_distance, VisualizationError
-from qiskit.quantum_info import random_unitary, Operator
-
+"""
+===========================================================
+Randomized Measure Kit for Qurry
+===========================================================
+"""
+from typing import Callable, Iterable, Union, Optional
 import numpy as np
-from typing import Callable, Iterable, Union
 
+from qiskit.quantum_info import random_unitary, Operator
+from qiskit.visualization.exceptions import VisualizationError
 
 RXmatrix = np.array([[0, 1], [1, 0]])
 """Pauli-X matrix"""
@@ -12,8 +16,10 @@ RYmatrix = np.array([[0, -1j], [1j, 0]])
 RZmatrix = np.array([[1, 0], [0, -1]])
 """Pauli-Z matrix"""
 
+# pylint: disable=unnecessary-direct-lambda-call
 
-def makeTwoBitStr(num: int, bits: list[str] = ['']) -> list[str]:
+
+def make_two_bit_str(num: int, bits: Optional[list[str]] = None) -> list[str]:
     """Make a list of bit strings with length of `num`.
 
     Args:
@@ -25,7 +31,9 @@ def makeTwoBitStr(num: int, bits: list[str] = ['']) -> list[str]:
     """
     return ((lambda bits: [
         *['0'+item for item in bits], *['1'+item for item in bits]
-    ])(makeTwoBitStr(num-1, bits)) if num > 0 else bits)
+    ])(make_two_bit_str(
+        num-1, [''] if bits is None else ['']
+    )) if num > 0 else bits)
 
 
 makeTwoBitStrOneLiner: Callable[[int, list[str]], list[str]] = (
@@ -41,6 +49,7 @@ makeTwoBitStrOneLiner: Callable[[int, list[str]], list[str]] = (
     Returns:
         list[str]: The list of bit strings.
 """
+# pylint: enable=unnecessary-direct-lambda-call
 
 
 def hamming_distance(str1: str, str2: str) -> int:
@@ -170,21 +179,40 @@ def local_random_unitary_pauli_coeff(
     }
 
 
-def cycling_slice(target: Iterable, start: int, end: int, step: int = 1) -> Iterable:
+def cycling_slice(
+    target: Iterable,
+    start: int,
+    end: int,
+    step: int = 1
+) -> Iterable:
+    """Slice a iterable object with cycling.
+
+    Args:
+        target (Iterable): The target object.
+        start (int): Index of start.
+        end (int): Index of end.
+        step (int, optional): Step of slice. Defaults to 1.
+
+    Raises:
+        IndexError: Slice out of range.
+
+    Returns:
+        Iterable: The sliced object.
+    """
     length = len(target)
-    sliceCheck = {
+    slice_check = {
         'start <= -length': (start <= -length),
         'end >= length ': (end >= length),
     }
-    if all(sliceCheck.values()):
+    if all(slice_check.values()):
         raise IndexError(
             "Slice out of range" +
-            ", ".join([f" {k};" for k, v in sliceCheck.items() if not v]))
+            ", ".join([f" {k};" for k, v in slice_check.items() if not v]))
     if length <= 0:
-        newString = target
+        new_string = target
     elif start < 0 and end >= 0:
-        newString = target[start:] + target[:end]
+        new_string = target[start:] + target[:end]
     else:
-        newString = target[start:end]
+        new_string = target[start:end]
 
-    return newString[::step]
+    return new_string[::step]

@@ -307,7 +307,7 @@ class EchoHadamardTest(QurryV5Prototype):
                 mode=mode,
                 indent=indent,
                 encoding=encoding,
-                jsonablize=jsonablize,
+                jsonable=jsonablize,
             )
 
         return IDNow
