@@ -1,10 +1,15 @@
+"""
+===========================================================
+Loschmidt Echo - Randomized Measure
+===========================================================
+
+"""
 import time
-import tqdm
 import warnings
-import numpy as np
 from pathlib import Path
 from typing import Union, Optional, NamedTuple, Hashable, Iterable, Type, Any
-
+import numpy as np
+import tqdm
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.quantum_info import Operator
 
@@ -33,7 +38,12 @@ try:
 except ImportError as err:
     FAILED_PYX_IMPORT = err
     CYTHON_AVAILABLE = False
-    def echoCellCore(*args, **kwargs): return 0.0
+    # pylint: disable=invalid-name, unused-argument
+
+    def echoCellCore(*args, **kwargs):
+        """Dummy function for purityCellCore."""
+        return 0.0
+    # pylint: enable=invalid-name, unused-argument
 
 
 def _echoCellCy(

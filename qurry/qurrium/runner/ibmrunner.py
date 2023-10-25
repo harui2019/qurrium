@@ -23,7 +23,7 @@ from typing import Iterable
 from .runner import Runner
 from ..multimanager import MultiManager
 from ..container import ExperimentContainer
-from ..utils import get_counts, currentTime
+from ..utils import get_counts, current_time
 from ...tools import qurryProgressBar
 
 
@@ -119,7 +119,7 @@ class IBMRunner(Runner):
 
                 self.circWithSerial[idx + circSerialLen] = circ
 
-        current = currentTime()
+        current = current_time()
         self.currentMultimanager.multicommons.datetimes['pending'] = current
 
         pendingPoolProgressBar = qurryProgressBar(
@@ -167,7 +167,7 @@ class IBMRunner(Runner):
             self.expContainer[id_exec].commons.datetimes['pending'] = current
 
         self.currentMultimanager.multicommons.datetimes[
-            'pendingCompleted'] = currentTime()
+            'pendingCompleted'] = current_time()
 
         return self.currentMultimanager.beforewards.jobID
 
@@ -210,7 +210,7 @@ class IBMRunner(Runner):
         assert len(self.currentMultimanager.afterwards.allCounts
                    ) == 0, "All counts should be null."
 
-        current = currentTime()
+        current = current_time()
         self.currentMultimanager.multicommons.datetimes[
             retrieveTimesName] = current
 

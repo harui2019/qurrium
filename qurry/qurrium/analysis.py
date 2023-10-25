@@ -5,7 +5,7 @@ import warnings
 from ..capsule import jsonablize
 from ..capsule.hoshi import Hoshi
 from ..exceptions import QurryInvalidInherition
-from .utils.datetime import currentTime
+from .utils.datetime import current_time
 
 
 class AnalysisPrototype():
@@ -82,7 +82,7 @@ class AnalysisPrototype():
 
         self.header = self.analysisHeader(
             serial=serial,
-            datetime=currentTime(),
+            datetime=current_time(),
             summoner=summoner,
             log=log,
         )

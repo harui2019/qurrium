@@ -23,14 +23,14 @@ from ..declare.default import (
     transpileConfig,
     runConfig,
     managerRunConfig,
-    containChecker,
+    contain_checker,
 )
 from .experiment import ExperimentPrototype, QurryExperiment
 from .container import WaveContainer, ExperimentContainer
 from .multimanager import MultiManager
 from .runner import backendChoiceLiteral, ExtraBackendAccessor
 
-from .utils import get_counts, currentTime, datetimeDict, decomposer_and_drawer
+from .utils import get_counts, current_time, DatetimeDict, decomposer_and_drawer
 from .utils.inputfixer import outfields_check, outfields_hint
 from ..exceptions import (
     QurryResetAccomplished,
@@ -399,7 +399,7 @@ class QurryV5Prototype:
             serial=serial,
             summonerID=summonerID,
             summonerName=summonerName,
-            datetimes=datetimeDict(),
+            datetimes=DatetimeDict(),
             **otherArgs)
 
         outfield_maybe, outfields_unknown = outfields_check(
@@ -423,8 +423,8 @@ class QurryV5Prototype:
         # config check
         if isinstance(_pbar, tqdm.tqdm):
             _pbar.set_description_str("Checking parameters... ")
-        containChecker(commons.transpileArgs, transpileConfig)
-        containChecker(commons.runArgs, runConfig)
+        contain_checker(commons.transpileArgs, transpileConfig)
+        contain_checker(commons.runArgs, runConfig)
 
         if isinstance(_pbar, tqdm.tqdm):
             _pbar.set_description_str("Create experiment instance... ")
@@ -563,7 +563,7 @@ class QurryV5Prototype:
         for _w in transpiledCirqs:
             currentExp.beforewards.circuit.append(_w)
         # commons
-        date = currentTime()
+        date = current_time()
         currentExp.commons.datetimes['build'] = date
 
         if isinstance(_pbar, tqdm.tqdm):
@@ -636,7 +636,7 @@ class QurryV5Prototype:
             shots=currentExp.commons.shots,
         )
         # commons
-        date = currentTime()
+        date = current_time()
         currentExp.commons.datetimes['run'] = date
         # beforewards
         jobID = execution.job_id()
@@ -905,7 +905,7 @@ class QurryV5Prototype:
         for config, checker in [
             (managerRunArgs, managerRunConfig),
         ]:
-            containChecker(config, checker)
+            contain_checker(config, checker)
 
         if is_read:
             currentMultimanager = MultiManager(
@@ -932,7 +932,7 @@ class QurryV5Prototype:
                 jobsType=jobsType,
                 managerRunArgs=managerRunArgs,
                 filetype=filetype,
-                datetimes=datetimeDict(),
+                datetimes=DatetimeDict(),
             )
 
         self.multimanagers[currentMultimanager.summonerID] = currentMultimanager
@@ -1165,7 +1165,7 @@ class QurryV5Prototype:
             currentMultimanager.afterwards.allCounts[
                 currentID] = self.exps[currentID].afterwards.counts
 
-        currentMultimanager.multicommons.datetimes.addSerial('output')
+        currentMultimanager.multicommons.datetimes.add_serial('output')
         if len(defaultMultiAnalysis) > 0:
             print("| MultiOutput analyzing...")
             for analysis in defaultMultiAnalysis:

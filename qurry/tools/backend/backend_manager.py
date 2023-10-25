@@ -10,17 +10,14 @@ So it needs to be imported differently by trying to import qiskit-aer first,
 from random import random
 from typing import Optional, Hashable, Union, Literal
 
-from qiskit import __qiskit_version__
 from qiskit.providers import Backend, Provider
 from qiskit.providers.fake_provider import FakeProviderForBackendV2
 
 from .import_manage import (
-    DummyProvider, IBM_AVAILABLE, IBMQ_AVAILABLE,
-    _shorten_name, version_check, backendName,
-    _real_backend_loader, fack_backend_loader,
+    IBM_AVAILABLE, IBMQ_AVAILABLE, backendName,
+    _real_backend_loader, fack_backend_loader, shorten_name,
     IBMQ, IBMProvider, AerProvider, AerBackend,
 )
-from ..command import pytorchCUDACheck
 from ...exceptions import QurryPositionalArgumentNotSupported
 from ...capsule.hoshi import Hoshi
 
@@ -29,17 +26,25 @@ class BackendWrapper:
     """A wrapper for :class:`qiskit.providers.Backend` to provide more convenient way to use.
 
 
-    :cls:`QasmSimulator('qasm_simulator')` and :cls:`AerSimulator('aer_simulator')` are using same simulating methods.
-    So call 'qasm_simulator' and 'aer_simulator' used in :meth:`Aer.get_backend` are a container of multiple method of simulation
+    :cls:`QasmSimulator('qasm_simulator')` and :cls:`AerSimulator('aer_simulator')` 
+    are using same simulating methods.
+    So call 'qasm_simulator' and 'aer_simulator' used in :meth:`Aer.get_backend` 
+    are a container of multiple method of simulation
     like 'statevector', 'density_matrix', 'stabilizer' ... which is not a name of simulating method.
 
     - :cls:`QasmSimulator('qasm_simulator')` has:
 
-        `('automatic', 'statevector', 'density_matrix', 'stabilizer', 'matrix_product_state', 'extended_stabilizer')`
+        `(
+            'automatic', 'statevector', 'density_matrix', 'stabilizer', 
+            'matrix_product_state', 'extended_stabilizer'
+        )`
 
     - :cls:`AerSimulator('aer_simulator')`  has:
 
-        `('automatic', 'statevector', 'density_matrix', 'stabilizer', 'matrix_product_state', 'extended_stabilizer', 'unitary', 'superop')`
+        `(
+            'automatic', 'statevector', 'density_matrix', 'stabilizer', 
+            'matrix_product_state', 'extended_stabilizer', 'unitary', 'superop'
+        )`
         Even parts of method has GPU support by :module:`qiskit-aer-gpu`
 
     ```txt
@@ -70,23 +75,21 @@ class BackendWrapper:
 
     """
 
-    isAerGPU = False
-
     @staticmethod
     def _shorten_name(
-        name: str,
-        drop: list[str] = [],
-        exclude: list[str] = [],
+        *args, **kwargs
     ) -> str:
-        if name in exclude:
-            return name
+        """Shorten the name of backend.
 
-        drop = sorted(drop, key=len, reverse=True)
-        for _s in drop:
-            if _s in name:
-                return name.replace(_s, "")
+        Args:
+            name (str): The name of backend.
+            drop (list[str], optional): The strings to drop from the name. Defaults to [].
+            exclude (list[str], optional): The strings to exclude from the name. Defaults to [].
 
-        return name
+        Returns:
+            str: The shortened name of backend.
+        """
+        return shorten_name(*args, **kwargs)
 
     @staticmethod
     def _hint_ibmq_sim(name: str) -> str:
@@ -108,14 +111,15 @@ class BackendWrapper:
 
     def __init__(
         self,
-        realProvider: Optional[Provider] = None,
-        fakeVersion: Union[Literal['v1', 'v2'], None] = None,
+        real_provider: Optional[Provider] = None,
+        fake_version: Union[Literal['v1', 'v2'], None] = None,
     ) -> None:
 
-        self._AerProvider = AerProvider()
-        self._AerOwnedBackends = self._AerProvider.backends()
-        if 'GPU' in self._AerOwnedBackends[0].available_devices():
-            self.isAerGPU = True
+        self.is_aer_gpu = False
+        self._aer_provider = AerProvider()
+        self._aer_owned_backends = self._aer_provider.backends()
+        if 'GPU' in self._aer_owned_backends[0].available_devices():
+            self.is_aer_gpu = True
 
         self.backend_aer_callsign = {
             'state': 'statevector',
@@ -126,44 +130,51 @@ class BackendWrapper:
             'aer_density_gpu': 'aer_density_matrix_gpu',
         }
         self.backend_aer: dict[str, Union[Backend, AerBackend]] = {
-            self._shorten_name(backendName(b), ['_simulator']): b for b in self._AerOwnedBackends if backendName(b) not in [
-                'qasm_simulator', 'statevector_simulator', 'unitary_simulator'
+            self._shorten_name(backendName(b), ['_simulator']):
+                b for b in self._aer_owned_backends if backendName(b) not in [
+                    'qasm_simulator', 'statevector_simulator', 'unitary_simulator'
             ]
         }
-        if self.isAerGPU:
+        if self.is_aer_gpu:
             self.backend_aer = {
-                "aer_gpu": self._AerOwnedBackends[0],
+                "aer_gpu": self._aer_owned_backends[0],
                 **self.backend_aer,
             }
             self.backend_aer["aer_gpu"].set_options(device='GPU')
 
         (
-            self.backend_ibmq_callsign, self.backend_ibmq, self._RealProvider
-        ) = _real_backend_loader(realProvider)
+            self.backend_ibmq_callsign, self.backend_ibmq, self._real_provider
+        ) = _real_backend_loader(real_provider)
 
         (
-            self.backend_fake_callsign, self.backend_fake, self._FakeProvider
-        ) = fack_backend_loader(fakeVersion)
+            self.backend_fake_callsign, self.backend_fake, self._fake_provider
+        ) = fack_backend_loader(fake_version)
 
         self._update_callsign()
         self._update_backend()
 
     def __repr__(self):
-        if self._RealProvider is None:
-            return f'<BackendWrapper with AerProvider>'
-        else:
-            return f'<BackendWrapper with AerProvider and {self._RealProvider.__repr__()[1:-1]}>'
+        if self._real_provider is None:
+            return '<BackendWrapper with AerProvider>'
+        return f'<BackendWrapper with AerProvider and {self._real_provider.__repr__()[1:-1]}>'
 
     def make_callsign(
         self,
         sign: Hashable = 'Galm 2',
         who: str = 'solo_wing_pixy',
     ) -> None:
+        """Make a callsign for backend.
+
+        Args:
+            sign (Hashable, optional): The callsign.
+            who (str, optional): The backend.
+        """
 
         if sign == 'Galm 2' or who == 'solo_wing_pixy':
             if random() <= 0.2:
                 print(
-                    "Those who survive a long time on the battlefield start to think they're invincible. I bet you do, too, Buddy.")
+                    "Those who survive a long time on the battlefield " +
+                    "start to think they're invincible. I bet you do, too, Buddy.")
 
         if who in self.backend_aer:
             self.backend_aer_callsign[sign] = who
@@ -178,37 +189,55 @@ class BackendWrapper:
 
     @property
     def avavilable_backends(self) -> list[str]:
+        """The available backends.
+        """
         return list(self.backend.keys())
 
     @property
     def avavilable_backends_callsign(self) -> list[str]:
+        """The available backends callsign.
+        """
         return list(self.backend_callsign.keys())
 
     @property
     def available_aer(self) -> list[str]:
+        """The available aer backends.
+        """
         return list(self.backend_aer.keys())
 
     @property
     def available_aer_callsign(self) -> list[str]:
+        """The available aer backends callsign.
+        """
         return list(self.backend_aer_callsign.keys())
 
     @property
     def available_ibmq(self) -> list[str]:
+        """The available ibmq/ibm backends.
+        """
         return list(self.backend_ibmq.keys())
 
     @property
     def available_ibmq_callsign(self) -> list[str]:
+        """The available ibmq/ibm backends callsign.
+        """
         return list(self.backend_ibmq_callsign.keys())
 
     @property
     def available_fake(self) -> list[str]:
+        """The available fake backends.
+        """
         return list(self.backend_fake.keys())
 
     @property
     def available_fake_callsign(self) -> list[str]:
+        """The available fake backends callsign.
+        """
         return list(self.backend_fake_callsign.keys())
 
     def statesheet(self):
+        """The statesheet of backend wrapper.
+        """
         check_msg = Hoshi([
             ('divider', 60),
             ('h3', 'BackendWrapper Statesheet'),
@@ -224,13 +253,13 @@ class BackendWrapper:
             if 'Aer' in desc:
                 check_msg.newline({
                     'type': 'itemize',
-                    'description': f'Aer GPU',
-                    'value': self.isAerGPU,
+                    'description': 'Aer GPU',
+                    'value': self.is_aer_gpu,
                 })
             elif 'IBM' in desc:
                 if IBM_AVAILABLE and IBMQ_AVAILABLE:
                     value_txt = (
-                        '"qiskit_ibm_provider"' if isinstance(self._RealProvider, IBMProvider)
+                        '"qiskit_ibm_provider"' if isinstance(self._real_provider, IBMProvider)
                         else 'qiskit.providers.ibmq')
                 elif IBM_AVAILABLE:
                     value_txt = '"qiskit_ibm_provider"'
@@ -240,15 +269,15 @@ class BackendWrapper:
                     value_txt = 'Not available, please install them first.'
                 check_msg.newline({
                     'type': 'itemize',
-                    'description': f'IBM Real Provider by',
+                    'description': 'IBM Real Provider by',
                     'value': value_txt,
                 })
             elif 'Fake' in desc:
                 check_msg.newline({
                     'type': 'itemize',
-                    'description': f'Fake Provider by',
+                    'description': 'Fake Provider by',
                     'value': (
-                        'FackBackendV2' if isinstance(self._FakeProvider, FakeProviderForBackendV2)
+                        'FackBackendV2' if isinstance(self._fake_provider, FakeProviderForBackendV2)
                         else 'FackBackendV1'),
                 })
             check_msg.newline({
@@ -288,6 +317,16 @@ class BackendWrapper:
         backend: Backend,
         callsign: Hashable = None,
     ) -> None:
+        """Add a backend to backend wrapper.
+
+        Args:
+            name (str): The name of backend.
+            backend (Backend): The backend.
+            callsign (Hashable, optional): The callsign of backend. Defaults to None.
+        """
+        if name in self.backend:
+            raise ValueError(f"'{name}' backend already exists.")
+
         self.backend_ibmq[name] = backend
         self._update_backend()
         if not callsign is None:
@@ -317,10 +356,12 @@ class BackendWrapper:
 
 
 class BackendManager(BackendWrapper):
-    __version__ = '0.6.2'
-
     """A wrapper includes accout loading and backend loading.
-    And deal wtth either :module:`qiskit-ibmq-provider` or the older version `qiskit.providers.ibmq`."""
+    And deal wtth either :module:`qiskit-ibmq-provider` 
+    or the older version `qiskit.providers.ibmq`.
+    """
+
+    __version__ = '0.6.2'
 
     def __init__(
         self,
@@ -350,45 +391,46 @@ class BackendManager(BackendWrapper):
         if IBM_AVAILABLE and IBMQ_AVAILABLE:
             if useIBMProvider:
                 print("| Provider by 'qiskit_ibm_provider'.")
-                newProvider = IBMProvider(instance=self.instance)
+                new_provider = IBMProvider(instance=self.instance)
                 super().__init__(
-                    realProvider=newProvider,
-                    fakeVersion=fakeVersion,
+                    real_provider=new_provider,
+                    fake_version=fakeVersion,
                 )
             else:
                 print("| Provider by 'qiskit.providers.ibmq', which will be deprecated.")
                 IBMQ.load_account()
-                oldProvider = IBMQ.get_provider(
+                old_provider = IBMQ.get_provider(
                     hub=self.hub, group=self.group, project=self.project)
                 super().__init__(
-                    realProvider=oldProvider,
-                    fakeVersion=fakeVersion,
+                    real_provider=old_provider,
+                    fake_version=fakeVersion,
                 )
 
         elif IBM_AVAILABLE:
             print("| Provider by 'qiskit_ibm_provider' is only available.")
-            newProvider = IBMProvider(instance=self.instance)
+            new_provider = IBMProvider(instance=self.instance)
             super().__init__(
-                realProvider=newProvider,
-                fakeVersion=fakeVersion,
+                real_provider=new_provider,
+                fake_version=fakeVersion,
             )
 
         elif IBMQ_AVAILABLE:
             print(
-                "| Provider by 'qiskit.providers.ibmq' is only available, which will be deprecated.")
+                "| Provider by 'qiskit.providers.ibmq' is only available, " +
+                "which will be deprecated.")
             IBMQ.load_account()
-            oldProvider = IBMQ.get_provider(
+            old_provider = IBMQ.get_provider(
                 hub=self.hub, group=self.group, project=self.project)
             super().__init__(
-                realProvider=oldProvider,
-                fakeVersion=fakeVersion,
+                real_provider=old_provider,
+                fake_version=fakeVersion,
             )
 
         else:
             print("| No IBM or IBMQ provider available.")
             super().__init__(
-                realProvider=None,
-                fakeVersion=fakeVersion,
+                real_provider=None,
+                fake_version=fakeVersion,
             )
 
     def save_account(
@@ -398,23 +440,31 @@ class BackendManager(BackendWrapper):
         useIBMProvider: bool = True,
         **kwargs
     ) -> None:
-        """Save account to disk.
+        """Save account to Qiskit.
 
         (The following is copied from :func:`qiskit_ibmq_provider.IBMProvider.save_account`)
         Args:
-            useIBMProvider: Using provider by 'qiskit_ibm_provider' instead of 'qiskit.providers.ibmq'.
-            token: IBM Quantum API token.
+            useIBMProvider: 
+                Using provider by 'qiskit_ibm_provider' instead of 'qiskit.providers.ibmq'.
+            token: 
+                IBM Quantum API token.
             url: The API URL.
                 Defaults to https://auth.quantum-computing.ibm.com/api
-            instance: The hub/group/project.
-            name: Name of the account to save.
-            proxies: Proxy configuration. Supported optional keys are
-                ``urls`` (a dictionary mapping protocol or protocol and host to the URL of the proxy,
-                documented at https://docs.python-requests.org/en/latest/api/#requests.Session.proxies),
+            instance: 
+                The hub/group/project.
+            name:
+                Name of the account to save.
+            proxies: 
+                Proxy configuration. Supported optional keys are ``urls`` 
+                (a dictionary mapping protocol or protocol 
+                and host to the URL of the proxy, documented at 
+                https://docs.python-requests.org/en/latest/api/#requests.Session.proxies),
                 ``username_ntlm``, ``password_ntlm`` (username and password to enable NTLM user
                 authentication)
-            verify: Verify the server's TLS certificate.
-            overwrite: ``True`` if the existing account is to be overwritten.
+            verify: 
+                Verify the server's TLS certificate.
+            overwrite: 
+                ``True`` if the existing account is to be overwritten.
 
         """
         if len(args) > 0:
@@ -434,7 +484,8 @@ class BackendManager(BackendWrapper):
 
         elif IBMQ_AVAILABLE:
             print(
-                "| Provider by 'qiskit.providers.ibmq' is only available, which will be deprecated.")
+                "| Provider by 'qiskit.providers.ibmq' is only available, " +
+                "which will be deprecated.")
             IBMQ.save_account(token=token, **kwargs)
 
         else:

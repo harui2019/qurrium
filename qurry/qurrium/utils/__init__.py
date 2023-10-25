@@ -6,4 +6,4 @@ from .randomized import (
     hamming_distance, ensembleCell, densityMatrixToBloch, qubitOpToPauliCoeff,
 )
 from .iocontrol import naming, IOComplex, FULL_SUFFIX_OF_COMPRESS_FORMAT, STAND_COMPRESS_FORMAT
-from .datetime import currentTime, datetimeDict
+from .datetime import current_time, DatetimeDict

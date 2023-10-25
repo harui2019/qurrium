@@ -1,3 +1,10 @@
+"""
+================================================================
+Tools (:mod:`qurry.tools`)
+================================================================
+"""
+import warnings
+
 from .command import cmdWrapper, pytorchCUDACheck
 from .backend import (
     BackendWrapper, BackendManager,
@@ -7,7 +14,7 @@ from .watch import ResoureWatch
 from .processmanager import ProcessManager, workers_distribution, DEFAULT_POOL_SIZE
 from .progressbar import qurryProgressBar
 
-import warnings
+# pylint: disable=invalid-name
 
 
 def backendWrapper(*args, **kwargs):
@@ -28,3 +35,4 @@ def backendManager(*args, **kwargs):
         "Please replace `qurry.tools.backendManager` with `qurry.tools.BackendManager`.",
         DeprecationWarning)
     return BackendManager(*args, **kwargs)
+# pylint: enable=invalid-name

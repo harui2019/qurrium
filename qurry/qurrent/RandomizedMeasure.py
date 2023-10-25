@@ -1,12 +1,18 @@
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit.quantum_info import Operator
+"""
+===========================================================
+Renyi Entropy - Randomized Measurement
+===========================================================
 
+"""
 import time
-import tqdm
 import warnings
-import numpy as np
 from pathlib import Path
 from typing import Union, Optional, NamedTuple, Hashable, Iterable, Type, Literal, overload, Any
+import numpy as np
+import tqdm
+
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit.quantum_info import Operator
 
 from ..exceptions import QurryCythonImportError
 from ..qurrium import (
@@ -19,8 +25,6 @@ from ..qurrium.utils.randomized import (
     ensembleCell,
     cycling_slice,
     random_unitary,
-
-    local_random_unitary,
     local_random_unitary_operators,
     local_random_unitary_pauli_coeff
 )
@@ -32,12 +36,16 @@ from ..tools import (
 )
 try:
     from ..boost.randomized import purityCellCore # type: ignore
-    cython_available = True
-    failed_pyx_import = None
+    CYTHON_AVAILABLE = True
+    FAILED_PYX_IMPORT = None
 except ImportError as err:
-    failed_pyx_import = err
-    cython_available = False
-    purityCellCore = lambda *args: 0.0
+    FAILED_PYX_IMPORT = err
+    CYTHON_AVAILABLE = False
+    # pylint: disable=invalid-name, unused-argument
+    def purityCellCore(*args, **kwargs):
+        """Dummy function for purityCellCore."""
+        return 0.0
+    # pylint: enable=invalid-name, unused-argument
 
 
 class EntropyAnalysisContent(NamedTuple):
@@ -247,14 +255,14 @@ def _entangled_entropy_core(
     times = len(counts)
     Begin = time.time()
 
-    if not (cython_available and use_cython):
+    if not (CYTHON_AVAILABLE and use_cython):
         warnings.warn(
             "Cython is not available, using python to calculate purity cell." +
-            " More infomation about this error: {}".format(failed_pyx_import),
+            " More infomation about this error: {}".format(FAILED_PYX_IMPORT),
             category=QurryCythonImportError
         )
     cellCalculator = (_purityCellCy if (
-        use_cython and cython_available) else _purityCell)
+        use_cython and CYTHON_AVAILABLE) else _purityCell)
 
     if launch_worker == 1:
         purityCellItems = []

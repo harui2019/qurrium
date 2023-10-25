@@ -1,3 +1,10 @@
+"""
+================================================================
+The experiment prototype which is the basic class of all experiments.
+(:mod:`qurry.qurrium.experiment`)
+================================================================
+
+"""
 import gc
 import os
 import glob
@@ -14,56 +21,15 @@ from qiskit.result import Result
 from qiskit.providers import Backend
 
 from ..tools import backendName, ProcessManager, DEFAULT_POOL_SIZE
-from ..tools.backend import AerSimulator
 from ..capsule import jsonablize, quickJSON, quickRead
 from ..capsule.hoshi import Hoshi
-from ..capsule.mori import DefaultConfig
 from ..exceptions import (
     QurryInvalidInherition,
     QurryExperimentCountsNotCompleted,
     QurryResetSecurityActivated, QurryResetAccomplished,
     QurryProtectContent, QurrySummonerInfoIncompletion)
 from .analysis import AnalysisPrototype, QurryAnalysis
-from .utils.datetime import currentTime, datetimeDict
-
-commonparamsConfig = DefaultConfig(
-    name='commonparams',
-    default={
-        'expID': None,
-        'waveKey': None,
-        'shots': 1024,
-        'backend': AerSimulator(),
-        'provider': None,
-        'runArgs': {},
-        'runBy': 'gate',
-        'transpileArgs': {},
-        'decompose': None,
-        'tags': (),
-        'defaultAnalysis': [],
-        'saveLocation': Path('./'),
-        'filetype': 'json',
-        'datetimes': datetimeDict(),
-        'serial': None,
-        'summonerID': None,
-        'summonerName': None,
-    })
-
-beforeConfig = DefaultConfig(
-    name='before',
-    default={
-        'circuit': [],
-        'figOriginal': [],
-        'jobID': '',
-        'expName': '',
-        'sideProduct': {},
-    })
-
-afterConfig = DefaultConfig(
-    name='after',
-    default={
-        'result': [],
-        'counts': [],
-    })
+from .utils.datetime import current_time, DatetimeDict
 
 
 class ExperimentPrototypeABC():
@@ -204,7 +170,7 @@ class ExperimentPrototype(ExperimentPrototypeABC):
         """Name of experiment of the multiManager."""
 
         # header
-        datetimes: datetimeDict
+        datetimes: DatetimeDict
 
     class before(NamedTuple):
         # Experiment Preparation
@@ -322,7 +288,8 @@ class ExperimentPrototype(ExperimentPrototypeABC):
             self.commonparams._fields)
         if len(duplicate_fields) > 0:
             raise QurryInvalidInherition(
-                f"{self.__name__}.arguments and {self.__name__}.commonparams should not have same fields: {duplicate_fields}."
+                f"{self.__name__}.arguments and {self.__name__}.commonparams " +
+                f"should not have same fields: {duplicate_fields}."
             )
 
         params = {}
@@ -338,7 +305,7 @@ class ExperimentPrototype(ExperimentPrototypeABC):
 
         # Dealing special arguments
         if 'datetimes' not in commons:
-            commons['datetimes'] = datetimeDict({'bulid': currentTime()})
+            commons['datetimes'] = DatetimeDict({'bulid': current_time()})
         if 'defaultAnalysis' in commons:
             filted_analysis = []
             for raw_input_analysis in commons['defaultAnalysis']:
@@ -351,7 +318,8 @@ class ExperimentPrototype(ExperimentPrototypeABC):
                     filted_analysis.append(raw_input_analysis._asdict())
                 else:
                     warnings.warn(
-                        f"Analysis input {raw_input_analysis} is not a 'dict' or '.analysis_container.analysisInput', it will be ignored."
+                        f"Analysis input {raw_input_analysis} is not a 'dict' or " +
+                        "'.analysis_container.analysisInput', it will be ignored."
                     )
             commons['defaultAnalysis'] = filted_analysis
         else:
@@ -408,7 +376,9 @@ class ExperimentPrototype(ExperimentPrototypeABC):
                 summon_msg.print()
 
         self.after_lock = False
-        """Protect the :cls:`afterward` content to be overwritten. When setitem is called and completed, it will be setted as `False` automatically."""
+        """Protect the :cls:`afterward` content to be overwritten. 
+        When setitem is called and completed, it will be setted as `False` automatically.
+        """
         self.mute_auto_lock = False
         """Whether mute the auto-lock message."""
 
@@ -547,6 +517,7 @@ class ExperimentPrototype(ExperimentPrototypeABC):
 
     @property
     def expID(self) -> property:
+        """ID of experiment."""
         return self.commons.expID
 
     def __repr__(self) -> str:
@@ -905,7 +876,10 @@ class ExperimentPrototype(ExperimentPrototypeABC):
                 tmp = folder + \
                     f"./{self.beforewards.expName}.{str(repeat_times).rjust(self._rjustLen, '0')}/"
             folder = tmp
-            filename += f"{self.beforewards.expName}.{str(repeat_times).rjust(self._rjustLen, '0')}.id={self.commons.expID}"
+            filename += (
+                f"{self.beforewards.expName}." +
+                f"{str(repeat_times).rjust(self._rjustLen, '0')}.id={self.commons.expID}"
+            )
 
         self.commons = self.commons._replace(filename=filename)
         files['folder'] = folder
@@ -968,17 +942,21 @@ class ExperimentPrototype(ExperimentPrototypeABC):
             ...
             'tales.dummyxn': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyxn.json',
             'reports': ./blabla_experiment/reports/blabla_experiment.id={expID}.reports.json,
-            'reports.tales.dummyz1': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyz1.reports.json',
-            'reports.tales.dummyz2': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyz2.reports.json',
+            'reports.tales.dummyz1': 
+                './blabla_experiment/tales/blabla_experiment.id={expID}.dummyz1.reports.json',
+            'reports.tales.dummyz2': 
+                './blabla_experiment/tales/blabla_experiment.id={expID}.dummyz2.reports.json',
             ...
-            'reports.tales.dummyzm': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyzm.reports.json',
+            'reports.tales.dummyzm': 
+                './blabla_experiment/tales/blabla_experiment.id={expID}.dummyzm.reports.json',
         }
         ```
 
         Args:
             saveLocation (Optional[Union[Path, str]], optional):
                 Where to save the export content as `json` file.
-                If `saveLocation == None`, then use the value in `self.commons` to be exported, if it's None too, then raise error.
+                If `saveLocation == None`, then use the value in `self.commons` to be exported, 
+                if it's None too, then raise error.
                 Defaults to `None`.
 
             mode (str): 
@@ -988,7 +966,8 @@ class ExperimentPrototype(ExperimentPrototypeABC):
             encoding (str, optional): 
                 Encoding method, for :func:`mori.quickJSON`. Defaults to 'utf-8'.
             jsonable (bool, optional): 
-                Whether to transpile all object to jsonable via :func:`mori.jsonablize`, for :func:`mori.quickJSON`. Defaults to False.
+                Whether to transpile all object to jsonable via :func:`mori.jsonablize`, 
+                for :func:`mori.quickJSON`. Defaults to False.
             mute (bool, optional):
                 Whether to mute the output, for :func:`mori.quickJSON`. Defaults to False.
             _qurryinfo_hold_access (str, optional):
@@ -1292,7 +1271,8 @@ class ExperimentPrototype(ExperimentPrototypeABC):
         qurryinfoLocation = exportLocation / 'qurryinfo.json'
         if not os.path.exists(qurryinfoLocation):
             raise FileNotFoundError(
-                f"'qurryinfo.json' does not exist at '{saveLocation}'. It's required for loading all experiment data."
+                f"'qurryinfo.json' does not exist at '{saveLocation}'. " +
+                "It's required for loading all experiment data."
             )
 
         with open(qurryinfoLocation, 'r', encoding=encoding) as f:
@@ -1439,11 +1419,11 @@ class ExperimentPrototype(ExperimentPrototypeABC):
             elif k == 'figRaw':
                 beforewards['figOriginal'] = legacyRead[k]
             elif k == 'dateCreate':
-                commonsinput['datetimes'] = datetimeDict({
+                commonsinput['datetimes'] = DatetimeDict({
                     'build':
                     legacyRead[k],
                     'transformToV5':
-                    currentTime(),
+                    current_time(),
                 })
             elif k == 'expIndex':
                 commonsinput['serial'] = legacyRead[k]
@@ -1480,7 +1460,9 @@ class QurryExperiment(ExperimentPrototype):
     __name__ = 'QurryExperiment'
 
     class arguments(NamedTuple):
-        """Construct the experiment's parameters for specific options, which is overwritable by the inherition class."""
+        """Construct the experiment's parameters for specific options, 
+        which is overwritable by the inherition class.
+        """
         expName: str = 'exps'
         sampling: int = 1
 

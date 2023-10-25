@@ -14,30 +14,70 @@ So this file is used to unify the import point of AerProvider, IBMProvider/IBMQP
 Avoiding the import error occurs on different parts of Qurry.
 
 """
-from typing import Union, Callable, Literal, Iterable, overload
+from typing import Union, Callable, Literal, Optional, overload
 
 import warnings
 import requests
 import pkg_resources
 
-from qiskit import __qiskit_version__
+try:
+    from qiskit import __version__ as __qiskit_version__
+except ImportError:
+    from qiskit import __qiskit_version__
 from qiskit.providers import BackendV1, BackendV2, Provider
 from qiskit.providers.fake_provider import (
     FakeProvider, FakeProviderForBackendV2,
     FakeBackend, FakeBackendV2)
 
+# pylint: disable=ungrouped-imports
 try:
-    from qiskit_aer import AerProvider, AerSimulator
-    from qiskit_aer.backends.aerbackend import AerBackend
+    from qiskit_aer import (
+        AerProvider as AerProviderIndep,
+        AerSimulator as AerSimulatorIndep
+    )
+    from qiskit_aer.backends.aerbackend import AerBackend as AerBackendIndep
     from qiskit_aer.version import get_version_info as get_version_info_aer
     AER_VERSION_INFO = get_version_info_aer()
     AER_IMPORT_POINT = 'qiskit_aer'
+    IS_FROM_INDEPENDENT_AER_PACKAGE = True
+
+    class AerSimulator(AerSimulatorIndep):
+        """AerSimulator from qiskit-aer package.
+        """
+    class AerBackend(AerBackendIndep):
+        """AerBackend from qiskit-aer package.
+        """
+
+    class AerProvider(AerProviderIndep):
+        """AerProvider from qiskit-aer package.
+        """
+
 except ImportError:
-    from qiskit.providers.aer import AerProvider, AerSimulator  # type: ignore
-    from qiskit.providers.aer.backends.aerbackend import AerBackend  # type: ignore
+    from qiskit.providers.aer import (  # type: ignore
+        AerProvider as AerProviderDep,  # type: ignore
+        AerSimulator as AerSimulatorDep  # type: ignore
+    )
+    from qiskit.providers.aer.backends.aerbackend import (  # type: ignore
+        AerBackend as AerBackendDep)  # type: ignore
     from qiskit.providers.aer.version import VERSION  # type: ignore
     AER_VERSION_INFO: str = VERSION
     AER_IMPORT_POINT = 'qiskit.providers.aer'
+    IS_FROM_INDEPENDENT_AER_PACKAGE = False
+
+# pylint: disable=too-few-public-methods
+    class AerSimulator(AerSimulatorDep):
+        """AerSimulator from qiskit.provider.aer, the old import point.
+        """
+
+    class AerBackend(AerBackendDep):
+        """AerBackend from qiskit.provider.aer, the old import point.
+        """
+
+    class AerProvider(AerProviderDep):
+        """AerProvider from qiskit.provider.aer, the old import point.
+        """
+
+# pylint: enable=ungrouped-imports, too-few-public-methods
 
 from ..command import pytorchCUDACheck
 from ...exceptions import QurryExtraPackageRequired
@@ -45,21 +85,35 @@ from ...capsule.hoshi import Hoshi
 
 
 class DummyProvider(Provider):
-    """A dummy provider for :class:`qurry.tools.backend.backendWrapper` to use when the real provider is not available,
+    """A dummy provider for :class:`qurry.tools.backend.backendWrapper` 
+    to use when the real provider is not available,
     And it will print a warning message when you try to use it. 
     Also it is a cheatsheet for type checking in this scenario.
 
     """
 
     @staticmethod
-    def save_account(**kwargs):
+    def save_account():
+        """A dummy method for :class:`qurry.tools.backend.backendWrapper`
+        to use when the real provider is not available,
+        And it will print a warning message when you try to use it.
+        Also it is a cheatsheet for type checking in this scenario.
+
+        """
         warnings.warn(
-            "The real provider is not available, please check your installation.",
+            "The real provider is not available, please check your installation" +
             QurryExtraPackageRequired
         )
 
     @staticmethod
-    def load_account(**kwargs):
+    def load_account():
+        """A dummy method for :class:`qurry.tools.backend.backendWrapper`
+        to use when the real provider is not available,
+        And it will print a warning message when you try to use it.
+        Also it is a cheatsheet for type checking in this scenario.
+
+        """
+
         warnings.warn(
             "The real provider is not available, please check your installation.",
             QurryExtraPackageRequired
@@ -67,6 +121,12 @@ class DummyProvider(Provider):
 
     @staticmethod
     def get_provider():
+        """A dummy method for :class:`qurry.tools.backend.backendWrapper`
+        to use when the real provider is not available,
+        And it will print a warning message when you try to use it.
+        Also it is a cheatsheet for type checking in this scenario.
+
+        """
         warnings.warn(
             "The real provider is not available, please check your installation.",
             QurryExtraPackageRequired
@@ -74,31 +134,57 @@ class DummyProvider(Provider):
 
 
 try:
-    from qiskit_ibm_provider import IBMProvider
+    from qiskit_ibm_provider import IBMProvider as IBMProviderIndep
     from qiskit_ibm_provider.version import get_version_info as get_version_info_ibm
+    IBMProvider = IBMProviderIndep
     IBM_AVAILABLE = True
 except ImportError:
     IBMProvider = DummyProvider
-    def get_version_info_ibm(): return 'Not available, please install it first.'
+
+    def get_version_info_ibm():
+        """A dummy method for :class:`qurry.tools.backend.backendWrapper`
+        to use when the real provider is not available,
+        And it will print a warning message when you try to use it.
+        Also it is a cheatsheet for type checking in this scenario.
+
+        """
+        return 'Not available, please install it first.'
     IBM_AVAILABLE = False
 
+# pylint: disable=ungrouped-imports
 try:
-    from qiskit import IBMQ
+    from qiskit import IBMQ as IBMQ_OLD
+    IBMQ = IBMQ_OLD
     IBMQ_AVAILABLE = True
 except ImportError:
     IBMQ = DummyProvider
     IBM_AVAILABLE = False
-
+# pylint: enable=ungrouped-imports
 
 backendName: Callable[[Union[BackendV1, BackendV2]], str] = \
     lambda back: back.name if isinstance(back, BackendV2) else back.name()
 
 
-def _shorten_name(
+def shorten_name(
     name: str,
-    drop: list[str] = [],
-    exclude: list[str] = [],
+    drop: Optional[list[str]] = None,
+    exclude: Optional[list[str]] = None,
 ) -> str:
+    """Shorten the name of backend.
+
+    Args:
+        name (str): The name of backend.
+        drop (list[str], optional): The strings to drop from the name. Defaults to [].
+        exclude (list[str], optional): The strings to exclude from the name. Defaults to [].
+
+    Returns:
+        str: The shortened name of backend.
+    """
+    if drop is None:
+        drop = []
+    if exclude is None:
+        exclude = []
+
     if name in exclude:
         return name
 
@@ -239,7 +325,7 @@ def _real_backend_loader(
             backendName(b): b for b in realProvider.backends()
         }
         backend_ibmq_callsign = {
-            _shorten_name(
+            shorten_name(
                 bn, ['ibm_', 'ibmq_'], ['ibmq_qasm_simulator']
             ): bn for bn in [backs for backs in backend_ibmq if 'ibm' in backs]
         }
@@ -287,7 +373,7 @@ def fack_backend_loader(
         backendName(b): b for b in _FakeProvider.backends()
     }
     backend_fake_callsign = {
-        _shorten_name(
+        shorten_name(
             bn, ['_v2']
         ): bn for bn in backend_fake
     }

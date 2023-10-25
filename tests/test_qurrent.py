@@ -1,12 +1,19 @@
-import pytest
+"""
+================================================================
+Test the qurry.qurrent module.
+================================================================
+
+"""
 import warnings
+import pytest
 from qiskit import QuantumRegister, QuantumCircuit
 
 from qurry.qurrent import EntropyMeasure
 from qurry.tools import backendWrapper
+from qurry.capsule import mori, hoshi
 
-import qurry.capsule.mori as mori
-import qurry.capsule.hoshi as hoshi
+tag_list = mori.TagList()
+hoshi = hoshi.Hoshi()
 
 expDemo01 = EntropyMeasure(method='hadamard')
 try:
@@ -15,9 +22,9 @@ try:
     wave_adds = [
         (expDemo01.add(TrivialParamagnet(i).wave(), i),) for i in range(6, 12, 2)
     ]
-except:
+except ImportError:
     warnings.warn("TrivialParamagnet not found. Use the following instead.")
-    def trivialParamagnet(n) -> QuantumCircuit:
+    def trivial_paramagnet(n) -> QuantumCircuit:
         """Construct the example circuit.
 
         Returns:
@@ -25,11 +32,12 @@ except:
         """
         q = QuantumRegister(n, "q")
         qc = QuantumCircuit(q)
-        [qc.h(q[i]) for i in range(n)]
-    
+        for i in range(n):
+            qc.h(q[i])
+
         return qc
     wave_adds = [
-        (expDemo01.add(trivialParamagnet(i), i),) for i in range(6, 12, 2)
+        (expDemo01.add(trivial_paramagnet(i), i),) for i in range(6, 12, 2)
     ]
 
 
@@ -40,8 +48,16 @@ backend = backendWrapper()('aer')
 def test_quantity(
     tgt,
 ) -> bool:
+    """Test the quantity of entropy and purity.
     
-    ID = expDemo01.measure(wave=tgt[0], backend=backend)
-    expDemo01.exps[ID].analyze()
-    quantity = expDemo01.exps[ID].reports[0].content._asdict()
+    Args:
+        tgt (tuple[QuantumCircuit, int]): The target wave and the number of qubits.
+        
+    Returns:
+        bool: The result of the test.
+    """
+
+    exp_id = expDemo01.measure(wave=tgt[0], backend=backend)
+    expDemo01.exps[exp_id].analyze()
+    quantity = expDemo01.exps[exp_id].reports[0].content._asdict()
     assert all(['entropy' in quantity, 'purity' in quantity])
