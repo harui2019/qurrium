@@ -1,3 +1,9 @@
+"""
+================================================================
+Default Configuration for Qurry (:mod:`qurry.declare.default`)
+================================================================
+
+"""
 from typing import Optional
 import warnings
 
@@ -98,10 +104,11 @@ ResoureWatchConfig = DefaultConfig(
 )
 
 
-def containChecker(
+def contain_checker(
     config: dict[str, any],
     checker: DefaultConfig,
     restrict: bool = False,
+    null_allowed: bool = True,
 ) -> Optional[Exception]:
     """Check whether configuration is available.
 
@@ -119,36 +126,36 @@ def containChecker(
     Returns:
         Optional[Exception]: _description_
     """
-    if (len(config) > 0):
-        useKey = checker.include_keys(config)
-        if len(useKey) == 0:
+
+    if len(config) > 0:
+        use_key = checker.include_keys(config)
+        if len(use_key) == 0:
             text = (
-                f"The following configuration has no any available arguments," +
+                "The following configuration has no any available arguments," +
                 f"'{config}' for '{checker.__name__}'\n" +
                 f'Available keys: {checker.default_names}'
             )
             if restrict:
                 raise QurryInvalidArgument(text)
-            else:
-                warnings.warn(text, QurryInvalidArgument)
-        uselessKey = checker.useless_keys(config)
+            warnings.warn(text, QurryInvalidArgument)
+
+        useless_key = checker.useless_keys(config)
         text = (
-            f"'{useKey}' will be applied. " +
-            f"The following configuration has no any affect: " +
-            f"'{uselessKey}' for '{checker.__name__}'"
+            f"'{use_key}' will be applied. " +
+            "The following configuration has no any affect: " +
+            f"'{useless_key}' for '{checker.__name__}'"
         )
-        if len(uselessKey) > 0:
+        if len(useless_key) > 0:
             if restrict:
                 raise QurryUnrecongnizedArguments(text)
-            else:
-                warnings.warn(text, QurryUnrecongnizedArguments)
-    else:
+            warnings.warn(text, QurryUnrecongnizedArguments)
+
+    elif not null_allowed:
         text = (
-            f"The following configuration is null," +
+            "The following configuration is null," +
             f"'{config}' for '{checker.__name__}'\n" +
             f'Available keys: {checker.default_names}'
         )
         if restrict:
             raise QurryUnrecongnizedArguments(text)
-        else:
-            warnings.warn(text, QurryUnrecongnizedArguments)
+        warnings.warn(text, QurryUnrecongnizedArguments)
