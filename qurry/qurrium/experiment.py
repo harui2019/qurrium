@@ -452,26 +452,13 @@ class ExperimentPrototype(ExperimentPrototypeABC):
     # analysis
     @classmethod
     @abstractmethod
-    def quantities(cls, *args, **kwargs) -> dict[str, Any]:
+    def quantities(cls) -> dict[str, Any]:
         """Computing specific squantity.
         Where should be overwritten by each construction of new measurement.
         """
 
-    @overload
     @abstractmethod
-    def analyze(self, *args, **kwargs) -> AnalysisPrototype:
-        """Analyzing the example circuit results in specific method.
-
-        Args:
-            allArgs: all arguments will pass to `.quantities`.
-
-        Returns:
-            analysis: Analysis of the counts from measurement.
-        """
-
-    @overload
-    @abstractmethod
-    def analyze(self, pbar: Optional[tqdm.tqdm], *args, **kwargs) -> dict[str, Any]:
+    def analyze(self) -> AnalysisPrototype:
         """Analyzing the example circuit results in specific method.
 
         Args:
@@ -812,8 +799,9 @@ class ExperimentPrototype(ExperimentPrototypeABC):
         """
 
         # multimanager values
-        summon = all(
-            (not v is None) for v in [self.commons.serial, self.commons.summonerID, self.commons.summonerID])
+        summon = all((not v is None) for v in [
+            self.commons.serial, self.commons.summonerID, self.commons.summonerID
+        ])
         # args, commons, outfields
 
         args: dict[str, Any] = jsonablize(self.args._asdict())

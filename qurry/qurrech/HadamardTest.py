@@ -55,7 +55,7 @@ class EntropyHadamardAnalysis(AnalysisPrototype):
         """The purity of the system."""
 
         def __repr__(self):
-            return f"analysisContent(purity={self.echo}, entropy={self.entropy}, and others)"
+            return f"analysisContent(echo={self.echo}, and others)"
 
     @property
     def default_side_product_fields(self) -> Iterable[str]:
@@ -175,7 +175,15 @@ class EchoHadamardTest(QurryV5Prototype):
         """Handling all arguments and initializing a single experiment.
 
         Args:
-            waveKey (Hashable):
+            wave (Hashable):
+                The index of the wave function in `self.waves` or add new one to calaculation,
+                then choose one of waves as the experiment material.
+                If input is `QuantumCircuit`, then add and use it.
+                If input is the key in `.waves`, then use it.
+                If input is `None` or something illegal, then use `.lastWave'.
+                Defaults to None.
+
+            wave2 (Hashable):
                 The index of the wave function in `self.waves` or add new one to calaculation,
                 then choose one of waves as the experiment material.
                 If input is `QuantumCircuit`, then add and use it.
@@ -194,14 +202,14 @@ class EchoHadamardTest(QurryV5Prototype):
         Returns:
             dict: The export will be processed in `.paramsControlCore`
         """
-
         # measure and unitary location
         numQubits = self.waves[waveKey].num_qubits
         numQubits2 = self.waves[waveKey2].num_qubits
         if numQubits != numQubits2:
-            raise ValueError(f"The number of qubits of two wave functions must be the same, but {waveKey}: {numQubits} != {waveKey2}: {numQubits2}.")
+            raise ValueError(
+                f"The number of qubits of two wave functions must be the same, but {waveKey}: {numQubits} != {waveKey2}: {numQubits2}.")
         degree = qubit_selector(numQubits, degree=degree)
-        
+
         if isinstance(waveKey, (list, tuple)):
             waveKey = '-'.join([str(i) for i in waveKey])
         if isinstance(waveKey2, (list, tuple)):
@@ -290,8 +298,8 @@ class EchoHadamardTest(QurryV5Prototype):
         """
 
         IDNow = self.result(
-            wave=wave,
-            wave2=wave2,
+            waveKey=wave,
+            waveKey2=wave2,
             expName=expName,
             degree=degree,
             saveLocation=None,

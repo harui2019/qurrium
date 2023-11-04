@@ -201,7 +201,7 @@ class EntropyHadamardTest(QurryV5Prototype):
         """Handling all arguments and initializing a single experiment.
 
         Args:
-            waveKey (Hashable):
+            wave (Hashable):
                 The index of the wave function in `self.waves` or add new one to calaculation,
                 then choose one of waves as the experiment material.
                 If input is `QuantumCircuit`, then add and use it.

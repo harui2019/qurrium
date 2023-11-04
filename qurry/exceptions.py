@@ -15,24 +15,30 @@ class QurryError(Exception):
         """Return the message."""
         return repr(self.message)
 
+
 class QurryInvalidInherition(QurryError):
     """Invalid inherition class making by Qurry."""
-    
+
+
 class QurryExperimentCountsNotCompleted(QurryError):
     """Experiment is not completed."""
 
+
 class QurryExtraPackageRequired(QurryError, ImportError):
     """Extra package required for Qurry."""
-    
+
+
 class QurryInvalidArgument(QurryError):
     """Invalid argument for Qurry."""
-    
+
+
 class QurryPositionalArgumentNotSupported(QurryError, ValueError):
     """Positional argument is not supported."""
-    
+
+
 class QurryCythonImportError(QurryError, ImportError):
     """Cython import error."""
-    
+
 
 # General Warning
 class QurryWarning(Warning):
@@ -54,26 +60,37 @@ class QurryWarning(Warning):
 class UnconfiguredWarning(QurryWarning):
     "For dummy function in qurrium has been activated."
 
+
 class QurryInheritionNoEffect(QurryWarning):
     "This configuration method has no effect."
+
 
 class QurryUnrecongnizedArguments(QurryWarning):
     "This argument is not recognized but may be kept at somewhere."
 
+
 class QurryMemoryOverAllocationWarning(QurryWarning):
     "Automatically shutdown experiment to protect RAM for preventing crashing."
-    
+
+
 class QurryImportWarning(QurryWarning):
     "Warning for qurry trying to import something."
 
+
 class QurryResetSecurityActivated(QurryWarning):
     "Warning for reset class security."
-    
+
+
 class QurryResetAccomplished(QurryWarning):
     "Warning for class reset."
-    
+
+
 class QurryProtectContent(QurryWarning):
     "Warning for protect content."
 
+
 class QurrySummonerInfoIncompletion(QurryWarning):
     "Warning for summoner info incompletion. The summoner is the instance of :cls:`QurryMultiManager`."
+
+class QurryCythonUnavailableWarning(QurryWarning):
+    """Cython unavailable warning."""

@@ -1,6 +1,6 @@
 """
 ================================================================
-Test the qurry.qurrent module EntropyMeasure class.
+Test the qurry.qurrech module EchoListen class.
 ================================================================
 
 """
@@ -8,15 +8,15 @@ import warnings
 import pytest
 from qiskit import QuantumRegister, QuantumCircuit
 
-from qurry.qurrent import EntropyMeasure
+from qurry.qurrech import EchoListen
 from qurry.tools import backendWrapper
 from qurry.capsule import mori, hoshi
 
 tag_list = mori.TagList()
 hoshi = hoshi.Hoshi()
 
-expDemo01 = EntropyMeasure(method='hadamard')
-expDemo02 = EntropyMeasure(method='randomized')
+expDemo01 = EchoListen(method='hadamard')
+expDemo02 = EchoListen(method='randomized')
 
 try:
     from qurry.recipe.library import TrivialParamagnet
@@ -58,18 +58,21 @@ def test_quantity_01(
     tgt,
 ) -> bool:
     """Test the quantity of entropy and purity.
-
+    
     Args:
         tgt (tuple[QuantumCircuit, int]): The target wave and the number of qubits.
-
+        
     Returns:
         bool: The result of the test.
     """
 
-    exp_id = expDemo01.measure(wave=tgt[0], backend=backend)
+    exp_id = expDemo01.measure(
+        tgt[0], tgt[0],
+        backend=backend
+    )
     expDemo01.exps[exp_id].analyze()
     quantity = expDemo01.exps[exp_id].reports[0].content._asdict()
-    assert all(['entropy' in quantity, 'purity' in quantity])
+    assert all(['echo' in quantity])
 
 
 @pytest.mark.parametrize("tgt, ", wave_adds_02)
@@ -86,10 +89,10 @@ def test_quantity_02(
     """
 
     exp_id = expDemo02.measure(
-        wave=tgt[0],
+        tgt[0], tgt[0],
         times=10,
         backend=backend
     )
     expDemo02.exps[exp_id].analyze(2)
     quantity = expDemo02.exps[exp_id].reports[0].content._asdict()
-    assert all(['entropy' in quantity, 'purity' in quantity])
+    assert all(['echo' in quantity])
