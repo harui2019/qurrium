@@ -212,17 +212,8 @@ def _entangled_entropy_core(
     if degree is None:
         degree = qubit_selector(allsystemSize)
 
-    if isinstance(degree, int):
-        subsystemSize = degree
-        degree = qubit_selector(
-            len(list(counts[0].keys())[0]), degree=degree)
-
-    elif isinstance(degree, (tuple, list)):
-        subsystemSize = max(degree) - min(degree)
-
-    else:
-        raise ValueError(
-            f"'degree' must be 'int' or 'tuple[int, int]', but get '{degree}'.")
+    degree = qubit_selector(allsystemSize, degree=degree)
+    subsystemSize = max(degree) - min(degree)
 
     bitStringRange = degree
     bitStringCheck = {
@@ -245,8 +236,7 @@ def _entangled_entropy_core(
     dummyString = ''.join(str(ds) for ds in range(allsystemSize))
     dummyStringSlice = cycling_slice(
         dummyString, bitStringRange[0], bitStringRange[1], 1)
-    isAvtiveCyclingSlice = dummyString[bitStringRange[0]
-                                       :bitStringRange[1]] != dummyStringSlice
+    isAvtiveCyclingSlice = dummyString[bitStringRange[0]                                       :bitStringRange[1]] != dummyStringSlice
     if isAvtiveCyclingSlice:
         assert len(dummyStringSlice) == subsystemSize, (
             f"| All system size '{subsystemSize}' does not match dummyStringSlice '{dummyStringSlice}'")

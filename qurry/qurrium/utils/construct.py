@@ -63,7 +63,8 @@ def qubit_selector(
                 f"but there is {len(degree)} integers in '{degree}'.")
 
     else:
-        raise ValueError("Degree of freedom is not given.")
+        raise ValueError(
+            f"'degree' must be 'int' or 'tuple[int, int]', but get '{degree}'.")
 
     return item_range
 
