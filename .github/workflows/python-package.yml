@@ -25,10 +25,6 @@ jobs:
         python-version: ["3.11"]
         target: [x86_64]
 
-    env:
-      # CIBW_BEFORE_ALL_LINUX: "curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain stable -y && yum install -y openssl-devel"
-      CIBW_ENVIRONMENT: 'PATH="$PATH:$HOME/.cargo/bin"'
-
     steps:
       - uses: actions/checkout@v3
         with:
@@ -51,6 +47,7 @@ jobs:
 
       - name: Cargo Version
         run: |
+          export PATH="$HOME/.cargo/bin:$PATH"
           cargo --version
           rustc --version
           rustup --version
@@ -99,10 +96,6 @@ jobs:
         python-version: ["3.11"]
         target: [aarch64]
 
-    env:
-      # CIBW_BEFORE_ALL_LINUX: "curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain stable -y && yum install -y openssl-devel"
-      CIBW_ENVIRONMENT: 'PATH="$PATH:$HOME/.cargo/bin"'
-
     steps:
       - uses: actions/checkout@v4
         with:
@@ -125,6 +118,7 @@ jobs:
 
       - name: Cargo Version
         run: |
+          export PATH="$HOME/.cargo/bin:$PATH"
           cargo --version
           rustc --version
           rustup --version
