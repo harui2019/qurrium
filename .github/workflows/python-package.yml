@@ -34,7 +34,7 @@ jobs:
           python -m pip install --upgrade pipenv wheel
           python -m pip install flake8 pytest matplotlib
           python -m pip install --upgrade urllib3
-          python -m pip install --upgrade setup setuptools setuptools-rust
+          python -m pip install --upgrade --user setuptools setuptools-rust
 
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
