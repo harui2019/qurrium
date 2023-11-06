@@ -5,14 +5,13 @@ Test the qurry.boorust module.
 
 """
 from typing import Union
-from pathlib import Path
 import os
 import pytest
 import numpy as np
 
 from qurry.capsule import quickRead
 # pylint: disable=import-error, no-name-in-module
-from qurry.boorust.randomized import (
+from qurry.boorust.randomized import ( # type: ignore
     ensemble_cell_rust, entangled_entropy_core_rust)
 from qurry.boost.randomized import ensembleCell as ensemble_cell_cy
 from qurry.qurrent.RandomizedMeasure import (
