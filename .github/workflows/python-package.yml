@@ -20,8 +20,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9", "3.10", "3.11"]
-        target: [x86_64, x86, aarch64]
+        # python-version: ["3.9", "3.10", "3.11"]
+        # target: [x86_64, x86, aarch64]
+        python-version: ["3.11"]
+        target: [x86_64]
 
     steps:
       - uses: actions/checkout@v3
@@ -39,8 +41,15 @@ jobs:
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
+          profile: minimal
+          toolchain: nightly
           override: true
+
+      - name: Cargo Version
+        run: |
+          cargo --version
+          rustc --version
+          rustup --version
 
       # Used to host cibuildwheel
       - uses: actions/setup-python@v3
@@ -83,8 +92,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9", "3.10", "3.11"]
-        target: [x86_64, aarch64]
+        # python-version: ["3.9", "3.10", "3.11"]
+        # target: [x86_64, aarch64]
+        python-version: ["3.11"]
+        target: [aarch64]
 
     steps:
       - uses: actions/checkout@v4
@@ -103,8 +114,15 @@ jobs:
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
+          profile: minimal
+          toolchain: nightly
           override: true
+
+      - name: Cargo Version
+        run: |
+          cargo --version
+          rustc --version
+          rustup --version
 
       # Used to host cibuildwheel
       - uses: actions/setup-python@v3
