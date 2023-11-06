@@ -4,13 +4,13 @@ Test the qurry.qurrent module EntropyMeasure class.
 ================================================================
 
 """
-import warnings
 import pytest
-from qiskit import QuantumRegister, QuantumCircuit
 
 from qurry.qurrent import EntropyMeasure
 from qurry.tools import backendWrapper
 from qurry.capsule import mori, hoshi
+from qurry.recipe.library import TrivialParamagnet
+
 
 tag_list = mori.TagList()
 hoshi = hoshi.Hoshi()
@@ -18,36 +18,13 @@ hoshi = hoshi.Hoshi()
 expDemo01 = EntropyMeasure(method='hadamard')
 expDemo02 = EntropyMeasure(method='randomized')
 
-try:
-    from qurry.recipe.library import TrivialParamagnet
 
-    wave_adds_01 = [
-        (expDemo01.add(TrivialParamagnet(i).wave(), i),) for i in range(6, 12, 2)
-    ]
-    wave_adds_02 = [
-        (expDemo02.add(TrivialParamagnet(i).wave(), i),) for i in range(6, 12, 2)
-    ]
-except ImportError:
-    warnings.warn("TrivialParamagnet not found. Use the following instead.")
-
-    def trivial_paramagnet(n) -> QuantumCircuit:
-        """Construct the example circuit.
-
-        Returns:
-            QuantumCircuit: The example circuit.
-        """
-        q = QuantumRegister(n, "q")
-        qc = QuantumCircuit(q)
-        for i in range(n):
-            qc.h(q[i])
-
-        return qc
-    wave_adds_01 = [
-        (expDemo01.add(trivial_paramagnet(i), i),) for i in range(6, 12, 2)
-    ]
-    wave_adds_02 = [
-        (expDemo02.add(trivial_paramagnet(i), i),) for i in range(6, 12, 2)
-    ]
+wave_adds_01 = [
+    (expDemo01.add(TrivialParamagnet(i).wave(), i),) for i in range(6, 12, 2)
+]
+wave_adds_02 = [
+    (expDemo02.add(TrivialParamagnet(i).wave(), i),) for i in range(6, 12, 2)
+]
 
 
 backend = backendWrapper()('aer')
