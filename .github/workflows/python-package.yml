@@ -37,6 +37,12 @@ jobs:
           # A bug waiting for fixing, https://github.com/pypa/setuptools/issues/3278
           # pip install --upgrade --user setuptools==58.3.0
 
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
       # Used to host cibuildwheel
       - uses: actions/setup-python@v3
 
@@ -94,6 +100,12 @@ jobs:
           pip install --upgrade urllib3
           # A bug waiting for fixing, https://github.com/pypa/setuptools/issues/3278
           # pip install --upgrade --user setuptools==58.3.0
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
 
       # Used to host cibuildwheel
       - uses: actions/setup-python@v3
