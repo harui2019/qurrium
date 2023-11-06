@@ -1,0 +1,57 @@
+# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Test
+
+on:
+  push:
+    branches: 
+      - "main"
+      - "pre-release"
+  pull_request:
+    branches: 
+      - "main"
+      - "pre-release"
+      - "dev"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11"]
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.CI_TOKEN }}
+          submodules: true
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v3
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pipenv wheel pip
+          python -m pip install flake8 pytest matplotlib
+          pip install --upgrade urllib3
+          # A bug waiting for fixing, https://github.com/pypa/setuptools/issues/3278
+          # pip install --upgrade --user setuptools==58.3.0
+          python -c "print('### Preparing setup.py '.ljust(70, '.'))"
+          pip install -e .
+          # python -c "print('### Preparing requirements.txt '.ljust(70, '.'))
+          # if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          python -c "print('### Dependencies are ready to go '.ljust(70, '.'))"
+
+      - name: Lint with flake8
+        run: |
+          # stop the build if there are Python syntax errors or undefined names
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+      - name: Test with pytest
+        run: |
+          python -m pytest
