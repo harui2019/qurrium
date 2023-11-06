@@ -16,10 +16,11 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest, macos-11]
         python-version: ["3.9", "3.10", "3.11"]
 
     steps:
@@ -39,7 +40,7 @@ jobs:
           python -m pip install flake8 pytest matplotlib
           pip install --upgrade urllib3
           # A bug waiting for fixing, https://github.com/pypa/setuptools/issues/3278
-          # pip install --upgrade --user setuptools==58.3.0
+          pip install --upgrade --user setuptools setuptools_rust
           python -c "print('### Preparing setup.py '.ljust(70, '.'))"
           pip install -e .
           # python -c "print('### Preparing requirements.txt '.ljust(70, '.'))
@@ -52,6 +53,7 @@ jobs:
           flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
           # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
       - name: Test with pytest
         run: |
-          python -m pytest
+          pytest
