@@ -14,4 +14,6 @@ from .tools import (
     pytorchCUDACheck,
 )
 
+import qurry.boorust
+
 from .version import __version__, __version_str__
