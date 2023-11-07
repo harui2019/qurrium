@@ -3,13 +3,15 @@ name: Wheel Builds
 on:
   push:
     branches:
-      - "main"
-      - "pre-release"
+      # - "main"
+      # - "pre-release"
+      - blabla
   pull_request:
     branches:
-      - "main"
-      - "pre-release"
-      - "dev"
+      # - "main"
+      # - "pre-release"
+      # - "dev"
+      - blabla
 
 jobs:
   build_wheels:
