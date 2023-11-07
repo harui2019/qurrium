@@ -3,26 +3,24 @@ requires = ["pytest", "cython", "setuptools", "setuptools-rust", "wheel"]
 build-backend = "setuptools.build_meta"
 
 # If you find some configurations are similar to what qiskit does,
-# yes, it is. I learned from them.
+# yes, it does. I 'learned' from them.
 
 [tool.cibuildwheel]
 skip = [
     "pp*",
     "*-musllinux_i686", # rust tier 2 support
+    "cp-312-*", # For some reason, it fails to build
 ]
 before-all = [
     'python -c "print(\"=\"*70)"',
     'python -c "print(\"### Building \".ljust(70, \".\"))"',
-]
-before-build = [
-    "python -m pip install --upgrade pip",
 ]
 before-test = [
     'python -c "print(\"=\"*70)"',
     'python -c "print(\"### Testing \".ljust(70, \".\"))"',
     "pip install pytest",
 ]
-test-command = ["pytest"]
+test-command = ["pytest {project}"]
 
 [tool.cibuildwheel.linux]
 environment = { PATH = "$HOME/.cargo/bin:$PATH" }
