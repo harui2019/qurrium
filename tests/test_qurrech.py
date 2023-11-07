@@ -5,16 +5,17 @@ Test the qurry.qurrech module EchoListen class.
 
 """
 import pytest
+from qiskit import BasicAer
 
 from qurry.qurrech import EchoListen
-from qurry.tools import backendWrapper
+# from qurry.tools import backendWrapper
 from qurry.capsule import mori, hoshi
 from qurry.recipe.library import (
     TrivialParamagnet, GHZ,  TopologicalParamagnet
 )
 
 tag_list = mori.TagList()
-hoshi = hoshi.Hoshi()
+statesheet = hoshi.Hoshi()
 
 expDemo01 = EchoListen(method='hadamard')
 expDemo02 = EchoListen(method='randomized')
@@ -37,7 +38,9 @@ for i in range(4, 7, 2):
     wave_adds_02.append(expDemo02.add(
         TopologicalParamagnet(i).wave(), f'{i}-topological'))
 
-backend = backendWrapper()('aer')
+# backend = backendWrapper()('aer')
+backend = BasicAer.backends()[0]
+print(backend.configuration())
 
 
 @pytest.mark.parametrize("tgt", wave_adds_01)
