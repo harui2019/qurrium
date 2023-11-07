@@ -65,6 +65,21 @@ setup(
     ),
     long_description=README,
     long_description_content_type='text/markdown',
+    classifiers=[
+        "Operating System :: MacOS",
+        "Operating System :: POSIX :: Linux",
+
+        "Programming Language :: Python :: 3 :: Only",
+        'Programming Language :: Python :: 3.9',
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+
+        "Programming Language :: Python :: Implementation :: CPython",
+    ],
+    project_urls={
+        "Bug Tracker": "https://github.com/harui2019/qurry/issues",
+        "Homepage": "https://github.com/harui2019/qurry",
+    },
 
     url='https://github.com/harui2019/qurry',
     author='Huai-Chung Chang',
