@@ -49,6 +49,7 @@ jobs:
 
       - name: Clean project directory
         run: |
+          python -m pip install --upgrade pip
           find . -name "*.so" -type f -delete
           find . -name "*.c" -type f -delete
 

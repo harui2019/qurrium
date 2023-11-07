@@ -1,12 +1,39 @@
 [build-system]
-requires = [
-    "pytest",
-    "cython", 
-    "setuptools", 
-    "setuptools-rust",
-    "wheel",
-]
+requires = ["pytest", "cython", "setuptools", "setuptools-rust", "wheel"]
 build-backend = "setuptools.build_meta"
 
 # If you find some configurations are similar to what qiskit does,
 # yes, it is. I learned from them.
+
+[tool.cibuildwheel]
+skip = [
+    "pp*",
+    "*-musllinux_i686", # rust tier 2 support
+]
+before-all = [
+    'python -c "print(\"=\"*70)"',
+    'python -c "print(\"### Building \".ljust(70, \".\"))"',
+]
+before-build = [
+    "python -m pip install --upgrade pip",
+]
+before-test = [
+    'python -c "print(\"=\"*70)"',
+    'python -c "print(\"### Testing \".ljust(70, \".\"))"',
+    "pip install pytest",
+]
+test-command = ["pytest"]
+
+[tool.cibuildwheel.linux]
+environment = { PATH = "$HOME/.cargo/bin:$PATH" }
+before-all = [
+    "curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain=nightly --profile=minimal -y",
+    'source "$HOME/.cargo/env"',
+    "rustup show",
+]
+
+[tool.cibuildwheel.macos]
+before-all = [
+    "python -m pip install pkgutil",
+    "rustup show",
+]
