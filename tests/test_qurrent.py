@@ -1,47 +1,75 @@
+"""
+================================================================
+Test the qurry.qurrent module EntropyMeasure class.
+================================================================
+
+"""
 import pytest
-import warnings
-from qiskit import QuantumRegister, QuantumCircuit
+from qiskit import BasicAer
 
 from qurry.qurrent import EntropyMeasure
-from qurry.tools import backendWrapper
+# from qurry.tools import backendWrapper
+from qurry.capsule import mori, hoshi
+from qurry.recipe.library import (
+    TrivialParamagnet, GHZ,  TopologicalParamagnet
+)
 
-import qurry.mori as mori
-import qurry.hoshi as hoshi
+tag_list = mori.TagList()
+statesheet = hoshi.Hoshi()
 
 expDemo01 = EntropyMeasure(method='hadamard')
-try:
-    from qurry.recipe.library import TrivialParamagnet
-
-    wave_adds = [
-        (expDemo01.add(TrivialParamagnet(i).wave(), i),) for i in range(6, 12, 2)
-    ]
-except:
-    warnings.warn("TrivialParamagnet not found. Use the following instead.")
-    def trivialParamagnet(n) -> QuantumCircuit:
-        """Construct the example circuit.
-
-        Returns:
-            QuantumCircuit: The example circuit.
-        """
-        q = QuantumRegister(n, "q")
-        qc = QuantumCircuit(q)
-        [qc.h(q[i]) for i in range(n)]
-    
-        return qc
-    wave_adds = [
-        (expDemo01.add(trivialParamagnet(i), i),) for i in range(6, 12, 2)
-    ]
+expDemo02 = EntropyMeasure(method='randomized')
 
 
-backend = backendWrapper()('aer')
+wave_adds_01 = []
+wave_adds_02 = []
+
+for i in range(4, 7, 2):
+    wave_adds_01.append(expDemo01.add(
+        TrivialParamagnet(i).wave(), f'{i}-trivial'))
+    wave_adds_02.append(expDemo02.add(
+        TrivialParamagnet(i).wave(), f'{i}-trivial'))
+
+    wave_adds_01.append(expDemo01.add(GHZ(i).wave(), f'{i}-GHZ'))
+    wave_adds_02.append(expDemo02.add(GHZ(i).wave(), f'{i}-GHZ'))
+
+    wave_adds_01.append(expDemo01.add(
+        TopologicalParamagnet(i).wave(), f'{i}-topological'))
+    wave_adds_02.append(expDemo02.add(
+        TopologicalParamagnet(i).wave(), f'{i}-topological'))
+
+# backend = backendWrapper()('aer')
+backend = BasicAer.backends()[0]
+print(backend.configuration())
 
 
-@pytest.mark.parametrize("tgt, ", wave_adds)
-def test_quantity(
-    tgt,
-) -> bool:
-    
-    ID = expDemo01.measure(wave=tgt[0], backend=backend)
-    expDemo01.exps[ID].analyze()
-    quantity = expDemo01.exps[ID].reports[0].content._asdict()
+@pytest.mark.parametrize("tgt", wave_adds_01)
+def test_quantity_01(tgt):
+    """Test the quantity of entropy and purity.
+
+    Args:
+        tgt (Hashable): The target wave key in Qurry.
+    """
+
+    exp_id = expDemo01.measure(wave=tgt, backend=backend)
+    expDemo01.exps[exp_id].analyze()
+    quantity = expDemo01.exps[exp_id].reports[0].content._asdict()
+    assert all(['entropy' in quantity, 'purity' in quantity])
+
+
+@pytest.mark.parametrize("tgt", wave_adds_02)
+def test_quantity_02(tgt):
+    """Test the quantity of entropy and purity.
+
+    Args:
+        tgt (Hashable): The target wave key in Qurry.
+    """
+
+    exp_id = expDemo02.measure(
+        wave=tgt,
+        times=10,
+        backend=backend
+    )
+    expDemo02.exps[exp_id].analyze(2)
+    quantity = expDemo02.exps[exp_id].reports[0].content._asdict()
     assert all(['entropy' in quantity, 'purity' in quantity])

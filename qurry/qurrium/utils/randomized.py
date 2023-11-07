@@ -1,9 +1,15 @@
-from qiskit.visualization.counts_visualization import hamming_distance, VisualizationError
-from qiskit.quantum_info import random_unitary, Operator
+"""
+===========================================================
+Randomized Measure Kit for Qurry 
+(:mod:`qurry.qurrium.utils`)
+===========================================================
 
+"""
+from typing import Callable, Iterable, Union, Optional
 import numpy as np
-from typing import Callable, Iterable, Union
 
+from qiskit.quantum_info import random_unitary, Operator
+from qiskit.visualization.exceptions import VisualizationError
 
 RXmatrix = np.array([[0, 1], [1, 0]])
 """Pauli-X matrix"""
@@ -12,8 +18,10 @@ RYmatrix = np.array([[0, -1j], [1j, 0]])
 RZmatrix = np.array([[1, 0], [0, -1]])
 """Pauli-Z matrix"""
 
+# pylint: disable=unnecessary-direct-lambda-call
 
-def makeTwoBitStr(num: int, bits: list[str] = ['']) -> list[str]:
+
+def make_two_bit_str(num: int, bits: Optional[list[str]] = None) -> list[str]:
     """Make a list of bit strings with length of `num`.
 
     Args:
@@ -25,7 +33,9 @@ def makeTwoBitStr(num: int, bits: list[str] = ['']) -> list[str]:
     """
     return ((lambda bits: [
         *['0'+item for item in bits], *['1'+item for item in bits]
-    ])(makeTwoBitStr(num-1, bits)) if num > 0 else bits)
+    ])(make_two_bit_str(
+        num-1, [''] if bits is None else ['']
+    )) if num > 0 else bits)
 
 
 makeTwoBitStrOneLiner: Callable[[int, list[str]], list[str]] = (
@@ -41,6 +51,7 @@ makeTwoBitStrOneLiner: Callable[[int, list[str]], list[str]] = (
     Returns:
         list[str]: The list of bit strings.
 """
+# pylint: enable=unnecessary-direct-lambda-call
 
 
 def hamming_distance(str1: str, str2: str) -> int:
@@ -61,12 +72,12 @@ def hamming_distance(str1: str, str2: str) -> int:
     return sum(s1 != s2 for s1, s2 in zip(str1, str2))
 
 
-def ensembleCell(
-    sAi: str,
-    sAiMeas: int,
-    sAj: str,
-    sAjMeas: int,
-    aNum: int,
+def ensemble_cell(
+    s_i: str,
+    s_i_meas: int,
+    s_j: str,
+    s_j_meas: int,
+    a_num: int,
     shots: int,
 ) -> float:
     """Calculate the value of two counts from qubits in ensemble average.
@@ -78,32 +89,32 @@ def ensembleCell(
             I decide not to use source code instead of calling from `qiskit`.
 
         Args:
-            sAi (str): First count's qubits arrange.
-            sAiMeas (int): First count.
-            sAj (str): Second count's qubits arrange.
-            sAjMeas (int): Second count.
-            aNum (int): Degree of freedom.
+            s_i (str): First count's qubits arrange.
+            s_i_meas (int): First count.
+            s_j (str): Second count's qubits arrange.
+            s_j_meas (int): Second count.
+            a_num (int): Degree of freedom.
             shots (int): Shots of executation.
 
         Returns:
             float: the value of two counts from qubits in ensemble average.
 
     """
-    diff = sum(s1 != s2 for s1, s2 in zip(sAi, sAj)
+    diff = sum(s1 != s2 for s1, s2 in zip(s_i, s_j)
                )  # hamming_distance(sAi, sAj)
     tmp: np.float64 = np.float_power(
-        2, aNum, dtype=np.float64
+        2, a_num, dtype=np.float64
     )*np.float_power(
         -2, -diff, dtype=np.float64
     )*(
-        np.float64(sAiMeas)/shots
+        np.float64(s_i_meas)/shots
     )*(
-        np.float64(sAjMeas)/shots
+        np.float64(s_j_meas)/shots
     )
     return tmp
 
 
-def densityMatrixToBloch(
+def density_matrix_to_bloch(
     rho: np.array
 ) -> list[float]:
     """Convert a density matrix to a Bloch vector.
@@ -121,7 +132,7 @@ def densityMatrixToBloch(
     return [ax, ay, az]
 
 
-def qubitOpToPauliCoeff(
+def qubit_operator_to_pauli_coeff(
     rho: np.ndarray
 ) -> list[tuple[float]]:
     """Convert a random unitary operator matrix to a Bloch vector.
@@ -147,6 +158,15 @@ def local_random_unitary(
     unitary_loc: tuple[int, int],
     seed: int = None
 ) -> dict[int, Operator]:
+    """Generate a random unitary operator for single qubit.
+
+    Args:
+        unitary_loc (tuple[int, int]): The location of unitary operator.
+        seed (int, optional): The seed of random generator. Defaults to None.
+
+    Returns:
+        dict[int, Operator]: The random unitary operator.
+    """
     return {
         j: random_unitary(2, seed) for j in range(*unitary_loc)
     }
@@ -156,6 +176,17 @@ def local_random_unitary_operators(
     unitary_loc: tuple[int, int],
     unitary_op_list: Union[list[np.ndarray], dict[int, Operator]],
 ) -> dict[int, list[np.ndarray]]:
+    """Transform a list of unitary operators in :cls:`qiskit.quantum_info.operator.Operator` 
+    a list of unitary operators in :cls:`numpy.ndarray`.
+
+    Args:
+        unitary_loc (tuple[int, int]): The location of unitary operator.
+        unitary_op_list (Union[list[np.ndarray], dict[int, Operator]]): 
+            The list of unitary operators.
+
+    Returns:
+        dict[int, list[np.ndarray]]: The list of unitary operators.
+    """
     return {
         i: np.array(unitary_op_list[i]).tolist() for i in range(*unitary_loc)
     }
@@ -165,26 +196,55 @@ def local_random_unitary_pauli_coeff(
     unitary_loc: tuple[int, int],
     unitary_op_list: list[np.ndarray],
 ) -> dict[int, list[tuple[float, float]]]:
+    """Transform a list of unitary operators in :cls:`numpy.ndarray`
+    a list of pauli coefficients.
+
+    Args:
+        unitary_loc (tuple[int, int]): The location of unitary operator.
+        unitary_op_list (list[np.ndarray]): The list of unitary operators.
+
+    Returns:
+        dict[int, list[tuple[float, float]]]: The list of pauli coefficients.
+    """
     return {
-        i: qubitOpToPauliCoeff(unitary_op_list[i]) for i in range(*unitary_loc)
+        i: qubit_operator_to_pauli_coeff(unitary_op_list[i]) for i in range(*unitary_loc)
     }
 
 
-def cycling_slice(target: Iterable, start: int, end: int, step: int = 1) -> Iterable:
+def cycling_slice(
+    target: Iterable,
+    start: int,
+    end: int,
+    step: int = 1
+) -> Iterable:
+    """Slice a iterable object with cycling.
+
+    Args:
+        target (Iterable): The target object.
+        start (int): Index of start.
+        end (int): Index of end.
+        step (int, optional): Step of slice. Defaults to 1.
+
+    Raises:
+        IndexError: Slice out of range.
+
+    Returns:
+        Iterable: The sliced object.
+    """
     length = len(target)
-    sliceCheck = {
+    slice_check = {
         'start <= -length': (start <= -length),
         'end >= length ': (end >= length),
     }
-    if all(sliceCheck.values()):
+    if all(slice_check.values()):
         raise IndexError(
             "Slice out of range" +
-            ", ".join([f" {k};" for k, v in sliceCheck.items() if not v]))
+            ", ".join([f" {k};" for k, v in slice_check.items() if not v]))
     if length <= 0:
-        newString = target
-    elif start < 0 and end >= 0:
-        newString = target[start:] + target[:end]
+        return target
+    if start < 0 <= end:
+        new_string = target[start:] + target[:end]
     else:
-        newString = target[start:end]
+        new_string = target[start:end]
 
-    return newString[::step]
+    return new_string[::step]

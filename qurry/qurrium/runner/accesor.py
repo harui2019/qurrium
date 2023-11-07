@@ -5,7 +5,7 @@ from typing import Literal, Union
 from .runner import Runner
 from ..multimanager import MultiManager
 from ..container import ExperimentContainer
-from ...hoshi import Hoshi
+from ...capsule.hoshi import Hoshi
 from ...exceptions import QurryExtraPackageRequired, QurryInvalidArgument
 
 backendChoiceLiteral = Literal[

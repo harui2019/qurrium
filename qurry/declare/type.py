@@ -1,20 +1,19 @@
-from qiskit import QuantumCircuit, QuantumRegister
-from qiskit.quantum_info import Operator
-from qiskit.circuit.gate import Gate
-from qiskit.circuit.instruction import Instruction
-from qiskit.circuit.quantumcircuit import Qubit
-from qiskit.result import Result
+"""
+================================================================
+Type declarations for Qurry (:mod:`qurry.declare.type`)
+================================================================
 
-from typing import Union, Sequence, TypeVar, Optional
+"""
+from typing import Union, Sequence, TypeVar
+
+from qiskit import QuantumRegister
+from qiskit.circuit.quantumcircuit import Qubit
+
 
 # TagsValue
 T = TypeVar("T")
 KT = TypeVar("KT")
 VT = TypeVar("VT")
-
-# waveGetter methods
-waveGetter = Union[list[T], T]
-waveReturn = Union[Gate, Operator, Instruction, QuantumCircuit]
 
 QubitSpecifier = Union[
     Qubit,

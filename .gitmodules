@@ -1,6 +1,3 @@
-[submodule "qurry/hoshi"]
-	path = qurry/hoshi
-	url = git@github.com:harui2019/hoshi.git
-[submodule "qurry/mori"]
-	path = qurry/mori
-	url = git@github.com:harui2019/mori_inner.git
+[submodule "qurry/capsule"]
+	path = qurry/capsule
+	url = https://github.com/harui2019/capsule_inner.git

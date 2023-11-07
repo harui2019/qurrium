@@ -18,10 +18,12 @@ from typing import Literal, Hashable, Union, Optional
 import warnings
 import time
 
+from typing import Iterable
+
 from .runner import Runner
 from ..multimanager import MultiManager
 from ..container import ExperimentContainer
-from ..utils import get_counts, currentTime
+from ..utils import get_counts, current_time
 from ...tools import qurryProgressBar
 
 
@@ -117,7 +119,7 @@ class IBMRunner(Runner):
 
                 self.circWithSerial[idx + circSerialLen] = circ
 
-        current = currentTime()
+        current = current_time()
         self.currentMultimanager.multicommons.datetimes['pending'] = current
 
         pendingPoolProgressBar = qurryProgressBar(
@@ -138,13 +140,13 @@ class IBMRunner(Runner):
                 pendingJob = self.backend.run(
                     circuits=[self.circWithSerial[idx] for idx in pcircIdxs],
                     shots=self.currentMultimanager.multicommons.shots,
-                    job_tags=[
+                    job_tags=[str(s) for s in [
                         self.currentMultimanager.multicommons.summonerName,
                         self.currentMultimanager.multicommons.summonerID,
                         self.currentMultimanager.namingCpx.expsName,
                         *pendingTag,
                         *self.currentMultimanager.multicommons.tags,
-                    ],
+                    ]],
                     **self.currentMultimanager.multicommons.managerRunArgs,
                 )
                 pendingPoolProgressBar.set_description_str(
@@ -165,7 +167,7 @@ class IBMRunner(Runner):
             self.expContainer[id_exec].commons.datetimes['pending'] = current
 
         self.currentMultimanager.multicommons.datetimes[
-            'pendingCompleted'] = currentTime()
+            'pendingCompleted'] = current_time()
 
         return self.currentMultimanager.beforewards.jobID
 
@@ -208,7 +210,7 @@ class IBMRunner(Runner):
         assert len(self.currentMultimanager.afterwards.allCounts
                    ) == 0, "All counts should be null."
 
-        current = currentTime()
+        current = current_time()
         self.currentMultimanager.multicommons.datetimes[
             retrieveTimesName] = current
 
@@ -243,6 +245,10 @@ class IBMRunner(Runner):
                     if pendingID is None:
                         warnings.warn(f"Pending pool '{pk}' is empty.")
                         continue
+                    if isinstance(pk, str):
+                        ...
+                    elif isinstance(pk, Iterable) and not isinstance(pk, tuple):
+                        pk = tuple(pk)
                     try:
                         retrieveProgressBar.set_description_str(
                             f"{pk}/{pendingID}", refresh=True)

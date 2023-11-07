@@ -1,6 +1,12 @@
-version_main = (0, 6, 4)
-version_dev = ('dev', 9)
-isDev = True
+"""
+================================================================
+Qurry Version
+================================================================
+
+"""
+version_main = (0, 6, 5)
+version_dev = ('dev', 2)
+IS_DEV = True
 
 
 def _beta(beta_str: str, serial: int) -> str:
@@ -8,6 +14,6 @@ def _beta(beta_str: str, serial: int) -> str:
 
 
 __version__ = version_main + \
-    (_beta(*version_dev), ) if isDev else version_main
+    (_beta(*version_dev), ) if IS_DEV else version_main
 __version_str__ = '.'.join(map(str, version_main)) + (
-    '.'+_beta(*version_dev) if isDev else '')
+    '.'+_beta(*version_dev) if IS_DEV else '')

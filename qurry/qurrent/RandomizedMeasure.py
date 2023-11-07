@@ -1,12 +1,20 @@
+"""
+===========================================================
+Renyi Entropy - Randomized Measurement
+===========================================================
+
+"""
+import time
+import warnings
+from pathlib import Path
+from typing import Union, Optional, NamedTuple, Hashable, Iterable, Type, Literal, overload, Any
+import numpy as np
+import tqdm
+
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.quantum_info import Operator
 
-import time
-import tqdm
-import numpy as np
-from pathlib import Path
-from typing import Union, Optional, NamedTuple, Hashable, Iterable, Type, Literal, overload, Any
-
+from ..exceptions import QurryCythonImportError, QurryCythonUnavailableWarning
 from ..qurrium import (
     QurryV5Prototype,
     ExperimentPrototype,
@@ -14,20 +22,34 @@ from ..qurrium import (
     qubit_selector
 )
 from ..qurrium.utils.randomized import (
-    ensembleCell,
+    ensemble_cell,
     cycling_slice,
     random_unitary,
-
-    local_random_unitary,
     local_random_unitary_operators,
     local_random_unitary_pauli_coeff
 )
-from ..tools import qurryProgressBar, ProcessManager, workers_distribution, DEFAULT_POOL_SIZE
+from ..tools import (
+    qurryProgressBar,
+    ProcessManager,
+    workers_distribution,
+    DEFAULT_POOL_SIZE
+)
 try:
-    from ..boost.randomized import purityCellCore
-    useCython = True
-except ImportError:
-    useCython = False
+    from ..boost.randomized import purityCellCore  # type: ignore
+    CYTHON_AVAILABLE = True
+    FAILED_PYX_IMPORT = None
+except ImportError as err:
+    FAILED_PYX_IMPORT = err
+    CYTHON_AVAILABLE = False
+    # pylint: disable=invalid-name, unused-argument
+
+    def purityCellCore(*args, **kwargs):
+        """Dummy function for purityCellCore."""
+        raise QurryCythonImportError(
+            "Cython is not available, using python to calculate purity cell." +
+            f" More infomation about this error: {FAILED_PYX_IMPORT}",
+        )
+    # pylint: enable=invalid-name, unused-argument
 
 
 class EntropyAnalysisContent(NamedTuple):
@@ -84,7 +106,7 @@ class EntropyAnalysisContent(NamedTuple):
         return f"analysisContent(purity={self.purity}, entropy={self.entropy}, and others)"
 
 
-def _purityCellCy(
+def _purity_cell_cy(
     idx: int,
     singleCounts: dict[str, int],
     bitStringRange: tuple[int, int],
@@ -137,7 +159,7 @@ def _purityCell(
     purityCell = np.float64(0)
     for sAi, sAiMeas in singleCountsUnderDegree.items():
         for sAj, sAjMeas in singleCountsUnderDegree.items():
-            purityCell += ensembleCell(
+            purityCell += ensemble_cell(
                 sAi, sAiMeas, sAj, sAjMeas, subsystemSize, shots)
 
     return idx, purityCell
@@ -149,6 +171,7 @@ def _entangled_entropy_core(
     degree: Union[tuple[int, int], int],
     measure: tuple[int, int] = None,
     workers_num: Optional[int] = None,
+    use_cython: bool = True,
     _hide_print: bool = False,
 ) -> tuple[dict[int, float], tuple[int, int], tuple[int, int], str, int]:
     """The core function of entangled entropy.
@@ -161,8 +184,9 @@ def _entangled_entropy_core(
         workers_num (Optional[int], optional): 
             Number of multi-processing workers, 
             if sets to 1, then disable to using multi-processing;
-            if not specified, the use 3/4 of cpu counts by `round(cpu_count*3/4)`.
+            if not specified, then use the number of all cpu counts - 2 by `cpu_count() - 2`.
             Defaults to None.
+        use_cython (bool, optional): Use cython to calculate purity cell. Defaults to True.
         _hide_print (bool, optional): Hide print. Defaults to False.
 
     Raises:
@@ -181,23 +205,15 @@ def _entangled_entropy_core(
     # Determine worker number
     launch_worker = workers_distribution(workers_num)
 
-    # Determine degree
-    if degree is None:
-        degree = qubit_selector(len(list(counts[0].keys())[0]))
-
     # Determine subsystem size
     allsystemSize = len(list(counts[0].keys())[0])
-    if isinstance(degree, int):
-        subsystemSize = degree
-        degree = qubit_selector(
-            len(list(counts[0].keys())[0]), degree=degree)
 
-    elif isinstance(degree, (tuple, list)):
-        subsystemSize = max(degree) - min(degree)
+    # Determine degree
+    if degree is None:
+        degree = qubit_selector(allsystemSize)
 
-    else:
-        raise ValueError(
-            f"'degree' must be 'int' or 'tuple[int, int]', but get '{degree}'.")
+    degree = qubit_selector(allsystemSize, degree=degree)
+    subsystemSize = max(degree) - min(degree)
 
     bitStringRange = degree
     bitStringCheck = {
@@ -220,14 +236,13 @@ def _entangled_entropy_core(
     dummyString = ''.join(str(ds) for ds in range(allsystemSize))
     dummyStringSlice = cycling_slice(
         dummyString, bitStringRange[0], bitStringRange[1], 1)
-    isAvtiveCyclingSlice = dummyString[bitStringRange[0]
-        :bitStringRange[1]] != dummyStringSlice
+    isAvtiveCyclingSlice = dummyString[bitStringRange[0]                                       :bitStringRange[1]] != dummyStringSlice
     if isAvtiveCyclingSlice:
         assert len(dummyStringSlice) == subsystemSize, (
             f"| All system size '{subsystemSize}' does not match dummyStringSlice '{dummyStringSlice}'")
 
     msg = (
-        f"| Partition: " +
+        "| Partition: " +
         ("cycling-" if isAvtiveCyclingSlice else "") +
         f"{bitStringRange}, " +
         f"Measure: {measure}"
@@ -236,7 +251,14 @@ def _entangled_entropy_core(
     times = len(counts)
     Begin = time.time()
 
-    cellCalculator = (_purityCellCy if useCython else _purityCell)
+    if not (CYTHON_AVAILABLE and use_cython):
+        warnings.warn(
+            "Cython is not available, using python to calculate purity cell." +
+            f" More infomation about this error: {FAILED_PYX_IMPORT}",
+            category=QurryCythonUnavailableWarning,
+        )
+    cellCalculator = (_purity_cell_cy if (
+        use_cython and CYTHON_AVAILABLE) else _purityCell)
 
     if launch_worker == 1:
         purityCellItems = []
@@ -278,6 +300,7 @@ def entangled_entropy(
     measure: tuple[int, int] = None,
     workers_num: Optional[int] = None,
     pbar: Optional[tqdm.tqdm] = None,
+    use_cython: bool = True,
 ) -> dict[str, float]:
     """Calculate entangled entropy.
 
@@ -320,8 +343,10 @@ def entangled_entropy(
         workers_num (Optional[int], optional): 
             Number of multi-processing workers, 
             if sets to 1, then disable to using multi-processing;
-            if not specified, the use 3/4 of cpu counts by `round(cpu_count*3/4)`.
+            if not specified, then use the number of all cpu counts - 2 by `cpu_count() - 2`.
             Defaults to None.
+        pbar (Optional[tqdm.tqdm], optional): Progress bar. Defaults to None.
+        use_cython (bool, optional): Use cython to calculate purity cell. Defaults to True.
 
     Returns:
         dict[str, float]: A dictionary contains purity, entropy, 
@@ -343,6 +368,7 @@ def entangled_entropy(
         measure=measure,
         workers_num=workers_num,
         _hide_print=True,
+        use_cython=use_cython,
     )
     purityCellList = list(purityCellDict.values())
 
@@ -471,6 +497,7 @@ def entangled_entropy_complex(
     workers_num: Optional[int] = None,
     pbar: Optional[tqdm.tqdm] = None,
     all_system_source: Optional['EntropyRandomizedAnalysis'] = None,
+    use_cython: bool = True,
 ) -> dict[str, float]:
     """Calculate entangled entropy with more information combined.
 
@@ -481,7 +508,8 @@ def entangled_entropy_complex(
     - Reference:
         - Used in:
             Simple mitigation of global depolarizing errors in quantum simulations - 
-            Vovrosh, Joseph and Khosla, Kiran E. and Greenaway, Sean and Self, Christopher and Kim, M. S. and Knolle, Johannes,
+            Vovrosh, Joseph and Khosla, Kiran E. and Greenaway, Sean and Self, 
+            Christopher and Kim, M. S. and Knolle, Johannes,
             [PhysRevE.104.035309](https://link.aps.org/doi/10.1103/PhysRevE.104.035309)
 
         - `bibtex`:
@@ -489,7 +517,8 @@ def entangled_entropy_complex(
     ```bibtex
         @article{PhysRevE.104.035309,
             title = {Simple mitigation of global depolarizing errors in quantum simulations},
-            author = {Vovrosh, Joseph and Khosla, Kiran E. and Greenaway, Sean and Self, Christopher and Kim, M. S. and Knolle, Johannes},
+            author = {Vovrosh, Joseph and Khosla, Kiran E. and Greenaway, Sean and Self, 
+            Christopher and Kim, M. S. and Knolle, Johannes},
             journal = {Phys. Rev. E},
             volume = {104},
             issue = {3},
@@ -515,20 +544,25 @@ def entangled_entropy_complex(
         workers_num (Optional[int], optional): 
             Number of multi-processing workers, 
             if sets to 1, then disable to using multi-processing;
-            if not specified, the use 3/4 of cpu counts by `round(cpu_count*3/4)`.
+            if not specified, then use the number of all cpu counts - 2 by `cpu_count() - 2`.
             Defaults to None.
+        pbar (Optional[tqdm.tqdm], optional): Progress bar. Defaults to None.
+        all_system_source (Optional['EntropyRandomizedAnalysis'], optional):
+            The source of the all system. Defaults to None.
+        use_cython (bool, optional): Use cython to calculate purity cell. Defaults to True.
 
     Returns:
         dict[str, float]: A dictionary contains 
             purity, entropy, a list of each overlap, puritySD, 
-            purity of all system, entropy of all system, a list of each overlap in all system, puritySD of all system,
+            purity of all system, entropy of all system, 
+            a list of each overlap in all system, puritySD of all system,
             degree, actual measure range, actual measure range in all system, bitstring range.
     """
 
     if isinstance(pbar, tqdm.tqdm):
         pbar.set_description_str(
-            f"Calculate specific partition" +
-            ("." if useCython else " by Pure Python, it may take a long time."))
+            "Calculate specific partition" +
+            ("." if use_cython else " by Pure Python, it may take a long time."))
     (
         purityCellDict,
         bitStringRange,
@@ -548,8 +582,8 @@ def entangled_entropy_complex(
     if all_system_source is None:
         if isinstance(pbar, tqdm.tqdm):
             pbar.set_description_str(
-                f"Calculate all system" +
-                ("." if useCython else " by Pure Python, it may take a long time."))
+                "Calculate all system" +
+                ("." if use_cython else " by Pure Python, it may take a long time."))
         (
             purityCellDictAllSys,
             bitStringRangeAllSys,
@@ -698,49 +732,6 @@ class EntropyRandomizedAnalysis(AnalysisPrototype):
             'purityCellsAllSys',
         ]
 
-    @classmethod
-    def quantities(
-        cls,
-        shots: int,
-        counts: list[dict[str, int]],
-        degree: Union[tuple[int, int], int],
-        measure: tuple[int, int] = None,
-        workers_num: Optional[int] = None,
-        pbar: Optional[tqdm.tqdm] = None,
-        all_system_source: Optional['EntropyRandomizedAnalysis'] = None,
-    ) -> dict[str, float]:
-        """Calculate entangled entropy with more information combined.
-
-        Args:
-            shots (int): Shots of the experiment on quantum machine.
-            counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
-            degree (Union[tuple[int, int], int]): Degree of the subsystem.
-            measure (tuple[int, int], optional): Measuring range on quantum circuits. Defaults to None.
-            workers_num (Optional[int], optional): 
-                Number of multi-processing workers, 
-                if sets to 1, then disable to using multi-processing;
-                if not specified, the use 3/4 of cpu counts by `round(cpu_count*3/4)`.
-                Defaults to None.
-            pbar (Optional[tqdm.tqdm], optional): The tqdm handle. Defaults to None.
-            independent_all_system (bool, optional): The source of all system to calculate error mitigation. Defaults to False.
-
-        Returns:
-            dict[str, float]: A dictionary contains 
-                purity, entropy, a list of each overlap, puritySD, 
-                purity of all system, entropy of all system, a list of each overlap in all system, puritySD of all system,
-                degree, actual measure range, actual measure range in all system, bitstring range.
-        """
-
-        return entangled_entropy_complex(
-            shots=shots,
-            counts=counts,
-            degree=degree,
-            measure=measure,
-            workers_num=workers_num,
-            pbar=pbar,
-            all_system_source=all_system_source,
-        )
-
 
 class EntropyRandomizedExperiment(ExperimentPrototype):
 
@@ -779,7 +770,7 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
             workers_num (Optional[int], optional): 
                 Number of multi-processing workers, 
                 if sets to 1, then disable to using multi-processing;
-                if not specified, the use 3/4 of cpu counts by `round(cpu_count*3/4)`.
+                if not specified, then use the number of all cpu counts - 2 by `cpu_count() - 2`.
                 Defaults to None.
 
         Returns:
@@ -807,7 +798,7 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
             all_system_source = None
 
         if isinstance(pbar, tqdm.tqdm):
-            qs = self.analysis_container.quantities(
+            qs = self.quantities(
                 shots=shots,
                 counts=counts,
                 degree=degree,
@@ -824,7 +815,7 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
             )
 
             with pbar_selfhost as pb_self:
-                qs = self.analysis_container.quantities(
+                qs = self.quantities(
                     shots=shots,
                     counts=counts,
                     degree=degree,
@@ -845,6 +836,52 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
         self.reports[serial] = analysis
         return analysis
 
+    @classmethod
+    def quantities(
+        cls,
+        shots: int,
+        counts: list[dict[str, int]],
+        degree: Union[tuple[int, int], int],
+        measure: tuple[int, int] = None,
+        workers_num: Optional[int] = None,
+        pbar: Optional[tqdm.tqdm] = None,
+        all_system_source: Optional['EntropyRandomizedAnalysis'] = None,
+    ) -> dict[str, float]:
+        """Calculate entangled entropy with more information combined.
+
+        Args:
+            shots (int): Shots of the experiment on quantum machine.
+            counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
+            degree (Union[tuple[int, int], int]): Degree of the subsystem.
+            measure (tuple[int, int], optional): 
+                Measuring range on quantum circuits. Defaults to None.
+            workers_num (Optional[int], optional): 
+                Number of multi-processing workers, 
+                if sets to 1, then disable to using multi-processing;
+                if not specified, then use the number of all cpu counts - 2 by `cpu_count() - 2`.
+                Defaults to None.
+            pbar (Optional[tqdm.tqdm], optional): The tqdm handle. Defaults to None.
+            independent_all_system (bool, optional): 
+                The source of all system to calculate error mitigation. Defaults to False.
+
+        Returns:
+            dict[str, float]: A dictionary contains 
+                purity, entropy, a list of each overlap, puritySD, 
+                purity of all system, entropy of all system, 
+                a list of each overlap in all system, puritySD of all system,
+                degree, actual measure range, actual measure range in all system, bitstring range.
+        """
+
+        return entangled_entropy_complex(
+            shots=shots,
+            counts=counts,
+            degree=degree,
+            measure=measure,
+            workers_num=workers_num,
+            pbar=pbar,
+            all_system_source=all_system_source,
+        )
+
 
 class EntropyRandomizedMeasure(QurryV5Prototype):
     """Randomized Measure Experiment.
@@ -856,7 +893,8 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
     - Reference:
         - Used in:
             Simple mitigation of global depolarizing errors in quantum simulations - 
-            Vovrosh, Joseph and Khosla, Kiran E. and Greenaway, Sean and Self, Christopher and Kim, M. S. and Knolle, Johannes,
+            Vovrosh, Joseph and Khosla, Kiran E. and Greenaway, Sean and Self, 
+            Christopher and Kim, M. S. and Knolle, Johannes,
             [PhysRevE.104.035309](https://link.aps.org/doi/10.1103/PhysRevE.104.035309)
 
         - `bibtex`:
@@ -864,7 +902,8 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
     ```bibtex
         @article{PhysRevE.104.035309,
             title = {Simple mitigation of global depolarizing errors in quantum simulations},
-            author = {Vovrosh, Joseph and Khosla, Kiran E. and Greenaway, Sean and Self, Christopher and Kim, M. S. and Knolle, Johannes},
+            author = {Vovrosh, Joseph and Khosla, Kiran E. and Greenaway, Sean and Self, 
+            Christopher and Kim, M. S. and Knolle, Johannes},
             journal = {Phys. Rev. E},
             volume = {104},
             issue = {3},
@@ -930,12 +969,12 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
         if measure is None:
             measure = num_qubits
         measure = qubit_selector(
-            num_qubits, degree=measure, as_what='measure range')
+            num_qubits, degree=measure)
 
         if unitary_loc is None:
             unitary_loc = num_qubits
         unitary_loc = qubit_selector(
-            num_qubits, degree=unitary_loc, as_what='unitary_loc')
+            num_qubits, degree=unitary_loc)
 
         if (min(measure) < min(unitary_loc)) or (max(measure) > max(unitary_loc)):
             raise ValueError(
@@ -998,8 +1037,8 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
         unitaryOPList = pool.starmap(
             local_random_unitary_operators,
             [(args.unitary_loc, unitaryList[i]) for i in range(args.times)])
-        currentExp.beforewards.sideProduct['unitaryOP'] = {
-            i: v for i, v in enumerate(unitaryOPList)}
+        currentExp.beforewards.sideProduct['unitaryOP'] = dict(
+            enumerate(unitaryOPList))
 
         # currentExp.beforewards.sideProduct['unitaryOP'] = {
         #     k: {i: np.array(v[i]).tolist() for i in range(*args.unitary_loc)}
@@ -1079,7 +1118,7 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
                 mode=mode,
                 indent=indent,
                 encoding=encoding,
-                jsonablize=jsonablize,
+                jsonable=jsonablize,
             )
 
         return IDNow

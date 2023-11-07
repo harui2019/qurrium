@@ -1,6 +1,5 @@
 # Qurry 🍛 - The Quantum Experiment Manager for Qiskit and The Measuring Tool for Renyi Entropy, Loschmidt Echo, and More
 
-
 This is a tool to measure the Renyi entropy, Loschmidt Echo, and Magnetization Squared of given wave function. Running on **IBM Qiskit** with the function from constructing experiment object to pending the jobs to IBMQ automatically.
 
 ---
@@ -24,13 +23,11 @@ _It's a great thanks for [National Center for Theoretical Sciences, Physics Divi
   - on
     - **Ubuntu 18.04+ LTS** on `x86_64` **(recommended)**
     - **Ubuntu 18.04+ LTS on Windows 10/11 WSL2** on `x86_64` **(recommended)**
-      - We recommend to use Linux based system, due to the GPU acceleration of `Qiskit`, `qiskit-aer-gpu` only works with Nvidia CUDA on Linux.
+      - We strongly recommend to use Linux based system, due to the paralell calculation function only works on Unix-like currently and the GPU acceleration of `Qiskit`, `qiskit-aer-gpu` only works with Nvidia CUDA on Linux.
     - ~~**Windows 10/11** on `x86_64`~~ 
       - currently with issues on `multiprocessing` module on Windows.
-
-  - currently with issues on
-    - **MacOS 12+ ** on **`arm64 (Apple Silicon, M1 chips)`**
-    - **MacOS 12+ ** on **`x86_64 (Intel chips)`**
+    - **MacOS 12+** on **`arm64 (Apple Silicon, M1 chips)`**
+    - **MacOS 12+** on **`x86_64 (Intel chips)`**
       - Maybe some unknown python issues exist.
 
   - with required modules:
@@ -38,7 +35,6 @@ _It's a great thanks for [National Center for Theoretical Sciences, Physics Divi
 
   - with optional modules:
     - `qiskit-aer-gpu`: when use Linux
-    - `torch`: when use Nvidia CUDA and checks availability on Linux.
 
 ---
 

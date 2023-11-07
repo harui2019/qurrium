@@ -1,34 +1,36 @@
+"""
+===========================================================
+Qurry - A Qiskit Macro
+===========================================================
+"""
+import gc
+import inspect
+import warnings
+from abc import abstractmethod, abstractproperty
+from typing import Literal, Union, Optional, Hashable, Type, Any, overload
+from pathlib import Path
+import tqdm
+
 from qiskit import execute, transpile, QuantumCircuit
 from qiskit.quantum_info import Operator
 from qiskit.providers import Backend
 from qiskit.circuit import Gate
-try:
-    from qiskit_aer import AerSimulator
-except ImportError:
-    from qiskit.providers.aer import AerSimulator
 
-import gc
-import warnings
-import tqdm
-import inspect
-from pathlib import Path
-from typing import Literal, Union, Optional, Hashable, Type, Any
-from abc import abstractmethod, abstractproperty
-
-from ..mori import TagList
+from ..tools.backend import AerSimulator
+from ..capsule.mori import TagList
 from ..tools import ResoureWatch, qurryProgressBar, ProcessManager
 from ..declare.default import (
     transpileConfig,
     runConfig,
     managerRunConfig,
-    containChecker,
+    contain_checker,
 )
 from .experiment import ExperimentPrototype, QurryExperiment
 from .container import WaveContainer, ExperimentContainer
 from .multimanager import MultiManager
 from .runner import backendChoiceLiteral, ExtraBackendAccessor
 
-from .utils import get_counts, currentTime, datetimeDict, decomposer_and_drawer
+from .utils import get_counts, current_time, DatetimeDict, decomposer_and_drawer
 from .utils.inputfixer import outfields_check, outfields_hint
 from ..exceptions import (
     QurryResetAccomplished,
@@ -38,9 +40,17 @@ from ..exceptions import (
 # Qurry V0.5.0 - a Qiskit Macro
 
 
-def defaultCircuit(numQubit: int) -> QuantumCircuit:
+def defaultCircuit(num_qubit: int) -> QuantumCircuit:
+    """Default circuit for QurryV5.
+
+    Args:
+        num_qubit (int): Number of qubits.
+
+    Returns:
+        QuantumCircuit: The default circuit.
+    """
     return QuantumCircuit(
-        numQubit, numQubit, name=f'qurry_default_{numQubit}')
+        num_qubit, num_qubit, name=f'qurry_default_{num_qubit}')
 
 
 DefaultResourceWatch = ResoureWatch()
@@ -73,7 +83,8 @@ class QurryV5Prototype:
 
         Args:
             waveCircuit (QuantumCircuit): The wave functions or circuits want to measure.
-            key (Optional[Hashable], optional): Given a specific key to add to the wave function or circuit,
+            key (Optional[Hashable], optional): 
+                Given a specific key to add to the wave function or circuit,
                 if `key == None`, then generate a number as key.
                 Defaults to `None`.
             replace (Literal[True, False, &#39;duplicate&#39;], optional): 
@@ -109,7 +120,8 @@ class QurryV5Prototype:
         Args:
             wave (Optional[Hashable], optional):
                 The key of wave in 'fict' `.waves`.
-                If `wave==None`, then chooses `.lastWave` automatically added by last calling of `.addWave`.
+                If `wave==None`, 
+                then chooses `.lastWave` automatically added by last calling of `.addWave`.
                 Defaults to None.
 
         Returns:
@@ -126,7 +138,8 @@ class QurryV5Prototype:
         Args:
             wave (Optional[Hashable], optional):
                 The key of wave in 'fict' `.waves`.
-                If `wave==None`, then chooses `.lastWave` automatically added by last calling of `.addWave`.
+                If `wave==None`, 
+                then chooses `.lastWave` automatically added by last calling of `.addWave`.
                 Defaults to None.
 
         Returns:
@@ -143,7 +156,8 @@ class QurryV5Prototype:
         Args:
             wave (Optional[Hashable], optional):
                 The key of wave in 'fict' `.waves`.
-                If `wave==None`, then chooses `.lastWave` automatically added by last calling of `.addWave`.
+                If `wave==None`, 
+                then chooses `.lastWave` automatically added by last calling of `.addWave`.
                 Defaults to None.
 
         Returns:
@@ -160,7 +174,8 @@ class QurryV5Prototype:
         Args:
             wave (Optional[Hashable], optional):
                 The key of wave in 'fict' `.waves`.
-                If `wave==None`, then chooses `.lastWave` automatically added by last calling of `.addWave`.
+                If `wave==None`, 
+                then chooses `.lastWave` automatically added by last calling of `.addWave`.
                 Defaults to None.
 
         Returns:
@@ -184,14 +199,14 @@ class QurryV5Prototype:
 
     def __init__(
         self,
-        resourceWatch: ResoureWatch = DefaultResourceWatch,
+        resource_watch: ResoureWatch = DefaultResourceWatch,
     ) -> None:
 
-        if isinstance(resourceWatch, ResoureWatch):
-            self.resourceWatch = resourceWatch
+        if isinstance(resource_watch, ResoureWatch):
+            self.resource_watch = resource_watch
         else:
             raise TypeError(
-                f"resourceWatch must be a ResoureWatch instance, not {type(resourceWatch)}")
+                f"resourceWatch must be a ResoureWatch instance, not {type(resource_watch)}")
 
         self.waves: WaveContainer = WaveContainer()
         """The wave functions container."""
@@ -202,6 +217,11 @@ class QurryV5Prototype:
         self.multimanagers: dict[str, MultiManager] = {}
         """The last multimanager be called.
         Replace the property :prop:`multiNow`. in :cls:`QurryV4`"""
+
+        self.accessor: Optional[ExtraBackendAccessor] = None
+        """The accessor of extra backend.
+        It will be None if no extra backend is loaded.
+        """
 
     # state checking
     @property
@@ -226,7 +246,9 @@ class QurryV5Prototype:
         return self.waves.lastWaveKey
 
     @abstractmethod
-    def paramsControl(self) -> tuple[ExperimentPrototype.arguments, ExperimentPrototype.commonparams, dict[str, Any]]:
+    def paramsControl(
+        self, *arg, **kwargs
+    ) -> tuple[ExperimentPrototype.arguments, ExperimentPrototype.commonparams, dict[str, Any]]:
         """Control the experiment's parameters."""
         raise NotImplementedError
 
@@ -238,21 +260,21 @@ class QurryV5Prototype:
         shots: int = 1024,
         backend: Backend = AerSimulator(),
         # provider: Optional[AccountProvider] = None,
-        runArgs: dict = {},
+        runArgs: Optional[dict[str, Any]] = None,
 
         runBy: Literal['gate', 'operator'] = "gate",
-        transpileArgs: dict = {},
+        transpileArgs: Optional[dict[str, Any]] = None,
         decompose: Optional[int] = 2,
 
         tags: tuple = (),
 
-        defaultAnalysis: list[dict[str, Any]] = [],
+        defaultAnalysis: Optional[list[dict[str, Any]]] = None,
 
         serial: Optional[int] = None,
         summonerID: Optional[Hashable] = None,
         summonerName: Optional[str] = None,
 
-        muteOutfieldsWarning: bool = False,
+        mute_outfields_warning: bool = False,
         _pbar: Optional[tqdm.tqdm] = None,
         **otherArgs: Any
     ) -> Hashable:
@@ -278,8 +300,10 @@ class QurryV5Prototype:
             runArgs (dict, optional): 
                 defaultConfig of :func:`qiskit.execute`. Defaults to `{}`.
             runBy (Literal[&#39;gate&#39;, &#39;operator&#39;], optional): 
-                Construct wave function via :cls:`Operater` for "operator" or :cls:`Gate` for "gate".
-                When use 'IBMQBackend' only allowed to use wave function as `Gate` instead of `Operator`.
+                Construct wave function via :cls:`Operater` 
+                for "operator" or :cls:`Gate` for "gate".
+                When use 'IBMQBackend' only allowed to use wave function 
+                as `Gate` instead of `Operator`.
                 Defaults to "gate".
             transpileArgs (dict, optional):
                 defaultConfig of :func:`qiskit.transpile`. Defaults to `{}`.
@@ -309,13 +333,22 @@ class QurryV5Prototype:
 
         Raises:
             KeyError: Giving an not existed wave key.
-            TypeError: Neither `QuantumCircuit` for directly adding new wave nor `Hashable` for key is given.
+            TypeError: 
+                Neither `QuantumCircuit` for directly adding new wave 
+                nor `Hashable` for key is given.
             TypeError: One of defaultAnalysis is not a dict.
             ValueError: One of defaultAnalysis is invalid.
 
         Returns:
             Hashable: The ID of the experiment.
         """
+
+        if runArgs is None:
+            runArgs = {}
+        if transpileArgs is None:
+            transpileArgs = {}
+        if defaultAnalysis is None:
+            defaultAnalysis = []
 
         if expID in self.exps:
             self.exps.call(expID)
@@ -324,13 +357,13 @@ class QurryV5Prototype:
             assert self.exps.lastID == self.lastID
             return self.lastID
         if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str(f"Generating experiment... ")
+            _pbar.set_description_str("Generating experiment... ")
 
         # wave
         if isinstance(wave, QuantumCircuit):
             waveKey = self.add(wave)
         elif isinstance(wave, Hashable):
-            if wave == None:
+            if wave is None:
                 ...
             elif not self.has(wave):
                 raise KeyError(f"Wave '{wave}' not found in '.waves'")
@@ -344,7 +377,7 @@ class QurryV5Prototype:
         outfields: dict[str, Any]
         # Given parameters and default parameters
         if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str(f"Prepaing parameters...")
+            _pbar.set_description_str("Prepaing parameters...")
         ctrlArgs, commons, outfields = self.paramsControl(
             waveKey=waveKey,
             expID=expID,
@@ -366,33 +399,35 @@ class QurryV5Prototype:
             serial=serial,
             summonerID=summonerID,
             summonerName=summonerName,
-            datetimes=datetimeDict(),
+            datetimes=DatetimeDict(),
             **otherArgs)
 
         outfield_maybe, outfields_unknown = outfields_check(
             outfields, ctrlArgs._fields+commons._fields)
-        outfields_hint(outfield_maybe, outfields_unknown, muteOutfieldsWarning)
+        outfields_hint(outfield_maybe, outfields_unknown,
+                       mute_outfields_warning)
 
         if len(commons.defaultAnalysis) > 0:
             for index, analyze_input in enumerate(commons.defaultAnalysis):
                 if not isinstance(analyze_input, dict):
                     raise TypeError(
-                        f"Each element of 'defaultAnalysis' must be a dict, not {type(analyze_input)}, for index {index} in 'defaultAnalysis'")
+                        "Each element of 'defaultAnalysis' must be a dict, " +
+                        f"not {type(analyze_input)}, for index {index} in 'defaultAnalysis'")
                 try:
                     self.experiment.analysis_container.input_filter(
                         **analyze_input)
                 except TypeError as e:
                     raise ValueError(
-                        f'analysis input filter found index {index} in "defaultAnalysis" failed: {e}')
+                        f'analysis input filter found index {index} in "defaultAnalysis"') from e
 
         # config check
         if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str(f"Checking parameters... ")
-        containChecker(commons.transpileArgs, transpileConfig)
-        containChecker(commons.runArgs, runConfig)
+            _pbar.set_description_str("Checking parameters... ")
+        contain_checker(commons.transpileArgs, transpileConfig)
+        contain_checker(commons.runArgs, runConfig)
 
         if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str(f"Create experiment instance... ")
+            _pbar.set_description_str("Create experiment instance... ")
         newExps = self.experiment(
             **ctrlArgs._asdict(),
             **commons._asdict(),
@@ -413,6 +448,15 @@ class QurryV5Prototype:
         return self.lastID
 
     # Circuit
+    @overload
+    @abstractmethod
+    def method(
+        self,
+        expID: Hashable,
+        _pbar: Optional[tqdm.tqdm] = None,
+    ) -> list[QuantumCircuit]:
+        ...
+
     @abstractmethod
     def method(
         self,
@@ -437,7 +481,7 @@ class QurryV5Prototype:
         jsonablize: bool = False,
 
         workers_num: Optional[int] = None,
-        _exportMute: bool = True,
+        _export_mute: bool = True,
         _pbar: Optional[tqdm.tqdm] = None,
         **allArgs: Any,
     ) -> Hashable:
@@ -456,10 +500,11 @@ class QurryV5Prototype:
                 The encoding of json file. Defaults to 'utf-8'.
             jsonablize (bool, optional):
                 Whether to jsonablize the experiment output. Defaults to False.
-            _exportMute (bool, optional):
+            _export_mute (bool, optional):
                 Whether to mute the export hint. Defaults to True.
 
-            allArgs: all arguments will handle by `self.paramsControl()` and export as specific format.
+            allArgs: 
+                all arguments will handle by `self.paramsControl()` and export as specific format.
 
         Returns:
             Hashable: The ID of the experiment.
@@ -473,7 +518,7 @@ class QurryV5Prototype:
 
         # preparing
         if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str(f"Parameter loading...")
+            _pbar.set_description_str("Parameter loading...")
 
         IDNow = self._paramsControlMain(**allArgs, _pbar=_pbar)
         assert IDNow in self.exps, f"ID {IDNow} not found."
@@ -485,7 +530,7 @@ class QurryV5Prototype:
 
         # circuit
         if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str(f"Circuit creating...")
+            _pbar.set_description_str("Circuit creating...")
 
         howTheMethodGetArgs = inspect.signature(self.method).parameters
         if '_pbar' in howTheMethodGetArgs:
@@ -509,7 +554,7 @@ class QurryV5Prototype:
 
         # transpile
         if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str(f"Circuit transpiling...")
+            _pbar.set_description_str("Circuit transpiling...")
         transpiledCirqs: list[QuantumCircuit] = transpile(
             cirqs,
             backend=currentExp.commons.backend,
@@ -518,11 +563,11 @@ class QurryV5Prototype:
         for _w in transpiledCirqs:
             currentExp.beforewards.circuit.append(_w)
         # commons
-        date = currentTime()
+        date = current_time()
         currentExp.commons.datetimes['build'] = date
 
         if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str(f"Setup data exporting...")
+            _pbar.set_description_str("Setup data exporting...")
         # export may be slow, consider export at finish or something
         if isinstance(saveLocation, (Path, str)):
             currentExp.write(
@@ -530,8 +575,8 @@ class QurryV5Prototype:
                 mode=mode,
                 indent=indent,
                 encoding=encoding,
-                jsonablize=jsonablize,
-                mute=_exportMute,
+                jsonable=jsonablize,
+                mute=_export_mute,
             )
 
         return IDNow
@@ -544,7 +589,7 @@ class QurryV5Prototype:
         indent: int = 2,
         encoding: str = 'utf-8',
         jsonablize: bool = False,
-        _exportMute: bool = True,
+        _export_mute: bool = True,
         **allArgs: Any,
     ) -> Hashable:
         """Export the result after running the job.
@@ -561,10 +606,11 @@ class QurryV5Prototype:
                 The encoding of json file. Defaults to 'utf-8'.
             jsonablize (bool, optional):
                 Whether to jsonablize the experiment output. Defaults to False.
-            _exportMute (bool, optional):
+            _export_mute (bool, optional):
                 Whether to mute the export hint. Defaults to True.
 
-            allArgs: all arguments will handle by `self.paramsControl()` and export as specific format.
+            allArgs: 
+                all arguments will handle by `self.paramsControl()` and export as specific format.
 
         Returns:
             Hashable: The ID of the experiment.
@@ -590,7 +636,7 @@ class QurryV5Prototype:
             shots=currentExp.commons.shots,
         )
         # commons
-        date = currentTime()
+        date = current_time()
         currentExp.commons.datetimes['run'] = date
         # beforewards
         jobID = execution.job_id()
@@ -606,8 +652,8 @@ class QurryV5Prototype:
                 mode=mode,
                 indent=indent,
                 encoding=encoding,
-                jsonablize=jsonablize,
-                mute=_exportMute,
+                jsonable=jsonablize,
+                mute=_export_mute,
             )
 
         return IDNow
@@ -620,7 +666,7 @@ class QurryV5Prototype:
         indent: int = 2,
         encoding: str = 'utf-8',
         jsonablize: bool = False,
-        _exportMute: bool = False,
+        _export_mute: bool = False,
         **allArgs: Any,
     ) -> Hashable:
         """Export the result after running the job.
@@ -637,10 +683,11 @@ class QurryV5Prototype:
                 The encoding of json file. Defaults to 'utf-8'.
             jsonablize (bool, optional):
                 Whether to jsonablize the experiment output. Defaults to False.
-            _exportMute (bool, optional):
+            _export_mute (bool, optional):
                 Whether to mute the export hint. Defaults to True.
 
-            allArgs: all arguments will handle by `self.paramsControl()` and export as specific format.
+            allArgs: 
+                all arguments will handle by `self.paramsControl()` and export as specific format.
 
         Returns:
             Hashable: The ID of the experiment.
@@ -681,8 +728,8 @@ class QurryV5Prototype:
                 mode=mode,
                 indent=indent,
                 encoding=encoding,
-                jsonablize=jsonablize,
-                mute=_exportMute,
+                jsonable=jsonablize,
+                mute=_export_mute,
             )
 
         return IDNow
@@ -695,7 +742,7 @@ class QurryV5Prototype:
         indent: int = 2,
         encoding: str = 'utf-8',
         jsonablize: bool = False,
-        _exportMute: bool = False,
+        _export_mute: bool = False,
 
         **otherArgs: Any
     ):
@@ -725,7 +772,7 @@ class QurryV5Prototype:
                 The encoding of json file. Defaults to 'utf-8'.
             jsonablize (bool, optional):
                 Whether to jsonablize the experiment output. Defaults to False.
-            _exportMute (bool, optional):
+            _export_mute (bool, optional):
                 Whether to mute the export hint. Defaults to True.
 
             otherArgs (Any):
@@ -756,8 +803,8 @@ class QurryV5Prototype:
                 mode=mode,
                 indent=indent,
                 encoding=encoding,
-                jsonablize=jsonablize,
-                mute=_exportMute,
+                jsonable=jsonablize,
+                mute=_export_mute,
             )
 
         return IDNow
@@ -768,7 +815,7 @@ class QurryV5Prototype:
     def _paramsControlMulti(
         self,
         # configList
-        configList: list = [],
+        configList: list[dict[str, Any]],
         # defaultConfig of `IBMQJobManager().run`
         # Multiple jobs shared
         summonerName: str = 'exps',
@@ -778,26 +825,23 @@ class QurryV5Prototype:
         # provider: AccountProvider = None,
         # Other arguments of experiment
         # Multiple jobs shared
-        tags: list[str] = [],
+        tags: Optional[list[str]] = None,
         saveLocation: Union[Path, str] = Path('./'),
         jobsType: backendChoiceLiteral = "local",
         # IBMQJobManager() dedicated
-        managerRunArgs: dict[str, Any] = {
-            'max_experiments_per_job': 200,
-        },
+        managerRunArgs: Optional[dict[str, Any]] = None,
         filetype: TagList._availableFileType = 'json',
 
-        isRetrieve: bool = False,
-        isRead: bool = False,
-        readVersion: Literal['v4', 'v5'] = 'v5',
-        readFromTarfile: bool = False,
+        is_retrieve: bool = False,
+        is_read: bool = False,
+        read_version: Literal['v4', 'v5'] = 'v5',
+        read_from_tarfile: bool = False,
     ) -> tuple[list[dict[str, Any]], str]:
         """Control the experiment's parameters for running multiple jobs.
 
         Args:
             configList (list, optional): 
                 The list of default configurations of multiple experiment. 
-                Defaults to [].
             summonerName (str, optional): 
                 Name for multimanager. Defaults to 'exps'.
             summonerID (Optional[str], optional):
@@ -823,43 +867,55 @@ class QurryV5Prototype:
                 Defaults to `{
                     'max_experiments_per_job': 200,
                 }`.
-            jobsType (Literal[&quot;local&quot;, &quot;IBMQ&quot;, &quot;AWS_Bracket&quot;, &quot;Azure_Q&quot;], optional): 
+            jobsType (Literal[
+                'local', 'IBMQ', 'AWS_Bracket', '''Azure_Q'
+            ], optional): 
                 What types of the backend will run on. Defaults to "local".
-            isRetrieve (bool, optional):
+            is_retrieve (bool, optional):
                 Whether this jobs will retrieve the pending experiment after initializing.
                 Defaults to `False`.
-            isRead (bool, optional): 
+            is_read (bool, optional): 
                 Whether this jobs will read the existed experiment data during initializing.
                 Defaults to False.
-            readVersion (Literal['v4', 'v5'], optional):
+            read_version (Literal['v4', 'v5'], optional):
                 The version of the data to be read.
                 Defaults to 'v5'.
 
         Returns:
             tuple[list[dict[str, Any]], str]: 
-                The list of formated configuration of each experimemt and summonerID (ID of multimanager).
+                The list of formated configuration of 
+                each experimemt and summonerID (ID of multimanager).
         """
+
+        if tags is None:
+            tags = []
+        if managerRunArgs is None:
+            managerRunArgs = {
+                'max_experiments_per_job': 200,
+            }
 
         if summonerID in self.multimanagers:
             currentMultimanager = self.multimanagers[summonerID]
-            return list(currentMultimanager.beforewards.expsConfig.values()), currentMultimanager.summonerID
+            return list(
+                currentMultimanager.beforewards.expsConfig.values()
+            ), currentMultimanager.summonerID
 
-        isRead = isRetrieve | isRead
+        is_read = is_retrieve | is_read
 
         for config, checker in [
             (managerRunArgs, managerRunConfig),
         ]:
-            containChecker(config, checker)
+            contain_checker(config, checker)
 
-        if isRead:
+        if is_read:
             currentMultimanager = MultiManager(
                 summonerID=None,
                 summonerName=summonerName,
-                isRead=isRead,
-                readFromTarfile=readFromTarfile,
+                is_read=is_read,
+                read_from_tarfile=read_from_tarfile,
 
                 saveLocation=saveLocation,
-                version=readVersion,
+                version=read_version,
             )
         else:
             currentMultimanager = MultiManager(
@@ -876,7 +932,7 @@ class QurryV5Prototype:
                 jobsType=jobsType,
                 managerRunArgs=managerRunArgs,
                 filetype=filetype,
-                datetimes=datetimeDict(),
+                datetimes=DatetimeDict(),
             )
 
         self.multimanagers[currentMultimanager.summonerID] = currentMultimanager
@@ -902,7 +958,7 @@ class QurryV5Prototype:
     def multiBuild(
         self,
         # configList
-        configList: list = [],
+        configList: list[dict[str, Any]],
         # defaultConfig of `IBMQJobManager().run`
         # Multiple jobs shared
         summonerName: str = 'exps',
@@ -910,8 +966,8 @@ class QurryV5Prototype:
         shots: int = 1024,
         backend: Backend = AerSimulator(),
         # IBMQJobManager() dedicated
-        tags: list[str] = [],
-        managerRunArgs: dict = {},
+        tags: Optional[list[str]] = None,
+        managerRunArgs: Optional[dict[str, Any]] = None,
         # Other arguments of experiment
         # Multiple jobs shared
         saveLocation: Union[Path, str] = Path('./'),
@@ -941,7 +997,9 @@ class QurryV5Prototype:
                 Where to save the export content as `json` file.
                 If `saveLocation == None`, then cancelled the file to be exported.
                 Defaults to Path('./').
-            jobsType (Literal[&quot;local&quot;, &quot;IBMQ&quot;, &quot;AWS_Bracket&quot;, &quot;Azure_Q&quot;], optional): 
+            jobsType (Literal[
+                'local', 'IBMQ', 'AWS_Bracket', 'Azure_Q'
+            ], optional): 
                 What types of the backend will run on. Defaults to "local".
             filetype (TagList._availableFileType, optional): 
                 The file type of export data. Defaults to 'json' (recommend).
@@ -949,8 +1007,12 @@ class QurryV5Prototype:
         Returns:
             Hashable: SummonerID (ID of multimanager).
         """
+        if tags is None:
+            tags = []
+        if managerRunArgs is None:
+            managerRunArgs = {}
 
-        print(f"| MultiManager building...")
+        print("| MultiManager building...")
         initedConfigList, besummonned = self._paramsControlMulti(
             configList=configList,
             shots=shots,
@@ -962,8 +1024,8 @@ class QurryV5Prototype:
             summonerID=summonerID,
             saveLocation=saveLocation,
             jobsType=jobsType,
-            isRetrieve=False,
-            isRead=False,
+            is_retrieve=False,
+            is_read=False,
             filetype=filetype,
         )
         currentMultimanager = self.multimanagers[besummonned]
@@ -1001,7 +1063,7 @@ class QurryV5Prototype:
     def multiOutput(
         self,
         # configList
-        configList: list = [],
+        configList: list[dict[str, Any]],
 
         # defaultConfig of `IBMQJobManager().run`
         # Multiple jobs shared
@@ -1009,7 +1071,7 @@ class QurryV5Prototype:
         summonerID: Optional[str] = None,
         shots: int = 1024,
         backend: Backend = AerSimulator(),
-        tags: list[str] = [],
+        tags: Optional[list[str]] = None,
         # provider: AccountProvider = None,
         # IBMQJobManager() dedicated
         # Other arguments of experiment
@@ -1017,7 +1079,7 @@ class QurryV5Prototype:
         saveLocation: Union[Path, str] = Path('./'),
         filetype: TagList._availableFileType = 'json',
         # analysis preparation
-        defaultMultiAnalysis: list[dict[str, Any]] = [],
+        defaultMultiAnalysis: Optional[list[dict[str, Any]]] = None,
         analysisName: str = 'report',
     ) -> Hashable:
         """Running multiple jobs on local backend and output the analysis.
@@ -1056,8 +1118,12 @@ class QurryV5Prototype:
         Returns:
             Hashable: SummonerID (ID of multimanager).
         """
+        if tags is None:
+            tags = []
+        if defaultMultiAnalysis is None:
+            defaultMultiAnalysis = []
 
-        print(f"| MultiOutput running...")
+        print("| MultiOutput running...")
         besummonned = self.multiBuild(
             configList=configList,
             shots=shots,
@@ -1083,7 +1149,7 @@ class QurryV5Prototype:
             currentID = self.output(
                 expID=id_exec,
                 saveLocation=currentMultimanager.multicommons.saveLocation,
-                _exportMute=True,
+                _export_mute=True,
             )
 
             circSerialLen = len(circSerial)
@@ -1096,11 +1162,12 @@ class QurryV5Prototype:
             currentMultimanager.beforewards.circuitsMap[currentID] = tmpCircSerial
             currentMultimanager.beforewards.jobID.append((currentID, 'local'))
 
-            currentMultimanager.afterwards.allCounts[currentID] = self.exps[currentID].afterwards.counts
+            currentMultimanager.afterwards.allCounts[
+                currentID] = self.exps[currentID].afterwards.counts
 
-        currentMultimanager.multicommons.datetimes.addSerial('output')
+        currentMultimanager.multicommons.datetimes.add_serial('output')
         if len(defaultMultiAnalysis) > 0:
-            print(f"| MultiOutput analyzing...")
+            print("| MultiOutput analyzing...")
             for analysis in defaultMultiAnalysis:
                 self.multiAnalysis(
                     summonerID=currentMultimanager.multicommons.summonerID,
@@ -1117,14 +1184,14 @@ class QurryV5Prototype:
     def multiPending(
         self,
         # configList
-        configList: list = [],
+        configList: list[dict[str, Any]],
         # Multiple jobs shared
         summonerName: str = 'exps',
         summonerID: Optional[str] = None,
         shots: int = 1024,
         backend: Backend = AerSimulator(),
-        tags: list[str] = [],
-        managerRunArgs: dict = {},
+        tags: Optional[list[str]] = None,
+        managerRunArgs: Optional[dict[str, Any]] = None,
         # Other arguments of experiment
         # Multiple jobs shared
         saveLocation: Union[Path, str] = Path('./'),
@@ -1134,8 +1201,6 @@ class QurryV5Prototype:
 
         pendingStrategy: Literal[
             'default', 'onetime', 'each', 'tags'] = 'default',
-        # defaultMultiAnalysis: list[dict[str, Any]] = [],
-        # analysisName: str = 'report',
 
     ) -> Hashable:
         """Pending the multiple jobs on IBMQ backend or other remote backend.
@@ -1169,7 +1234,6 @@ class QurryV5Prototype:
         Returns:
             Hashable: SummonerID (ID of multimanager).
         """
-
         besummonned = self.multiBuild(
             configList=configList,
             shots=shots,
@@ -1185,7 +1249,7 @@ class QurryV5Prototype:
         currentMultimanager = self.multimanagers[besummonned]
         assert currentMultimanager.summonerID == besummonned
 
-        print(f"| MultiPending running...")
+        print("| MultiPending running...")
         self.accessor = ExtraBackendAccessor(
             multimanager=currentMultimanager,
             experimentContainer=self.exps,
@@ -1205,8 +1269,9 @@ class QurryV5Prototype:
         summonerID: str,
         analysisName: str = 'report',
         noSerialize: bool = False,
-        *args,
-        specificAnalysisArgs: dict[Hashable, Union[dict[str, Any], bool]] = {},
+        specificAnalysisArgs: Optional[
+            dict[Hashable, Union[dict[str, Any], bool]]
+        ] = None,
         _write: bool = True,
         **analysisArgs: Any,
     ) -> Hashable:
@@ -1217,7 +1282,7 @@ class QurryV5Prototype:
             analysisName (str, optional):
                 The name of the analysis.
                 Defaults to 'report'.
-            specificAnalysisArgs (dict[Hashable, dict[str, Any]], optional): 
+            specificAnalysisArgs (Optional[dict[Hashable, dict[str, Any]]], optional): 
                 Specific some experiment to run the analysis arguments for each experiment.
                 Defaults to {}.
 
@@ -1229,10 +1294,8 @@ class QurryV5Prototype:
         Returns:
             Hashable: SummonerID (ID of multimanager).
         """
-
-        if len(args) > 0:
-            raise ValueError(
-                "No positional arguments allowed except `summonerID`.")
+        if specificAnalysisArgs is None:
+            specificAnalysisArgs = {}
 
         if summonerID in self.multimanagers:
             currentMultimanager = self.multimanagers[summonerID]
@@ -1299,7 +1362,8 @@ class QurryV5Prototype:
         else:
             if compressOverwrite or remainOnlyCompressed:
                 warnings.warn(
-                    "'compressOverwrite' or 'remainOnlyCompressed' is set to True, but 'compress' is False.")
+                    "'compressOverwrite' or 'remainOnlyCompressed' is set to True, " +
+                    "but 'compress' is False.")
 
         return currentMultimanager.multicommons.summonerID
 
@@ -1313,7 +1377,7 @@ class QurryV5Prototype:
         # Multiple jobs shared
         saveLocation: Union[Path, str] = Path('./'),
 
-        readFromTarfile: bool = False,
+        read_from_tarfile: bool = False,
         # defaultMultiAnalysis: list[dict[str, Any]] = []
         # analysisName: str = 'report',
     ) -> Hashable:
@@ -1333,14 +1397,15 @@ class QurryV5Prototype:
             Hashable: SummonerID (ID of multimanager).
         """
 
-        print(f"| MultiRead running...")
+        print("| MultiRead running...")
         initedConfigList, besummonned = self._paramsControlMulti(
+            configList=[],
             summonerName=summonerName,
             summonerID=summonerID,
             saveLocation=saveLocation,
-            isRead=True,
+            is_read=True,
 
-            readFromTarfile=readFromTarfile,
+            read_from_tarfile=read_from_tarfile,
         )
 
         assert besummonned in self.multimanagers
@@ -1378,9 +1443,9 @@ class QurryV5Prototype:
         saveLocation: Union[Path, str] = Path('./'),
         refresh: bool = False,
         overwrite: bool = False,
-        readFromTarfile: bool = False,
+        read_from_tarfile: bool = False,
 
-        defaultMultiAnalysis: list[dict[str, Any]] = [],
+        defaultMultiAnalysis: Optional[list[dict[str, Any]]] = None,
         analysisName: str = 'report',
         skipCompress: bool = False
     ) -> Hashable:
@@ -1420,17 +1485,19 @@ class QurryV5Prototype:
         Returns:
             Hashable: SummonerID (ID of multimanager).
         """
+        if defaultMultiAnalysis is None:
+            defaultMultiAnalysis = []
 
         besummonned = self.multiRead(
             summonerName=summonerName,
             summonerID=summonerID,
             saveLocation=saveLocation,
-            readFromTarfile=readFromTarfile,
+            read_from_tarfile=read_from_tarfile,
         )
         currentMultimanager = self.multimanagers[besummonned]
         assert currentMultimanager.summonerID == besummonned
 
-        print(f"| MultiRetrieve running...")
+        print("| MultiRetrieve running...")
         jobsType, pendingStrategy = currentMultimanager.multicommons.jobsType.split(
             '.')
 
@@ -1454,7 +1521,8 @@ class QurryV5Prototype:
 
         else:
             warnings.warn(
-                f"Jobstype of '{besummonned}' is {currentMultimanager.multicommons.jobsType} which is not supported.")
+                f"Jobstype of '{besummonned}' is " +
+                f"{currentMultimanager.multicommons.jobsType} which is not supported.")
             return besummonned
 
         print(f"| Retrieve {currentMultimanager.summonerName} completed.")
@@ -1502,11 +1570,12 @@ class QurryV5Prototype:
         """
 
         initedConfigList, besummonned = self._paramsControlMulti(
+            configList=[],
             summonerName=summonerName,
             summonerID=summonerID,
             saveLocation=saveLocation,
-            isRead=True,
-            readVersion='v4',
+            is_read=True,
+            read_version='v4',
         )
 
         assert besummonned in self.multimanagers
@@ -1568,6 +1637,7 @@ class QurryV5Prototype:
 
 
 class QurryV5(QurryV5Prototype):
+    """A QurryV5 instance is a container of experiments."""
 
     @classmethod
     @property
@@ -1641,7 +1711,6 @@ class QurryV5(QurryV5Prototype):
         wave: Union[QuantumCircuit, Any, None] = None,
         expName: str = 'exps',
         sampling: int = 1,
-        *args,
         saveLocation: Optional[Union[Path, str]] = None,
         mode: str = 'w+',
         indent: int = 2,
@@ -1702,7 +1771,7 @@ class QurryV5(QurryV5Prototype):
                 mode=mode,
                 indent=indent,
                 encoding=encoding,
-                jsonablize=jsonablize,
+                jsonable=jsonablize,
             )
 
         return IDNow

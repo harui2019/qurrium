@@ -18,7 +18,7 @@ class IOComplex(NamedTuple):
 
 
 def naming(
-    isRead: bool = False,
+    is_read: bool = False,
     expsName: str = 'exps',
     saveLocation: Union[Path, str] = Path('./'),
     shortName: str = 'qurry',
@@ -29,7 +29,7 @@ def naming(
     """The process of naming.
 
     Args:
-        isRead (bool, optional): 
+        is_read (bool, optional): 
             Whether to read the experiment data.
             Defaults to False.
 
@@ -56,7 +56,7 @@ def naming(
         raise TypeError(
             f"The saveLocation '{saveLocation}' is not the type of 'str' or 'Path' but '{type(saveLocation)}'.")
 
-    if isRead:
+    if is_read:
         immutableName = expsName
         exportLocation = saveLocation / immutableName
         tarName = f"{immutableName}.{FULL_SUFFIX_OF_COMPRESS_FORMAT}"

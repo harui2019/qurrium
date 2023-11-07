@@ -1,15 +1,13 @@
+import warnings
+from typing import Union, NamedTuple, Literal, Optional, overload
+from abc import abstractmethod
+
 from qiskit import QuantumCircuit, QuantumRegister, transpile
 from qiskit.quantum_info import Operator
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.instruction import Instruction
-try:
-    from qiskit_aer import AerProvider, AerSimulator
-except ImportError:
-    from qiskit.providers.aer import AerProvider, AerSimulator
 
-import warnings
-from typing import Union, NamedTuple, Literal, Optional, overload
-from abc import abstractmethod
+from ..tools.backend import AerProvider, AerSimulator
 
 
 AER_BACKEND: AerSimulator = AerProvider().get_backend('aer_simulator')
@@ -137,7 +135,10 @@ class Qurecipe:
             remake (bool, optional): Regenerate instruction. Defaults to False.
 
         Returns:
-            waveGetter[waveReturn]: Instrunction.
+            Union[
+                list[Union[Gate, Operator, Instruction, QuantumCircuit]], 
+                Union[Gate, Operator, Instruction, QuantumCircuit]
+            ]: Instrunction.
         """
 
         if _i is None:

@@ -1,6 +1,12 @@
 [build-system]
 requires = [
+    "pytest",
     "cython", 
     "setuptools", 
-    "wheel"
+    "setuptools-rust",
+    "wheel",
 ]
+build-backend = "setuptools.build_meta"
+
+# If you find some configurations are similar to what qiskit does,
+# yes, it is. I learned from them.

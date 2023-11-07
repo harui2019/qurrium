@@ -1,10 +1,9 @@
-from qiskit.result import Result
-from qiskit.providers import Backend
+"""
+================================================================
+MultiManager for Qurry (:mod:`qurry.qurrium.multimanager`)
+================================================================
 
-from pathlib import Path
-from typing import Literal, Union, Optional, NamedTuple, Hashable, Any, Iterable
-from uuid import uuid4
-from tqdm.contrib.concurrent import process_map
+"""
 import os
 import gc
 import shutil
@@ -12,51 +11,58 @@ import json
 import tarfile
 import warnings
 
+from pathlib import Path
+from typing import Literal, Union, Optional, NamedTuple, Hashable, Any, Iterable
+from uuid import uuid4
+from tqdm.contrib.concurrent import process_map
+
+from qiskit.result import Result
+from qiskit.providers import Backend
+
 from .container import ExperimentContainer, QuantityContainer
 from .experiment import ExperimentPrototype
 from .utils.iocontrol import naming
-from .utils.datetime import currentTime, datetimeDict
+from .utils.datetime import current_time, DatetimeDict
+from ..declare.multimanager import multicommonConfig
 from ..tools import qurryProgressBar, DEFAULT_POOL_SIZE
-from ..mori import TagList, syncControl, defaultConfig
-from ..mori.quick import quickJSON, quickRead
+from ..capsule import quickJSON, quickRead
+from ..capsule.mori import TagList, GitSyncControl
 from ..exceptions import (
+    QurryInvalidArgument,
     QurryProtectContent,
     QurryResetAccomplished,
     QurryResetSecurityActivated
-)
-
-multicommonConfig = defaultConfig(
-    name='multicommon',
-    default={
-        'summonerID': None,
-        'summonerName': None,
-        'tags': [],
-        'shots': 0,
-        'backend': None,
-        'saveLocation': None,
-        'exportLocation': None,
-        'files': {},
-        'jobsType': None,
-        'managerRunArgs': None,
-        'filetype': 'json',
-        'datetimes': datetimeDict(),
-    }
 )
 
 
 def write_caller(
     iterable: tuple[ExperimentPrototype, Union[Path, str], Hashable]
 ) -> tuple[Hashable, dict[str, str]]:
-    experiment, saveLocation, summonerID = iterable
+    """The caller of :func:`ExperimentPrototype.write` for multiprocessing.
+
+    Args:
+        iterable (tuple[ExperimentPrototype, Union[Path, str], Hashable]):
+            The iterable of :func:`ExperimentPrototype.write` for multiprocessing.
+
+            - iterable[0]: ExperimentPrototype
+            - iterable[1]: saveLocation
+            - iterable[2]: _qurryinfo_hold_access
+
+    Returns:
+        tuple[Hashable, dict[str, str]]: The tuple of experimentID and the dict of files.
+    """
+    experiment, save_location, summoner_id = iterable
 
     return experiment.write(
-        saveLocation=saveLocation,
+        saveLocation=save_location,
         mute=True,
-        _qurryinfo_hold_access=summonerID,
+        _qurryinfo_hold_access=summoner_id,
     )
 
 
 class MultiManager:
+    """The manager of multiple experiments.
+    """
 
     class multicommonparams(NamedTuple):
         """Multiple jobs shared. `argsMultiMain` in V4 format.
@@ -93,7 +99,7 @@ class MultiManager:
         filetype: TagList._availableFileType
 
         # header
-        datetimes: datetimeDict
+        datetimes: DatetimeDict
 
     class before(NamedTuple):
         """`dataNeccessary` and `expsMultiMain` in V4 format."""
@@ -104,18 +110,24 @@ class MultiManager:
         """The map with tags of index of experiments, which multiple experiments shared."""
 
         pendingPools: TagList[int]
-        """The pool of pending jobs, which multiple experiments shared, it works only when executing experiments is remote."""
+        """The pool of pending jobs, which multiple experiments shared, 
+        it works only when executing experiments is remote.
+        """
         circuitsMap: TagList[str]
-        """The map of circuits of each experiments in the index of pending, which multiple experiments shared."""
+        """The map of circuits of each experiments in the index of pending, 
+        which multiple experiments shared.
+        """
         jobID: list[Iterable[Union[str, tuple, Hashable, None]]]
-        """The list of jobID in pending, which multiple experiments shared, it works only when executing experiments is remote."""
+        """The list of jobID in pending, which multiple experiments shared, 
+        it works only when executing experiments is remote.
+        """
 
         jobTagList: TagList[str]
         filesTagList: TagList[str]
         indexTagList: TagList[Union[str, int]]
 
         @staticmethod
-        def _exportingName():
+        def _exporting_name():
             return {
                 'expsConfig': 'exps.config',
                 'circuitsNum': 'circuitsNum',
@@ -132,9 +144,13 @@ class MultiManager:
         def _read(
             cls,
             exportLocation: Path,
-            fileLocation: dict[str, Union[Path, dict[str, str]]] = {},
+            fileLocation: Optional[
+                dict[str, Union[Path, dict[str, str]]]
+            ] = None,
             version: Literal['v5', 'v7'] = 'v5',
         ):
+            if fileLocation is None:
+                fileLocation = {}
 
             return cls(
                 expsConfig=quickRead(
@@ -190,7 +206,7 @@ class MultiManager:
         """The dict of all counts of each experiments."""
 
         @staticmethod
-        def _exportingName():
+        def _exporting_name():
             return {
                 'retrievedResult': 'retrievedResult',
                 'allCounts': 'allCounts',
@@ -200,9 +216,13 @@ class MultiManager:
         def _read(
             cls,
             exportLocation: Path,
-            fileLocation: dict[str, Union[Path, dict[str, str]]] = {},
+            fileLocation: Optional[
+                dict[str, Union[Path, dict[str, str]]]
+            ] = None,
             version: Literal['v5', 'v7'] = 'v5',
         ):
+            if fileLocation is None:
+                fileLocation = {}
             return cls(
                 retrievedResult={},
                 allCounts=quickRead(
@@ -226,6 +246,10 @@ class MultiManager:
             security (bool, optional): Security for reset. Defaults to `False`.
             muteWarning (bool, optional): Mute the warning message. Defaults to `False`.
         """
+        
+        if len(args) > 0:
+            raise ValueError(
+                f"{self.__name__} can't be reset with positional arguments.")
 
         if security and isinstance(security, bool):
             self.afterwards = self.afterwards._replace(
@@ -251,7 +275,9 @@ class MultiManager:
     """The content would not be synchronized."""
 
     after_lock: bool = False
-    """Protect the :cls:`afterward` content to be overwritten. When setitem is called and completed, it will be setted as `False` automatically."""
+    """Protect the :cls:`afterward` content to be overwritten. 
+    When setitem is called and completed, it will be setted as `False` automatically.
+    """
     mute_auto_lock: bool = False
     """Whether mute the auto-lock message."""
 
@@ -281,21 +307,23 @@ class MultiManager:
                 f"{key} is not a valid field of '{self.before.__name__}' and '{self.after.__name__}'.")
 
         gc.collect()
-        if self.after_lock != False:
+        if self.after_lock is not False:
             self.after_lock = False
             if not self.mute_auto_lock:
                 print(
-                    f"after_lock is locked automatically now, you can unlock by using `.unlock_afterward()` to set value to :cls:`afterward`.")
+                    "after_lock is locked automatically now, "+
+                    "you can unlock by using `.unlock_afterward()` "+
+                    "to set value to :cls:`afterward`."
+                )
             self.mute_auto_lock = False
 
     def __getitem__(self, key) -> Any:
         if key in self.before._fields:
             return getattr(self.beforewards, key)
-        elif key in self.after._fields:
+        if key in self.after._fields:
             return getattr(self.afterwards, key)
-        else:
-            raise ValueError(
-                f"{key} is not a valid field of '{self.before.__name__}' and '{self.after.__name__}'.")
+        raise ValueError(
+            f"{key} is not a valid field of '{self.before.__name__}' and '{self.after.__name__}'.")
 
     @property
     def summonerID(self) -> str:
@@ -312,9 +340,9 @@ class MultiManager:
         summonerName: str,
         saveLocation: Union[Path, str] = Path('./'),
 
-        isRead: bool = False,
+        is_read: bool = False,
         encoding: str = 'utf-8',
-        readFromTarfile: bool = False,
+        read_from_tarfile: bool = False,
 
         filetype: TagList._availableFileType = 'json',
         version: Literal['v4', 'v5'] = 'v5',
@@ -329,7 +357,7 @@ class MultiManager:
             saveLocation (Union[Path, str]): _description_
             initedConfigList (list): _description_
             state (Literal[&quot;init&quot;, &quot;pending&quot;, &quot;completed&quot;]): _description_
-            isRead (bool, optional): _description_. Defaults to False.
+            is_read (bool, optional): _description_. Defaults to False.
             overwrite (bool, optional): _description_. Defaults to False.
 
         Raises:
@@ -342,13 +370,15 @@ class MultiManager:
                 f"{self.__name__} can't be initialized with positional arguments.")
         try:
             hash(summonerID)
-        except TypeError as e:
+        except TypeError:
             summonerID = None
             warnings.warn(
-                "'expID' is not hashable, it will be set to generate automatically.")
+                "'expID' is not hashable, it will be set to generate automatically.",
+                category=QurryInvalidArgument
+            )
         finally:
             if summonerID is None:
-                if isRead:
+                if is_read:
                     if version == 'v5':
                         summonerID = ''
                     else:
@@ -358,9 +388,9 @@ class MultiManager:
             else:
                 ...
 
-        self.gitignore = syncControl()
+        self.gitignore = GitSyncControl()
         self.namingCpx = naming(
-            isRead=isRead,
+            is_read=is_read,
             expsName=summonerName,
             saveLocation=saveLocation,
         )
@@ -369,7 +399,7 @@ class MultiManager:
         multiConfigNameV5 = self.namingCpx.exportLocation / \
             f"{self.namingCpx.expsName}.multiConfig.json"
         multiConfigNameV7 = self.namingCpx.exportLocation / \
-            f"multi.config.json"
+            "multi.config.json"
         oldFiles: dict[str, Union[str, dict[str, str]]] = {}
 
         if isTarfileExisted:
@@ -379,12 +409,12 @@ class MultiManager:
                 print(
                     f"| No multi.config file found, decompressing all files in the tarfile '{self.namingCpx.tarName}'.")
                 self.easydecompress()
-            elif readFromTarfile:
+            elif read_from_tarfile:
                 print(
                     f"| Decompressing all files in the tarfile '{self.namingCpx.tarName}', replace all files in '{self.namingCpx.exportLocation}'.")
                 self.easydecompress()
 
-        if isRead and version == 'v5':
+        if is_read and version == 'v5':
 
             if multiConfigNameV5.exists():
                 print("| Found the multiConfig.json, reading in 'v5' file structure.")
@@ -445,7 +475,7 @@ class MultiManager:
                 raise FileNotFoundError(
                     f"Can't find the multi.config file in '{self.namingCpx.expsName}'.")
 
-        elif isRead and version == 'v4':
+        elif is_read and version == 'v4':
             print("| Reading in 'v4' format.")
             files = {}
             dataDummyJobs: dict[any] = {}
@@ -570,25 +600,25 @@ class MultiManager:
 
         # datetimes
         if 'datetimes' not in multicommons:
-            multicommons['datetimes'] = datetimeDict()
+            multicommons['datetimes'] = DatetimeDict()
         else:
-            multicommons['datetimes'] = datetimeDict(
+            multicommons['datetimes'] = DatetimeDict(
                 **multicommons['datetimes'])
         if version == 'v4':
-            multicommons['datetimes']['v4Read'] = currentTime()
+            multicommons['datetimes']['v4Read'] = current_time()
 
-        if 'build' not in multicommons['datetimes'] and not isRead:
-            multicommons['datetimes']['bulid'] = currentTime()
+        if 'build' not in multicommons['datetimes'] and not is_read:
+            multicommons['datetimes']['bulid'] = current_time()
 
         if isTarfileExisted:
             if not multiConfigNameV5.exists() or not multiConfigNameV7.exists():
-                multicommons['datetimes'].addSerial('decompress')
-            elif readFromTarfile:
-                multicommons['datetimes'].addSerial('decompressOverwrite')
+                multicommons['datetimes'].add_serial('decompress')
+            elif read_from_tarfile:
+                multicommons['datetimes'].add_serial('decompressOverwrite')
 
         # readV5 files re-export
         if multiConfigNameV5.exists():
-            multicommons['datetimes']['v7Read'] = currentTime()
+            multicommons['datetimes']['v7Read'] = current_time()
             for k, pathstr in oldFiles.items():
                 multicommons['files'].pop(k, None)
 
@@ -617,14 +647,6 @@ class MultiManager:
                         path = Path(pathstr2)
                         if path.exists():
                             path.unlink()
-
-    @property
-    def summonerID(self) -> str:
-        return self.multicommons.summonerID
-
-    @property
-    def summonerName(self) -> str:
-        return self.multicommons.summonerName
 
     def updateSaveLocation(
         self,
@@ -662,7 +684,7 @@ class MultiManager:
             content=multiConfig,
             filename=multiConfigName,
             mode='w+',
-            jsonablize=True,
+            jsonable=True,
             encoding=encoding,
             mute=mute,
         )
@@ -696,8 +718,8 @@ class MultiManager:
         self.gitignore.export(self.multicommons.exportLocation)
 
         exportingName = {
-            **self.after._exportingName(),
-            **self.before._exportingName()
+            **self.after._exporting_name(),
+            **self.before._exporting_name()
         }
 
         exportProgress = qurryProgressBar(
@@ -712,7 +734,8 @@ class MultiManager:
                 exportProgress.set_description_str(
                     f'{k} as {exportingName[k]} - skip')
             elif isinstance(self[k], TagList):
-                exportProgress.set_description_str(f'{k} as {exportingName[k]}')
+                exportProgress.set_description_str(
+                    f'{k} as {exportingName[k]}')
                 tmp: TagList = self[k]
                 filename = tmp.export(
                     saveLocation=self.multicommons.exportLocation,
@@ -731,7 +754,8 @@ class MultiManager:
                     f"{exportingName[k]}.{self.multicommons.filetype}")
 
             elif isinstance(self[k], (dict, list)):
-                exportProgress.set_description_str(f'{k} as {exportingName[k]}')
+                exportProgress.set_description_str(
+                    f'{k} as {exportingName[k]}')
                 filename = Path(self.multicommons.exportLocation) / \
                     f"{exportingName[k]}.json"
                 self.multicommons.files[exportingName[k]] = str(filename)
@@ -741,7 +765,7 @@ class MultiManager:
                     content=self[k],
                     filename=filename,
                     mode='w+',
-                    jsonablize=True,
+                    jsonable=True,
                     indent=indent,
                     encoding=encoding,
                     mute=True,
@@ -805,7 +829,7 @@ class MultiManager:
                 mode='w+',
                 indent=indent,
                 encoding=encoding,
-                jsonablize=True,
+                jsonable=True,
                 mute=True,
             )
 
@@ -818,7 +842,7 @@ class MultiManager:
     ) -> Path:
 
         if remainOnlyCompressed:
-            self.multicommons.datetimes.addSerial('uncompressedRemove')
+            self.multicommons.datetimes.add_serial('uncompressedRemove')
         multiConfig = self._writeMultiConfig()
 
         print(
@@ -900,7 +924,7 @@ class MultiManager:
             self.quantityContainer[name][
                 wave_continer[k].commons.tags].append(main)
 
-        self.multicommons.datetimes.addOnly(name)
+        self.multicommons.datetimes.add_only(name)
 
         return name
 
@@ -915,7 +939,7 @@ class MultiManager:
         """
         self.quantityContainer.remove(name)
         print(f"| Removing analysis: {name}")
-        self.multicommons.datetimes.addOnly(f"{name}_remove")
+        self.multicommons.datetimes.add_only(f"{name}_remove")
 
     def easycompress(
         self,
@@ -930,7 +954,7 @@ class MultiManager:
             Path: Path of the compressed file.
         """
 
-        self.multicommons.datetimes.addSerial('compressed')
+        self.multicommons.datetimes.add_serial('compressed')
         multiConfig = self._writeMultiConfig()
 
         isExists = os.path.exists(self.namingCpx.tarLocation)

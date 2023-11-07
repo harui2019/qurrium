@@ -1,9 +1,9 @@
-from distutils.util import convert_path
+from pathlib import Path
 import os
 
 main_ns = {}
-ver_path = convert_path('./qurry/version.py')
-with open(ver_path) as ver_file:
+ver_path = Path('./qurry/version.py')
+with open(ver_path, encoding='utf-8') as ver_file:
     exec(ver_file.read(), main_ns)
 
 __version_str__ = 'v'+main_ns['__version_str__']

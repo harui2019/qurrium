@@ -55,7 +55,7 @@ class EntropyHadamardAnalysis(AnalysisPrototype):
         """The purity of the system."""
 
         def __repr__(self):
-            return f"analysisContent(purity={self.echo}, entropy={self.entropy}, and others)"
+            return f"analysisContent(echo={self.echo}, and others)"
 
     @property
     def default_side_product_fields(self) -> Iterable[str]:
@@ -168,14 +168,22 @@ class EchoHadamardTest(QurryV5Prototype):
         self,
         expName: str = 'exps',
         waveKey: Hashable = None,
-        waveKey2: Hashable = None,
+        waveKey2: Union[Hashable, QuantumCircuit] = None,
         degree: Union[tuple[int, int], int] = None,
         **otherArgs: any
     ) -> tuple[EchoHadamardExperiment.arguments, EchoHadamardExperiment.commonparams, dict[str, Any]]:
         """Handling all arguments and initializing a single experiment.
 
         Args:
-            waveKey (Hashable):
+            wave (Hashable):
+                The index of the wave function in `self.waves` or add new one to calaculation,
+                then choose one of waves as the experiment material.
+                If input is `QuantumCircuit`, then add and use it.
+                If input is the key in `.waves`, then use it.
+                If input is `None` or something illegal, then use `.lastWave'.
+                Defaults to None.
+
+            wave2 (Hashable):
                 The index of the wave function in `self.waves` or add new one to calaculation,
                 then choose one of waves as the experiment material.
                 If input is `QuantumCircuit`, then add and use it.
@@ -194,14 +202,27 @@ class EchoHadamardTest(QurryV5Prototype):
         Returns:
             dict: The export will be processed in `.paramsControlCore`
         """
-
-        # measure and unitary location
+        # wave
+        if isinstance(waveKey2, QuantumCircuit):
+            waveKey2 = self.add(waveKey2)
+        elif isinstance(waveKey2, Hashable):
+            if waveKey2 is None:
+                ...
+            elif not self.has(waveKey2):
+                raise KeyError(f"Wave '{waveKey2}' not found in '.waves'")
+        else:
+            raise TypeError(
+                f"'{waveKey2}' is a '{type(waveKey2)}' instead of 'QuantumCircuit' or 'Hashable'")
+        
         numQubits = self.waves[waveKey].num_qubits
         numQubits2 = self.waves[waveKey2].num_qubits
         if numQubits != numQubits2:
-            raise ValueError(f"The number of qubits of two wave functions must be the same, but {waveKey}: {numQubits} != {waveKey2}: {numQubits2}.")
+            raise ValueError(
+                f"The number of qubits of two wave functions must be the same, but {waveKey}: {numQubits} != {waveKey2}: {numQubits2}.")
+
+        # measure and unitary location
         degree = qubit_selector(numQubits, degree=degree)
-        
+
         if isinstance(waveKey, (list, tuple)):
             waveKey = '-'.join([str(i) for i in waveKey])
         if isinstance(waveKey2, (list, tuple)):
@@ -290,8 +311,8 @@ class EchoHadamardTest(QurryV5Prototype):
         """
 
         IDNow = self.result(
-            wave=wave,
-            wave2=wave2,
+            wave=wave, # First wave will be taken by _paramsControlMain
+            waveKey2=wave2, # Second wave will be taken by paramsControl
             expName=expName,
             degree=degree,
             saveLocation=None,
@@ -307,7 +328,7 @@ class EchoHadamardTest(QurryV5Prototype):
                 mode=mode,
                 indent=indent,
                 encoding=encoding,
-                jsonablize=jsonablize,
+                jsonable=jsonablize,
             )
 
         return IDNow

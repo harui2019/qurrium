@@ -1,82 +1,61 @@
-from qiskit import QuantumCircuit
-from qiskit.result import Result
-from qiskit.providers import Backend
-try:
-    from qiskit_aer import AerSimulator
-except ImportError:
-    from qiskit.providers.aer import AerSimulator
+"""
+================================================================
+The experiment prototype which is the basic class of all experiments.
+(:mod:`qurry.qurrium.experiment`)
+================================================================
 
-from pathlib import Path
-from typing import Literal, Union, Optional, NamedTuple, Hashable, Type, Any
-from abc import abstractmethod, abstractclassmethod, abstractproperty
-from uuid import uuid4
+"""
 import gc
-import warnings
 import os
 import glob
 import json
+import warnings
+from abc import abstractmethod, abstractproperty
+from uuid import uuid4
+from typing import Literal, Union, Optional, NamedTuple, Hashable, Type, Any, overload
+from pathlib import Path
 import tqdm
 
-from ..hoshi import Hoshi
-from ..mori import jsonablize, quickJSON, quickRead, defaultConfig
+from qiskit import QuantumCircuit
+from qiskit.result import Result
+from qiskit.providers import Backend
+
 from ..tools import backendName, ProcessManager, DEFAULT_POOL_SIZE
+from ..capsule import jsonablize, quickJSON, quickRead
+from ..capsule.hoshi import Hoshi
 from ..exceptions import (
     QurryInvalidInherition,
     QurryExperimentCountsNotCompleted,
     QurryResetSecurityActivated, QurryResetAccomplished,
     QurryProtectContent, QurrySummonerInfoIncompletion)
 from .analysis import AnalysisPrototype, QurryAnalysis
-from .utils.datetime import currentTime, datetimeDict
-
-commonparamsConfig = defaultConfig(
-    name='commonparams',
-    default={
-        'expID': None,
-        'waveKey': None,
-        'shots': 1024,
-        'backend': AerSimulator(),
-        'provider': None,
-        'runArgs': {},
-        'runBy': 'gate',
-        'transpileArgs': {},
-        'decompose': None,
-        'tags': (),
-        'defaultAnalysis': [],
-        'saveLocation': Path('./'),
-        'filetype': 'json',
-        'datetimes': datetimeDict(),
-        'serial': None,
-        'summonerID': None,
-        'summonerName': None,
-    })
-
-beforeConfig = defaultConfig(
-    name='before',
-    default={
-        'circuit': [],
-        'figOriginal': [],
-        'jobID': '',
-        'expName': '',
-        'sideProduct': {},
-    })
-
-afterConfig = defaultConfig(
-    name='after',
-    default={
-        'result': [],
-        'counts': [],
-    })
+from .utils.datetime import current_time, DatetimeDict
 
 
-class ExperimentPrototype():
+class ExperimentPrototypeABC():
+    """The experiment prototype which is the basic class of all experiments."""
+
+    @abstractmethod
+    class arguments(NamedTuple):
+        """Construct the experiment's parameters for specific options, 
+        which is overwritable by the inherition class."""
+        expName: str
+
+
+class ExperimentPrototype(ExperimentPrototypeABC):
+    """The prototype of experiment which is the basic class of all experiments.
+    """
 
     __name__ = 'ExperimentPrototype'
     """Name of the QurryExperiment which could be overwritten."""
 
     # Experiment Property
-    @abstractmethod
     class arguments(NamedTuple):
-        """Construct the experiment's parameters for specific options, which is overwritable by the inherition class."""
+        """Construct the experiment's parameters for specific options, 
+        which is overwritable by the inherition class."""
+
+        expName: str
+        """Name of experiment."""
 
     class commonparams(NamedTuple):
         """Construct the experiment's parameters for system running."""
@@ -101,23 +80,28 @@ class ExperimentPrototype():
         transpileArgs: dict
         """Arguments of `qiskit.compiler.transpile`."""
         decompose: Optional[int]
-        """Decompose the circuit in given times to show the circuit figures in :property:`.before.figOriginal`."""
+        """Decompose the circuit in given times 
+        to show the circuit figures in :property:`.before.figOriginal`."""
 
         tags: tuple
         """Tags of experiment."""
 
         # Auto-analysis when counts are ready
         defaultAnalysis: list[dict[str, Any]]
-        """When counts are ready, the experiment will automatically analyze the counts with the given analysis."""
+        """When counts are ready, 
+        the experiment will automatically analyze the counts with the given analysis."""
 
         # Arguments for exportation
         saveLocation: Union[Path, str]
         """Location of saving experiment. 
         If this experiment is called by :cls:`QurryMultiManager`,
-        then `adventure`, `legacy`, `tales`, and `reports` will be exported to their dedicated folders in this location respectively.
-        This location is the default location for it's not specific where to save when call :meth:`.write()`, if does, then will be overwriten and update."""
+        then `adventure`, `legacy`, `tales`, and `reports` will be exported 
+        to their dedicated folders in this location respectively.
+        This location is the default location for it's not specific 
+        where to save when call :meth:`.write()`, if does, then will be overwriten and update."""
         filename: str
-        """The name of file to be exported, it will be decided by the :meth:`.export` when it's called.
+        """The name of file to be exported, 
+        it will be decided by the :meth:`.export` when it's called.
         More info in the pydoc of :prop:`files` or :meth:`.export`.
         """
         files: dict[str, Path]
@@ -137,14 +121,18 @@ class ExperimentPrototype():
             ...
             'tales.dummyxn': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyxn.json',
             'reports': './blabla_experiment/reports/blabla_experiment.id={expID}.reports.json',
-            'reports.tales.dummyz1': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyz1.reports.json',
-            'reports.tales.dummyz2': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyz2.reports.json',
+            'reports.tales.dummyz1': 
+                './blabla_experiment/tales/blabla_experiment.id={expID}.dummyz1.reports.json',
+            'reports.tales.dummyz2': 
+                './blabla_experiment/tales/blabla_experiment.id={expID}.dummyz2.reports.json',
             ...
-            'reports.tales.dummyzm': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyzm.reports.json',
+            'reports.tales.dummyzm': 
+                './blabla_experiment/tales/blabla_experiment.id={expID}.dummyzm.reports.json',
         }
         ```
         which `blabla_experiment` is the example filename.
-        If this experiment is called by :cls:`multimanager`, then the it will be named after `summonerName` as known as the name of :cls:`multimanager`.
+        If this experiment is called by :cls:`multimanager`, 
+        then the it will be named after `summonerName` as known as the name of :cls:`multimanager`.
         
         ```python
         files = {
@@ -158,13 +146,17 @@ class ExperimentPrototype():
             ...
             'tales.dummyxn': './BLABLA_project/tales/index={serial}.id={expID}.dummyxn.json',
             'reports': './BLABLA_project/reports/index={serial}.id={expID}.reports.json',
-            'reports.tales.dummyz1': './BLABLA_project/tales/index={serial}.id={expID}.dummyz1.reports.json',
-            'reports.tales.dummyz2': './BLABLA_project/tales/index={serial}.id={expID}.dummyz2.reports.json',
+            'reports.tales.dummyz1': 
+                './BLABLA_project/tales/index={serial}.id={expID}.dummyz1.reports.json',
+            'reports.tales.dummyz2': 
+                './BLABLA_project/tales/index={serial}.id={expID}.dummyz2.reports.json',
             ...
-            'reports.tales.dummyzm': './BLABLA_project/tales/index={serial}.id={expID}.dummyzm.reports.json',
+            'reports.tales.dummyzm': 
+                './BLABLA_project/tales/index={serial}.id={expID}.dummyzm.reports.json',
         }
         ```
-        which `BLBLA_project` is the example :cls:`multimanager` name stored at :prop:`commonparams.summonerName`.
+        which `BLBLA_project` is the example :cls:`multimanager` name 
+        stored at :prop:`commonparams.summonerName`.
         At this senerio, the `expName` will never apply as filename.
         
         """
@@ -178,7 +170,7 @@ class ExperimentPrototype():
         """Name of experiment of the multiManager."""
 
         # header
-        datetimes: datetimeDict
+        datetimes: DatetimeDict
 
     class before(NamedTuple):
         # Experiment Preparation
@@ -235,13 +227,13 @@ class ExperimentPrototype():
         infields = {}
         commonsinput = {}
         outfields = {}
-        for k in kwargs:
+        for k, v in kwargs.items():
             if k in cls.arguments._fields:
-                infields[k] = kwargs[k]
+                infields[k] = v
             elif k in cls.commonparams._fields:
-                commonsinput[k] = kwargs[k]
+                commonsinput[k] = v
             else:
-                outfields[k] = kwargs[k]
+                outfields[k] = v
 
         return cls.arguments(**infields), cls.commonparams(
             **commonsinput), outfields
@@ -250,7 +242,8 @@ class ExperimentPrototype():
     @classmethod
     @abstractproperty
     def analysis_container(cls) -> Type[AnalysisPrototype]:
-        """The container of analysis, it should be overwritten by each construction of new measurement.
+        """The container of analysis, 
+        it should be overwritten by each construction of new measurement.
         """
 
     def __init__(
@@ -274,7 +267,7 @@ class ExperimentPrototype():
         except TypeError as e:
             expID = None
             warnings.warn(
-                "'expID' is not hashable, it will be set to generate automatically."
+                f"'expID' is not hashable, it will be set to generate automatically. {e}"
             )
         finally:
             if expID is None:
@@ -285,32 +278,34 @@ class ExperimentPrototype():
         for i in ['analysisInput', 'analysisContent']:
             if not hasattr(self.analysis_container, i):
                 raise QurryInvalidInherition(
-                    f"{self.__name__}._analysis_container() should be inherited from {AnalysisPrototype.__name__}."
+                    f"{self.__name__}._analysis_container() " +
+                    f"should be inherited from {AnalysisPrototype.__name__}."
                 )
-        if not 'expName' in self.arguments._fields:
+        if 'expName' not in self.arguments._fields:
             raise QurryInvalidInherition(
                 f"{self.__name__}.arguments should have 'expName'.")
         duplicate_fields = set(self.arguments._fields) & set(
             self.commonparams._fields)
         if len(duplicate_fields) > 0:
             raise QurryInvalidInherition(
-                f"{self.__name__}.arguments and {self.__name__}.commonparams should not have same fields: {duplicate_fields}."
+                f"{self.__name__}.arguments and {self.__name__}.commonparams " +
+                f"should not have same fields: {duplicate_fields}."
             )
 
         params = {}
         commons = {}
         outfields = {}
-        for k in kwargs:
+        for k, v in kwargs.items():
             if k in self.arguments._fields:
-                params[k] = kwargs[k]
+                params[k] = v
             elif k in self.commonparams._fields:
-                commons[k] = kwargs[k]
+                commons[k] = v
             else:
-                outfields[k] = kwargs[k]
+                outfields[k] = v
 
         # Dealing special arguments
         if 'datetimes' not in commons:
-            commons['datetimes'] = datetimeDict({'bulid': currentTime()})
+            commons['datetimes'] = DatetimeDict({'bulid': current_time()})
         if 'defaultAnalysis' in commons:
             filted_analysis = []
             for raw_input_analysis in commons['defaultAnalysis']:
@@ -323,7 +318,8 @@ class ExperimentPrototype():
                     filted_analysis.append(raw_input_analysis._asdict())
                 else:
                     warnings.warn(
-                        f"Analysis input {raw_input_analysis} is not a 'dict' or '.analysis_container.analysisInput', it will be ignored."
+                        f"Analysis input {raw_input_analysis} is not a 'dict' or " +
+                        "'.analysis_container.analysisInput', it will be ignored."
                     )
             commons['defaultAnalysis'] = filted_analysis
         else:
@@ -380,7 +376,9 @@ class ExperimentPrototype():
                 summon_msg.print()
 
         self.after_lock = False
-        """Protect the :cls:`afterward` content to be overwritten. When setitem is called and completed, it will be setted as `False` automatically."""
+        """Protect the :cls:`afterward` content to be overwritten. 
+        When setitem is called and completed, it will be setted as `False` automatically.
+        """
         self.mute_auto_lock = False
         """Whether mute the auto-lock message."""
 
@@ -391,7 +389,8 @@ class ExperimentPrototype():
             gc.collect()
         else:
             warnings.warn(
-                "The summonerID is not matched, the counts will not be reset, it can only be activated by multimanager.",
+                "The summonerID is not matched, " +
+                "the counts will not be reset, it can only be activated by multimanager.",
                 category=QurryResetSecurityActivated)
 
     def unlock_afterward(self, mute_auto_lock: bool = False):
@@ -413,7 +412,8 @@ class ExperimentPrototype():
                 self.afterwards = self.afterwards._replace(**{key: value})
             else:
                 raise QurryProtectContent(
-                    f"Can't set value to :cls:`afterward` field {key} because it's locked, use `.unlock_afterward()` to unlock before setting item ."
+                    f"Can't set value to :cls:`afterward` field {key} " +
+                    "because it's locked, use `.unlock_afterward()` to unlock before setting item ."
                 )
 
         elif key in self._deprecated:
@@ -422,52 +422,43 @@ class ExperimentPrototype():
 
         else:
             raise ValueError(
-                f"{key} is not a valid field of '{self.before.__name__}' and '{self.after.__name__}'."
+                f"{key} is not a valid field of " +
+                f"'{self.before.__name__}' and '{self.after.__name__}'."
             )
 
         gc.collect()
-        if self.after_lock != False:
+        if self.after_lock is not False:
             self.after_lock = False
             if not self.mute_auto_lock:
                 print(
-                    f"after_lock is locked automatically now, you can unlock by using `.unlock_afterward()` to set value to :cls:`afterward`."
+                    "after_lock is locked automatically now, you can unlock by " +
+                    "using `.unlock_afterward()` to set value to :cls:`afterward`."
                 )
             self.mute_auto_lock = False
 
     def __getitem__(self, key) -> Any:
         if key in self.beforewards._fields:
             return getattr(self.beforewards, key)
-        elif key in self.afterwards._fields:
+        if key in self.afterwards._fields:
             return getattr(self.afterwards, key)
-        elif key in self._deprecated:
-            ...
-            # print(
-            #     f"| Warning: {key} is deprecated, it will be removed in the future.")
-        else:
-            raise ValueError(
-                f"{key} is not a valid field of '{self.before.__name__}' and '{self.after.__name__}'."
-            )
+        if key in self._deprecated:
+            warnings.warn("This property is deprecated.", DeprecationWarning)
+            return "Deprecated"
+        raise ValueError(
+            f"{key} is not a valid field of " +
+            f"'{self.before.__name__}' and '{self.after.__name__}'."
+        )
 
     # analysis
-    @abstractclassmethod
-    def quantities(cls, *args, **kwargs) -> dict[str, Any]:
+    @classmethod
+    @abstractmethod
+    def quantities(cls) -> dict[str, Any]:
         """Computing specific squantity.
         Where should be overwritten by each construction of new measurement.
         """
 
     @abstractmethod
-    def analyze(self, *args, **kwargs) -> AnalysisPrototype:
-        """Analyzing the example circuit results in specific method.
-
-        Args:
-            allArgs: all arguments will pass to `.quantities`.
-
-        Returns:
-            analysis: Analysis of the counts from measurement.
-        """
-
-    @abstractmethod
-    def analyze(self, pbar: Optional[tqdm.tqdm], *args, **kwargs) -> dict[str, Any]:
+    def analyze(self) -> AnalysisPrototype:
         """Analyzing the example circuit results in specific method.
 
         Args:
@@ -484,7 +475,9 @@ class ExperimentPrototype():
         """Reset the measurement and release memory.
 
         Args:
-            args (any): Positional arguments handler to protect other keyword arguments. It's useless, umm...😐 
+            args (any): 
+                Positional arguments handler to protect other keyword arguments. 
+                It's useless, umm...😐 
             security (bool, optional): Security for reset. Defaults to `False`.
             mute (bool, optional): Mute the warning when reset activated. Defaults to `False`.
         """
@@ -511,6 +504,7 @@ class ExperimentPrototype():
 
     @property
     def expID(self) -> property:
+        """ID of experiment."""
         return self.commons.expID
 
     def __repr__(self) -> str:
@@ -523,9 +517,19 @@ class ExperimentPrototype():
 
     def statesheet(
         self,
-        reportExpanded: bool = False,
+        report_expanded: bool = False,
         hoshi: bool = False,
     ) -> Hoshi:
+        """Show the state of experiment.
+
+        Args:
+            report_expanded (bool, optional): Show more infomation. Defaults to False.
+            hoshi (bool, optional): Showing name of Hoshi. Defaults to False.
+
+        Returns:
+            Hoshi: Statesheet of experiment.
+        """
+
         info = Hoshi(
             [
                 ('h1', f"{self.__name__} with expID={self.commons.expID}"),
@@ -570,7 +574,7 @@ class ExperimentPrototype():
 
         info.newline(('itemize', 'reports', len(self.reports),
                       'Number of analysis.', 1))
-        if reportExpanded:
+        if report_expanded:
             for ser, item in self.reports.items():
                 info.newline(
                     ('itemize', 'serial',
@@ -587,7 +591,8 @@ class ExperimentPrototype():
         """ID of experiment, which will be packed into `.args.json`."""
         expName: str = 'exps'
         """Name of the experiment, which will be packed into `.args.json`. 
-        If this experiment is called by multimanager, then this name will never apply as filename."""
+        If this experiment is called by multimanager, 
+        then this name will never apply as filename."""
         # Arguments for multi-experiment
         serial: Optional[int] = None
         """Index of experiment in a multiOutput, which will be packed into `.args.json`."""
@@ -597,8 +602,10 @@ class ExperimentPrototype():
         """Name of experiment of the multiManager, which will be packed into `.args.json`."""
 
         filename: str = ''
-        """The name of file to be exported, it will be decided by the :meth:`.export` when it's called.
-        More info in the pydoc of :prop:`files` or :meth:`.export`, which will be packed into `.args.json`.
+        """The name of file to be exported, 
+        it will be decided by the :meth:`.export` when it's called.
+        More info in the pydoc of :prop:`files` or :meth:`.export`, 
+        which will be packed into `.args.json`.
         """
         files: dict[str, str] = {}
         """The list of file to be exported.
@@ -618,14 +625,18 @@ class ExperimentPrototype():
             ...
             'tales.dummyxn': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyxn.json',
             'reports': './blabla_experiment/reports/blabla_experiment.id={expID}.reports.json',
-            'reports.tales.dummyz1': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyz1.reports.json',
-            'reports.tales.dummyz2': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyz2.reports.json',
+            'reports.tales.dummyz1': 
+                './blabla_experiment/tales/blabla_experiment.id={expID}.dummyz1.reports.json',
+            'reports.tales.dummyz2': 
+                './blabla_experiment/tales/blabla_experiment.id={expID}.dummyz2.reports.json',
             ...
-            'reports.tales.dummyzm': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyzm.reports.json',
+            'reports.tales.dummyzm': 
+                './blabla_experiment/tales/blabla_experiment.id={expID}.dummyzm.reports.json',
         }
         ```
         which `blabla_experiment` is the example filename.
-        If this experiment is called by :cls:`multimanager`, then the it will be named after `summonerName` as known as the name of :cls:`multimanager`.
+        If this experiment is called by :cls:`multimanager`, 
+        then the it will be named after `summonerName` as known as the name of :cls:`multimanager`.
         
         ```python
         files = {
@@ -640,13 +651,17 @@ class ExperimentPrototype():
             ...
             'tales.dummyxn': './BLABLA_project/tales/index={serial}.id={expID}.dummyxn.json',
             'reports': './BLABLA_project/reports/index={serial}.id={expID}.reports.json',
-            'reports.tales.dummyz1': './BLABLA_project/tales/index={serial}.id={expID}.dummyz1.reports.json',
-            'reports.tales.dummyz2': './BLABLA_project/tales/index={serial}.id={expID}.dummyz2.reports.json',
+            'reports.tales.dummyz1': 
+                './BLABLA_project/tales/index={serial}.id={expID}.dummyz1.reports.json',
+            'reports.tales.dummyz2': 
+                './BLABLA_project/tales/index={serial}.id={expID}.dummyz2.reports.json',
             ...
-            'reports.tales.dummyzm': './BLABLA_project/tales/index={serial}.id={expID}.dummyzm.reports.json',
+            'reports.tales.dummyzm': 
+                './BLABLA_project/tales/index={serial}.id={expID}.dummyzm.reports.json',
         }
         ```
-        which `BLBLA_project` is the example :cls:`multimanager` name stored at :prop:`commonparams.summonerName`.
+        which `BLBLA_project` is the example :cls:`multimanager` name 
+        stored at :prop:`commonparams.summonerName`.
         At this senerio, the `expName` will never apply as filename.
         
         """
@@ -665,18 +680,21 @@ class ExperimentPrototype():
         """Recording the data of 'afterward', which will be packed into `.legacy.json`. 
         ~The Legacy remains from the achievement of ancestors~"""
         tales: dict[str, Any] = {}
-        """Recording the data of 'sideProduct' in 'afterward' and 'beforewards' for API, which will be packed into `.*.tales.json`. 
+        """Recording the data of 'sideProduct' in 'afterward' and 'beforewards' for API, 
+        which will be packed into `.*.tales.json`. 
         ~Tales of braves circulate~"""
 
         reports: dict[str, dict[str, Any]] = {}
         """Recording the data of 'reports', which will be packed into `.reports.json`. 
         ~The guild concludes the results.~"""
         tales_reports: dict[str, dict[str, Any]] = {}
-        """Recording the data of 'sideProduct' in 'reports' for API, which will be packed into `.*.reprts.json`. 
+        """Recording the data of 'sideProduct' in 'reports' for API, 
+        which will be packed into `.*.reprts.json`. 
         ~Tales of braves circulate~"""
 
     _rjustLen = 3
-    """The length of the string to be right-justified for serial number when :prop:`expName` is duplicated."""
+    """The length of the string to be right-justified for serial number 
+    when :prop:`expName` is duplicated."""
     _required_folder = ['args', 'advent', 'legacy', 'tales', 'reports']
     """Folder for saving exported files."""
 
@@ -699,14 +717,18 @@ class ExperimentPrototype():
             ...
             'tales.dummyxn': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyxn.json',
             'reports': ./blabla_experiment/reports/blabla_experiment.id={expID}.reports.json,
-            'reports.tales.dummyz1': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyz1.reports.json',
-            'reports.tales.dummyz2': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyz2.reports.json',
+            'reports.tales.dummyz1': 
+                './blabla_experiment/tales/blabla_experiment.id={expID}.dummyz1.reports.json',
+            'reports.tales.dummyz2': 
+                './blabla_experiment/tales/blabla_experiment.id={expID}.dummyz2.reports.json',
             ...
-            'reports.tales.dummyzm': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyzm.reports.json',
+            'reports.tales.dummyzm': 
+                './blabla_experiment/tales/blabla_experiment.id={expID}.dummyzm.reports.json',
         }
         ```
         which `blabla_experiment` is the example filename.
-        If this experiment is called by :cls:`multimanager`, then the it will be named after `summonerName` as known as the name of :cls:`multimanager`.
+        If this experiment is called by :cls:`multimanager`, 
+        then the it will be named after `summonerName` as known as the name of :cls:`multimanager`.
 
         ```python
         files = {
@@ -721,66 +743,21 @@ class ExperimentPrototype():
             ...
             'tales.dummyxn': './BLABLA_project/tales/index={serial}.id={expID}.dummyxn.json',
             'reports': ./BLABLA_project/reports/index={serial}.id={expID}.reports.json,
-            'reports.tales.dummyz1': './BLABLA_project/tales/index={serial}.id={expID}.dummyz1.reports.json',
-            'reports.tales.dummyz2': './BLABLA_project/tales/index={serial}.id={expID}.dummyz2.reports.json',
+            'reports.tales.dummyz1': 
+                './BLABLA_project/tales/index={serial}.id={expID}.dummyz1.reports.json',
+            'reports.tales.dummyz2': 
+                './BLABLA_project/tales/index={serial}.id={expID}.dummyz2.reports.json',
             ...
-            'reports.tales.dummyzm': './BLABLA_project/tales/index={serial}.id={expID}.dummyzm.reports.json',
+            'reports.tales.dummyzm': 
+                './BLABLA_project/tales/index={serial}.id={expID}.dummyzm.reports.json',
         }
         ```
-        which `BLBLA_project` is the example :cls:`multimanager` name stored at :prop:`commonparams.summonerName`.
+        which `BLBLA_project` is the example :cls:`multimanager` name 
+        stored at :prop:`commonparams.summonerName`.
         At this senerio, the `expName` will never apply as filename.
 
-        Returns:
-            Export: A namedtuple containing the data of experiment which can be more easily to export as json file.
-        """
+        - reports formats.
 
-        # independent values
-        expID = self.commons.expID
-        expName = self.beforewards.expName
-        # multimanager values
-        serial = self.commons.serial
-        summonerID = self.commons.summonerID
-        summonerName = self.commons.summonerName
-        _summon = all(
-            (not v is None) for v in [serial, summonerID, summonerID])
-        # args, commons, outfields
-
-        args: dict[str, Any] = jsonablize(self.args._asdict())
-        commons: dict[str, Any] = jsonablize(self.commons._asdict())
-        commons['backend'] = (
-            self.commons.backend if isinstance(self.commons.backend, str)
-            else backendName(self.commons.backend))
-
-        outfields = jsonablize(self.outfields)
-        # adventures, legacy, tales
-        tales = {}
-        adventures_wunex = self.beforewards._asdict()  # With UNEXported data
-        adventures = {}
-        for k, v in adventures_wunex.items():
-            if k == 'sideProduct':
-                tales = {**tales, **v}
-            elif k in self._unexports:
-                ...
-            else:
-                adventures[k] = jsonablize(v)
-
-        legacy_wunex = self.afterwards._asdict()
-        """Legacy with unexported data."""
-
-        legacy = {}
-        for k, v in legacy_wunex.items():
-            if k == 'sideProduct':
-                tales = {**tales, **v}
-            elif k in self._unexports:
-                ...
-            else:
-                legacy[k] = jsonablize(v)
-
-        tales = jsonablize(tales)
-
-        # reports
-        reports: dict[str, dict[str, Any]] = {}
-        """reports formats.
         ```
         reports = {
             1: { ...quantities, 'input': { ... }, 'header': { ... }, },
@@ -789,9 +766,9 @@ class ExperimentPrototype():
             {serial}: { ...quantities, 'input': { ... }, 'header': { ... }, },
         }
         ```
-        """
-        tales_reports: dict[str, dict[str, dict[str, Any]]] = {}
-        """tales_reports formats.
+
+        - tales_reports formats.
+
         ```
         tales_reports = {
             'dummyz1': { 
@@ -815,7 +792,54 @@ class ExperimentPrototype():
             }, 
         }
         ```
+
+        Returns:
+            Export: A namedtuple containing the data of experiment 
+                which can be more easily to export as json file.
         """
+
+        # multimanager values
+        summon = all((not v is None) for v in [
+            self.commons.serial, self.commons.summonerID, self.commons.summonerID
+        ])
+        # args, commons, outfields
+
+        args: dict[str, Any] = jsonablize(self.args._asdict())
+        commons: dict[str, Any] = jsonablize(self.commons._asdict())
+        commons['backend'] = (
+            self.commons.backend if isinstance(self.commons.backend, str)
+            else backendName(self.commons.backend))
+
+        outfields = jsonablize(self.outfields)
+        # adventures, legacy, tales
+        tales = {}
+        adventures_wunex = self.beforewards._asdict()  # With UNEXported data
+        adventures = {}
+        for k, v in adventures_wunex.items():
+            if k == 'sideProduct':
+                tales = {**tales, **v}
+            elif k in self._unexports:
+                ...
+            else:
+                adventures[k] = jsonablize(v)
+
+        legacy_with_unexported = self.afterwards._asdict()
+
+        legacy = {}
+        for k, v in legacy_with_unexported.items():
+            if k == 'sideProduct':
+                tales = {**tales, **v}
+            elif k in self._unexports:
+                ...
+            else:
+                legacy[k] = jsonablize(v)
+
+        tales: dict[str, str] = jsonablize(tales)
+
+        # reports
+        reports: dict[str, dict[str, Any]] = {}  # reports formats.
+        # tales_reports formats.
+        tales_reports: dict[str, dict[str, dict[str, Any]]] = {}
         for k, al in self.reports.items():
             report_main, report_tales = al.export()
             reports[k] = report_main
@@ -828,19 +852,22 @@ class ExperimentPrototype():
         filename = ''
         folder = ''
         files = {}
-        if _summon:
-            folder += f'./{summonerName}/'
-            filename += f"index={serial}.id={expID}"
+        if summon:
+            folder += f'./{self.commons.summonerName}/'
+            filename += f"index={self.commons.serial}.id={self.commons.expID}"
         else:
             repeat_times = 1
             tmp = folder + \
-                f"./{expName}.{str(repeat_times).rjust(self._rjustLen, '0')}/"
+                f"./{self.beforewards.expName}.{str(repeat_times).rjust(self._rjustLen, '0')}/"
             while os.path.exists(tmp):
                 repeat_times += 1
                 tmp = folder + \
-                    f"./{expName}.{str(repeat_times).rjust(self._rjustLen, '0')}/"
+                    f"./{self.beforewards.expName}.{str(repeat_times).rjust(self._rjustLen, '0')}/"
             folder = tmp
-            filename += f"{expName}.{str(repeat_times).rjust(self._rjustLen, '0')}.id={expID}"
+            filename += (
+                f"{self.beforewards.expName}." +
+                f"{str(repeat_times).rjust(self._rjustLen, '0')}.id={self.commons.expID}"
+            )
 
         self.commons = self.commons._replace(filename=filename)
         files['folder'] = folder
@@ -848,21 +875,21 @@ class ExperimentPrototype():
         files['args'] = folder + f'args/{filename}.args.json'
         files['advent'] = folder + f'advent/{filename}.advent.json'
         files['legacy'] = folder + f'legacy/{filename}.legacy.json'
-        for k in tales.keys():
+        for k in tales:
             files[f'tales.{k}'] = folder + f'tales/{filename}.{k}.json'
         files['reports'] = folder + f'reports/{filename}.reports.json'
-        for k in tales_reports.keys():
+        for k in tales_reports:
             files[f'reports.tales.{k}'] = folder + \
                 f'tales/{filename}.{k}.reports.json'
 
         files = {k: str(Path(v)) for k, v in files.items()}
 
         return self.Export(
-            expID=expID,
-            expName=expName,
-            serial=serial,
-            summonerID=summonerID,
-            summonerName=summonerName,
+            expID=self.commons.expID,
+            expName=self.beforewards.expName,
+            serial=self.commons.serial,
+            summonerID=self.commons.summonerID,
+            summonerName=self.commons.summonerName,
             filename=filename,
             files=files,
             args=args,
@@ -881,7 +908,7 @@ class ExperimentPrototype():
         mode: str = 'w+',
         indent: int = 2,
         encoding: str = 'utf-8',
-        jsonablize: bool = False,
+        jsonable: bool = False,
         # zip: bool = False,
         mute: bool = False,
         _qurryinfo_hold_access: Optional[str] = None,
@@ -903,17 +930,21 @@ class ExperimentPrototype():
             ...
             'tales.dummyxn': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyxn.json',
             'reports': ./blabla_experiment/reports/blabla_experiment.id={expID}.reports.json,
-            'reports.tales.dummyz1': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyz1.reports.json',
-            'reports.tales.dummyz2': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyz2.reports.json',
+            'reports.tales.dummyz1': 
+                './blabla_experiment/tales/blabla_experiment.id={expID}.dummyz1.reports.json',
+            'reports.tales.dummyz2': 
+                './blabla_experiment/tales/blabla_experiment.id={expID}.dummyz2.reports.json',
             ...
-            'reports.tales.dummyzm': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyzm.reports.json',
+            'reports.tales.dummyzm': 
+                './blabla_experiment/tales/blabla_experiment.id={expID}.dummyzm.reports.json',
         }
         ```
 
         Args:
             saveLocation (Optional[Union[Path, str]], optional):
                 Where to save the export content as `json` file.
-                If `saveLocation == None`, then use the value in `self.commons` to be exported, if it's None too, then raise error.
+                If `saveLocation == None`, then use the value in `self.commons` to be exported, 
+                if it's None too, then raise error.
                 Defaults to `None`.
 
             mode (str): 
@@ -922,8 +953,9 @@ class ExperimentPrototype():
                 Indent length for json, for :func:`mori.quickJSON`. Defaults to 2.
             encoding (str, optional): 
                 Encoding method, for :func:`mori.quickJSON`. Defaults to 'utf-8'.
-            jsonablize (bool, optional): 
-                Whether to transpile all object to jsonable via :func:`mori.jsonablize`, for :func:`mori.quickJSON`. Defaults to False.
+            jsonable (bool, optional): 
+                Whether to transpile all object to jsonable via :func:`mori.jsonablize`, 
+                for :func:`mori.quickJSON`. Defaults to False.
             mute (bool, optional):
                 Whether to mute the output, for :func:`mori.quickJSON`. Defaults to False.
             _qurryinfo_hold_access (str, optional):
@@ -1038,7 +1070,7 @@ class ExperimentPrototype():
                 mode=mode,
                 indent=indent,
                 encoding=encoding,
-                jsonablize=jsonablize,
+                jsonable=jsonable,
                 mute=mute,
             )
 
@@ -1115,7 +1147,7 @@ class ExperimentPrototype():
                 with open(saveLocation / filename, 'r',
                           encoding=encoding) as f:
                     export_set[filekey] = json.load(f)
-                if not 'tales' in export_material_set:
+                if 'tales' not in export_material_set:
                     export_material_set['tales'] = {}
                 export_material_set['tales'][
                     filekeydiv[1]] = export_set[filekey]
@@ -1124,13 +1156,13 @@ class ExperimentPrototype():
                 with open(saveLocation / filename, 'r',
                           encoding=encoding) as f:
                     export_set[filekey] = json.load(f)
-                if not 'tales_report' in export_material_set:
+                if 'tales_report' not in export_material_set:
                     export_material_set['tales_report']: dict[str,
                                                               dict[str,
                                                                    Any]] = {}
                 export_material_set['tales_report'][
                     filekeydiv[2]] = export_set[filekey]
-            elif filekey == 'qurryinfo' or filekey == 'folder':
+            elif filekey in ['qurryinfo', 'folder']:
                 pass
             else:
                 warnings.warn(
@@ -1161,7 +1193,7 @@ class ExperimentPrototype():
                 instance[k].append(vv)
         # reports
         if 'reports' in export_material_set:
-            mains = {k: v for k, v in export_material_set['reports'].items()}
+            mains = dict(export_material_set['reports'].items())
             sides = {k: {} for k in export_material_set['reports']}
         else:
             mains = {}
@@ -1227,7 +1259,8 @@ class ExperimentPrototype():
         qurryinfoLocation = exportLocation / 'qurryinfo.json'
         if not os.path.exists(qurryinfoLocation):
             raise FileNotFoundError(
-                f"'qurryinfo.json' does not exist at '{saveLocation}'. It's required for loading all experiment data."
+                f"'qurryinfo.json' does not exist at '{saveLocation}'. " +
+                "It's required for loading all experiment data."
             )
 
         with open(qurryinfoLocation, 'r', encoding=encoding) as f:
@@ -1374,11 +1407,11 @@ class ExperimentPrototype():
             elif k == 'figRaw':
                 beforewards['figOriginal'] = legacyRead[k]
             elif k == 'dateCreate':
-                commonsinput['datetimes'] = datetimeDict({
+                commonsinput['datetimes'] = DatetimeDict({
                     'build':
                     legacyRead[k],
                     'transformToV5':
-                    currentTime(),
+                    current_time(),
                 })
             elif k == 'expIndex':
                 commonsinput['serial'] = legacyRead[k]
@@ -1415,7 +1448,9 @@ class QurryExperiment(ExperimentPrototype):
     __name__ = 'QurryExperiment'
 
     class arguments(NamedTuple):
-        """Construct the experiment's parameters for specific options, which is overwritable by the inherition class."""
+        """Construct the experiment's parameters for specific options, 
+        which is overwritable by the inherition class.
+        """
         expName: str = 'exps'
         sampling: int = 1
 

@@ -1,0 +1,21 @@
+[package]
+name = "qurry_boorust"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+name = "qurry_boorust"
+# path = "src/lib.rs"
+crate-type = ["cdylib"]
+
+[dependencies]
+rayon = "1.8.0"
+
+[dependencies.pyo3]
+workspace = true
+
+[features]
+extension-module = ["pyo3/extension-module"]
+default = ["extension-module"]

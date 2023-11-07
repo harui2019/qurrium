@@ -1,0 +1,56 @@
+---
+name: Wheel Builds
+on:
+  push:
+    branches:
+      # - "main"
+      # - "pre-release"
+      - blabla
+  pull_request:
+    branches:
+      # - "main"
+      # - "pre-release"
+      # - "dev"
+      - blabla
+
+jobs:
+  build_wheels:
+    name: Build wheels
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # os: [ubuntu-latest, macos-11, windows-latest]
+        # Wating for Windows multiprocessing support
+        # os: [ubuntu-latest, macos-11]
+        os: [ubuntu-latest]
+        # python-version: ["3.9", "3.10", "3.11"]
+        python-version: ["3.9"]
+
+    steps:
+      - uses: actions/checkout@v3
+
+      # Used to host cibuildwheel
+      - uses: actions/setup-python@v3
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install cibuildwheel
+        run: |
+          python -m pip install --upgrade pipenv wheel pip
+          python -m pip install setuptools_rust setuptools
+          python -m pip install cibuildwheel==2.13.0
+
+      - name: Install Rust
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          source "$HOME/.cargo/env"
+
+      - name: Clean project directory
+        run: |
+          find . -name "*.so" -type f -delete
+          find . -name "*.c" -type f -delete
+
+      - name: Build wheels
+        run: python -m cibuildwheel --output-dir wheelhouse

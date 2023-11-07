@@ -1,11 +1,17 @@
+"""
+================================================================
+Default Configuration for Qurry (:mod:`qurry.declare.default`)
+================================================================
+
+"""
 from typing import Optional
 import warnings
 
-from ..exceptions import QurryInheritionNoEffect
-from ..mori import defaultConfig
+from ..exceptions import QurryInvalidArgument, QurryUnrecongnizedArguments
+from ..capsule.mori import DefaultConfig
 from ..tools.watch import ResoureWatch
 
-transpileConfig = defaultConfig(
+transpileConfig = DefaultConfig(
     name='transpileArgs',
     default={
         'basis_gates': None,
@@ -31,7 +37,7 @@ transpileConfig = defaultConfig(
     }
 )
 
-managerRunConfig = defaultConfig(
+managerRunConfig = DefaultConfig(
     name='managerRunArgs',
     default={
         'max_experiments_per_job': None,
@@ -57,7 +63,7 @@ managerRunConfig = defaultConfig(
     }
 )
 
-runConfig = defaultConfig(
+runConfig = DefaultConfig(
     name='runArgs',
     default={
         'basis_gates': None,
@@ -92,16 +98,17 @@ runConfig = defaultConfig(
     }
 )
 
-ResoureWatchConfig = defaultConfig(
+ResoureWatchConfig = DefaultConfig(
     name='ResoureWatchArgs',
     default=ResoureWatch.RESOURCE_LIMIT()._asdict(),
 )
 
 
-def containChecker(
+def contain_checker(
     config: dict[str, any],
-    checker: defaultConfig,
+    checker: DefaultConfig,
     restrict: bool = False,
+    null_allowed: bool = True,
 ) -> Optional[Exception]:
     """Check whether configuration is available.
 
@@ -119,30 +126,36 @@ def containChecker(
     Returns:
         Optional[Exception]: _description_
     """
-    if (len(config) > 0):
-        if not checker.contain(config):
+
+    if len(config) > 0:
+        use_key = checker.include_keys(config)
+        if len(use_key) == 0:
             text = (
-                f"The following configuration has no any effected arguments," +
+                "The following configuration has no any available arguments," +
                 f"'{config}' for '{checker.__name__}'\n" +
                 f'Available keys: {checker.default_names}'
             )
-
             if restrict:
-                raise QurryInheritionNoEffect(text)
-            else:
-                warnings.warn(text, QurryInheritionNoEffect)
-        else:
-            useKey = checker.has(config)
-            uselessKey = checker.useless(config)
-            text = (
-                f"'{useKey}' will be applied. " +
-                f"The following configuration has no any affect: " +
-                f"'{uselessKey}' for '{checker.__name__}'"
-            )
-            if len(uselessKey) > 0:
-                if restrict:
-                    raise QurryInheritionNoEffect(text)
-                else:
-                    warnings.warn(text, QurryInheritionNoEffect)
-    else:
-        ...
+                raise QurryInvalidArgument(text)
+            warnings.warn(text, QurryInvalidArgument)
+
+        useless_key = checker.useless_keys(config)
+        text = (
+            f"'{use_key}' will be applied. " +
+            "The following configuration has no any affect: " +
+            f"'{useless_key}' for '{checker.__name__}'"
+        )
+        if len(useless_key) > 0:
+            if restrict:
+                raise QurryUnrecongnizedArguments(text)
+            warnings.warn(text, QurryUnrecongnizedArguments)
+
+    elif not null_allowed:
+        text = (
+            "The following configuration is null," +
+            f"'{config}' for '{checker.__name__}'\n" +
+            f'Available keys: {checker.default_names}'
+        )
+        if restrict:
+            raise QurryUnrecongnizedArguments(text)
+        warnings.warn(text, QurryUnrecongnizedArguments)
