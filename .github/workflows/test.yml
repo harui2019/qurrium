@@ -8,10 +8,10 @@ on:
     branches: 
       - "main"
       - "pre-release"
-  pull_request:
-    branches: 
-      - "main"
-      - "pre-release"
+  # pull_request:
+  #   branches: 
+      # - "main"
+      # - "pre-release"
       # - "dev"
 
 jobs:
