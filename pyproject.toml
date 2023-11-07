@@ -7,10 +7,14 @@ build-backend = "setuptools.build_meta"
 
 [tool.cibuildwheel]
 skip = [
-    # "pp*",
+    "pp*",
     "*-musllinux_i686", # rust tier 2 support
+    "*-musllinux_*",
     "cp312-*",          # For some reason, it fails to build
     "*-manylinux_i686",
+]
+build = [
+    "cp39-*"
 ]
 before-all = [
     'python -c "print(\"=\"*70)"',
@@ -21,8 +25,9 @@ before-test = [
     'python -c "print(\"=\"*70)"',
     'python -c "print(\"### Testing \".ljust(70, \".\"))"',
     'python -c "print(\"=\"*70)"',
+    # "yum install -y openblas-devel,
+    "pip install scipy",
     "pip install pytest",
-    "sudo yum install openblas-devel",
 ]
 test-command = ["pytest {project}"]
 
