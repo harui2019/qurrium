@@ -12,7 +12,7 @@ on:
     branches: 
       - "main"
       - "pre-release"
-      - "dev"
+      # - "dev"
 
 jobs:
   test:
