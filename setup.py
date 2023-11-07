@@ -9,6 +9,9 @@ from pathlib import Path
 from setuptools import setup, find_packages, Extension
 from setuptools_rust import Binding, RustExtension
 
+with open("requirements.txt") as f:
+    REQUIREMENTS = f.read().splitlines()
+
 
 def re_cythonize(extensions, **kwargs):
     try:
@@ -50,16 +53,6 @@ README_PATH = os.path.join(
 with open(README_PATH, encoding='utf-8') as readme_file:
     README = readme_file.read()
 
-
-# requirement = qiskit_main + qiskit_gpu + bugfix + dependencies
-install_requires = [
-    "qiskit>=0.32.2",
-    "qiskit-aer>=0.10.4",
-    "tqdm",
-    "matplotlib",
-    "requests~=2.28.0",
-]
-
 __author__ = "Huai-Chung Chang (harui2019@proton.me)"
 
 
@@ -67,13 +60,13 @@ setup(
     name='qurry',
     version=__version_str__,
     description=(
-        'Qurry 🍛 - The Measuring Tool for Renyi Entropy, Loschmidt Echo, '+
+        'Qurry 🍛 - The Measuring Tool for Renyi Entropy, Loschmidt Echo, ' +
         'and Magnetization Squared, The Library of Some Common Cases'
     ),
     long_description=README,
     long_description_content_type='text/markdown',
 
-    url='https://github.com/harui2019/qurry/qurry',
+    url='https://github.com/harui2019/qurry',
     author='Huai-Chung Chang',
     author_email='harui2019@proton.me',
 
@@ -85,6 +78,6 @@ setup(
     ),
     rust_extensions=rust_extension,
 
-    install_requires=install_requires,
+    install_requires=REQUIREMENTS,
     python_requires=">=3.9",
 )

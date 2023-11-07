@@ -1,3 +1,26 @@
+[project]
+name = "qurry"
+version = "0.6.5.dev2"
+authors = [{ name = "Huai-Chung Chang", email = "harui2019@proton.me" }]
+description = "Qurry 🍛 - The Measuring Tool for Renyi Entropy, Loschmidt Echo, and Magnetization Squared, The Library of Some Common Cases"
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+
+    "Programming Language :: Python :: 3 :: Only",
+    'Programming Language :: Python :: 3.9',
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+
+    "Programming Language :: Python :: Implementation :: CPython",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/harui2019/qurry"
+"Bug Tracker" = "https://github.com/harui2019/qurry/issues"
+
 [build-system]
 requires = ["pytest", "cython", "setuptools", "setuptools-rust", "wheel"]
 build-backend = "setuptools.build_meta"
@@ -7,18 +30,20 @@ build-backend = "setuptools.build_meta"
 
 [tool.cibuildwheel]
 skip = [
-    "pp*",
+    # "pp*",
     "*-musllinux_i686", # rust tier 2 support
-    "cp312-*", # For some reason, it fails to build
+    "cp312-*",          # For some reason, it fails to build
     "*-manylinux_i686",
 ]
 before-all = [
     'python -c "print(\"=\"*70)"',
     'python -c "print(\"### Building \".ljust(70, \".\"))"',
+    'python -c "print(\"=\"*70)"',
 ]
 before-test = [
     'python -c "print(\"=\"*70)"',
     'python -c "print(\"### Testing \".ljust(70, \".\"))"',
+    'python -c "print(\"=\"*70)"',
     "pip install pytest",
 ]
 test-command = ["pytest {project}"]
@@ -32,6 +57,4 @@ before-all = [
 ]
 
 [tool.cibuildwheel.macos]
-before-all = [
-    "rustup show",
-]
+before-all = ["rustup show"]
