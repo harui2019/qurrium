@@ -22,6 +22,7 @@ before-test = [
     'python -c "print(\"### Testing \".ljust(70, \".\"))"',
     'python -c "print(\"=\"*70)"',
     "pip install pytest",
+    "sudo yum install openblas-devel",
 ]
 test-command = ["pytest {project}"]
 
