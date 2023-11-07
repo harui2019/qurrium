@@ -9,7 +9,9 @@ import pytest
 from qurry.qurrent import EntropyMeasure
 from qurry.tools import backendWrapper
 from qurry.capsule import mori, hoshi
-from qurry.recipe.library import TrivialParamagnet
+from qurry.recipe.library import (
+    TrivialParamagnet, GHZ,  TopologicalParamagnet
+)
 
 
 tag_list = mori.TagList()
@@ -19,51 +21,50 @@ expDemo01 = EntropyMeasure(method='hadamard')
 expDemo02 = EntropyMeasure(method='randomized')
 
 
-wave_adds_01 = [
-    (expDemo01.add(TrivialParamagnet(i).wave(), i),) for i in range(6, 12, 2)
-]
-wave_adds_02 = [
-    (expDemo02.add(TrivialParamagnet(i).wave(), i),) for i in range(6, 12, 2)
-]
+wave_adds_01 = []
+wave_adds_02 = []
 
+for i in range(4, 9, 2):
+    wave_adds_01.append(expDemo01.add(
+        TrivialParamagnet(i).wave(), f'{i}-trivial'))
+    wave_adds_02.append(expDemo02.add(
+        TrivialParamagnet(i).wave(), f'{i}-trivial'))
+
+    wave_adds_01.append(expDemo01.add(GHZ(i).wave(), f'{i}-GHZ'))
+    wave_adds_02.append(expDemo02.add(GHZ(i).wave(), f'{i}-GHZ'))
+
+    wave_adds_01.append(expDemo01.add(
+        TopologicalParamagnet(i).wave(), f'{i}-topological'))
+    wave_adds_02.append(expDemo02.add(
+        TopologicalParamagnet(i).wave(), f'{i}-topological'))
 
 backend = backendWrapper()('aer')
 
 
-@pytest.mark.parametrize("tgt, ", wave_adds_01)
-def test_quantity_01(
-    tgt,
-) -> bool:
+@pytest.mark.parametrize("tgt", wave_adds_01)
+def test_quantity_01(tgt):
     """Test the quantity of entropy and purity.
 
     Args:
-        tgt (tuple[QuantumCircuit, int]): The target wave and the number of qubits.
-
-    Returns:
-        bool: The result of the test.
+        tgt (Hashable): The target wave key in Qurry.
     """
 
-    exp_id = expDemo01.measure(wave=tgt[0], backend=backend)
+    exp_id = expDemo01.measure(wave=tgt, backend=backend)
     expDemo01.exps[exp_id].analyze()
     quantity = expDemo01.exps[exp_id].reports[0].content._asdict()
     assert all(['entropy' in quantity, 'purity' in quantity])
 
 
-@pytest.mark.parametrize("tgt, ", wave_adds_02)
-def test_quantity_02(
-    tgt,
-) -> bool:
+@pytest.mark.parametrize("tgt", wave_adds_02)
+def test_quantity_02(tgt):
     """Test the quantity of entropy and purity.
 
     Args:
-        tgt (tuple[QuantumCircuit, int]): The target wave and the number of qubits.
-
-    Returns:
-        bool: The result of the test.
+        tgt (Hashable): The target wave key in Qurry.
     """
 
     exp_id = expDemo02.measure(
-        wave=tgt[0],
+        wave=tgt,
         times=10,
         backend=backend
     )
