@@ -20,6 +20,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # os: [ubuntu-latest, macos-11, windows-latest]
+        # Wating for Windows multiprocessing support
         os: [ubuntu-latest, macos-11]
         python-version: ["3.9", "3.10", "3.11"]
 
