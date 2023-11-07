@@ -23,7 +23,8 @@ jobs:
         # Wating for Windows multiprocessing support
         # os: [ubuntu-latest, macos-11]
         os: [ubuntu-latest]
-        python-version: ["3.9", "3.10", "3.11"]
+        # python-version: ["3.9", "3.10", "3.11"]
+        python-version: ["3.9"]
 
     steps:
       - uses: actions/checkout@v3
@@ -31,6 +32,11 @@ jobs:
         name: Install Python
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Update Pip
+        run: |
+          python -m pip install --upgrade pipenv wheel pip
+          python -m pip install setuptools_rust setuptools
+          python -m pip install .
       - name: Install Rust
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y

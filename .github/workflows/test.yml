@@ -15,7 +15,7 @@ on:
       - "dev"
 
 jobs:
-  build:
+  test:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
