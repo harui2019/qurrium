@@ -9,7 +9,8 @@ build-backend = "setuptools.build_meta"
 skip = [
     "pp*",
     "*-musllinux_i686", # rust tier 2 support
-    "cp-312-*", # For some reason, it fails to build
+    "cp312-*", # For some reason, it fails to build
+    "*-manylinux_i686",
 ]
 before-all = [
     'python -c "print(\"=\"*70)"',
@@ -32,6 +33,5 @@ before-all = [
 
 [tool.cibuildwheel.macos]
 before-all = [
-    "python -m pip install pkgutil",
     "rustup show",
 ]

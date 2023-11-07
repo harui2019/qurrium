@@ -6,7 +6,6 @@ on:
       # - "main"
       # - "pre-release"
       - blabla # not ready yet
-      - dev
 
 jobs:
   build_wheels:
