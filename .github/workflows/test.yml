@@ -5,14 +5,14 @@ name: Test
 
 on:
   push:
+    # branches: 
+    #   - "main"
+    #   - "pre-release"
+  pull_request:
     branches: 
       - "main"
       - "pre-release"
-  # pull_request:
-  #   branches: 
-      # - "main"
-      # - "pre-release"
-      # - "dev"
+      - "dev"
 
 jobs:
   test:
