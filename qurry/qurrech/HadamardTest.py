@@ -168,7 +168,7 @@ class EchoHadamardTest(QurryV5Prototype):
         self,
         expName: str = 'exps',
         waveKey: Hashable = None,
-        waveKey2: Hashable = None,
+        waveKey2: Union[Hashable, QuantumCircuit] = None,
         degree: Union[tuple[int, int], int] = None,
         **otherArgs: any
     ) -> tuple[EchoHadamardExperiment.arguments, EchoHadamardExperiment.commonparams, dict[str, Any]]:
@@ -202,12 +202,25 @@ class EchoHadamardTest(QurryV5Prototype):
         Returns:
             dict: The export will be processed in `.paramsControlCore`
         """
-        # measure and unitary location
+        # wave
+        if isinstance(waveKey2, QuantumCircuit):
+            waveKey2 = self.add(waveKey2)
+        elif isinstance(waveKey2, Hashable):
+            if waveKey2 is None:
+                ...
+            elif not self.has(waveKey2):
+                raise KeyError(f"Wave '{waveKey2}' not found in '.waves'")
+        else:
+            raise TypeError(
+                f"'{waveKey2}' is a '{type(waveKey2)}' instead of 'QuantumCircuit' or 'Hashable'")
+        
         numQubits = self.waves[waveKey].num_qubits
         numQubits2 = self.waves[waveKey2].num_qubits
         if numQubits != numQubits2:
             raise ValueError(
                 f"The number of qubits of two wave functions must be the same, but {waveKey}: {numQubits} != {waveKey2}: {numQubits2}.")
+
+        # measure and unitary location
         degree = qubit_selector(numQubits, degree=degree)
 
         if isinstance(waveKey, (list, tuple)):
@@ -298,8 +311,8 @@ class EchoHadamardTest(QurryV5Prototype):
         """
 
         IDNow = self.result(
-            waveKey=wave,
-            waveKey2=wave2,
+            wave=wave, # First wave will be taken by _paramsControlMain
+            waveKey2=wave2, # Second wave will be taken by paramsControl
             expName=expName,
             degree=degree,
             saveLocation=None,

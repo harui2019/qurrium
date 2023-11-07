@@ -217,8 +217,8 @@ def _overlap_echo_core(
         pool = ProcessManager(launch_worker)
         echo_cell_items = pool.starmap(
             cell_calculator, [
-                (i, c1, c2, bitstring_range, subsystem_size) 
-            for i, (c1, c2) in enumerate(counts_pair)])
+                (i, c1, c2, bitstring_range, subsystem_size)
+                for i, (c1, c2) in enumerate(counts_pair)])
         take_time = round(time.time() - begin_time, 3)
 
     if not _hide_print:
@@ -370,26 +370,28 @@ class EchoRandomizedAnalysis(AnalysisPrototype):
     class analysisContent(NamedTuple):
         """The content of the analysis."""
 
-        purity: float
+        echo: float
         """The purity of the system."""
-        entropy: float
-        """The entanglement entropy of the system."""
-        puritySD: float
+        echoSD: float
         """The standard deviation of the purity of the system."""
-        purityCells: dict[int, float]
-        """The purity of each cell of the system."""
+        echoCells: dict[int, float]
+        """The echo of each cell of the system."""
         bitStringRange: tuple[int, int]
         """The qubit range of the subsystem."""
 
+        measureActually: Optional[tuple[int, int]] = None
+        """The qubit range of the measurement actually used."""
+        countsNum: Optional[int] = None
+        """The number of counts of the experiment."""
+
         def __repr__(self):
-            return f"analysisContent(purity={self.purity}, entropy={self.entropy}, and others)"
+            return f"analysisContent(echo={self.echo}, and others)"
 
     @property
     def default_side_product_fields(self) -> Iterable[str]:
         """The fields that will be stored as side product."""
         return [
-            'purityCells',
-            'purityCellsAllSys',
+            'echoCells',
         ]
 
 
@@ -583,7 +585,7 @@ class EchoRandomizedListen(QurryV5Prototype):
         self,
         expName: str = 'exps',
         waveKey: Hashable = None,
-        waveKey2: Hashable = None,
+        waveKey2: Union[Hashable, QuantumCircuit] = None,
         times: int = 100,
         measure: tuple[int, int] = None,
         unitary_loc: tuple[int, int] = None,
@@ -611,6 +613,23 @@ class EchoRandomizedListen(QurryV5Prototype):
         Returns:
             dict: The export will be processed in `.paramsControlCore`
         """
+        # wave
+        if isinstance(waveKey2, QuantumCircuit):
+            waveKey2 = self.add(waveKey2)
+        elif isinstance(waveKey2, Hashable):
+            if waveKey2 is None:
+                ...
+            elif not self.has(waveKey2):
+                raise KeyError(f"Wave '{waveKey2}' not found in '.waves'")
+        else:
+            raise TypeError(
+                f"'{waveKey2}' is a '{type(waveKey2)}' instead of 'QuantumCircuit' or 'Hashable'")
+
+        numQubits = self.waves[waveKey].num_qubits
+        numQubits2 = self.waves[waveKey2].num_qubits
+        if numQubits != numQubits2:
+            raise ValueError(
+                f"The number of qubits of two wave functions must be the same, but {waveKey}: {numQubits} != {waveKey2}: {numQubits2}.")
 
         # times
         if not isinstance(times, int):
@@ -626,12 +645,12 @@ class EchoRandomizedListen(QurryV5Prototype):
         if measure is None:
             measure = num_qubits
         measure = qubit_selector(
-            num_qubits, degree=measure, as_what='measure range')
+            num_qubits, degree=measure)
 
         if unitary_loc is None:
             unitary_loc = num_qubits
         unitary_loc = qubit_selector(
-            num_qubits, degree=unitary_loc, as_what='unitary_loc')
+            num_qubits, degree=unitary_loc)
 
         if (min(measure) < min(unitary_loc)) or (max(measure) > max(unitary_loc)):
             raise ValueError(
@@ -753,8 +772,8 @@ class EchoRandomizedListen(QurryV5Prototype):
         """
 
         IDNow = self.result(
-            waveKey=wave,
-            waveKey2=wave2,
+            wave=wave,  # First wave will be taken by _paramsControlMain
+            waveKey2=wave2,  # Second wave will be taken by paramsControl
             expName=expName,
             times=times,
             measure=measure,
