@@ -31,8 +31,31 @@ from qiskit.providers.fake_provider import (
     FakeBackend, FakeBackendV2)
 
 # pylint: disable=ungrouped-imports
+AER_IMPORT_POINT: Literal['qiskit_aer', 'qiskit.providers.aer', 'qiskit.providers.basicaer']
 try:
     try:
+        from qiskit_aer import (
+            AerProvider as AerProviderIndep,
+            AerSimulator as AerSimulatorIndep
+        )
+        from qiskit_aer.backends.aerbackend import AerBackend as AerBackendIndep
+        from qiskit_aer.version import get_version_info as get_version_info_aer
+        AER_VERSION_INFO = get_version_info_aer()
+        AER_IMPORT_POINT = 'qiskit_aer'
+        IS_FROM_INDEPENDENT_AER_PACKAGE = True
+
+        class GeneralAerSimulator(AerSimulatorIndep):
+            """AerSimulator from qiskit-aer package.
+            """
+        class GeneralAerBackend(AerBackendIndep):
+            """AerBackend from qiskit-aer package.
+            """
+
+        class GeneralAerProvider(AerProviderIndep):
+            """AerProvider from qiskit-aer package.
+            """
+
+    except ImportError:
         from qiskit.providers.aer import (  # type: ignore
             AerProvider as AerProviderDep,  # type: ignore
             AerSimulator as AerSimulatorDep  # type: ignore
@@ -57,32 +80,9 @@ try:
             """AerProvider from qiskit.provider.aer, the old import point.
             """
 
-    except ImportError:
-        from qiskit_aer import (
-            AerProvider as AerProviderIndep,
-            AerSimulator as AerSimulatorIndep
-        )
-        from qiskit_aer.backends.aerbackend import AerBackend as AerBackendIndep
-        from qiskit_aer.version import get_version_info as get_version_info_aer
-        AER_VERSION_INFO = get_version_info_aer()
-        AER_IMPORT_POINT = 'qiskit_aer'
-        IS_FROM_INDEPENDENT_AER_PACKAGE = True
-
-        class GeneralAerSimulator(AerSimulatorIndep):
-            """AerSimulator from qiskit-aer package.
-            """
-        class GeneralAerBackend(AerBackendIndep):
-            """AerBackend from qiskit-aer package.
-            """
-
-        class GeneralAerProvider(AerProviderIndep):
-            """AerProvider from qiskit-aer package.
-            """
-
 except ImportError as err:
-    print(f"Error: {err}")
     AER_VERSION_INFO = ''
-    AER_IMPORT_POINT = 'qiskit.provider.basicaer'
+    AER_IMPORT_POINT = 'qiskit.providers.basicaer'
     IS_FROM_INDEPENDENT_AER_PACKAGE = False
     from qiskit.providers.backend import BackendV1 as BackendV1Dep
     from qiskit.providers.basicaer.basicaerprovider import BasicAerProvider, QasmSimulatorPy

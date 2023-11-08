@@ -5,10 +5,10 @@ Test the qurry.qurrech module EchoListen class.
 
 """
 import pytest
-from qiskit import BasicAer
+# from qiskit import BasicAer
 
 from qurry.qurrech import EchoListen
-# from qurry.tools import backendWrapper
+from qurry.tools.backend import GeneralAerSimulator
 from qurry.capsule import mori, hoshi
 from qurry.recipe.library import (
     TrivialParamagnet, GHZ,  TopologicalParamagnet
@@ -38,8 +38,8 @@ for i in range(4, 7, 2):
     wave_adds_02.append(expDemo02.add(
         TopologicalParamagnet(i).wave(), f'{i}-topological'))
 
-# backend = backendWrapper()('aer')
-backend = BasicAer.backends()[0]
+backend = GeneralAerSimulator()
+# backend = BasicAer.backends()[0]
 print(backend.configuration())
 
 

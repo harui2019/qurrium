@@ -14,7 +14,7 @@ from qiskit.providers import Backend, Provider
 from qiskit.providers.fake_provider import FakeProviderForBackendV2
 
 from .import_manage import (
-    IBM_AVAILABLE, IBMQ_AVAILABLE, backendName,
+    IBM_AVAILABLE, IBMQ_AVAILABLE, AER_IMPORT_POINT, backendName,
     _real_backend_loader, fack_backend_loader, shorten_name,
     IBMQ, IBMProvider, GeneralAerProvider, GeneralAerBackend,
 )
@@ -81,16 +81,16 @@ class BackendWrapper:
 
     def _update_callsign(self) -> None:
         self.backend_callsign = {
-            **self.backend_ibmq_callsign,
-            **self.backend_aer_callsign,
-            **self.backend_fake_callsign,
+            **self.backend_callsign_dict['real'],
+            **self.backend_callsign_dict['aer'],
+            **self.backend_callsign_dict['fake'],
         }
 
     def _update_backend(self) -> None:
         self.backend = {
-            **self.backend_ibmq,
-            **self.backend_aer,
-            **self.backend_fake,
+            **self.backend_dict['real'],
+            **self.backend_dict['aer'],
+            **self.backend_dict['fake'],
         }
 
     def __init__(
@@ -100,47 +100,64 @@ class BackendWrapper:
     ) -> None:
 
         self.is_aer_gpu = False
-        self._aer_provider = GeneralAerProvider()
-        self._aer_owned_backends = self._aer_provider.backends()
-        if 'GPU' in self._aer_owned_backends[0].available_devices():
-            self.is_aer_gpu = True
+        self._providers: dict[Literal['aer', 'real', 'fake'], Provider] = {}
+        self._providers['aer'] = GeneralAerProvider()
+        self.backend_dict: dict[
+            Literal['aer', 'real', 'fake'], list[Union[Backend, GeneralAerBackend]]
+        ] = {}
+        self.backend_callsign_dict: dict[
+            Literal['aer', 'real', 'fake'], str
+        ] = {}
 
-        self.backend_aer_callsign = {
-            'state': 'statevector',
-            'aer_state': 'aer_statevector',
-            'aer_density': 'aer_density_matrix',
+        _aer_owned_backends: list[GeneralAerBackend] = self._providers['aer'].backends()
 
-            'aer_state_gpu': 'aer_statevector_gpu',
-            'aer_density_gpu': 'aer_density_matrix_gpu',
-        }
-        self.backend_aer: dict[str, Union[Backend, GeneralAerBackend]] = {
-            shorten_name(backendName(b), ['_simulator']):
-                b for b in self._aer_owned_backends if backendName(b) not in [
-                    'qasm_simulator', 'statevector_simulator', 'unitary_simulator'
-            ]
-        }
-        if self.is_aer_gpu:
-            self.backend_aer = {
-                "aer_gpu": self._aer_owned_backends[0],
-                **self.backend_aer,
+        if AER_IMPORT_POINT == 'qiskit.providers.basicaer':
+            self.backend_callsign_dict['aer'] = {
+                'state': 'statevector',
             }
-            self.backend_aer["aer_gpu"].set_options(device='GPU')
+            self.backend_dict['aer']: dict[str, Union[Backend, GeneralAerBackend]] = {
+                shorten_name(backendName(b), ['_simulator']):
+                b for b in _aer_owned_backends
+            }
+        else:
+            if 'GPU' in _aer_owned_backends[0].available_devices():
+                self.is_aer_gpu = True
+            self.backend_callsign_dict['aer'] = {
+                'state': 'statevector',
+                'aer_state': 'aer_statevector',
+                'aer_density': 'aer_density_matrix',
+
+                'aer_state_gpu': 'aer_statevector_gpu',
+                'aer_density_gpu': 'aer_density_matrix_gpu',
+            }
+            self.backend_dict['aer']: dict[str, Union[Backend, GeneralAerBackend]] = {
+                shorten_name(backendName(b), ['_simulator']):
+                    b for b in _aer_owned_backends if backendName(b) not in [
+                        'qasm_simulator', 'statevector_simulator', 'unitary_simulator'
+                ]
+            }
+        if self.is_aer_gpu:
+            self.backend_dict['aer'] = {
+                "aer_gpu": _aer_owned_backends[0],
+                **self.backend_dict['aer'],
+            }
+            self.backend_dict['aer']["aer_gpu"].set_options(device='GPU')
 
         (
-            self.backend_ibmq_callsign, self.backend_ibmq, self._real_provider
+            self.backend_callsign_dict['real'], self.backend_dict['real'], self._providers['real']
         ) = _real_backend_loader(real_provider)
 
         (
-            self.backend_fake_callsign, self.backend_fake, self._fake_provider
+            self.backend_callsign_dict['fake'], self.backend_dict['fake'], self._providers['fake']
         ) = fack_backend_loader(fake_version)
 
         self._update_callsign()
         self._update_backend()
 
     def __repr__(self):
-        if self._real_provider is None:
+        if self._providers['real'] is None:
             return '<BackendWrapper with AerProvider>'
-        return f'<BackendWrapper with AerProvider and {self._real_provider.__repr__()[1:-1]}>'
+        return f'<BackendWrapper with AerProvider and {self._providers["real"].__repr__()[1:-1]}>'
 
     def make_callsign(
         self,
@@ -160,12 +177,12 @@ class BackendWrapper:
                     "Those who survive a long time on the battlefield " +
                     "start to think they're invincible. I bet you do, too, Buddy.")
 
-        if who in self.backend_aer:
-            self.backend_aer_callsign[sign] = who
-        elif who in self.backend_ibmq:
-            self.backend_ibmq_callsign[sign] = who
-        elif who in self.backend_fake:
-            self.backend_fake_callsign[sign] = who
+        if who in self.backend_dict['aer']:
+            self.backend_callsign_dict['aer'][sign] = who
+        elif who in self.backend_dict['real']:
+            self.backend_callsign_dict['real'][sign] = who
+        elif who in self.backend_dict['fake']:
+            self.backend_callsign_dict['fake'][sign] = who
         else:
             raise ValueError(f"'{who}' unknown backend.")
 
@@ -187,37 +204,37 @@ class BackendWrapper:
     def available_aer(self) -> list[str]:
         """The available aer backends.
         """
-        return list(self.backend_aer.keys())
+        return list(self.backend_dict['aer'].keys())
 
     @property
     def available_aer_callsign(self) -> list[str]:
         """The available aer backends callsign.
         """
-        return list(self.backend_aer_callsign.keys())
+        return list(self.backend_callsign_dict['aer'].keys())
 
     @property
     def available_ibmq(self) -> list[str]:
         """The available ibmq/ibm backends.
         """
-        return list(self.backend_ibmq.keys())
+        return list(self.backend_dict['real'].keys())
 
     @property
     def available_ibmq_callsign(self) -> list[str]:
         """The available ibmq/ibm backends callsign.
         """
-        return list(self.backend_ibmq_callsign.keys())
+        return list(self.backend_callsign_dict['real'].keys())
 
     @property
     def available_fake(self) -> list[str]:
         """The available fake backends.
         """
-        return list(self.backend_fake.keys())
+        return list(self.backend_dict['fake'].keys())
 
     @property
     def available_fake_callsign(self) -> list[str]:
         """The available fake backends callsign.
         """
-        return list(self.backend_fake_callsign.keys())
+        return list(self.backend_callsign_dict['fake'].keys())
 
     def statesheet(self):
         """The statesheet of backend wrapper.
@@ -228,9 +245,9 @@ class BackendWrapper:
         ], ljust_describe_len=35)
 
         for desc, backs, backs_callsign in [
-            ('Aer', self.available_aer, self.backend_aer_callsign),
-            ('IBM', self.available_ibmq, self.backend_ibmq_callsign),
-            ('Fake', self.available_fake, self.backend_fake_callsign),
+            ('Aer', self.available_aer, self.backend_callsign_dict['aer']),
+            ('IBM', self.available_ibmq, self.backend_callsign_dict['real']),
+            ('Fake', self.available_fake, self.backend_callsign_dict['fake']),
         ]:
             check_msg.divider()
             check_msg.h4(desc)
@@ -243,7 +260,7 @@ class BackendWrapper:
             elif 'IBM' in desc:
                 if IBM_AVAILABLE and IBMQ_AVAILABLE:
                     value_txt = (
-                        '"qiskit_ibm_provider"' if isinstance(self._real_provider, IBMProvider)
+                        '"qiskit_ibm_provider"' if isinstance(self._providers['real'], IBMProvider)
                         else 'qiskit.providers.ibmq')
                 elif IBM_AVAILABLE:
                     value_txt = '"qiskit_ibm_provider"'
@@ -261,7 +278,7 @@ class BackendWrapper:
                     'type': 'itemize',
                     'description': 'Fake Provider by',
                     'value': (
-                        'FackBackendV2' if isinstance(self._fake_provider, FakeProviderForBackendV2)
+                        'FackBackendV2' if isinstance(self._providers['real'], FakeProviderForBackendV2)
                         else 'FackBackendV1'),
                 })
             check_msg.newline({
@@ -311,10 +328,10 @@ class BackendWrapper:
         if name in self.backend:
             raise ValueError(f"'{name}' backend already exists.")
 
-        self.backend_ibmq[name] = backend
+        self.backend_dict['real'][name] = backend
         self._update_backend()
         if not callsign is None:
-            self.backend_ibmq_callsign[callsign] = name
+            self.backend_callsign_dict['real'][callsign] = name
             self._update_callsign()
 
     def __call__(

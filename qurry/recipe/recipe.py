@@ -7,10 +7,10 @@ from qiskit.quantum_info import Operator
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.instruction import Instruction
 
-from ..tools.backend import GeneralAerProvider, GeneralAerSimulator
+from ..tools.backend import GeneralAerSimulator, GeneralAerBackend
 
 
-AER_BACKEND: GeneralAerSimulator = GeneralAerProvider().get_backend('aer_simulator')
+AER_BACKEND: GeneralAerBackend = GeneralAerSimulator()
 
 
 class Qurecipe:
