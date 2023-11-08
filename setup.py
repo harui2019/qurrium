@@ -85,7 +85,10 @@ setup(
     author='Huai-Chung Chang',
     author_email='harui2019@proton.me',
 
-    packages=find_packages(exclude=['tests']),
+    packages=find_packages(
+        include=['qurry*', 'qurry.capsule*'],
+        exclude=['cmake', 'symengine'],
+    ),
     include_package_data=True,
     ext_modules=re_cythonize(
         cy_extensions,

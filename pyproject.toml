@@ -5,16 +5,24 @@ build-backend = "setuptools.build_meta"
 # If you find some configurations are similar to what qiskit does,
 # yes, it does. I 'learned' from them.
 
+[project]
+name = "qurry"
+dynamic = ["version", "readme", "dependencies", "classifiers"]
+
+
+[tool.setuptools.packages.find]
+include = ['qurry*', 'qurry.capsule*']
+exclude = ['cmake', 'symengine']
+
 [tool.cibuildwheel]
 skip = [
-    "pp*",
     "*-musllinux_i686", # rust tier 2 support
-    "*-musllinux_*",
-    "cp312-*",          # For some reason, it fails to build
-    "*-manylinux_i686",
+    "pp*",              # Qiskit and Qurry are not pure python packages, See https://github.com/harui2019/qurry/issues/93#issuecomment-1801837481
+    "cp312-*",          # Check issue https://github.com/harui2019/qurry/issues/95 for details
+    # "*-musllinux_*",    # scipy dependency issue, Check issue https://github.com/harui2019/qurry/issues/93 for details
 ]
 build = [
-    "cp39-*"
+    "cp39-*",
 ]
 before-all = [
     'python -c "print(\"=\"*70)"',
@@ -25,8 +33,6 @@ before-test = [
     'python -c "print(\"=\"*70)"',
     'python -c "print(\"### Testing \".ljust(70, \".\"))"',
     'python -c "print(\"=\"*70)"',
-    # "yum install -y openblas-devel,
-    "pip install scipy",
     "pip install pytest",
 ]
 test-command = ["pytest {project}"]
@@ -37,6 +43,24 @@ before-all = [
     "curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain=nightly --profile=minimal -y",
     'source "$HOME/.cargo/env"',
     "rustup show",
+]
+before-test = [
+    'python -c "print(\"=\"*70)"',
+    'python -c "print(\"### Testing on Linux \".ljust(70, \".\"))"',
+    'python -c "print(\"=\"*70)"',
+    # Solution for scipy dependency issue
+    # Check https://github.com/harui2019/qurry/issues/95 for details
+    # https://github.com/scipy/scipy/issues/16308#issuecomment-1560669084
+    "git clone https://github.com/xianyi/OpenBLAS.git",
+    "cd OpenBLAS",
+    "make -j8",
+    "make PREFIX=/usr/local/OpenBLAS install",
+    "export PKG_CONFIG_PATH=/usr/local/OpenBLAS/lib/pkgconfig",
+    "cd ..",
+    "rm -rf OpenBLAS",
+    # end of solution
+    "pip install scipy",
+    "pip install pytest",
 ]
 
 [tool.cibuildwheel.macos]
