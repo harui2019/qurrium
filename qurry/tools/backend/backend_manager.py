@@ -16,7 +16,7 @@ from qiskit.providers.fake_provider import FakeProviderForBackendV2
 from .import_manage import (
     IBM_AVAILABLE, IBMQ_AVAILABLE, backendName,
     _real_backend_loader, fack_backend_loader, shorten_name,
-    IBMQ, IBMProvider, AerProvider, AerBackend,
+    IBMQ, IBMProvider, GeneralAerProvider, GeneralAerBackend,
 )
 from ...exceptions import QurryPositionalArgumentNotSupported
 from ...capsule.hoshi import Hoshi
@@ -76,22 +76,6 @@ class BackendWrapper:
     """
 
     @staticmethod
-    def _shorten_name(
-        *args, **kwargs
-    ) -> str:
-        """Shorten the name of backend.
-
-        Args:
-            name (str): The name of backend.
-            drop (list[str], optional): The strings to drop from the name. Defaults to [].
-            exclude (list[str], optional): The strings to exclude from the name. Defaults to [].
-
-        Returns:
-            str: The shortened name of backend.
-        """
-        return shorten_name(*args, **kwargs)
-
-    @staticmethod
     def _hint_ibmq_sim(name: str) -> str:
         return 'ibm'+name if not 'ibm' in name else name
 
@@ -116,7 +100,7 @@ class BackendWrapper:
     ) -> None:
 
         self.is_aer_gpu = False
-        self._aer_provider = AerProvider()
+        self._aer_provider = GeneralAerProvider()
         self._aer_owned_backends = self._aer_provider.backends()
         if 'GPU' in self._aer_owned_backends[0].available_devices():
             self.is_aer_gpu = True
@@ -129,8 +113,8 @@ class BackendWrapper:
             'aer_state_gpu': 'aer_statevector_gpu',
             'aer_density_gpu': 'aer_density_matrix_gpu',
         }
-        self.backend_aer: dict[str, Union[Backend, AerBackend]] = {
-            self._shorten_name(backendName(b), ['_simulator']):
+        self.backend_aer: dict[str, Union[Backend, GeneralAerBackend]] = {
+            shorten_name(backendName(b), ['_simulator']):
                 b for b in self._aer_owned_backends if backendName(b) not in [
                     'qasm_simulator', 'statevector_simulator', 'unitary_simulator'
             ]
@@ -336,7 +320,7 @@ class BackendWrapper:
     def __call__(
         self,
         backend_name: str,
-    ) -> Union[Backend, AerBackend]:
+    ) -> Union[Backend, GeneralAerBackend]:
         # if 'qasm' in backend_name:
         #     warnings.warn(
         #         "We use 'AerSimulator' as replacement of 'QASMSimulator' "+

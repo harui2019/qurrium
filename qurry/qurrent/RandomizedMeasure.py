@@ -173,7 +173,7 @@ def _entangled_entropy_core(
     workers_num: Optional[int] = None,
     use_cython: bool = True,
     _hide_print: bool = False,
-) -> tuple[dict[int, float], tuple[int, int], tuple[int, int], str, int]:
+) -> tuple[dict[int, float], tuple[int, int], tuple[int, int], str, float]:
     """The core function of entangled entropy.
 
     Args:
@@ -194,7 +194,7 @@ def _entangled_entropy_core(
         ValueError: Measure range does not contain subsystem.
 
     Returns:
-        tuple[list[float], tuple[int, int], tuple[int, int], str, int]: 
+        tuple[dict[int, float], tuple[int, int], tuple[int, int], str, float]: 
             Purity of each cell, Partition range, Measuring range, Message, Time to calculate.
     """
 
@@ -251,7 +251,7 @@ def _entangled_entropy_core(
     times = len(counts)
     Begin = time.time()
 
-    if not (CYTHON_AVAILABLE and use_cython):
+    if not (CYTHON_AVAILABLE):
         warnings.warn(
             "Cython is not available, using python to calculate purity cell." +
             f" More infomation about this error: {FAILED_PYX_IMPORT}",

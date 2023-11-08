@@ -16,7 +16,7 @@ from qiskit.quantum_info import Operator
 from qiskit.providers import Backend
 from qiskit.circuit import Gate
 
-from ..tools.backend import AerSimulator
+from ..tools.backend import GeneralAerSimulator
 from ..capsule.mori import TagList
 from ..tools import ResoureWatch, qurryProgressBar, ProcessManager
 from ..declare.default import (
@@ -258,7 +258,7 @@ class QurryV5Prototype:
 
         expID: Optional[str] = None,
         shots: int = 1024,
-        backend: Backend = AerSimulator(),
+        backend: Backend = GeneralAerSimulator(),
         # provider: Optional[AccountProvider] = None,
         runArgs: Optional[dict[str, Any]] = None,
 
@@ -821,7 +821,7 @@ class QurryV5Prototype:
         summonerName: str = 'exps',
         summonerID: Optional[str] = None,
         shots: int = 1024,
-        backend: Backend = AerSimulator(),
+        backend: Backend = GeneralAerSimulator(),
         # provider: AccountProvider = None,
         # Other arguments of experiment
         # Multiple jobs shared
@@ -964,7 +964,7 @@ class QurryV5Prototype:
         summonerName: str = 'exps',
         summonerID: Optional[str] = None,
         shots: int = 1024,
-        backend: Backend = AerSimulator(),
+        backend: Backend = GeneralAerSimulator(),
         # IBMQJobManager() dedicated
         tags: Optional[list[str]] = None,
         managerRunArgs: Optional[dict[str, Any]] = None,
@@ -1070,7 +1070,7 @@ class QurryV5Prototype:
         summonerName: str = 'exps',
         summonerID: Optional[str] = None,
         shots: int = 1024,
-        backend: Backend = AerSimulator(),
+        backend: Backend = GeneralAerSimulator(),
         tags: Optional[list[str]] = None,
         # provider: AccountProvider = None,
         # IBMQJobManager() dedicated
@@ -1189,7 +1189,7 @@ class QurryV5Prototype:
         summonerName: str = 'exps',
         summonerID: Optional[str] = None,
         shots: int = 1024,
-        backend: Backend = AerSimulator(),
+        backend: Backend = GeneralAerSimulator(),
         tags: Optional[list[str]] = None,
         managerRunArgs: Optional[dict[str, Any]] = None,
         # Other arguments of experiment

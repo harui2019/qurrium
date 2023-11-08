@@ -1,7 +1,7 @@
 """
-=============================================
+================================================================
 AerProvider, IBMProvider/IBMQProvider Import Point
-=============================================
+================================================================
 
 For qiskit-aer has been divided into two packages since qiskit some version,
 So it needs to be imported differently by trying to import qiskit-aer first.
@@ -17,8 +17,9 @@ Avoiding the import error occurs on different parts of Qurry.
 from typing import Union, Callable, Literal, Optional, overload
 
 import warnings
+import importlib
 import requests
-import pkg_resources
+
 
 try:
     from qiskit import __version__ as __qiskit_version__
@@ -31,52 +32,88 @@ from qiskit.providers.fake_provider import (
 
 # pylint: disable=ungrouped-imports
 try:
-    from qiskit_aer import (
-        AerProvider as AerProviderIndep,
-        AerSimulator as AerSimulatorIndep
-    )
-    from qiskit_aer.backends.aerbackend import AerBackend as AerBackendIndep
-    from qiskit_aer.version import get_version_info as get_version_info_aer
-    AER_VERSION_INFO = get_version_info_aer()
-    AER_IMPORT_POINT = 'qiskit_aer'
-    IS_FROM_INDEPENDENT_AER_PACKAGE = True
+    try:
+        from qiskit.providers.aer import (  # type: ignore
+            AerProvider as AerProviderDep,  # type: ignore
+            AerSimulator as AerSimulatorDep  # type: ignore
+        )
+        from qiskit.providers.aer.backends.aerbackend import (  # type: ignore
+            AerBackend as AerBackendDep)  # type: ignore
+        from qiskit.providers.aer.version import VERSION  # type: ignore
+        AER_VERSION_INFO: str = VERSION
+        AER_IMPORT_POINT = 'qiskit.providers.aer'
+        IS_FROM_INDEPENDENT_AER_PACKAGE = False
 
-    class AerSimulator(AerSimulatorIndep):
+    # pylint: disable=too-few-public-methods
+        class GeneralAerSimulator(AerSimulatorDep):
+            """AerSimulator from qiskit.provider.aer, the old import point.
+            """
+
+        class GeneralAerBackend(AerBackendDep):
+            """AerBackend from qiskit.provider.aer, the old import point.
+            """
+
+        class GeneralAerProvider(AerProviderDep):
+            """AerProvider from qiskit.provider.aer, the old import point.
+            """
+
+    except ImportError:
+        from qiskit_aer import (
+            AerProvider as AerProviderIndep,
+            AerSimulator as AerSimulatorIndep
+        )
+        from qiskit_aer.backends.aerbackend import AerBackend as AerBackendIndep
+        from qiskit_aer.version import get_version_info as get_version_info_aer
+        AER_VERSION_INFO = get_version_info_aer()
+        AER_IMPORT_POINT = 'qiskit_aer'
+        IS_FROM_INDEPENDENT_AER_PACKAGE = True
+
+        class GeneralAerSimulator(AerSimulatorIndep):
+            """AerSimulator from qiskit-aer package.
+            """
+        class GeneralAerBackend(AerBackendIndep):
+            """AerBackend from qiskit-aer package.
+            """
+
+        class GeneralAerProvider(AerProviderIndep):
+            """AerProvider from qiskit-aer package.
+            """
+
+except ImportError as err:
+    print(f"Error: {err}")
+    AER_VERSION_INFO = ''
+    AER_IMPORT_POINT = 'qiskit.provider.basicaer'
+    IS_FROM_INDEPENDENT_AER_PACKAGE = False
+    from qiskit.providers.backend import BackendV1 as BackendV1Dep
+    from qiskit.providers.basicaer.basicaerprovider import BasicAerProvider, QasmSimulatorPy
+
+    class GeneralAerSimulator(QasmSimulatorPy):
         """AerSimulator from qiskit-aer package.
         """
-    class AerBackend(AerBackendIndep):
+
+        def run(self, qobj, **backend_options):
+            print(
+                "| Using QasmSimulatorPy as simulator, consider to install 'qiskit-aer'.")
+            return super().run(qobj, **backend_options)
+
+        def __repr__(self):
+            return f"<QasmSimulatorPy({self.configuration().backend_name})>"
+
+    class GeneralAerBackend(BackendV1Dep):
         """AerBackend from qiskit-aer package.
         """
 
-    class AerProvider(AerProviderIndep):
+    class GeneralAerProvider(BasicAerProvider):
         """AerProvider from qiskit-aer package.
         """
 
-except ImportError:
-    from qiskit.providers.aer import (  # type: ignore
-        AerProvider as AerProviderDep,  # type: ignore
-        AerSimulator as AerSimulatorDep  # type: ignore
-    )
-    from qiskit.providers.aer.backends.aerbackend import (  # type: ignore
-        AerBackend as AerBackendDep)  # type: ignore
-    from qiskit.providers.aer.version import VERSION  # type: ignore
-    AER_VERSION_INFO: str = VERSION
-    AER_IMPORT_POINT = 'qiskit.providers.aer'
-    IS_FROM_INDEPENDENT_AER_PACKAGE = False
+        def __init__(self):
+            warnings.warn(
+                "Using BasicAerProvider as provider, consider to install 'qiskit-aer'.")
+            super().__init__()
 
-# pylint: disable=too-few-public-methods
-    class AerSimulator(AerSimulatorDep):
-        """AerSimulator from qiskit.provider.aer, the old import point.
-        """
-
-    class AerBackend(AerBackendDep):
-        """AerBackend from qiskit.provider.aer, the old import point.
-        """
-
-    class AerProvider(AerProviderDep):
-        """AerProvider from qiskit.provider.aer, the old import point.
-        """
-
+        def __str__(self):
+            return "BasicAerProvider"
 # pylint: enable=ungrouped-imports, too-few-public-methods
 
 from ..command import pytorchCUDACheck
@@ -197,22 +234,23 @@ def shorten_name(
 
 
 def _local_version() -> dict[str, dict[str, any]]:
-    installed_packages = dict(pkg_resources.working_set)
-    local_version_dict = {}
-    for i in installed_packages:
-        if i == 'qiskit':
-            local_version_dict[i] = {
-                'dist': pkg_resources.get_distribution(i),
-                'local_version': pkg_resources.get_distribution(i).version,
+    """Get the local version of qiskit and qiskit-aer-gpu.
+    """
+    # pylint: disable=protected-access
+    basic = {}
+    for i in importlib.metadata.distributions():
+        if i.metadata['Name'] == 'qiskit-aer-gpu':
+            basic['qiskit-aer-gpu'] = {
+                'dist': i._path,
+                'local_version': i.version,
             }
-        elif i == 'qiskit-aer-gpu':
-            local_version_dict[i] = {
-                'dist': pkg_resources.get_distribution(i),
-                'local_version': pkg_resources.get_distribution(i).version,
+        elif i.metadata['Name'] == 'qiskit':
+            basic['qiskit'] = {
+                'dist': i._path,
+                'local_version': i.version,
             }
-        else:
-            continue
-    return local_version_dict
+    # pylint: enable=protected-access
+    return basic
 
 
 def _version_check():
@@ -222,7 +260,10 @@ def _version_check():
     check_msg = Hoshi([
         ('divider', 60),
         ('h3', 'Qiskit version outdated warning'),
-        ('txt', "Please keep mind on your qiskit version, a very outdated version may cause some problems.")
+        ('txt', (
+            "Please keep mind on your qiskit version, " +
+            "a very outdated version may cause some problems."
+        ))
     ], ljust_describe_len=40)
     local_version_dict = _local_version()
     for k, v in local_version_dict.items():
@@ -258,7 +299,10 @@ def _version_check():
             'listing_level': 2
         })
     check_msg.newline(
-        ('txt', "'qiskit-ibm-provider' is the replacement of deprcated module 'qiskit-ibmq-provider'."))
+        ('txt', (
+            "'qiskit-ibm-provider' is the replacement of " +
+            "deprcated module 'qiskit-ibmq-provider'."
+        )))
     if IBM_AVAILABLE:
         check_msg.newline({
             'type': 'itemize',
@@ -310,19 +354,19 @@ async def _async_version_check():
 
 @overload
 def _real_backend_loader(
-    realProvider: None = None
+    real_provider: None = None
 ) -> tuple[dict[str, str], dict[str, any], None]:
     ...
 
 
 def _real_backend_loader(
-    realProvider=None
+    real_provider=None
 ):
     backend_ibmq_callsign = {}
-    if not realProvider is None:
-        _RealProvider = realProvider
+    if not real_provider is None:
+        _real_provider = real_provider
         backend_ibmq = {
-            backendName(b): b for b in realProvider.backends()
+            backendName(b): b for b in real_provider.backends()
         }
         backend_ibmq_callsign = {
             shorten_name(
@@ -330,7 +374,7 @@ def _real_backend_loader(
             ): bn for bn in [backs for backs in backend_ibmq if 'ibm' in backs]
         }
         backend_ibmq_callsign['ibmq_qasm'] = 'ibmq_qasm_simulator'
-        return backend_ibmq_callsign, backend_ibmq, _RealProvider
+        return backend_ibmq_callsign, backend_ibmq, _real_provider
 
     return backend_ibmq_callsign, {}, None
 
@@ -365,12 +409,24 @@ def fack_backend_loader(
 def fack_backend_loader(
     version=None
 ):
+    """Load the fake backend.
+
+    Args:
+        version (str, optional): The version of fake backend. Defaults to None.
+        "v1" for FakeProvider, "v2" for FakeProviderForBackendV2.
+
+    Returns:
+        tuple[dict[str, str], dict[str, FakeBackendV2], FakeProviderForBackendV2]:
+            The callsign of fake backend,
+            the fake backend dict,
+            the fake provider.
+    """
     if version is None:
         return {}, {}, None
 
-    _FakeProvider = FakeProvider() if version == 'v1' else FakeProviderForBackendV2()
+    _fake_provider = FakeProvider() if version == 'v1' else FakeProviderForBackendV2()
     backend_fake = {
-        backendName(b): b for b in _FakeProvider.backends()
+        backendName(b): b for b in _fake_provider.backends()
     }
     backend_fake_callsign = {
         shorten_name(
@@ -378,4 +434,4 @@ def fack_backend_loader(
         ): bn for bn in backend_fake
     }
     backend_fake_callsign['fake_qasm'] = 'fake_qasm_simulator'
-    return backend_fake_callsign, backend_fake, _FakeProvider
+    return backend_fake_callsign, backend_fake, _fake_provider

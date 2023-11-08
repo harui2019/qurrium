@@ -3,7 +3,7 @@ from tqdm.contrib.concurrent import process_map
 from multiprocessing import Pool, cpu_count
 from typing import Optional, Iterable, Callable, TypeVar, Any
 
-from .progressbar import qurryProgressBar, default_setup
+from .progressbar import default_setup
 # Ready for issue #75 https://github.com/harui2019/qurry/issues/75
 
 DEFAULT_POOL_SIZE = cpu_count()

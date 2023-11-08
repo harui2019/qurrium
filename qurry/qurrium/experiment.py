@@ -29,7 +29,7 @@ from ..exceptions import (
     QurryResetSecurityActivated, QurryResetAccomplished,
     QurryProtectContent, QurrySummonerInfoIncompletion)
 from .analysis import AnalysisPrototype, QurryAnalysis
-from .utils.datetime import current_time, DatetimeDict
+from ..tools.datetime import current_time, DatetimeDict
 
 
 class ExperimentPrototypeABC():
