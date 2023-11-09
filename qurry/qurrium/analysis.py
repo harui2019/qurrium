@@ -5,7 +5,7 @@ import warnings
 from ..capsule import jsonablize
 from ..capsule.hoshi import Hoshi
 from ..exceptions import QurryInvalidInherition
-from .utils.datetime import current_time
+from ..tools.datetime import current_time
 
 
 class AnalysisPrototype():

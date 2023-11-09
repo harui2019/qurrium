@@ -1,29 +1,62 @@
+"""
+================================================================
+Runner for IBMQ
+(:mod:`qurry.qurry.qurrium.runner.ibmqrunner`)
+================================================================
+
+"""
+import warnings
+from typing import Literal, NamedTuple, Hashable, Any, Optional
+from qiskit import QuantumCircuit
+
 from ...exceptions import QurryExtraPackageRequired
-try: 
+try:
     from qiskit.providers.ibmq import IBMQBackend, IBMQJobManager, AccountProvider
     from qiskit.providers.ibmq.managed import ManagedJobSet, IBMQJobManagerInvalidStateError
     from qiskit.providers.ibmq.exceptions import IBMQError
-except ImportError:
+except ImportError as exception:
     raise QurryExtraPackageRequired(
-        "These module requires the install of `qiskit-ibmq-provider`, please intall it then restart kernel.")
-from qiskit import QuantumCircuit
-from typing import Literal, NamedTuple, Hashable, Any, Optional
-import warnings
+        "These module requires the install of " +
+        "`qiskit-ibmq-provider`, please intall it then restart kernel."
+    ) from exception
+
 
 from .runner import Runner
 from ..multimanager import MultiManager
 from ..container import ExperimentContainer
-from ..utils import get_counts, current_time
+from ..utils import get_counts
 from ...tools import qurryProgressBar
+from ...tools.datetime import current_time
+
+
+def retrieve_times_namer(retrieve_times: int) -> str:
+    """Retrieve times namer.
+
+    Args:
+        retrieve_times (int): The retrieve times.
+
+    Returns:
+        str: The retrieve times namer.
+    """
+    return 'retrieve.' + f'{retrieve_times}'.rjust(3, '0')
 
 
 class QurryIBMQBackendIO(NamedTuple):
+    """The package for pending and retrieve jobs from IBMQ backend,
+    which runs by :cls:`IBMQJobManager`.
+
+    """
 
     managedJob: ManagedJobSet
+    """The managed job set."""
     jobID: str
+    """The job ID on IBMQ."""
     report: str
+    """The report of job from IBMQJobManager."""
     name: str
+    """The name of job on IBMQ."""
     type: Literal['pending', 'retrieve']
+    """The type of job."""
 
 
 class IBMQRunner(Runner):
@@ -47,7 +80,8 @@ class IBMQRunner(Runner):
         provider: Optional[AccountProvider] = None,
     ):
         assert multimanager.summonerID == besummonned, (
-            f"Summoner ID not match, multimanager.summonerID: {multimanager.summonerID}, besummonned: {besummonned}"
+            "Summoner ID not match, multimanager.summonerID: " +
+            f"{multimanager.summonerID}, besummonned: {besummonned}"
         )
         if backend is None and provider is None:
             raise ValueError(
@@ -187,35 +221,33 @@ class IBMQRunner(Runner):
         pendingMapping: dict[Hashable, QurryIBMQBackendIO] = {}
         coutsTmpContainer: dict[str, dict[str, int]] = {}
 
-        def retrieveTimesNamer(retrieveTimes):
-            return 'retrieve.' + f'{retrieveTimes}'.rjust(3, '0')
-
         alreadyRetrieved: list[str] = [
             datetimeTag
             for datetimeTag in self.currentMultimanager.multicommons.datetimes
             if 'retrieve' in datetimeTag
         ]
         retrieveTimes = len(alreadyRetrieved)
-        retrieveTimesName = retrieveTimesNamer(retrieveTimes + 1)
+        retrieveTimesName = retrieve_times_namer(retrieveTimes + 1)
 
         print(f"| retrieve times: {retrieveTimes}, overwrite: {overwrite}")
-        if retrieveTimes > 1 and overwrite == False:
+        if retrieveTimes > 1 and overwrite is False:
             print("| Overwrite not triggerred, read existed data.")
             lastTimeDate = self.currentMultimanager.multicommons.datetimes[
-                retrieveTimesNamer(retrieveTimes)]
+                retrieve_times_namer(retrieveTimes)]
             print(
-                f"| Last retrieve by: {retrieveTimesNamer(retrieveTimes)} at {lastTimeDate}"
+                f"| Last retrieve by: {retrieve_times_namer(retrieveTimes)} at {lastTimeDate}"
             )
-            print(f"| Seems to there are some retrieves before.")
+            print("| Seems to there are some retrieves before.")
             print(
-                f"| You can use `overwrite=True` to overwrite the previous retrieve."
+                "| You can use `overwrite=True` to overwrite the previous retrieve."
             )
 
             return self.currentMultimanager.beforewards.jobID
 
         if overwrite:
-            print(f"| Overwrite the previous retrieve.")
-        self.currentMultimanager.reset_afterwards(security=True, muteWarning=True)
+            print("| Overwrite the previous retrieve.")
+        self.currentMultimanager.reset_afterwards(
+            security=True, muteWarning=True)
         assert len(self.currentMultimanager.afterwards.allCounts
                    ) == 0, "All counts should be null."
 
@@ -264,13 +296,13 @@ class IBMQRunner(Runner):
                     pResult = pendingJob.managedJob.results()
                     counts = get_counts(
                         result=pResult,
-                        resultIdxList=[rk - pcircs[0] for rk in pcircs])
+                        result_idx_list=[rk - pcircs[0] for rk in pcircs])
                     pendingPoolProgressBar.set_description_str(
                         f"{pk}/{pendingJob.jobID}/{pendingJob.name} - len: {len(counts)}")
                 else:
                     counts = get_counts(
                         result=None,
-                        resultIdxList=[rk - pcircs[0] for rk in pcircs])
+                        result_idx_list=[rk - pcircs[0] for rk in pcircs])
                     pendingPoolProgressBar.set_description_str(
                         f"{pk}/{pendingJob.jobID}/{pendingJob.name} - len: {len(counts)}")
                 for rk in pcircs:
@@ -375,13 +407,11 @@ def IBMQRetrieve(
 
     except IBMQJobManagerInvalidStateError as e:
         retrievedJob = None
-        jobID = jobID
         report = f"Job unreachable, '{e}'."
         name = ''
 
     except IBMQError as e:
         retrievedJob = None
-        jobID = jobID
         report = f"Job fully corrupted, '{e}'."
         name = ''
 

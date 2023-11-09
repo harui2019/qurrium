@@ -5,7 +5,7 @@ Default Configuration for Qurry MultiManager
 ================================================================
 """
 from ..capsule.mori import DefaultConfig
-from ..qurrium.utils.datetime import DatetimeDict
+from ..tools.datetime import DatetimeDict
 
 multicommonConfig = DefaultConfig(
     name='multicommon',
