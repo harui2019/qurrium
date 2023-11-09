@@ -1,21 +1,26 @@
+"""
+================================================================
+Extra backend accessor (:mod:`qurry.qurrium.runner.accesor`)
+================================================================
+
+"""
+from typing import Literal, Union
 from qiskit.providers import Backend
 
-from typing import Literal, Union
-
-from .runner import Runner
+from .runner import Runner, DummyRunner
 from ..multimanager import MultiManager
 from ..container import ExperimentContainer
 from ...capsule.hoshi import Hoshi
 from ...exceptions import QurryExtraPackageRequired, QurryInvalidArgument
 
-backendChoiceLiteral = Literal[
+BackendChoiceLiteral = Literal[
     "IBMQ",
     "IBM",
     "Qulacs",
     "AWS_Bracket",
     "Azure_Q"
 ]
-backendChoice = [
+BackendChoice = [
     "IBMQ",
     "IBM",
     # "Qulacs",
@@ -30,9 +35,10 @@ def acessibility() -> dict[str, bool]:
     Returns:
         dict[str, bool]: The acessibility of extra backend.
     """
-    result: dict[backendChoiceLiteral, bool] = dict.fromkeys(
-        backendChoice, False)
+    result: dict[BackendChoiceLiteral, bool] = dict.fromkeys(
+        BackendChoice, False)
 
+    # pylint: disable=import-outside-toplevel, unused-import
     try:
         from .ibmqrunner import IBMQRunner
         result['IBMQ'] = True
@@ -50,12 +56,13 @@ def acessibility() -> dict[str, bool]:
     #     result['Qulacs'] = True
     # except QurryExtraPackageRequired:
     #     ...
+    # pylint: enable=import-outside-toplevel, unused-import
 
     return result
 
 
 BACKEND_AVAILABLE: dict[
-    Union[str, backendChoiceLiteral], 
+    Union[str, BackendChoiceLiteral],
     bool
 ] = acessibility()
 """Acessibility of extra backend.
@@ -93,6 +100,7 @@ BACKEND_AVAILABLE_MESSAGE = Hoshi(
 
 
 class ExtraBackendAccessor:
+    """Accessor for extra backend."""
 
     multirunner: Runner = None
     """The excutor of extra backend."""
@@ -101,18 +109,19 @@ class ExtraBackendAccessor:
     jobs_info: Hoshi = None
     """The information of pending jobs or retrieving jobs."""
 
-    backendType: backendChoiceLiteral = None
+    backend_type: BackendChoiceLiteral = None
     """The backend type been used."""
 
     def __init__(
         self,
         multimanager: MultiManager,
-        experimentContainer: ExperimentContainer,
+        experiment_container: ExperimentContainer,
         backend: Backend,
-        backendType: backendChoiceLiteral,
+        backend_type: BackendChoiceLiteral,
     ):
 
-        if backendType == 'IBMQ':
+        # pylint: disable=import-outside-toplevel
+        if backend_type == 'IBMQ':
             if not BACKEND_AVAILABLE['IBMQ']:
                 raise QurryExtraPackageRequired(
                     "Backend 'IBMQ' is not available, please install 'qiskit_ibmq_provider' first.")
@@ -130,46 +139,53 @@ class ExtraBackendAccessor:
                 besummonned=multimanager.summonerID,
                 multimanager=multimanager,
                 backend=backend,
-                experimentalContainer=experimentContainer,
+                experimental_container=experiment_container,
             )
 
-        elif backendType == 'IBM':
+        elif backend_type == 'IBM':
             if not BACKEND_AVAILABLE['IBM']:
                 raise QurryExtraPackageRequired(
                     "Backend 'IBM' is not available, please install 'qiskit_ibm_provider' first.")
-            from .ibmrunner import IBMRunner, IBMBackend
+            from .ibmrunner import IBMRunner
 
             self.multirunner: IBMRunner = IBMRunner(
                 besummonned=multimanager.summonerID,
                 multimanager=multimanager,
                 backend=backend,
-                experimentalContainer=experimentContainer,
+                experimental_container=experiment_container,
             )
 
         else:
-            self.multirunner = Runner()
+            self.multirunner = DummyRunner(
+                manager=multimanager,
+                backend=backend,
+            )
             self.jobs = []
 
             print(BACKEND_AVAILABLE_MESSAGE)
             raise QurryInvalidArgument(
-                f"{backendType} which is not supported.")
+                f"{backend_type} which is not supported.")
+        # pylint: enable=import-outside-toplevel
 
-        self.backendType = backendType
+        self.backend_type = backend_type
 
     def pending(
         self,
-        pendingStrategy: Literal[
+        pending_strategy: Literal[
             'default', 'onetime', 'each', 'tags'] = 'default',
     ) -> tuple[str, list[tuple[str, str]]]:
         """Pending jobs to remote backend."""
 
         self.jobs = self.multirunner.pending(
-            pendingStrategy=pendingStrategy,
+            pending_strategy=pending_strategy,
         )
         self.jobs_info = Hoshi(
             [
-                ('h1', "Pending info for '{}' by '{}'".format(
-                    self.multirunner.currentMultimanager.summonerID, self.backendType)),
+                ('h1', (
+                    "Pending info for " +
+                    f"'{self.multirunner.current_multimanager.summonerID}'" +
+                    f"by '{self.backend_type}'"
+                )),
                 *[('itemize', jobTag, jobID, '', 2)
                   for jobID, jobTag in self.jobs],
             ]
@@ -177,7 +193,7 @@ class ExtraBackendAccessor:
         if len(self.jobs) == 0:
             self.jobs_info.newline(('txt', "No pending job."))
 
-        return self.multirunner.currentMultimanager.summonerID, self.jobs
+        return self.multirunner.current_multimanager.summonerID, self.jobs
 
     def retrieve(
         self,
@@ -192,8 +208,10 @@ class ExtraBackendAccessor:
         )
         self.jobs_info = Hoshi(
             [
-                ('h1', "Retriving info for '{}' by '{}'".format(
-                    self.multirunner.currentMultimanager.summonerID, self.backendType)),
+                ('h1', ("Retriving info  for" +
+                        f"'{self.multirunner.current_multimanager.summonerID}'" +
+                        f"by '{self.backend_type}'"
+                        )),
                 *[('itemize', jobTag, jobID, '', 2)
                   for jobID, jobTag in self.jobs],
             ]
@@ -201,4 +219,4 @@ class ExtraBackendAccessor:
         if len(self.jobs) == 0:
             self.jobs_info.newline(('txt', "No pending job."))
 
-        return self.multirunner.currentMultimanager.summonerID, self.jobs
+        return self.multirunner.current_multimanager.summonerID, self.jobs

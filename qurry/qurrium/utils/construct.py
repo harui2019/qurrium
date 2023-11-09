@@ -1,6 +1,6 @@
 """
 ================================================================
-Construct (qurry.qurry.qurrium.utils.construct)
+Construct (:mod:`qurry.qurrium.utils.construct`)
 ================================================================
 
 """

@@ -1,45 +1,62 @@
+"""
+================================================================
+The module of IO control. (:mod:`qurry.qurrium.utils.iocontrol`)
+================================================================
+
+"""
 import os
 from pathlib import Path
 from typing import Union, NamedTuple
 
-from ...tools import qurryProgressBar
-
-STAND_COMPRESS_FORMAT = 'tar.xz'
-FULL_SUFFIX_OF_COMPRESS_FORMAT = f'qurry.{STAND_COMPRESS_FORMAT}'
+STAND_COMPRESS_FORMAT = "tar.xz"
+FULL_SUFFIX_OF_COMPRESS_FORMAT = f"qurry.{STAND_COMPRESS_FORMAT}"
 
 
 class IOComplex(NamedTuple):
+    """The complex of IO control."""
+
     expsName: str
     saveLocation: Path
     exportLocation: Path
-
     tarName: str
     tarLocation: Path
 
 
 def naming(
     is_read: bool = False,
-    expsName: str = 'exps',
-    saveLocation: Union[Path, str] = Path('./'),
-    shortName: str = 'qurry',
-    withoutSerial: bool = False,
-    _rjustLen: int = 3,
-    _indexRename: int = 1,
+    exps_name: str = "exps",
+    save_location: Union[Path, str] = Path("./"),
+    short_name: str = "qurry",
+    without_serial: bool = False,
+    rjust_len: int = 3,
+    index_rename: int = 1,
 ) -> IOComplex:
     """The process of naming.
 
     Args:
-        is_read (bool, optional): 
+        is_read (bool, optional):
             Whether to read the experiment data.
             Defaults to False.
 
-        expsName (str, optional):
+        exps_name (str, optional):
             Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
             This name is also used for creating a folder to store the exports.
             Defaults to `'exps'`.
 
-        saveLocation (Union[Path, str], optional):
+        save_location (Union[Path, str], optional):
             Where to save the export data. Defaults to Path('./')
+
+        short_name (str, optional):
+            The short name of Qurry Instance. Defaults to `'qurry'`.
+
+        without_serial (bool, optional):
+            Whether to use the serial number. Defaults to False.
+
+        rjust_len (int, optional):
+            The length of the serial number. Defaults to 3.
+
+        index_rename (int, optional):
+            The serial number. Defaults to 1.
 
     Raises:
         TypeError: The :arg:`saveLocation` is not a 'str' or 'Path'.
@@ -50,35 +67,36 @@ def naming(
         dict[str, Union[str, Path]]: Name.
     """
 
-    if isinstance(saveLocation, (Path, str)):
-        saveLocation = Path(saveLocation)
+    if isinstance(save_location, (Path, str)):
+        save_location = Path(save_location)
     else:
         raise TypeError(
-            f"The saveLocation '{saveLocation}' is not the type of 'str' or 'Path' but '{type(saveLocation)}'.")
+            f"The saveLocation '{save_location}' is "
+            + f"not the type of 'str' or 'Path' but '{type(save_location)}'."
+        )
 
     if is_read:
-        immutableName = expsName
-        exportLocation = saveLocation / immutableName
-        tarName = f"{immutableName}.{FULL_SUFFIX_OF_COMPRESS_FORMAT}"
-        tarLocation = saveLocation / tarName
-        if not (exportLocation.exists() or tarLocation.exists()):
+        immutable_name = exps_name
+        export_location = save_location / immutable_name
+        tar_name = f"{immutable_name}.{FULL_SUFFIX_OF_COMPRESS_FORMAT}"
+        tar_location = save_location / tar_name
+        if not (export_location.exists() or tar_location.exists()):
             raise FileNotFoundError(
-                f"Such exportation data '{immutableName}' or '{tarName}' not found at '{saveLocation}', " +
-                "'exportsName' may be wrong or not in this folder.")
-        print(
-            f"| Retrieve {immutableName}...\n" +
-            f"| at: {exportLocation}"
-        )
-    elif withoutSerial:
-        immutableName = expsName
-        exportLocation = saveLocation / immutableName
+                f"Such exportation data '{immutable_name}' or "
+                + f"'{tar_name}' not found at '{save_location}', "
+                + "'exportsName' may be wrong or not in this folder."
+            )
+        print(f"| Retrieve {immutable_name}...\n" + f"| at: {export_location}")
+    elif without_serial:
+        immutable_name = exps_name
+        export_location = save_location / immutable_name
 
     else:
-        expsName = f'{expsName}.{shortName}'
-        indexRename = _indexRename
+        exps_name = f"{exps_name}.{short_name}"
+        _index_rename = index_rename
 
-        immutableName = f"{expsName}.{str(indexRename).rjust(_rjustLen, '0')}"
-        exportLocation = saveLocation / immutableName
+        immutable_name = f"{exps_name}.{str(_index_rename).rjust(rjust_len, '0')}"
+        export_location = save_location / immutable_name
 
         # findIndexProgress = qurryProgressBar(
         #     range(1), bar_format='| {desc}')
@@ -91,22 +109,20 @@ def naming(
         #     pb.set_description_str(
         #         f'Write "{immutableName}", at location "{exportLocation}"')
         #     os.makedirs(exportLocation)
-        
-        while os.path.exists(exportLocation):
-            print(f"| {exportLocation} is repeat location.")
-            indexRename += 1
-            immutableName = f"{expsName}.{str(indexRename).rjust(_rjustLen, '0')}"
-            exportLocation = saveLocation / immutableName
-        print(
-            f'| Write "{immutableName}", at location "{exportLocation}"')
-        os.makedirs(exportLocation)
+
+        while os.path.exists(export_location):
+            print(f"| {export_location} is repeat location.")
+            _index_rename += 1
+            immutable_name = f"{exps_name}.{str(_index_rename).rjust(rjust_len, '0')}"
+            export_location = save_location / immutable_name
+        print(f'| Write "{immutable_name}", at location "{export_location}"')
+        os.makedirs(export_location)
 
     return IOComplex(
-        expsName=immutableName,
-        saveLocation=saveLocation,
-        exportLocation=exportLocation,
-
-        tarName=f"{immutableName}.{FULL_SUFFIX_OF_COMPRESS_FORMAT}",
-        tarLocation=saveLocation /
-        f"{immutableName}.{FULL_SUFFIX_OF_COMPRESS_FORMAT}",
+        expsName=immutable_name,
+        saveLocation=save_location,
+        exportLocation=export_location,
+        tarName=f"{immutable_name}.{FULL_SUFFIX_OF_COMPRESS_FORMAT}",
+        tarLocation=save_location
+        / f"{immutable_name}.{FULL_SUFFIX_OF_COMPRESS_FORMAT}",
     )

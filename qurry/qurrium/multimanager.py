@@ -391,8 +391,8 @@ class MultiManager:
         self.gitignore = GitSyncControl()
         self.namingCpx = naming(
             is_read=is_read,
-            expsName=summonerName,
-            saveLocation=saveLocation,
+            exps_name=summonerName,
+            save_location=saveLocation,
         )
 
         isTarfileExisted = os.path.exists(self.namingCpx.tarLocation)
@@ -655,9 +655,9 @@ class MultiManager:
     ) -> dict:
         saveLocation = Path(saveLocation)
         self.namingCpx = naming(
-            withoutSerial=withoutSerial,
-            expsName=self.multicommons.summonerName,
-            saveLocation=saveLocation,
+            without_serial=withoutSerial,
+            exps_name=self.multicommons.summonerName,
+            save_location=saveLocation,
         )
         self.multicommons = self.multicommons._replace(
             saveLocation=self.namingCpx.saveLocation,

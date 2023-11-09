@@ -1,11 +1,11 @@
 """
 ================================================================
-Qurry Version
+Qurry Version (:mod:`qurry.version`)
 ================================================================
 
 """
 version_main = (0, 6, 5)
-version_dev = ('dev', 3)
+version_dev = ('dev', 4)
 IS_DEV = True
 
 
