@@ -4,6 +4,8 @@ Exceptions (:mod:`qurry.exceptions`)
 ================================================================
 
 """
+
+
 class QurryError(Exception):
     """Base class for errors raised by Qurry."""
 
@@ -39,6 +41,10 @@ class QurryPositionalArgumentNotSupported(QurryError, ValueError):
 
 class QurryCythonImportError(QurryError, ImportError):
     """Cython import error."""
+
+
+class QurryRustImportError(QurryError, ImportError):
+    """Rust import error."""
 
 
 # General Warning
@@ -94,6 +100,10 @@ class QurrySummonerInfoIncompletion(QurryWarning):
 
 class QurryCythonUnavailableWarning(QurryWarning):
     """Cython unavailable warning."""
+
+
+class QurryRustUnavailableWarning(QurryWarning):
+    """Rust unavailable warning."""
 
 
 class QurryDummyRunnerWarning(QurryWarning):

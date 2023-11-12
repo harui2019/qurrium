@@ -1,6 +1,7 @@
 """
 ================================================================
-qurry/qurry/boost/inputfixer.pyi
+Inputfixer in Cython
+(:mod:`qurry.boost.inputfixer`)
 ================================================================
 """
 from typing import Iterable
