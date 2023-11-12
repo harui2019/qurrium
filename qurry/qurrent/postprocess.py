@@ -48,10 +48,15 @@ except ImportError as err:
 
 try:
     # Proven import point for rust modules
-    from ..boorust.randomized import (  # type: ignore
-        purity_cell_rust as purity_cell_rust_source,  # type: ignore
-        entangled_entropy_core_rust as entangled_entropy_core_rust_source,  # type: ignore
-    )
+    # from ..boorust.randomized import (  # type: ignore
+    #     purity_cell_rust as purity_cell_rust_source,  # type: ignore
+    #     entangled_entropy_core_rust as entangled_entropy_core_rust_source,  # type: ignore
+    # )
+
+    from ..boorust import randomized  # type: ignore
+
+    purity_cell_rust_source = randomized.purity_cell_rust
+    entangled_entropy_core_rust_source = randomized.entangled_entropy_core_rust
 
     RUST_AVAILABLE = True
     FAILED_RUST_IMPORT = None
@@ -275,7 +280,7 @@ def entangled_entropy_core_pycy(
         shots (int): Shots of the experiment on quantum machine.
         counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
         degree (Optional[Union[tuple[int, int], int]]): Degree of the subsystem.
-        measure (Optional[tuple[int, int]], optional): 
+        measure (Optional[tuple[int, int]], optional):
             Measuring range on quantum circuits. Defaults to None.
         multiprocess_pool_size(Optional[int], optional):
             Number of multi-processing workers,
@@ -414,7 +419,7 @@ def entangled_entropy_core_rust(
         shots (int): Shots of the experiment on quantum machine.
         counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
         degree (Optional[Union[tuple[int, int], int]]): Degree of the subsystem.
-        measure (Optional[tuple[int, int]], optional): 
+        measure (Optional[tuple[int, int]], optional):
             Measuring range on quantum circuits. Defaults to None.
 
     Raises:
@@ -443,7 +448,7 @@ def entangled_entropy_core(
         shots (int): Shots of the experiment on quantum machine.
         counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
         degree (Optional[Union[tuple[int, int], int]]): Degree of the subsystem.
-        measure (Optional[tuple[int, int]], optional): 
+        measure (Optional[tuple[int, int]], optional):
             Measuring range on quantum circuits. Defaults to None.
         backend (ExistingProcessBackendLabel, optional):
             Backend for the process. Defaults to DEFAULT_PROCESS_BACKEND.
@@ -523,7 +528,7 @@ def randomized_entangled_entropy(
         shots (int): Shots of the experiment on quantum machine.
         counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
         degree (Optional[Union[tuple[int, int], int]]): Degree of the subsystem.
-        measure (Optional[tuple[int, int]], optional): 
+        measure (Optional[tuple[int, int]], optional):
             Measuring range on quantum circuits. Defaults to None.
         backend (ExistingProcessBackendLabel, optional):
             Backend for the process. Defaults to DEFAULT_PROCESS_BACKEND.
