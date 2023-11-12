@@ -467,6 +467,9 @@ def entangled_entropy_core(
             Purity of each cell, Partition range, Measuring range, Message, Time to calculate.
     """
 
+    if isinstance(measure, list):
+        measure = tuple(measure)
+
     if backend == "Rust":
         if RUST_AVAILABLE:
             return entangled_entropy_core_rust(shots, counts, degree, measure)
