@@ -45,17 +45,17 @@ class EntropyHadamardAnalysis(AnalysisPrototype):
     __name__ = 'qurrechHadamard.Analysis'
     shortName = 'qurrech_hadamard.report'
 
-    class analysisInput(NamedTuple):
+    class AnalysisInput(NamedTuple):
         """To set the analysis."""
 
-    class analysisContent(NamedTuple):
+    class AnalysisContent(NamedTuple):
         """The content of the analysis."""
 
         echo: float
         """The purity of the system."""
 
         def __repr__(self):
-            return f"analysisContent(echo={self.echo}, and others)"
+            return f"AnalysisContent(echo={self.echo}, and others)"
 
     @property
     def default_side_product_fields(self) -> Iterable[str]:

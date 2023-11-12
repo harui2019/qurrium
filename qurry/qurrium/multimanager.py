@@ -83,7 +83,8 @@ class MultiManager:
         saveLocation: Union[Path, str]
         """Location of saving experiment."""
         exportLocation: Path
-        """Location of exporting experiment, exportLocation is the final result decided by experiment."""
+        """Location of exporting experiment, 
+        exportLocation is the final result decided by experiment."""
         files: dict[str, Union[str, dict[str, str]]]
 
         jobsType: str

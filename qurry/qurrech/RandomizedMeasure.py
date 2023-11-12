@@ -360,14 +360,14 @@ class EchoRandomizedAnalysis(AnalysisPrototype):
     __name__ = 'qurrentRandomized.Analysis'
     shortName = 'qurrent_haar.report'
 
-    class analysisInput(NamedTuple):
+    class AnalysisInput(NamedTuple):
         """To set the analysis."""
 
         degree: tuple[int, int]
         shots: int
         unitary_loc: tuple[int, int] = None
 
-    class analysisContent(NamedTuple):
+    class AnalysisContent(NamedTuple):
         """The content of the analysis."""
 
         echo: float
@@ -385,7 +385,7 @@ class EchoRandomizedAnalysis(AnalysisPrototype):
         """The number of counts of the experiment."""
 
         def __repr__(self):
-            return f"analysisContent(echo={self.echo}, and others)"
+            return f"AnalysisContent(echo={self.echo}, and others)"
 
     @property
     def default_side_product_fields(self) -> Iterable[str]:

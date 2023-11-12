@@ -108,12 +108,12 @@ class MagnetSquareAnalysis(AnalysisPrototype):
     __name__ = 'qurmaqsq.MagsqAnalysis'
     shortName = 'qurmagsq.report'
 
-    class analysisInput(NamedTuple):
+    class AnalysisInput(NamedTuple):
         """To set the analysis."""
         shots: int
         num_qubits: int
 
-    class analysisContent(NamedTuple):
+    class AnalysisContent(NamedTuple):
         """The content of the analysis."""
 
         magsq: float

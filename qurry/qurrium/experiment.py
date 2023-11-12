@@ -275,7 +275,7 @@ class ExperimentPrototype(ExperimentPrototypeABC):
             else:
                 ...
 
-        for i in ['analysisInput', 'analysisContent']:
+        for i in ['AnalysisInput', 'AnalysisContent']:
             if not hasattr(self.analysis_container, i):
                 raise QurryInvalidInherition(
                     f"{self.__name__}._analysis_container() " +
@@ -314,12 +314,12 @@ class ExperimentPrototype(ExperimentPrototypeABC):
                         self.analysis_container.input_filter(
                             **raw_input_analysis)[0]._asdict())
                 elif isinstance(raw_input_analysis,
-                                self.analysis_container.analysisInput):
+                                self.analysis_container.AnalysisInput):
                     filted_analysis.append(raw_input_analysis._asdict())
                 else:
                     warnings.warn(
                         f"Analysis input {raw_input_analysis} is not a 'dict' or " +
-                        "'.analysis_container.analysisInput', it will be ignored."
+                        "'.analysis_container.AnalysisInput', it will be ignored."
                     )
             commons['defaultAnalysis'] = filted_analysis
         else:

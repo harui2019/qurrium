@@ -1,73 +1,32 @@
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+"""
+================================================================
+Second Renyi Entropy - Hadamard Test
+(:mod:`qurry.qurrent.Hadamard`)
+================================================================
 
-import numpy as np
+"""
 from pathlib import Path
-from typing import Union, Optional, NamedTuple, Hashable, Iterable, Type, overload, Any
+from typing import Union, Optional, NamedTuple, Hashable, Iterable, Type, Any
+
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 
 from ..qurrium import (
     QurryV5Prototype,
     ExperimentPrototype,
     AnalysisPrototype,
-    qubit_selector
+    qubit_selector,
 )
-
-
-def entangle_entropy(
-    shots: int,
-    counts: list[dict[str, int]],
-) -> dict[str, float]:
-    """Calculate entangled entropy with more information combined.
-
-    - Which entropy:
-    
-        The entropy we compute is the Second Order Rényi Entropy.
-
-    Args:
-        shots (int): Shots of the experiment on quantum machine.
-        counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
-
-    Raises:
-        Warning: Expected '0' and '1', but there is no such keys
-
-    Returns:
-        dict[str, float]: Quantity of the experiment.
-    """
-
-    purity = -100
-    entropy = -100
-    onlyCount = counts[0]
-    sample_shots = sum(onlyCount.values())
-    assert sample_shots == shots, f"shots {shots} does not match sample_shots {sample_shots}"
-
-    isZeroInclude = '0' in onlyCount
-    isOneInclude = '1' in onlyCount
-    if isZeroInclude and isOneInclude:
-        purity = (onlyCount['0'] - onlyCount['1'])/shots
-    elif isZeroInclude:
-        purity = onlyCount['0']/shots
-    elif isOneInclude:
-        purity = onlyCount['1']/shots
-    else:
-        purity = np.Nan
-        raise Warning("Expected '0' and '1', but there is no such keys")
-
-    entropy = -np.log2(purity)
-    quantity = {
-        'purity': purity,
-        'entropy': entropy,
-    }
-    return quantity
+from .postprocess import hadamard_entangled_entropy
 
 
 class EntropyHadamardAnalysis(AnalysisPrototype):
+    __name__ = "qurrentHadamard.Analysis"
+    shortName = "qurrent_hadamard.report"
 
-    __name__ = 'qurrentHadamard.Analysis'
-    shortName = 'qurrent_hadamard.report'
-
-    class analysisInput(NamedTuple):
+    class AnalysisInput(NamedTuple):
         """To set the analysis."""
 
-    class analysisContent(NamedTuple):
+    class AnalysisContent(NamedTuple):
         """The content of the analysis."""
 
         purity: float
@@ -76,7 +35,7 @@ class EntropyHadamardAnalysis(AnalysisPrototype):
         """The entanglement entropy of the system."""
 
         def __repr__(self):
-            return f"analysisContent(purity={self.purity}, entropy={self.entropy}, and others)"
+            return f"AnalysisContent(purity={self.purity}, entropy={self.entropy}, and others)"
 
     @property
     def default_side_product_fields(self) -> Iterable[str]:
@@ -95,21 +54,24 @@ class EntropyHadamardAnalysis(AnalysisPrototype):
             shots (int): Shots of the experiment on quantum machine.
             counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
             degree (Union[tuple[int, int], int]): Degree of the subsystem.
-            measure (tuple[int, int], optional): Measuring range on quantum circuits. Defaults to None.
-            workers_num (Optional[int], optional): 
-                Number of multi-processing workers, 
+            measure (tuple[int, int], optional):
+                Measuring range on quantum circuits. Defaults to None.
+            workers_num (Optional[int], optional):
+                Number of multi-processing workers,
                 if sets to 1, then disable to using multi-processing;
                 if not specified, the use 3/4 of cpu counts by `round(cpu_count*3/4)`.
                 Defaults to None.
 
         Returns:
-            dict[str, float]: A dictionary contains 
-                purity, entropy, a list of each overlap, puritySD, 
-                purity of all system, entropy of all system, a list of each overlap in all system, puritySD of all system,
-                degree, actual measure range, actual measure range in all system, bitstring range.
+            dict[str, float]: A dictionary contains
+                purity, entropy, a list of each overlap, puritySD,
+                purity of all system, entropy of all system,
+                a list of each overlap in all system, puritySD of all system,
+                degree, actual measure range,
+                actual measure range in all system, bitstring range.
         """
 
-        result = entangle_entropy(
+        result = hadamard_entangled_entropy(
             shots=shots,
             counts=counts,
         )
@@ -117,40 +79,39 @@ class EntropyHadamardAnalysis(AnalysisPrototype):
 
 
 class EntropyHadamardExperiment(ExperimentPrototype):
-
-    __name__ = 'qurrentHadamard.Experiment'
-    shortName = 'qurrent_hadamard.exp'
+    __name__ = "qurrentHadamard.Experiment"
+    shortName = "qurrent_hadamard.exp"
 
     class arguments(NamedTuple):
         """Arguments for the experiment."""
-        expName: str = 'exps'
+
+        expName: str = "exps"
         degree: tuple[int, int] = None
 
     @classmethod
     @property
     def analysis_container(cls) -> Type[EntropyHadamardAnalysis]:
-        """The container class responding to this QurryV5 class.
-        """
+        """The container class responding to this QurryV5 class."""
         return EntropyHadamardAnalysis
 
-    def analyze(
-        self
-    ) -> AnalysisPrototype:
+    def analyze(self) -> AnalysisPrototype:
         """Calculate entangled entropy with more information combined.
 
         Args:
             degree (Union[tuple[int, int], int]): Degree of the subsystem.
-            workers_num (Optional[int], optional): 
-                Number of multi-processing workers, 
+            workers_num (Optional[int], optional):
+                Number of multi-processing workers,
                 if sets to 1, then disable to using multi-processing;
                 if not specified, the use 3/4 of cpu counts by `round(cpu_count*3/4)`.
                 Defaults to None.
 
         Returns:
-            dict[str, float]: A dictionary contains 
-                purity, entropy, a list of each overlap, puritySD, 
-                purity of all system, entropy of all system, a list of each overlap in all system, puritySD of all system,
-                degree, actual measure range, actual measure range in all system, bitstring range.
+            dict[str, float]: A dictionary contains
+                purity, entropy, a list of each overlap, puritySD,
+                purity of all system, entropy of all system,
+                a list of each overlap in all system, puritySD of all system,
+                degree, actual measure range,
+                actual measure range in all system, bitstring range.
         """
 
         shots = self.commons.shots
@@ -176,28 +137,31 @@ class EntropyHadamardTest(QurryV5Prototype):
     """Hadamard test for entanglement entropy.
 
     - Which entropy:
-    
+
         The entropy we compute is the Second Order Rényi Entropy.
 
     """
 
-    __name__ = 'qurrentHadamard'
-    shortName = 'qurrent_hadamard'
+    __name__ = "qurrentHadamard"
+    shortName = "qurrent_hadamard"
 
     @classmethod
     @property
     def experiment(cls) -> Type[EntropyHadamardExperiment]:
-        """The container class responding to this QurryV5 class.
-        """
+        """The container class responding to this QurryV5 class."""
         return EntropyHadamardExperiment
 
     def paramsControl(
         self,
-        expName: str = 'exps',
+        expName: str = "exps",
         waveKey: Hashable = None,
         degree: Union[tuple[int, int], int] = None,
-        **otherArgs: any
-    ) -> tuple[EntropyHadamardExperiment.arguments, EntropyHadamardExperiment.commonparams, dict[str, Any]]:
+        **otherArgs: any,
+    ) -> tuple[
+        EntropyHadamardExperiment.arguments,
+        EntropyHadamardExperiment.commonparams,
+        dict[str, Any],
+    ]:
         """Handling all arguments and initializing a single experiment.
 
         Args:
@@ -226,7 +190,7 @@ class EntropyHadamardTest(QurryV5Prototype):
         degree = qubit_selector(numQubits, degree=degree)
 
         if isinstance(waveKey, (list, tuple)):
-            waveKey = '-'.join([str(i) for i in waveKey])
+            waveKey = "-".join([str(i) for i in waveKey])
 
         expName = f"w={waveKey}.subsys=from{degree[0]}to{degree[1]}.{self.shortName}"
 
@@ -241,6 +205,14 @@ class EntropyHadamardTest(QurryV5Prototype):
         self,
         expID: str,
     ) -> list[QuantumCircuit]:
+        """Returns a list of quantum circuits.
+
+        Args:
+            expID (str): The ID of the experiment.
+
+        Returns:
+            list[QuantumCircuit]: The quantum circuits.
+        """
 
         assert expID in self.exps
         assert self.exps[expID].commons.expID == expID
@@ -249,19 +221,25 @@ class EntropyHadamardTest(QurryV5Prototype):
         circuit = self.waves[commons.waveKey]
         numQubits = circuit.num_qubits
 
-        qAnc = QuantumRegister(1, 'ancilla')
-        qFunc1 = QuantumRegister(numQubits, 'q1')
-        qFunc2 = QuantumRegister(numQubits, 'q2')
-        cMeas1 = ClassicalRegister(1, 'c1')
+        qAnc = QuantumRegister(1, "ancilla")
+        qFunc1 = QuantumRegister(numQubits, "q1")
+        qFunc2 = QuantumRegister(numQubits, "q2")
+        cMeas1 = ClassicalRegister(1, "c1")
         qcExp1 = QuantumCircuit(qAnc, qFunc1, qFunc2, cMeas1)
 
-        qcExp1.append(self.waves.call(
-            wave=commons.waveKey,
-        ), [qFunc1[i] for i in range(numQubits)])
+        qcExp1.append(
+            self.waves.call(
+                wave=commons.waveKey,
+            ),
+            [qFunc1[i] for i in range(numQubits)],
+        )
 
-        qcExp1.append(self.waves.call(
-            wave=commons.waveKey,
-        ), [qFunc2[i] for i in range(numQubits)])
+        qcExp1.append(
+            self.waves.call(
+                wave=commons.waveKey,
+            ),
+            [qFunc2[i] for i in range(numQubits)],
+        )
 
         qcExp1.barrier()
         qcExp1.h(qAnc)
@@ -276,14 +254,14 @@ class EntropyHadamardTest(QurryV5Prototype):
         self,
         wave: Union[QuantumCircuit, any, None] = None,
         degree: Union[int, tuple[int, int], None] = None,
-        expName: str = 'exps',
+        expName: str = "exps",
         *args,
         saveLocation: Optional[Union[Path, str]] = None,
-        mode: str = 'w+',
+        mode: str = "w+",
         indent: int = 2,
-        encoding: str = 'utf-8',
+        encoding: str = "utf-8",
         jsonablize: bool = False,
-        **otherArgs: any
+        **otherArgs: any,
     ):
         """
 

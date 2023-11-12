@@ -21,11 +21,11 @@ class WavesQurryAnalysis(AnalysisPrototype):
 
     __name__ = 'WavesQurryAnalysis'
 
-    class analysisInput(NamedTuple):
+    class AnalysisInput(NamedTuple):
         """To set the analysis."""
         ultimate_question: str
         """ULtImAte QueStIoN."""
-    class analysisContent(NamedTuple):
+    class AnalysisContent(NamedTuple):
         utlmatic_answer: int
         """~The Answer to the Ultimate Question of Life, The Universe, and Everything.~"""
         dummy: int
