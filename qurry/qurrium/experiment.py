@@ -46,7 +46,7 @@ class ExperimentPrototypeABC(ABC):
 
 
 class ExperimentPrototype(ExperimentPrototypeABC):
-    """The prototype of experiment which is the basic class of all experiments."""
+    """The instance of experiment."""
 
     __name__ = "ExperimentPrototype"
     """Name of the QurryExperiment which could be overwritten."""

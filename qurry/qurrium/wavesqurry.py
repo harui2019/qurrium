@@ -1,12 +1,15 @@
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit.quantum_info import Operator
+"""
+================================================================
+Waves Qurry (:mod:`qurry.qurrium.wavesqurry`)
+================================================================
 
-import time
-import tqdm
-import warnings
-import numpy as np
+It is only for pendings and retrieve to remote backend.
+"""
+from typing import Union, Optional, NamedTuple, Hashable, Iterable, Type, Any
 from pathlib import Path
-from typing import Union, Optional, NamedTuple, Hashable, Iterable, Type, overload, Any
+import tqdm
+
+from qiskit import QuantumCircuit
 
 from ..qurrium import (
     QurryV5Prototype,
@@ -14,15 +17,11 @@ from ..qurrium import (
     AnalysisPrototype,
 )
 from ..exceptions import QurryExperimentCountsNotCompleted
-from ..tools import (
-    qurry_progressbar,
-    ProcessManager,
-    workers_distribution,
-    DEFAULT_POOL_SIZE,
-)
 
 
 class WavesQurryAnalysis(AnalysisPrototype):
+    """The analysis of the experiment."""
+
     __name__ = "WavesQurryAnalysis"
 
     class AnalysisInput(NamedTuple):
@@ -32,6 +31,8 @@ class WavesQurryAnalysis(AnalysisPrototype):
         """ULtImAte QueStIoN."""
 
     class AnalysisContent(NamedTuple):
+        """Analysis content."""
+
         utlmatic_answer: int
         """~The Answer to the Ultimate Question of Life, The Universe, and Everything.~"""
         dummy: int
@@ -44,6 +45,8 @@ class WavesQurryAnalysis(AnalysisPrototype):
 
 
 class WavesQurryExperiment(ExperimentPrototype):
+    """The instance of experiment."""
+
     __name__ = "WavesQurryExperiment"
 
     class Arguments(NamedTuple):
@@ -61,10 +64,9 @@ class WavesQurryExperiment(ExperimentPrototype):
     @classmethod
     def quantities(
         cls,
-        shots: int,
-        counts: list[dict[str, int]],
+        shots: Optional[int] = None,
+        counts: Optional[list[dict[str, int]]] = None,
         ultimate_question: str = "",
-        **otherArgs,
     ) -> dict[str, float]:
         """Computing specific squantity.
         Where should be overwritten by each construction of new measurement.
@@ -72,7 +74,12 @@ class WavesQurryExperiment(ExperimentPrototype):
         Returns:
             dict[str, float]: Counts, purity, entropy of experiment.
         """
-
+        if shots is None or counts is None:
+            print(
+                "| shots or counts is None, "
+                + "but it doesn't matter with ultimate question over all."
+            )
+        print("| ultimate_question:", ultimate_question)
         dummy = -100
         utlmatic_answer = (42,)
         return {
@@ -80,9 +87,7 @@ class WavesQurryExperiment(ExperimentPrototype):
             "utlmatic_answer": utlmatic_answer,
         }
 
-    def analyze(
-        self, ultimate_question: str = "", shots: Optional[int] = None, **otherArgs
-    ):
+    def analyze(self, ultimate_question: str = "", shots: Optional[int] = None):
         """Analysis of the experiment.
         Where should be overwritten by each construction of new measurement.
         """
@@ -112,6 +117,8 @@ class WavesQurryExperiment(ExperimentPrototype):
 
 
 class WavesExecuter(QurryV5Prototype):
+    """The pending and retrieve executer for waves."""
+
     @classmethod
     @property
     def experiment(cls) -> Type[WavesQurryExperiment]:
@@ -122,7 +129,7 @@ class WavesExecuter(QurryV5Prototype):
         self,
         waveKey: Hashable = None,
         expName: str = "exps",
-        waves: Iterable[Hashable] = [],
+        waves: Optional[Iterable[Hashable]] = None,
         **otherArgs: Any,
     ) -> tuple[
         WavesQurryExperiment.Arguments,
@@ -149,6 +156,8 @@ class WavesExecuter(QurryV5Prototype):
         Returns:
             dict: The export will be processed in `.paramsControlCore`
         """
+        if waves is None:
+            waves = []
 
         for w in waves:
             if not self.has(w):
@@ -158,7 +167,7 @@ class WavesExecuter(QurryV5Prototype):
             waveKey = None
         else:
             raise ValueError(
-                f"| This is Qurry required multiple waves gvien in `waves` to be measured."
+                "| This is Qurry required multiple waves gvien in `waves` to be measured."
             )
 
         return self.experiment.filter(
@@ -175,22 +184,22 @@ class WavesExecuter(QurryV5Prototype):
     ) -> list[QuantumCircuit]:
         assert expID in self.exps
         assert self.exps[expID].commons.expID == expID
-        currentExp = self.exps[expID]
+        current_exp = self.exps[expID]
         args: WavesQurryExperiment.Arguments = self.exps[expID].args
-        commons: WavesQurryExperiment.Commonparams = self.exps[expID].commons
+        _commons: WavesQurryExperiment.Commonparams = self.exps[expID].commons
 
         if isinstance(_pbar, tqdm.tqdm):
             _pbar.set_description_str(f"Loading specified {len(args.waves)} circuits.")
         circs = [self.waves[c].copy() for c in args.waves]
-        currentExp["expName"] = f"{args.expName}-with{len(circs)}circs"
+        current_exp["expName"] = f"{args.expName}-with{len(circs)}circs"
 
         return circs
 
     def measure(
         self,
-        waves: Iterable[Hashable] = [],
+        waves: Iterable[Hashable],
         expName: str = "exps",
-        *args,
+        *,
         saveLocation: Optional[Union[Path, str]] = None,
         mode: str = "w+",
         indent: int = 2,
@@ -232,19 +241,19 @@ class WavesExecuter(QurryV5Prototype):
             dict: The output.
         """
 
-        IDNow = self.result(
+        id_now = self.result(
             wave=None,
             waves=waves,
             expName=expName,
             saveLocation=None,
             **otherArgs,
         )
-        assert IDNow in self.exps, f"ID {IDNow} not found."
-        assert self.exps[IDNow].commons.expID == IDNow
-        currentExp = self.exps[IDNow]
+        assert id_now in self.exps, f"ID {id_now} not found."
+        assert self.exps[id_now].commons.expID == id_now
+        current_exp = self.exps[id_now]
 
         if isinstance(saveLocation, (Path, str)):
-            currentExp.write(
+            current_exp.write(
                 save_location=saveLocation,
                 mode=mode,
                 indent=indent,
@@ -252,4 +261,4 @@ class WavesExecuter(QurryV5Prototype):
                 jsonable=jsonablize,
             )
 
-        return IDNow
+        return id_now
