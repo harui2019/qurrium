@@ -100,11 +100,7 @@ class EntropyHadamardExperiment(ExperimentPrototype):
 
         Returns:
             dict[str, float]: A dictionary contains
-                purity, entropy, a list of each overlap, puritySD,
-                purity of all system, entropy of all system,
-                a list of each overlap in all system, puritySD of all system,
-                degree, actual measure range,
-                actual measure range in all system, bitstring range.
+                purity, entropy.
         """
 
         shots = self.commons.shots

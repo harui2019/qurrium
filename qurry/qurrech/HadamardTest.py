@@ -83,9 +83,7 @@ class EntropyHadamardAnalysis(AnalysisPrototype):
 
         Returns:
             dict[str, float]: A dictionary contains
-                purity, entropy, a list of each overlap, puritySD,
-                purity of all system, entropy of all system, a list of each overlap in all system, puritySD of all system,
-                degree, actual measure range, actual measure range in all system, bitstring range.
+                purity, entropy.
         """
 
         result = overlap_echo(
@@ -125,15 +123,13 @@ class EchoHadamardExperiment(ExperimentPrototype):
 
         Returns:
             dict[str, float]: A dictionary contains
-                purity, entropy, a list of each overlap, puritySD,
-                purity of all system, entropy of all system, a list of each overlap in all system, puritySD of all system,
-                degree, actual measure range, actual measure range in all system, bitstring range.
+                purity, entropy.
         """
 
         shots = self.commons.shots
         counts = self.afterwards.counts
 
-        qs = self.analysis_container.quantities(
+        qs = self.quantities(
             shots=shots,
             counts=counts,
         )
@@ -147,6 +143,31 @@ class EchoHadamardExperiment(ExperimentPrototype):
 
         self.reports[serial] = analysis
         return analysis
+
+    @classmethod
+    def quantities(
+        cls,
+        shots: int = None,
+        counts: list[dict[str, int]] = None,
+    ) -> dict[str, float]:
+        """Calculate entangled entropy with more information combined.
+
+        Args:
+            shots (int): Shots of the experiment on quantum machine.
+            counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
+
+        Returns:
+            dict[str, float]: A dictionary contains
+                purity, entropy.
+        """
+
+        if shots is None or counts is None:
+            raise ValueError("shots and counts should be specified.")
+
+        return overlap_echo(
+            shots=shots,
+            counts=counts,
+        )
 
 
 class EchoHadamardTest(QurryV5Prototype):
