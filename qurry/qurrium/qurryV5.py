@@ -1284,15 +1284,15 @@ class QurryV5Prototype(ABC):
 
         reportName = currentMultimanager.analyze(
             self.exps,
-            analysisName=analysisName,
-            noSerialize=noSerialize,
-            specificAnalysisArgs=specificAnalysisArgs,
+            analysis_name=analysisName,
+            no_serialize=noSerialize,
+            specific_analysis_args=specificAnalysisArgs,
             **analysisArgs,
         )
         print(f'| "{reportName}" has been completed.')
 
         if _write:
-            filesMulti = currentMultimanager.write(_onlyQuantity=True)
+            filesMulti = currentMultimanager.write(_only_quantity=True)
         else:
             filesMulti = {}
 
@@ -1335,8 +1335,8 @@ class QurryV5Prototype(ABC):
 
         if compress:
             currentMultimanager.compress(
-                compressOverwrite=compressOverwrite,
-                remainOnlyCompressed=remainOnlyCompressed,
+                compress_overwrite=compressOverwrite,
+                remain_only_compressed=remainOnlyCompressed,
             )
         else:
             if compressOverwrite or remainOnlyCompressed:

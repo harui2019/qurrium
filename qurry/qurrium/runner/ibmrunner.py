@@ -158,7 +158,7 @@ class IBMRunner(Runner):
                         for s in [
                             self.current_multimanager.multicommons.summonerName,
                             self.current_multimanager.multicommons.summonerID,
-                            self.current_multimanager.namingCpx.expsName,
+                            self.current_multimanager.naming_complex.expsName,
                             *pending_tags,
                             *self.current_multimanager.multicommons.tags,
                         ]
