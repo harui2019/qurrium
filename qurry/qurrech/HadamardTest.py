@@ -330,7 +330,7 @@ class EchoHadamardTest(QurryV5Prototype):
 
         if isinstance(saveLocation, (Path, str)):
             currentExp.write(
-                saveLocation=saveLocation,
+                save_location=saveLocation,
                 mode=mode,
                 indent=indent,
                 encoding=encoding,

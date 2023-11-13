@@ -318,7 +318,7 @@ class EntropyHadamardTest(QurryV5Prototype):
 
         if isinstance(saveLocation, (Path, str)):
             current_exp.write(
-                saveLocation=saveLocation,
+                save_location=saveLocation,
                 mode=mode,
                 indent=indent,
                 encoding=encoding,

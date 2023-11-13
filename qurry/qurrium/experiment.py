@@ -10,7 +10,7 @@ import os
 import glob
 import json
 import warnings
-from abc import abstractmethod, abstractproperty
+from abc import abstractmethod, abstractproperty, ABC
 from uuid import uuid4
 from typing import Literal, Union, Optional, NamedTuple, Hashable, Type, Any
 from pathlib import Path
@@ -34,7 +34,7 @@ from .analysis import AnalysisPrototype, QurryAnalysis
 from ..tools.datetime import current_time, DatetimeDict
 
 
-class ExperimentPrototypeABC:
+class ExperimentPrototypeABC(ABC):
     """The experiment prototype which is the basic class of all experiments."""
 
     @abstractmethod
@@ -520,10 +520,14 @@ class ExperimentPrototype(ExperimentPrototypeABC):
     def __hash__(self) -> int:
         return hash(self.commons.expID)
 
+    # pylint: disable=invalid-name
+
     @property
     def expID(self) -> property:
         """ID of experiment."""
         return self.commons.expID
+
+    # pylint: enable=invalid-name
 
     def __repr__(self) -> str:
         return (
@@ -965,7 +969,7 @@ class ExperimentPrototype(ExperimentPrototypeABC):
 
     def write(
         self,
-        saveLocation: Optional[Union[Path, str]] = None,
+        save_location: Optional[Union[Path, str]] = None,
         mode: str = "w+",
         indent: int = 2,
         encoding: str = "utf-8",
@@ -1002,7 +1006,7 @@ class ExperimentPrototype(ExperimentPrototypeABC):
         ```
 
         Args:
-            saveLocation (Optional[Union[Path, str]], optional):
+            save_location (Optional[Union[Path, str]], optional):
                 Where to save the export content as `json` file.
                 If `saveLocation == None`, then use the value in `self.commons` to be exported,
                 if it's None too, then raise error.
@@ -1028,23 +1032,23 @@ class ExperimentPrototype(ExperimentPrototypeABC):
             dict[any]: the export content.
         """
 
-        if isinstance(saveLocation, Path):
+        if isinstance(save_location, Path):
             ...
-        elif isinstance(saveLocation, str):
-            saveLocation = Path(saveLocation)
-        elif saveLocation is None:
-            saveLocation = Path(self.commons.saveLocation)
+        elif isinstance(save_location, str):
+            save_location = Path(save_location)
+        elif save_location is None:
+            save_location = Path(self.commons.saveLocation)
             if self.commons.saveLocation is None:
                 raise ValueError(
                     "saveLocation is None, please provide a valid saveLocation"
                 )
         else:
             raise TypeError(
-                f"saveLocation must be Path or str, not {type(saveLocation)}"
+                f"saveLocation must be Path or str, not {type(save_location)}"
             )
 
-        if self.commons.saveLocation != saveLocation:
-            self.commons = self.commons._replace(saveLocation=saveLocation)
+        if self.commons.saveLocation != save_location:
+            self.commons = self.commons._replace(saveLocation=save_location)
 
         export_material = self.export()
         export_set = {}
@@ -1099,7 +1103,7 @@ class ExperimentPrototype(ExperimentPrototypeABC):
                     f"reports.tales.{tk} is not in export_names, it's not exported."
                 )
         # Exportation
-        folder = saveLocation / Path(export_material.files["folder"])
+        folder = save_location / Path(export_material.files["folder"])
         if not os.path.exists(folder):
             os.mkdir(folder)
         for k in self._required_folder:
@@ -1117,9 +1121,9 @@ class ExperimentPrototype(ExperimentPrototypeABC):
                     and self.commons.summonerID is not None
                 ):
                     ...
-                elif os.path.exists(saveLocation / export_material.files["qurryinfo"]):
+                elif os.path.exists(save_location / export_material.files["qurryinfo"]):
                     with open(
-                        saveLocation / export_material.files["qurryinfo"],
+                        save_location / export_material.files["qurryinfo"],
                         "r",
                         encoding="utf-8",
                     ) as f:
@@ -1128,7 +1132,7 @@ class ExperimentPrototype(ExperimentPrototypeABC):
 
             quickJSON(
                 content=content,
-                filename=str(saveLocation / export_material.files[filekey]),
+                filename=str(save_location / export_material.files[filekey]),
                 mode=mode,
                 indent=indent,
                 encoding=encoding,
@@ -1142,16 +1146,16 @@ class ExperimentPrototype(ExperimentPrototypeABC):
     def _read_core(
         cls,
         expID: str,
-        fileIndex: dict[str, str],
-        saveLocation: Union[Path, str] = Path("./"),
+        file_index: dict[str, str],
+        save_location: Union[Path, str] = Path("./"),
         encoding: str = "utf-8",
     ) -> "ExperimentPrototype":
         """Core of read function.
 
         Args:
             expID (str): The id of the experiment to be read.
-            fileIndex (dict[str, str]): The index of the experiment to be read.
-            saveLocation (Union[Path, str]): The location of the experiment to be read.
+            file_index (dict[str, str]): The index of the experiment to be read.
+            save_location (Union[Path, str]): The location of the experiment to be read.
             encoding (str): Encoding method, for :func:`mori.quickJSON`.
 
         Raises:
@@ -1162,54 +1166,56 @@ class ExperimentPrototype(ExperimentPrototypeABC):
             QurryExperiment: The experiment to be read.
         """
 
-        if isinstance(saveLocation, (Path, str)):
-            saveLocation = Path(saveLocation)
+        if isinstance(save_location, (Path, str)):
+            save_location = Path(save_location)
         else:
             raise ValueError("'saveLocation' needs to be the type of 'str' or 'Path'.")
-        if not os.path.exists(saveLocation):
-            raise FileNotFoundError(f"'saveLocation' does not exist, '{saveLocation}'.")
+        if not os.path.exists(save_location):
+            raise FileNotFoundError(
+                f"'saveLocation' does not exist, '{save_location}'."
+            )
 
         export_material_set = {}
         export_set = {}
-        for filekey, filename in fileIndex.items():
+        for filekey, filename in file_index.items():
             filekeydiv = filekey.split(".")
 
             if filekey == "args":
-                with open(saveLocation / filename, "r", encoding=encoding) as f:
+                with open(save_location / filename, "r", encoding=encoding) as f:
                     export_set["args"] = json.load(f)
                 for ak in ["arguments", "commonparams", "outfields"]:
                     export_material_set[ak]: dict[str, Any] = export_set["args"][ak]
 
             elif filekey == "advent":
-                with open(saveLocation / filename, "r", encoding=encoding) as f:
+                with open(save_location / filename, "r", encoding=encoding) as f:
                     export_set["advent"] = json.load(f)
                 export_material_set["adventures"]: dict[str, Any] = export_set[
                     "advent"
                 ]["adventures"]
 
             elif filekey == "legacy":
-                with open(saveLocation / filename, "r", encoding=encoding) as f:
+                with open(save_location / filename, "r", encoding=encoding) as f:
                     export_set["legacy"] = json.load(f)
                 export_material_set["legacy"]: dict[str, Any] = export_set["legacy"][
                     "legacy"
                 ]
 
             elif filekey == "reports":
-                with open(saveLocation / filename, "r", encoding=encoding) as f:
+                with open(save_location / filename, "r", encoding=encoding) as f:
                     export_set["reports"] = json.load(f)
                 export_material_set["reports"]: dict[str, Any] = export_set["reports"][
                     "reports"
                 ]
 
             elif filekeydiv[0] == "tales":
-                with open(saveLocation / filename, "r", encoding=encoding) as f:
+                with open(save_location / filename, "r", encoding=encoding) as f:
                     export_set[filekey] = json.load(f)
                 if "tales" not in export_material_set:
                     export_material_set["tales"] = {}
                 export_material_set["tales"][filekeydiv[1]] = export_set[filekey]
 
             elif filekeydiv[0] == "reports" and filekeydiv[1] == "tales":
-                with open(saveLocation / filename, "r", encoding=encoding) as f:
+                with open(save_location / filename, "r", encoding=encoding) as f:
                     export_set[filekey] = json.load(f)
                 if "tales_report" not in export_material_set:
                     export_material_set["tales_report"]: dict[str, dict[str, Any]] = {}
@@ -1270,8 +1276,8 @@ class ExperimentPrototype(ExperimentPrototypeABC):
     @classmethod
     def read(
         cls,
-        name: Union[Path, str],
-        saveLocation: Union[Path, str] = Path("./"),
+        name_or_id: Union[Path, str],
+        save_location: Union[Path, str] = Path("./"),
         encoding: str = "utf-8",
         workers_num: Optional[int] = None,
     ) -> list["ExperimentPrototype"]:
@@ -1281,7 +1287,7 @@ class ExperimentPrototype(ExperimentPrototypeABC):
         Args:
             name_or_id (Union[Path, str]):
                 The name or id of the experiment to be read.
-            saveLocation (Union[Path, str], optional):
+            save_location (Union[Path, str], optional):
                 The location of the experiment to be read.
                 Defaults to Path('./').
             indent (int, optional):
@@ -1295,14 +1301,16 @@ class ExperimentPrototype(ExperimentPrototypeABC):
 
         """
 
-        if isinstance(saveLocation, (Path, str)):
-            saveLocation = Path(saveLocation)
+        if isinstance(save_location, (Path, str)):
+            save_location = Path(save_location)
         else:
             raise ValueError("'saveLocation' needs to be the type of 'str' or 'Path'.")
-        if not os.path.exists(saveLocation):
-            raise FileNotFoundError(f"'saveLocation' does not exist, '{saveLocation}'.")
+        if not os.path.exists(save_location):
+            raise FileNotFoundError(
+                f"'saveLocation' does not exist, '{save_location}'."
+            )
 
-        export_location = saveLocation / name
+        export_location = save_location / name_or_id
         if not os.path.exists(export_location):
             raise FileNotFoundError(
                 f"'ExportLoaction' does not exist, '{export_location}'."
@@ -1312,7 +1320,7 @@ class ExperimentPrototype(ExperimentPrototypeABC):
         qurryinfo_location = export_location / "qurryinfo.json"
         if not os.path.exists(qurryinfo_location):
             raise FileNotFoundError(
-                f"'qurryinfo.json' does not exist at '{saveLocation}'. "
+                f"'qurryinfo.json' does not exist at '{save_location}'. "
                 + "It's required for loading all experiment data."
             )
 
@@ -1330,7 +1338,7 @@ class ExperimentPrototype(ExperimentPrototypeABC):
         quene = pool.starmap(
             cls._read_core,
             [
-                (expID, fileIndex, saveLocation, encoding)
+                (expID, fileIndex, save_location, encoding)
                 for expID, fileIndex in qurryinfo.items()
             ],
         )
@@ -1342,7 +1350,7 @@ class ExperimentPrototype(ExperimentPrototypeABC):
         cls,
         name: Union[Path, str],
         summonerID: Optional[str] = None,
-        saveLocation: Union[Path, str] = Path("./"),
+        save_location: Union[Path, str] = Path("./"),
         encoding: str = "utf-8",
     ) -> list["ExperimentPrototype"]:
         """Read the experiment from file made by QurryV4,
@@ -1350,9 +1358,12 @@ class ExperimentPrototype(ExperimentPrototypeABC):
         Replacement of :func:`QurryV4().readLegacy`
 
         Args:
-            name_or_id (Union[Path, str]):
+            name (Union[Path, str]):
                 The name or id of the experiment to be read.
-            saveLocation (Union[Path, str], optional):
+            summonerID (Optional[str], optional):
+                The id of the summoner to be read.
+                Defaults to None.
+            save_location (Union[Path, str], optional):
                 The location of the experiment to be read.
                 Defaults to Path('./').
             indent (int, optional):
@@ -1366,37 +1377,39 @@ class ExperimentPrototype(ExperimentPrototypeABC):
 
         """
 
-        if isinstance(saveLocation, (Path, str)):
-            saveLocation = Path(saveLocation)
+        if isinstance(save_location, (Path, str)):
+            save_location = Path(save_location)
         else:
             raise ValueError("'saveLocation' needs to be the type of 'str' or 'Path'.")
-        if not os.path.exists(saveLocation):
-            raise FileNotFoundError(f"'saveLocation' does not exist, '{saveLocation}'.")
-
-        exportLocation = saveLocation / name
-        if not os.path.exists(exportLocation):
+        if not os.path.exists(save_location):
             raise FileNotFoundError(
-                f"'exportLoaction' does not exist, '{exportLocation}'."
+                f"'saveLocation' does not exist, '{save_location}'."
             )
 
-        configDict = quickRead(
+        export_location = save_location / name
+        if not os.path.exists(export_location):
+            raise FileNotFoundError(
+                f"'exportLoaction' does not exist, '{export_location}'."
+            )
+
+        config_dict = quickRead(
             filename=f"{name}.configDict.json",
-            saveLocation=exportLocation,
+            saveLocation=export_location,
         )
-        qurryinfoV4: dict[str, dict[str, str]] = {}
-        for k, v in configDict.items():
-            exportLocTmp = Path(v["exportLocation"]).name
-            qurryinfoV4[k] = {
-                "folder": exportLocTmp,
-                "legacy": str(Path(exportLocTmp) / "legacy" / f"*expId={k}*.json"),
-                "tales": str(Path(exportLocTmp) / "tales" / f"*expId={k}*.json"),
+        qurryinfo_v4: dict[str, dict[str, str]] = {}
+        for k, v in config_dict.items():
+            export_loc_tmp = Path(v["exportLocation"]).name
+            qurryinfo_v4[k] = {
+                "folder": export_loc_tmp,
+                "legacy": str(Path(export_loc_tmp) / "legacy" / f"*expId={k}*.json"),
+                "tales": str(Path(export_loc_tmp) / "tales" / f"*expId={k}*.json"),
             }
 
         queue = []
-        for expID, fileIndex in qurryinfoV4.items():
+        for exp_id, file_index in qurryinfo_v4.items():
             queue.append(
                 cls._readV4_core(
-                    expID, fileIndex, name, summonerID, saveLocation, encoding
+                    exp_id, file_index, name, summonerID, save_location, encoding
                 )
             )
 
@@ -1406,76 +1419,78 @@ class ExperimentPrototype(ExperimentPrototypeABC):
     def _readV4_core(
         cls,
         expID: str,
-        fileIndex: dict[str, str],
+        file_index: dict[str, str],
         summonerName: str,
         summonerID: Optional[str] = None,
-        saveLocation: Union[Path, str] = Path("./"),
+        save_location: Union[Path, str] = Path("./"),
         encoding: str = "utf-8",
     ) -> "ExperimentPrototype":
-        if isinstance(saveLocation, (Path, str)):
-            saveLocation = Path(saveLocation)
+        if isinstance(save_location, (Path, str)):
+            save_location = Path(save_location)
         else:
             raise ValueError("'saveLocation' needs to be the type of 'str' or 'Path'.")
-        if not os.path.exists(saveLocation):
-            raise FileNotFoundError(f"'saveLocation' does not exist, '{saveLocation}'.")
+        if not os.path.exists(save_location):
+            raise FileNotFoundError(
+                f"'saveLocation' does not exist, '{save_location}'."
+            )
 
-        legacyRead = {}
-        lsfolder = glob.glob(str(saveLocation / fileIndex["legacy"]))
+        legacy_read = {}
+        lsfolder = glob.glob(str(save_location / file_index["legacy"]))
         if len(lsfolder) == 0:
             raise FileNotFoundError(
                 f"The file 'expID={expID}' not found "
                 + "at the legacy folder of '{fileIndex['legacy']}'."
             )
         for p in lsfolder:
-            with open(p, "r", encoding=encoding) as Legacy:
-                legacyRead = json.load(Legacy)
+            with open(p, "r", encoding=encoding) as the_legacy:
+                legacy_read = json.load(the_legacy)
 
-        talesRead = {}
-        lsfoldertales = glob.glob(str(saveLocation / fileIndex["tales"]))
+        tales_read = {}
+        lsfoldertales = glob.glob(str(save_location / file_index["tales"]))
         for p in lsfoldertales:
             tmp = Path(p)
-            with open(p, "r", encoding="utf-8") as Tales:
-                talesRead[tmp.suffixes[-2][1:]] = json.load(Tales)
+            with open(p, "r", encoding="utf-8") as the_tales:
+                tales_read[tmp.suffixes[-2][1:]] = json.load(the_tales)
 
         infields = {}
         commonsinput = {
-            "files": {"v4": fileIndex},
+            "files": {"v4": file_index},
             "summonerName": summonerName,
             "summonerID": summonerID,
         }
         beforewards = {}
         afterwards = {}
-        outfields = {"oldTales": talesRead}
+        outfields = {"oldTales": tales_read}
 
-        for k in legacyRead:
+        for k in legacy_read:
             if k in cls.Arguments._fields:
-                infields[k] = legacyRead[k]
+                infields[k] = legacy_read[k]
             elif k in cls.Commonparams._fields:
-                commonsinput[k] = legacyRead[k]
+                commonsinput[k] = legacy_read[k]
             elif k in cls.Before._fields:
-                beforewards[k] = legacyRead[k]
+                beforewards[k] = legacy_read[k]
             elif k in cls.After._fields:
-                afterwards[k] = legacyRead[k]
+                afterwards[k] = legacy_read[k]
 
             elif k == "figRaw":
-                beforewards["figOriginal"] = legacyRead[k]
+                beforewards["figOriginal"] = legacy_read[k]
             elif k == "dateCreate":
                 commonsinput["datetimes"] = DatetimeDict(
                     {
-                        "build": legacyRead[k],
+                        "build": legacy_read[k],
                         "transformToV5": current_time(),
                     }
                 )
             elif k == "expIndex":
-                commonsinput["serial"] = legacyRead[k]
+                commonsinput["serial"] = legacy_read[k]
             elif k == "tags":
-                commonsinput["serial"] = legacyRead[k]
+                commonsinput["serial"] = legacy_read[k]
 
             else:
-                outfields[k] = legacyRead[k]
+                outfields[k] = legacy_read[k]
 
-        if "wave" in legacyRead:
-            infields["waveKey"] = legacyRead["wave"]
+        if "wave" in legacy_read:
+            infields["waveKey"] = legacy_read["wave"]
 
         instance = cls(
             **infields,

@@ -12,7 +12,7 @@ from .backend import (
 )
 from .watch import ResoureWatch
 from .processmanager import ProcessManager, workers_distribution, DEFAULT_POOL_SIZE
-from .progressbar import qurry_progress_bar
+from .progressbar import qurry_progressbar
 from .datetime import current_time, DatetimeDict
 
 # pylint: disable=invalid-name

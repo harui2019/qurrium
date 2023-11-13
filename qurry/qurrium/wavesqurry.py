@@ -15,7 +15,7 @@ from ..qurrium import (
 )
 from ..exceptions import QurryExperimentCountsNotCompleted
 from ..tools import (
-    qurry_progress_bar,
+    qurry_progressbar,
     ProcessManager,
     workers_distribution,
     DEFAULT_POOL_SIZE,
@@ -245,7 +245,7 @@ class WavesExecuter(QurryV5Prototype):
 
         if isinstance(saveLocation, (Path, str)):
             currentExp.write(
-                saveLocation=saveLocation,
+                save_location=saveLocation,
                 mode=mode,
                 indent=indent,
                 encoding=encoding,

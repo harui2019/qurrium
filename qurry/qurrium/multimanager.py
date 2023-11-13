@@ -24,7 +24,7 @@ from .experiment import ExperimentPrototype
 from .utils.iocontrol import naming
 from ..tools.datetime import current_time, DatetimeDict
 from ..declare.multimanager import multicommonConfig
-from ..tools import qurry_progress_bar, DEFAULT_POOL_SIZE
+from ..tools import qurry_progressbar, DEFAULT_POOL_SIZE
 from ..capsule import quickJSON, quickRead
 from ..capsule.mori import TagList, GitSyncControl
 from ..exceptions import (
@@ -54,7 +54,7 @@ def write_caller(
     experiment, save_location, summoner_id = iterable
 
     return experiment.write(
-        saveLocation=save_location,
+        save_location=save_location,
         mute=True,
         _qurryinfo_hold_access=summoner_id,
     )
@@ -327,6 +327,8 @@ class MultiManager:
             f"{key} is not a valid field of '{self.Before.__name__}' and '{self.After.__name__}'."
         )
 
+    # pylint: disable=invalid-name
+
     @property
     def summonerID(self) -> str:
         """ID of experiment of the MultiManager."""
@@ -337,6 +339,8 @@ class MultiManager:
         """Name of experiment of the MultiManager."""
         return self.multicommons.summonerName
 
+    # pylint: enable=invalid-name
+
     quantity_container: QuantityContainer
     """The container of quantity."""
 
@@ -345,7 +349,7 @@ class MultiManager:
         *args,
         summonerID: Hashable,
         summonerName: str,
-        saveLocation: Union[Path, str] = Path("./"),
+        save_location: Union[Path, str] = Path("./"),
         is_read: bool = False,
         encoding: str = "utf-8",
         read_from_tarfile: bool = False,
@@ -359,17 +363,17 @@ class MultiManager:
         Args:
             summonerID (Hashable): ID of experiment of the MultiManager.
             summonerName (str): Name of experiment of the MultiManager.
-            saveLocation (Union[Path, str]): Location of saving experiment.
-            initedConfigList (list): The list of initial config of each experiments.
-            state (Literal[
-                &quot;init&quot;, &quot;pending&quot;, &quot;completed&quot;
-            ]): state of the multi-experiment.
+            save_location (Union[Path, str]): Location of saving experiment.
             is_read (bool, optional): Whether read the experiment. Defaults to False.
-            overwrite (bool, optional): Whether overwrite the experiment. Defaults to False.
+            encoding (str, optional): The encoding of json file. Defaults to "utf-8".
+            read_from_tarfile (bool, optional): Whether read from tarfile. Defaults to False.
+            filetype (TagList._availableFileType, optional): The filetype of json file. Defaults to "json".
+            version (Literal[&quot;v4&quot;, &quot;v5&quot;], optional): The version of json file. Defaults to "v5".
+            **kwargs (Any): The other arguments of multi-experiment.
 
         Raises:
-            ValueError: _description_
-            ValueError: _description_
+            ValueError: Can't be initialized with positional arguments.
+            FileNotFoundError: Can't find the multi.config file.
         """
 
         if len(args) > 0:
@@ -386,11 +390,8 @@ class MultiManager:
             )
         finally:
             if summonerID is None:
-                if is_read:
-                    if version == "v5":
-                        summonerID = ""
-                    else:
-                        summonerID = str(uuid4())
+                if is_read and version == "v5":
+                    summonerID = ""
                 else:
                     summonerID = str(uuid4())
             else:
@@ -400,7 +401,7 @@ class MultiManager:
         self.naming_complex = naming(
             is_read=is_read,
             exps_name=summonerName,
-            save_location=saveLocation,
+            save_location=save_location,
         )
 
         is_tarfile_existed = os.path.exists(self.naming_complex.tarLocation)
@@ -661,7 +662,7 @@ class MultiManager:
                 + 'in "v7" format and remove "v5" format.'
             )
             self.write()
-            remove_v5_progress = qurry_progress_bar(
+            remove_v5_progress = qurry_progressbar(
                 old_files.items(),
                 bar_format="| {percentage:3.0f}%[{bar}] - remove v5 - {desc} - {elapsed}",
             )
@@ -680,23 +681,23 @@ class MultiManager:
 
     def update_save_location(
         self,
-        saveLocation: Union[Path, str],
+        save_location: Union[Path, str],
         without_serial: bool = True,
     ) -> dict[str, Any]:
         """Update the save location of the multi-experiment.
 
         Args:
-            saveLocation (Union[Path, str]): Location of saving experiment.
+            save_location (Union[Path, str]): Location of saving experiment.
             without_serial (bool, optional): Whether without serial number. Defaults to True.
 
         Returns:
             dict[str, Any]: The dict of multiConfig.
         """
-        saveLocation = Path(saveLocation)
+        save_location = Path(save_location)
         self.naming_complex = naming(
             without_serial=without_serial,
             exps_name=self.multicommons.summonerName,
-            save_location=saveLocation,
+            save_location=save_location,
         )
         self.multicommons = self.multicommons._replace(
             saveLocation=self.naming_complex.saveLocation,
@@ -731,7 +732,7 @@ class MultiManager:
 
     def write(
         self,
-        saveLocation: Optional[Union[Path, str]] = None,
+        save_location: Optional[Union[Path, str]] = None,
         wave_container: Optional[ExperimentContainer] = None,
         indent: int = 2,
         encoding: str = "utf-8",
@@ -741,7 +742,7 @@ class MultiManager:
         """Export the multi-experiment.
 
         Args:
-            saveLocation (Union[Path, str], optional): Location of saving experiment.
+            save_location (Union[Path, str], optional): Location of saving experiment.
                 Defaults to None.
             wave_container (Optional[ExperimentContainer], optional): The container of experiments.
                 Defaults to None.
@@ -756,15 +757,15 @@ class MultiManager:
         """
         self.gitignore.read(self.multicommons.exportLocation)
         print("| Export multimanager...")
-        if saveLocation is None:
-            saveLocation = self.multicommons.saveLocation
+        if save_location is None:
+            save_location = self.multicommons.saveLocation
         else:
-            self.update_save_location(saveLocation=saveLocation, without_serial=True)
+            self.update_save_location(save_location=save_location, without_serial=True)
 
         self.gitignore.ignore("*.json")
         self.gitignore.sync("qurryinfo.json")
-        if not os.path.exists(saveLocation):
-            os.makedirs(saveLocation)
+        if not os.path.exists(save_location):
+            os.makedirs(save_location)
         if not os.path.exists(self.multicommons.exportLocation):
             os.makedirs(self.multicommons.exportLocation)
         self.gitignore.export(self.multicommons.exportLocation)
@@ -774,7 +775,7 @@ class MultiManager:
             **self.Before.exporting_name(),
         }
 
-        export_progress = qurry_progress_bar(
+        export_progress = qurry_progressbar(
             self.Before._fields + self.After._fields,
             desc="exporting",
             bar_format="qurry-barless",
@@ -850,8 +851,8 @@ class MultiManager:
         if wave_container is not None:
             qurryinfos = {}
             qurryinfos_loc = self.multicommons.exportLocation / "qurryinfo.json"
-            if os.path.exists(saveLocation / qurryinfos_loc):
-                with open(saveLocation / qurryinfos_loc, "r", encoding="utf-8") as f:
+            if os.path.exists(save_location / qurryinfos_loc):
+                with open(save_location / qurryinfos_loc, "r", encoding="utf-8") as f:
                     qurryinfo_found: dict[str, dict[str, str]] = json.load(f)
                     qurryinfos = {**qurryinfo_found, **qurryinfos}
 
@@ -969,7 +970,7 @@ class MultiManager:
         )
         self.quantity_container[name] = TagList()
 
-        all_counts_progress = qurry_progress_bar(
+        all_counts_progress = qurry_progressbar(
             self.afterwards.allCounts.keys(),
             bar_format=(
                 "| {n_fmt}/{total_fmt} - Analysis: {desc} - {elapsed} < {remaining}"

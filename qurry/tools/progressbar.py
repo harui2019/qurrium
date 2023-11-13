@@ -59,7 +59,7 @@ class tqdm(Iterator[_T], real_tqdm):
     And it should be tracked by this issue: https://github.com/tqdm/tqdm/issues/260
     To avoid the conflict,
     you **SHOULD NOT IMPORT** this class and keep it only working
-    for :func:`qurryProgressBar` as type hint.
+    for :func:`qurry_progressbar` as type hint.
 
     """
 
@@ -68,14 +68,14 @@ class tqdm(Iterator[_T], real_tqdm):
         raise NotImplementedError(
             "This is not real tqdm class, "
             + "but a type hint inherit from `Iterator` "
-            + "for function `qurryProgressBar`, you imported the wrong one."
+            + "for function `qurry_progressbar`, you imported the wrong one."
         )
 
 
 # pylint: enable=invalid-name,inconsistent-mro
 
 
-def qurry_progress_bar(
+def qurry_progressbar(
     iterable: Iterable[T],
     *args,
     bar_format: str = "qurry-full",

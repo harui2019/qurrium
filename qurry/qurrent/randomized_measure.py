@@ -24,7 +24,7 @@ from ..qurrium.utils.randomized import (
     local_random_unitary_pauli_coeff,
 )
 from ..qurrium.utils.construct import qubit_selector
-from ..tools import qurry_progress_bar, ProcessManager, DEFAULT_POOL_SIZE
+from ..tools import qurry_progressbar, ProcessManager, DEFAULT_POOL_SIZE
 from .postprocess import (
     ExistingProcessBackendLabel,
     DEFAULT_PROCESS_BACKEND,
@@ -439,7 +439,7 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
             )
 
         else:
-            pbar_selfhost = qurry_progress_bar(
+            pbar_selfhost = qurry_progressbar(
                 range(1),
                 bar_format="simple",
             )
@@ -804,7 +804,7 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
 
         if isinstance(saveLocation, (Path, str)):
             current_exp.write(
-                saveLocation=saveLocation,
+                save_location=saveLocation,
                 mode=mode,
                 indent=indent,
                 encoding=encoding,

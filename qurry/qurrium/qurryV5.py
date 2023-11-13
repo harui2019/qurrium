@@ -17,7 +17,7 @@ from qiskit.quantum_info import Operator
 from qiskit.providers import Backend
 from qiskit.circuit import Gate
 
-from ..tools import ResoureWatch, qurry_progress_bar, ProcessManager
+from ..tools import ResoureWatch, qurry_progressbar, ProcessManager
 from ..capsule.mori import TagList
 from ..tools.backend import GeneralAerSimulator
 from ..tools.datetime import current_time, DatetimeDict
@@ -559,7 +559,7 @@ class QurryV5Prototype(ABC):
         # export may be slow, consider export at finish or something
         if isinstance(saveLocation, (Path, str)):
             currentExp.write(
-                saveLocation=saveLocation,
+                save_location=saveLocation,
                 mode=mode,
                 indent=indent,
                 encoding=encoding,
@@ -634,7 +634,7 @@ class QurryV5Prototype(ABC):
 
         if isinstance(saveLocation, (Path, str)):
             currentExp.write(
-                saveLocation=saveLocation,
+                save_location=saveLocation,
                 mode=mode,
                 indent=indent,
                 encoding=encoding,
@@ -707,7 +707,7 @@ class QurryV5Prototype(ABC):
 
         if isinstance(saveLocation, (Path, str)):
             currentExp.write(
-                saveLocation=saveLocation,
+                save_location=saveLocation,
                 mode=mode,
                 indent=indent,
                 encoding=encoding,
@@ -782,7 +782,7 @@ class QurryV5Prototype(ABC):
 
         if isinstance(saveLocation, (Path, str)):
             currentExp.write(
-                saveLocation=saveLocation,
+                save_location=saveLocation,
                 mode=mode,
                 indent=indent,
                 encoding=encoding,
@@ -896,7 +896,7 @@ class QurryV5Prototype(ABC):
                 summonerName=summonerName,
                 is_read=is_read,
                 read_from_tarfile=read_from_tarfile,
-                saveLocation=saveLocation,
+                save_location=saveLocation,
                 version=read_version,
             )
         else:
@@ -907,7 +907,7 @@ class QurryV5Prototype(ABC):
                 backend=backend,
                 # provider=provider,
                 tags=tags,
-                saveLocation=saveLocation,
+                save_location=saveLocation,
                 files={},
                 jobsType=jobsType,
                 managerRunArgs=managerRunArgs,
@@ -1010,7 +1010,7 @@ class QurryV5Prototype(ABC):
         )
         currentMultimanager = self.multimanagers[besummonned]
         assert currentMultimanager.summonerID == besummonned
-        initedConfigListProgress = qurry_progress_bar(initedConfigList)
+        initedConfigListProgress = qurry_progressbar(initedConfigList)
 
         initedConfigListProgress.set_description_str("MultiManager building...")
         for config in initedConfigListProgress:
@@ -1122,7 +1122,7 @@ class QurryV5Prototype(ABC):
         assert currentMultimanager.summonerID == besummonned
         circSerial = []
 
-        experimentProgress = qurry_progress_bar(
+        experimentProgress = qurry_progressbar(
             currentMultimanager.beforewards.expsConfig
         )
 
@@ -1329,7 +1329,7 @@ class QurryV5Prototype(ABC):
         assert currentMultimanager.summonerID == summonerID
 
         filesMulti = currentMultimanager.write(
-            saveLocation=saveLocation if saveLocation is not None else None,
+            save_location=saveLocation if saveLocation is not None else None,
             wave_container=self.exps,
         )
 
@@ -1390,8 +1390,8 @@ class QurryV5Prototype(ABC):
         assert self.multimanagers[besummonned].multicommons.summonerID == besummonned
 
         quene: list[ExperimentPrototype] = self.experiment.read(
-            saveLocation=self.multimanagers[besummonned].multicommons.saveLocation,
-            name=summonerName,
+            save_location=self.multimanagers[besummonned].multicommons.saveLocation,
+            name_or_id=summonerName,
         )
         for exp in quene:
             self.exps[exp.expID] = exp
@@ -1559,7 +1559,7 @@ class QurryV5Prototype(ABC):
         currentMultimanager = self.multimanagers[besummonned]
 
         quene: list[ExperimentPrototype] = self.experiment.readV4(
-            saveLocation=saveLocation,
+            save_location=saveLocation,
             name=summonerName,
             summonerID=besummonned,
         )
@@ -1745,7 +1745,7 @@ class QurryV5(QurryV5Prototype):
 
         if isinstance(saveLocation, (Path, str)):
             currentExp.write(
-                saveLocation=saveLocation,
+                save_location=saveLocation,
                 mode=mode,
                 indent=indent,
                 encoding=encoding,

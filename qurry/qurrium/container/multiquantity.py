@@ -7,7 +7,7 @@ The container for quantities of analysis for :cls:`MultiManager`.
 from typing import Union, Optional, Literal
 from pathlib import Path
 
-from ...tools import qurry_progress_bar
+from ...tools import qurry_progressbar
 from ...capsule.mori import TagList
 
 
@@ -72,7 +72,7 @@ class QuantityContainer(dict[str, TagList[dict[str, float]]]):
             print("| No quantity to export.")
             return quantity_output
 
-        quantity_progress = qurry_progress_bar(
+        quantity_progress = qurry_progressbar(
             self.items(),
             desc="exporting quantity",
             bar_format="qurry-barless",
