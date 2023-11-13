@@ -581,11 +581,11 @@ class EchoRandomizedListen(QurryV5Prototype):
         """
         return EchoRandomizedExperiment
 
-    def paramsControl(
+    def params_control(
         self,
-        expName: str = 'exps',
         waveKey: Hashable = None,
         waveKey2: Union[Hashable, QuantumCircuit] = None,
+        expName: str = 'exps',
         times: int = 100,
         measure: tuple[int, int] = None,
         unitary_loc: tuple[int, int] = None,

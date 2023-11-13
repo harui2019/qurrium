@@ -8,7 +8,7 @@ from ..qurrium import (
     QurryV5Prototype,
     ExperimentPrototype,
     AnalysisPrototype,
-    qubit_selector
+    qubit_selector,
 )
 
 
@@ -16,34 +16,34 @@ def overlap_echo(
     shots: int,
     counts: list[dict[str, int]],
 ) -> dict[str, float]:
-
     echo = -100
     onlyCount = counts[0]
     sample_shots = sum(onlyCount.values())
-    assert sample_shots == shots, f"shots {shots} does not match sample_shots {sample_shots}"
+    assert (
+        sample_shots == shots
+    ), f"shots {shots} does not match sample_shots {sample_shots}"
 
-    isZeroInclude = '0' in onlyCount
-    isOneInclude = '1' in onlyCount
+    isZeroInclude = "0" in onlyCount
+    isOneInclude = "1" in onlyCount
     if isZeroInclude and isOneInclude:
-        echo = (onlyCount['0'] - onlyCount['1'])/shots
+        echo = (onlyCount["0"] - onlyCount["1"]) / shots
     elif isZeroInclude:
-        echo = onlyCount['0']/shots
+        echo = onlyCount["0"] / shots
     elif isOneInclude:
-        echo = onlyCount['1']/shots
+        echo = onlyCount["1"] / shots
     else:
         echo = np.Nan
         raise Warning("Expected '0' and '1', but there is no such keys")
 
     quantity = {
-        'echo': echo,
+        "echo": echo,
     }
     return quantity
 
 
 class EntropyHadamardAnalysis(AnalysisPrototype):
-
-    __name__ = 'qurrechHadamard.Analysis'
-    shortName = 'qurrech_hadamard.report'
+    __name__ = "qurrechHadamard.Analysis"
+    shortName = "qurrech_hadamard.report"
 
     class AnalysisInput(NamedTuple):
         """To set the analysis."""
@@ -75,15 +75,15 @@ class EntropyHadamardAnalysis(AnalysisPrototype):
             counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
             degree (Union[tuple[int, int], int]): Degree of the subsystem.
             measure (tuple[int, int], optional): Measuring range on quantum circuits. Defaults to None.
-            workers_num (Optional[int], optional): 
-                Number of multi-processing workers, 
+            workers_num (Optional[int], optional):
+                Number of multi-processing workers,
                 if sets to 1, then disable to using multi-processing;
                 if not specified, the use 3/4 of cpu counts by `round(cpu_count*3/4)`.
                 Defaults to None.
 
         Returns:
-            dict[str, float]: A dictionary contains 
-                purity, entropy, a list of each overlap, puritySD, 
+            dict[str, float]: A dictionary contains
+                purity, entropy, a list of each overlap, puritySD,
                 purity of all system, entropy of all system, a list of each overlap in all system, puritySD of all system,
                 degree, actual measure range, actual measure range in all system, bitstring range.
         """
@@ -96,39 +96,36 @@ class EntropyHadamardAnalysis(AnalysisPrototype):
 
 
 class EchoHadamardExperiment(ExperimentPrototype):
-
-    __name__ = 'qurrechHadamard.Experiment'
-    shortName = 'qurrech_hadamard.exp'
+    __name__ = "qurrechHadamard.Experiment"
+    shortName = "qurrech_hadamard.exp"
 
     class arguments(NamedTuple):
         """Arguments for the experiment."""
-        expName: str = 'exps'
+
+        expName: str = "exps"
         waveKey2: Hashable = None
         degree: tuple[int, int] = None
 
     @classmethod
     @property
     def analysis_container(cls) -> Type[EntropyHadamardAnalysis]:
-        """The container class responding to this QurryV5 class.
-        """
+        """The container class responding to this QurryV5 class."""
         return EntropyHadamardAnalysis
 
-    def analyze(
-        self
-    ) -> AnalysisPrototype:
+    def analyze(self) -> AnalysisPrototype:
         """Calculate entangled entropy with more information combined.
 
         Args:
             degree (Union[tuple[int, int], int]): Degree of the subsystem.
-            workers_num (Optional[int], optional): 
-                Number of multi-processing workers, 
+            workers_num (Optional[int], optional):
+                Number of multi-processing workers,
                 if sets to 1, then disable to using multi-processing;
                 if not specified, the use 3/4 of cpu counts by `round(cpu_count*3/4)`.
                 Defaults to None.
 
         Returns:
-            dict[str, float]: A dictionary contains 
-                purity, entropy, a list of each overlap, puritySD, 
+            dict[str, float]: A dictionary contains
+                purity, entropy, a list of each overlap, puritySD,
                 purity of all system, entropy of all system, a list of each overlap in all system, puritySD of all system,
                 degree, actual measure range, actual measure range in all system, bitstring range.
         """
@@ -153,25 +150,27 @@ class EchoHadamardExperiment(ExperimentPrototype):
 
 
 class EchoHadamardTest(QurryV5Prototype):
-
-    __name__ = 'qurrentHadamard'
-    shortName = 'qurrech_hadamard'
+    __name__ = "qurrentHadamard"
+    shortName = "qurrech_hadamard"
 
     @classmethod
     @property
     def experiment(cls) -> Type[EchoHadamardExperiment]:
-        """The container class responding to this QurryV5 class.
-        """
+        """The container class responding to this QurryV5 class."""
         return EchoHadamardExperiment
 
-    def paramsControl(
+    def params_control(
         self,
-        expName: str = 'exps',
         waveKey: Hashable = None,
         waveKey2: Union[Hashable, QuantumCircuit] = None,
+        expName: str = "exps",
         degree: Union[tuple[int, int], int] = None,
-        **otherArgs: any
-    ) -> tuple[EchoHadamardExperiment.arguments, EchoHadamardExperiment.commonparams, dict[str, Any]]:
+        **otherArgs: any,
+    ) -> tuple[
+        EchoHadamardExperiment.arguments,
+        EchoHadamardExperiment.commonparams,
+        dict[str, Any],
+    ]:
         """Handling all arguments and initializing a single experiment.
 
         Args:
@@ -212,21 +211,23 @@ class EchoHadamardTest(QurryV5Prototype):
                 raise KeyError(f"Wave '{waveKey2}' not found in '.waves'")
         else:
             raise TypeError(
-                f"'{waveKey2}' is a '{type(waveKey2)}' instead of 'QuantumCircuit' or 'Hashable'")
-        
+                f"'{waveKey2}' is a '{type(waveKey2)}' instead of 'QuantumCircuit' or 'Hashable'"
+            )
+
         numQubits = self.waves[waveKey].num_qubits
         numQubits2 = self.waves[waveKey2].num_qubits
         if numQubits != numQubits2:
             raise ValueError(
-                f"The number of qubits of two wave functions must be the same, but {waveKey}: {numQubits} != {waveKey2}: {numQubits2}.")
+                f"The number of qubits of two wave functions must be the same, but {waveKey}: {numQubits} != {waveKey2}: {numQubits2}."
+            )
 
         # measure and unitary location
         degree = qubit_selector(numQubits, degree=degree)
 
         if isinstance(waveKey, (list, tuple)):
-            waveKey = '-'.join([str(i) for i in waveKey])
+            waveKey = "-".join([str(i) for i in waveKey])
         if isinstance(waveKey2, (list, tuple)):
-            waveKey2 = '-'.join([str(i) for i in waveKey2])
+            waveKey2 = "-".join([str(i) for i in waveKey2])
 
         expName = f"w={waveKey}+{waveKey2}.overlap=from{degree[0]}to{degree[1]}.{self.shortName}"
 
@@ -242,7 +243,6 @@ class EchoHadamardTest(QurryV5Prototype):
         self,
         expID: str,
     ) -> list[QuantumCircuit]:
-
         assert expID in self.exps
         assert self.exps[expID].commons.expID == expID
         args: EchoHadamardExperiment.arguments = self.exps[expID].args
@@ -250,19 +250,25 @@ class EchoHadamardTest(QurryV5Prototype):
         circuit = self.waves[commons.waveKey]
         numQubits = circuit.num_qubits
 
-        qAnc = QuantumRegister(1, 'ancilla')
-        qFunc1 = QuantumRegister(numQubits, 'q1')
-        qFunc2 = QuantumRegister(numQubits, 'q2')
-        cMeas1 = ClassicalRegister(1, 'c1')
+        qAnc = QuantumRegister(1, "ancilla")
+        qFunc1 = QuantumRegister(numQubits, "q1")
+        qFunc2 = QuantumRegister(numQubits, "q2")
+        cMeas1 = ClassicalRegister(1, "c1")
         qcExp1 = QuantumCircuit(qAnc, qFunc1, qFunc2, cMeas1)
 
-        qcExp1.append(self.waves.call(
-            wave=commons.waveKey,
-        ), [qFunc1[i] for i in range(numQubits)])
+        qcExp1.append(
+            self.waves.call(
+                wave=commons.waveKey,
+            ),
+            [qFunc1[i] for i in range(numQubits)],
+        )
 
-        qcExp1.append(self.waves.call(
-            wave=args.waveKey2,
-        ), [qFunc2[i] for i in range(numQubits)])
+        qcExp1.append(
+            self.waves.call(
+                wave=args.waveKey2,
+            ),
+            [qFunc2[i] for i in range(numQubits)],
+        )
 
         qcExp1.barrier()
         qcExp1.h(qAnc)
@@ -278,14 +284,14 @@ class EchoHadamardTest(QurryV5Prototype):
         wave: Union[QuantumCircuit, any, None] = None,
         wave2: Union[QuantumCircuit, any, None] = None,
         degree: Union[int, tuple[int, int], None] = None,
-        expName: str = 'exps',
+        expName: str = "exps",
         *args,
         saveLocation: Optional[Union[Path, str]] = None,
-        mode: str = 'w+',
+        mode: str = "w+",
         indent: int = 2,
-        encoding: str = 'utf-8',
+        encoding: str = "utf-8",
         jsonablize: bool = False,
-        **otherArgs: any
+        **otherArgs: any,
     ):
         """
 
@@ -311,8 +317,8 @@ class EchoHadamardTest(QurryV5Prototype):
         """
 
         IDNow = self.result(
-            wave=wave, # First wave will be taken by _paramsControlMain
-            waveKey2=wave2, # Second wave will be taken by paramsControl
+            wave=wave,  # First wave will be taken by _paramsControlMain
+            waveKey2=wave2,  # Second wave will be taken by paramsControl
             expName=expName,
             degree=degree,
             saveLocation=None,

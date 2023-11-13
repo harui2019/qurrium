@@ -112,10 +112,10 @@ class WavesExecuter(QurryV5Prototype):
         """
         return WavesQurryExperiment
 
-    def paramsControl(
+    def params_control(
         self,
-        expName: str = 'exps',
         waveKey: Hashable = None,
+        expName: str = 'exps',
         waves: Iterable[Hashable] = [],
         **otherArgs: Any
     ) -> tuple[WavesQurryExperiment.arguments, WavesQurryExperiment.commonparams, dict[str, Any]]:

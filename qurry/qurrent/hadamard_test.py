@@ -151,10 +151,10 @@ class EntropyHadamardTest(QurryV5Prototype):
         """The container class responding to this QurryV5 class."""
         return EntropyHadamardExperiment
 
-    def paramsControl(
+    def params_control(
         self,
-        expName: str = "exps",
         waveKey: Hashable = None,
+        expName: str = "exps",
         degree: Union[tuple[int, int], int] = None,
         **otherArgs: any,
     ) -> tuple[

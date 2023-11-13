@@ -352,6 +352,8 @@ class EntropyRandomizedAnalysis(AnalysisPrototype):
 
 
 class EntropyRandomizedExperiment(ExperimentPrototype):
+    """The instance for the experiment of :cls:`EntropyRandomizedMeasure`."""
+    
     __name__ = "qurrentRandomized.Experiment"
     shortName = "qurrent_haar.exp"
 
@@ -375,10 +377,11 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
 
     def analyze(
         self,
-        degree: Union[tuple[int, int], int],
+        degree: Union[tuple[int, int], int] = None,
         workers_num: Optional[int] = None,
-        pbar: Optional[tqdm.tqdm] = None,
         independent_all_system: bool = False,
+        backend: ExistingProcessBackendLabel = DEFAULT_PROCESS_BACKEND,
+        pbar: Optional[tqdm.tqdm] = None,
     ) -> EntropyRandomizedAnalysis:
         """Calculate entangled entropy with more information combined.
 
@@ -389,13 +392,21 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
                 if sets to 1, then disable to using multi-processing;
                 if not specified, then use the number of all cpu counts - 2 by `cpu_count() - 2`.
                 Defaults to None.
+            independent_all_system (bool, optional):
+                If True, then calculate the all system independently.
+            backend (ExistingProcessBackendLabel, optional):
+                Backend for the process. Defaults to DEFAULT_PROCESS_BACKEND.
+            pbar (Optional[tqdm.tqdm], optional): Progress bar. Defaults to None.
 
         Returns:
             dict[str, float]: A dictionary contains
                 purity, entropy, a list of each overlap, puritySD,
-                purity of all system, entropy of all system, a list of each overlap in all system, puritySD of all system,
+                purity of all system, entropy of all system,
+                a list of each overlap in all system, puritySD of all system,
                 degree, actual measure range, actual measure range in all system, bitstring range.
         """
+        if degree is None:
+            raise ValueError("degree should be specified.")
 
         self.args: EntropyRandomizedExperiment.arguments
         self.reports: dict[int, EntropyRandomizedAnalysis]
@@ -421,9 +432,10 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
                 counts=counts,
                 degree=degree,
                 measure=measure,
+                all_system_source=all_system_source,
+                backend=backend,
                 workers_num=workers_num,
                 pbar=pbar,
-                all_system_source=all_system_source,
             )
 
         else:
@@ -438,6 +450,8 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
                     counts=counts,
                     degree=degree,
                     measure=measure,
+                    all_system_source=all_system_source,
+                    backend=backend,
                     workers_num=workers_num,
                     pbar=pb_self,
                 )
@@ -457,9 +471,9 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
     @classmethod
     def quantities(
         cls,
-        shots: int,
-        counts: list[dict[str, int]],
-        degree: Optional[Union[tuple[int, int], int]],
+        shots: int = None,
+        counts: list[dict[str, int]] = None,
+        degree: Optional[Union[tuple[int, int], int]] = None,
         measure: Optional[tuple[int, int]] = None,
         all_system_source: Optional["EntropyRandomizedAnalysis"] = None,
         backend: ExistingProcessBackendLabel = DEFAULT_PROCESS_BACKEND,
@@ -524,6 +538,9 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
                 degree, actual measure range, actual measure range in all system, bitstring range.
         """
 
+        if shots is None or counts is None:
+            raise ValueError("shots and counts should be specified.")
+
         return randomized_entangled_entropy_complex(
             shots=shots,
             counts=counts,
@@ -580,14 +597,14 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
         """The container class responding to this QurryV5 class."""
         return EntropyRandomizedExperiment
 
-    def paramsControl(
+    def params_control(
         self,
-        expName: str = "exps",
         waveKey: Hashable = None,
+        expName: str = "exps",
         times: int = 100,
         measure: tuple[int, int] = None,
         unitary_loc: tuple[int, int] = None,
-        **otherArgs: any,
+        **otherArgs,
     ) -> tuple[
         EntropyRandomizedExperiment.arguments,
         EntropyRandomizedExperiment.commonparams,

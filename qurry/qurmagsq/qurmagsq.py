@@ -235,7 +235,7 @@ class MagnetSquare(QurryV5Prototype):
         """
         return MagnetSquareExperiment
     
-    def paramsControl(
+    def params_control(
         self,
         expName: str = 'exps',
         waveKey: Hashable = None,

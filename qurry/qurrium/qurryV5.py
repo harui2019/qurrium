@@ -7,7 +7,7 @@ Qurry - A Qiskit Macro
 import gc
 import inspect
 import warnings
-from abc import abstractmethod, abstractproperty
+from abc import abstractmethod, abstractproperty, ABC
 from typing import Literal, Union, Optional, Hashable, Type, Any, overload
 from pathlib import Path
 import tqdm
@@ -54,7 +54,7 @@ def defaultCircuit(num_qubit: int) -> QuantumCircuit:
 DefaultResourceWatch = ResoureWatch()
 
 
-class QurryV5Prototype:
+class QurryV5Prototype(ABC):
     """QurryV5
     A qiskit Macro.
     ~Create countless adventure, legacy and tales.~
@@ -240,15 +240,15 @@ class QurryV5Prototype:
         return self.waves.lastWaveKey
 
     @abstractmethod
-    def paramsControl(
-        self, *arg, **kwargs
+    def params_control(
+        self, waveKey: Hashable, **otherArgs
     ) -> tuple[
         ExperimentPrototype.arguments, ExperimentPrototype.commonparams, dict[str, Any]
     ]:
         """Control the experiment's parameters."""
         raise NotImplementedError
 
-    def _paramsControlMain(
+    def _params_control_core(
         self,
         wave: Union[QuantumCircuit, Hashable, None] = None,
         expID: Optional[str] = None,
@@ -369,7 +369,7 @@ class QurryV5Prototype:
         # Given parameters and default parameters
         if isinstance(_pbar, tqdm.tqdm):
             _pbar.set_description_str("Prepaing parameters...")
-        ctrlArgs, commons, outfields = self.paramsControl(
+        ctrlArgs, commons, outfields = self.params_control(
             waveKey=waveKey,
             expID=expID,
             shots=shots,
@@ -510,7 +510,7 @@ class QurryV5Prototype:
         if isinstance(_pbar, tqdm.tqdm):
             _pbar.set_description_str("Parameter loading...")
 
-        IDNow = self._paramsControlMain(**allArgs, _pbar=_pbar)
+        IDNow = self._params_control_core(**allArgs, _pbar=_pbar)
         assert IDNow in self.exps, f"ID {IDNow} not found."
         assert self.exps[IDNow].commons.expID == IDNow
         currentExp = self.exps[IDNow]
@@ -1622,10 +1622,10 @@ class QurryV5(QurryV5Prototype):
         """The container class responding to this QurryV5 class."""
         return QurryExperiment
 
-    def paramsControl(
+    def params_control(
         self,
-        expName: str = "exps",
         waveKey: Hashable = None,
+        expName: str = "exps",
         sampling: int = 1,
         **otherArgs: Any,
     ) -> tuple[QurryExperiment.arguments, QurryExperiment.commonparams, dict[str, Any]]:
