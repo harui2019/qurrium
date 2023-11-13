@@ -24,7 +24,7 @@ from .experiment import ExperimentPrototype
 from .utils.iocontrol import naming
 from ..tools.datetime import current_time, DatetimeDict
 from ..declare.multimanager import multicommonConfig
-from ..tools import qurryProgressBar, DEFAULT_POOL_SIZE
+from ..tools import qurry_progress_bar, DEFAULT_POOL_SIZE
 from ..capsule import quickJSON, quickRead
 from ..capsule.mori import TagList, GitSyncControl
 from ..exceptions import (
@@ -461,8 +461,8 @@ class MultiManager:
                 for qk in files["tagMapQuantity"].keys():
                     self.quantity_container.read(
                         key=qk,
-                        saveLocation=self.naming_complex.exportLocation,
-                        tagListName="tagMapQuantity",
+                        save_location=self.naming_complex.exportLocation,
+                        taglist_name="tagMapQuantity",
                         name=f"{self.naming_complex.expsName}.{qk}",
                     )
 
@@ -489,8 +489,8 @@ class MultiManager:
                 for qk in files["quantity"].keys():
                     self.quantity_container.read(
                         key=qk,
-                        saveLocation=self.naming_complex.exportLocation,
-                        tagListName="quantity",
+                        save_location=self.naming_complex.exportLocation,
+                        taglist_name="quantity",
                         name=f"{qk}",
                     )
             else:
@@ -583,8 +583,8 @@ class MultiManager:
             self.quantity_container = QuantityContainer()
             self.quantity_container.read(
                 key="oldreport",
-                saveLocation=self.naming_complex.exportLocation,
-                tagListName="tagMapQuantity",
+                save_location=self.naming_complex.exportLocation,
+                taglist_name="tagMapQuantity",
             )
 
         else:
@@ -661,7 +661,7 @@ class MultiManager:
                 + 'in "v7" format and remove "v5" format.'
             )
             self.write()
-            remove_v5_progress = qurryProgressBar(
+            remove_v5_progress = qurry_progress_bar(
                 old_files.items(),
                 bar_format="| {percentage:3.0f}%[{bar}] - remove v5 - {desc} - {elapsed}",
             )
@@ -774,7 +774,7 @@ class MultiManager:
             **self.Before.exporting_name(),
         }
 
-        export_progress = qurryProgressBar(
+        export_progress = qurry_progress_bar(
             self.Before._fields + self.After._fields,
             desc="exporting",
             bar_format="qurry-barless",
@@ -832,7 +832,7 @@ class MultiManager:
 
         # tagMapQuantity or quantity
         self.multicommons.files["quantity"] = self.quantity_container.write(
-            saveLocation=self.multicommons.exportLocation,
+            save_location=self.multicommons.exportLocation,
             filetype=self.multicommons.filetype,
             indent=indent,
             encoding=encoding,
@@ -969,7 +969,7 @@ class MultiManager:
         )
         self.quantity_container[name] = TagList()
 
-        all_counts_progress = qurryProgressBar(
+        all_counts_progress = qurry_progress_bar(
             self.afterwards.allCounts.keys(),
             bar_format=(
                 "| {n_fmt}/{total_fmt} - Analysis: {desc} - {elapsed} < {remaining}"

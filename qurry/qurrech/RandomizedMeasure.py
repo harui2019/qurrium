@@ -26,7 +26,7 @@ from ..qurrium.utils.randomized import (
     ensemble_cell,
 )
 from ..tools import (
-    qurryProgressBar,
+    qurry_progress_bar,
     ProcessManager,
     workers_distribution,
     DEFAULT_POOL_SIZE
@@ -490,7 +490,7 @@ class EchoRandomizedExperiment(ExperimentPrototype):
             )
 
         else:
-            pbar_selfhost = qurryProgressBar(
+            pbar_selfhost = qurry_progress_bar(
                 range(1),
                 bar_format='simple',
             )

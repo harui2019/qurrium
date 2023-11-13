@@ -59,8 +59,8 @@ def naming(
             The serial number. Defaults to 1.
 
     Raises:
-        TypeError: The :arg:`saveLocation` is not a 'str' or 'Path'.
-        FileNotFoundError: The :arg:`saveLocation` is not existed.
+        TypeError: The :arg:`save_location` is not a 'str' or 'Path'.
+        FileNotFoundError: The :arg:`save_location` is not existed.
         FileNotFoundError: Can not find the exportation data which will be readed.
 
     Returns:
@@ -71,7 +71,7 @@ def naming(
         save_location = Path(save_location)
     else:
         raise TypeError(
-            f"The saveLocation '{save_location}' is "
+            f"The save_location '{save_location}' is "
             + f"not the type of 'str' or 'Path' but '{type(save_location)}'."
         )
 
@@ -84,7 +84,7 @@ def naming(
             raise FileNotFoundError(
                 f"Such exportation data '{immutable_name}' or "
                 + f"'{tar_name}' not found at '{save_location}', "
-                + "'exportsName' may be wrong or not in this folder."
+                + "'exports name' may be wrong or not in this folder."
             )
         print(f"| Retrieve {immutable_name}...\n" + f"| at: {export_location}")
     elif without_serial:
@@ -105,7 +105,7 @@ def naming(
         #         pb.set_description_str(f"{exportLocation} is repeat location.")
         #         indexRename += 1
         #         immutableName = f"{expsName}.{str(indexRename).rjust(_rjustLen, '0')}"
-        #         exportLocation = saveLocation / immutableName
+        #         exportLocation = save_location / immutableName
         #     pb.set_description_str(
         #         f'Write "{immutableName}", at location "{exportLocation}"')
         #     os.makedirs(exportLocation)

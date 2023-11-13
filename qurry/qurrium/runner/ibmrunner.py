@@ -33,7 +33,7 @@ from .runner import Runner, retrieve_times_namer
 from ..multimanager import MultiManager
 from ..container import ExperimentContainer
 from ..utils import get_counts
-from ...tools import qurryProgressBar, current_time
+from ...tools import qurry_progress_bar, current_time
 
 
 class IBMRunner(Runner):
@@ -97,7 +97,7 @@ class IBMRunner(Runner):
             else:
                 ...
 
-        distributing_pending_progressbar = qurryProgressBar(
+        distributing_pending_progressbar = qurry_progress_bar(
             self.current_multimanager.beforewards.expsConfig,
             bar_format="| {n_fmt}/{total_fmt} - Preparing pending pool - {elapsed} < {remaining}",
             # leave=False,
@@ -135,7 +135,7 @@ class IBMRunner(Runner):
         current = current_time()
         self.current_multimanager.multicommons.datetimes["pending"] = current
 
-        pendingpool_progressbar = qurryProgressBar(
+        pendingpool_progressbar = qurry_progress_bar(
             self.current_multimanager.beforewards.pendingPools.items(),
             bar_format="| {n_fmt}/{total_fmt} - pending: {desc} - {elapsed} < {remaining}",
             # leave=False,
@@ -230,7 +230,7 @@ class IBMRunner(Runner):
         if QISKIT_IBMQ_PROVIDER:
             print("| Downgrade compatibility with qiskit-ibmq-provider is available.")
 
-        retrieve_progressbar = qurryProgressBar(
+        retrieve_progressbar = qurry_progress_bar(
             self.current_multimanager.beforewards.jobID,
             bar_format="| {n_fmt}/{total_fmt} - retrieve: {desc} - {elapsed} < {remaining}",
             # leave=False,
@@ -291,7 +291,7 @@ class IBMRunner(Runner):
                     )
                     pending_map[pk] = None
 
-        pendingpool_progressbar = qurryProgressBar(
+        pendingpool_progressbar = qurry_progress_bar(
             self.current_multimanager.beforewards.pendingPools.items(),
             bar_format=(
                 "| {n_fmt}/{total_fmt} - get counts: {desc} - {elapsed} < {remaining}"
@@ -337,7 +337,7 @@ class IBMRunner(Runner):
             else:
                 warnings.warn(f"Pending pool '{pk}' is empty.")
 
-        distributing_progressbar = qurryProgressBar(
+        distributing_progressbar = qurry_progress_bar(
             self.current_multimanager.beforewards.circuitsMap.items(),
             bar_format=(
                 "| {n_fmt}/{total_fmt} - Distributing {desc} - {elapsed} < {remaining}"

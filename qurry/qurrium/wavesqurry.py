@@ -15,7 +15,7 @@ from ..qurrium import (
 )
 from ..exceptions import QurryExperimentCountsNotCompleted
 from ..tools import (
-    qurryProgressBar,
+    qurry_progress_bar,
     ProcessManager,
     workers_distribution,
     DEFAULT_POOL_SIZE,

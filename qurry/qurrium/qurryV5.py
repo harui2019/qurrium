@@ -17,7 +17,7 @@ from qiskit.quantum_info import Operator
 from qiskit.providers import Backend
 from qiskit.circuit import Gate
 
-from ..tools import ResoureWatch, qurryProgressBar, ProcessManager
+from ..tools import ResoureWatch, qurry_progress_bar, ProcessManager
 from ..capsule.mori import TagList
 from ..tools.backend import GeneralAerSimulator
 from ..tools.datetime import current_time, DatetimeDict
@@ -1010,7 +1010,7 @@ class QurryV5Prototype(ABC):
         )
         currentMultimanager = self.multimanagers[besummonned]
         assert currentMultimanager.summonerID == besummonned
-        initedConfigListProgress = qurryProgressBar(initedConfigList)
+        initedConfigListProgress = qurry_progress_bar(initedConfigList)
 
         initedConfigListProgress.set_description_str("MultiManager building...")
         for config in initedConfigListProgress:
@@ -1122,7 +1122,7 @@ class QurryV5Prototype(ABC):
         assert currentMultimanager.summonerID == besummonned
         circSerial = []
 
-        experimentProgress = qurryProgressBar(
+        experimentProgress = qurry_progress_bar(
             currentMultimanager.beforewards.expsConfig
         )
 
