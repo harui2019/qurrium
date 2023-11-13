@@ -353,14 +353,14 @@ class EntropyRandomizedAnalysis(AnalysisPrototype):
 
 class EntropyRandomizedExperiment(ExperimentPrototype):
     """The instance for the experiment of :cls:`EntropyRandomizedMeasure`."""
-    
+
     __name__ = "qurrentRandomized.Experiment"
     shortName = "qurrent_haar.exp"
 
     tqdm_handleable = True
     """The handleable of tqdm."""
 
-    class arguments(NamedTuple):
+    class Arguments(NamedTuple):
         """Arguments for the experiment."""
 
         expName: str = "exps"
@@ -408,7 +408,7 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
         if degree is None:
             raise ValueError("degree should be specified.")
 
-        self.args: EntropyRandomizedExperiment.arguments
+        self.args: EntropyRandomizedExperiment.Arguments
         self.reports: dict[int, EntropyRandomizedAnalysis]
         shots = self.commons.shots
         measure = self.args.measure
@@ -606,8 +606,8 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
         unitary_loc: tuple[int, int] = None,
         **otherArgs,
     ) -> tuple[
-        EntropyRandomizedExperiment.arguments,
-        EntropyRandomizedExperiment.commonparams,
+        EntropyRandomizedExperiment.Arguments,
+        EntropyRandomizedExperiment.Commonparams,
         dict[str, Any],
     ]:
         """Handling all arguments and initializing a single experiment.
@@ -671,8 +671,8 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
         assert expID in self.exps
         assert self.exps[expID].commons.expID == expID
         current_exp = self.exps[expID]
-        args: EntropyRandomizedExperiment.arguments = self.exps[expID].args
-        commons: EntropyRandomizedExperiment.commonparams = self.exps[expID].commons
+        args: EntropyRandomizedExperiment.Arguments = self.exps[expID].args
+        commons: EntropyRandomizedExperiment.Commonparams = self.exps[expID].commons
         circuit = self.waves[commons.waveKey]
         _num_qubits = circuit.num_qubits
 
@@ -753,12 +753,12 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
 
     def measure(
         self,
-        wave: Union[QuantumCircuit, any, None] = None,
+        wave: Union[QuantumCircuit, any],
         times: int = 100,
         measure: Union[int, tuple[int, int], None] = None,
         unitary_loc: Union[int, tuple[int, int], None] = None,
         expName: str = "exps",
-        /,
+        *,
         saveLocation: Optional[Union[Path, str]] = None,
         mode: str = "w+",
         indent: int = 2,

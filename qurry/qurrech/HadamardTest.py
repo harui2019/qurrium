@@ -99,7 +99,7 @@ class EchoHadamardExperiment(ExperimentPrototype):
     __name__ = "qurrechHadamard.Experiment"
     shortName = "qurrech_hadamard.exp"
 
-    class arguments(NamedTuple):
+    class Arguments(NamedTuple):
         """Arguments for the experiment."""
 
         expName: str = "exps"
@@ -167,8 +167,8 @@ class EchoHadamardTest(QurryV5Prototype):
         degree: Union[tuple[int, int], int] = None,
         **otherArgs: any,
     ) -> tuple[
-        EchoHadamardExperiment.arguments,
-        EchoHadamardExperiment.commonparams,
+        EchoHadamardExperiment.Arguments,
+        EchoHadamardExperiment.Commonparams,
         dict[str, Any],
     ]:
         """Handling all arguments and initializing a single experiment.
@@ -245,8 +245,8 @@ class EchoHadamardTest(QurryV5Prototype):
     ) -> list[QuantumCircuit]:
         assert expID in self.exps
         assert self.exps[expID].commons.expID == expID
-        args: EchoHadamardExperiment.arguments = self.exps[expID].args
-        commons: EchoHadamardExperiment.commonparams = self.exps[expID].commons
+        args: EchoHadamardExperiment.Arguments = self.exps[expID].args
+        commons: EchoHadamardExperiment.Commonparams = self.exps[expID].commons
         circuit = self.waves[commons.waveKey]
         numQubits = circuit.num_qubits
 

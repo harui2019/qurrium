@@ -429,7 +429,7 @@ class EchoRandomizedExperiment(ExperimentPrototype):
     __name__ = 'qurrechRandomized.Experiment'
     shortName = 'qurrech_haar.exp'
 
-    class arguments(NamedTuple):
+    class Arguments(NamedTuple):
         """Arguments for the experiment."""
         expName: str = 'exps'
         waveKey2: Hashable = None
@@ -473,7 +473,7 @@ class EchoRandomizedExperiment(ExperimentPrototype):
             raise ValueError(
                 "degree must be specified, but get None.")
 
-        self.args: EchoRandomizedExperiment.arguments
+        self.args: EchoRandomizedExperiment.Arguments
         shots = self.commons.shots
         measure = self.args.measure
         unitary_loc = self.args.unitary_loc
@@ -590,7 +590,7 @@ class EchoRandomizedListen(QurryV5Prototype):
         measure: tuple[int, int] = None,
         unitary_loc: tuple[int, int] = None,
         **otherArgs: any
-    ) -> tuple[EchoRandomizedExperiment.arguments, EchoRandomizedExperiment.commonparams, dict[str, Any]]:
+    ) -> tuple[EchoRandomizedExperiment.Arguments, EchoRandomizedExperiment.Commonparams, dict[str, Any]]:
         """Handling all arguments and initializing a single experiment.
 
         Args:
@@ -676,8 +676,8 @@ class EchoRandomizedListen(QurryV5Prototype):
         assert expID in self.exps
         assert self.exps[expID].commons.expID == expID
         currentExp = self.exps[expID]
-        args: EchoRandomizedExperiment.arguments = self.exps[expID].args
-        commons: EchoRandomizedExperiment.commonparams = self.exps[expID].commons
+        args: EchoRandomizedExperiment.Arguments = self.exps[expID].args
+        commons: EchoRandomizedExperiment.Commonparams = self.exps[expID].commons
         circuit = self.waves[commons.waveKey]
         circuit2 = self.waves[args.waveKey2]
 

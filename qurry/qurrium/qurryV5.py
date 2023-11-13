@@ -243,7 +243,7 @@ class QurryV5Prototype(ABC):
     def params_control(
         self, waveKey: Hashable, **otherArgs
     ) -> tuple[
-        ExperimentPrototype.arguments, ExperimentPrototype.commonparams, dict[str, Any]
+        ExperimentPrototype.Arguments, ExperimentPrototype.Commonparams, dict[str, Any]
     ]:
         """Control the experiment's parameters."""
         raise NotImplementedError
@@ -363,8 +363,8 @@ class QurryV5Prototype(ABC):
                 f"'{wave}' is a '{type(wave)}' instead of 'QuantumCircuit' or 'Hashable'"
             )
 
-        ctrlArgs: ExperimentPrototype.arguments
-        commons: ExperimentPrototype.commonparams
+        ctrlArgs: ExperimentPrototype.Arguments
+        commons: ExperimentPrototype.Commonparams
         outfields: dict[str, Any]
         # Given parameters and default parameters
         if isinstance(_pbar, tqdm.tqdm):
@@ -1628,7 +1628,7 @@ class QurryV5(QurryV5Prototype):
         expName: str = "exps",
         sampling: int = 1,
         **otherArgs: Any,
-    ) -> tuple[QurryExperiment.arguments, QurryExperiment.commonparams, dict[str, Any]]:
+    ) -> tuple[QurryExperiment.Arguments, QurryExperiment.Commonparams, dict[str, Any]]:
         """Handling all arguments and initializing a single experiment.
 
         Args:
@@ -1670,8 +1670,8 @@ class QurryV5(QurryV5Prototype):
         assert expID in self.exps
         assert self.exps[expID].commons.expID == expID
         currentExp = self.exps[expID]
-        args: QurryExperiment.arguments = self.exps[expID].args
-        commons: QurryExperiment.commonparams = self.exps[expID].commons
+        args: QurryExperiment.Arguments = self.exps[expID].args
+        commons: QurryExperiment.Commonparams = self.exps[expID].commons
         circuit = self.waves[commons.waveKey]
         numQubits = circuit.num_qubits
 

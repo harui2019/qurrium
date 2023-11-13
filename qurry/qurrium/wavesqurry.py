@@ -14,17 +14,23 @@ from ..qurrium import (
     AnalysisPrototype,
 )
 from ..exceptions import QurryExperimentCountsNotCompleted
-from ..tools import qurryProgressBar, ProcessManager, workers_distribution, DEFAULT_POOL_SIZE
+from ..tools import (
+    qurryProgressBar,
+    ProcessManager,
+    workers_distribution,
+    DEFAULT_POOL_SIZE,
+)
 
 
 class WavesQurryAnalysis(AnalysisPrototype):
-
-    __name__ = 'WavesQurryAnalysis'
+    __name__ = "WavesQurryAnalysis"
 
     class AnalysisInput(NamedTuple):
         """To set the analysis."""
+
         ultimate_question: str
         """ULtImAte QueStIoN."""
+
     class AnalysisContent(NamedTuple):
         utlmatic_answer: int
         """~The Answer to the Ultimate Question of Life, The Universe, and Everything.~"""
@@ -34,16 +40,17 @@ class WavesQurryAnalysis(AnalysisPrototype):
     @property
     def default_side_product_fields(self) -> Iterable[str]:
         """The fields that will be stored as side product."""
-        return ['dummy']
+        return ["dummy"]
 
 
 class WavesQurryExperiment(ExperimentPrototype):
+    __name__ = "WavesQurryExperiment"
 
-    __name__ = 'WavesQurryExperiment'
+    class Arguments(NamedTuple):
+        """Construct the experiment's parameters for specific options,
+        which is overwritable by the inherition class."""
 
-    class arguments(NamedTuple):
-        """Construct the experiment's parameters for specific options, which is overwritable by the inherition class."""
-        expName: str = 'exps'
+        expName: str = "exps"
         waves: Iterable[Hashable] = []
 
     @classmethod
@@ -52,11 +59,13 @@ class WavesQurryExperiment(ExperimentPrototype):
         return WavesQurryAnalysis
 
     @classmethod
-    def quantities(cls,
-                   shots: int,
-                   counts: list[dict[str, int]],
-                   ultimate_question: str = '',
-                   **otherArgs) -> dict[str, float]:
+    def quantities(
+        cls,
+        shots: int,
+        counts: list[dict[str, int]],
+        ultimate_question: str = "",
+        **otherArgs,
+    ) -> dict[str, float]:
         """Computing specific squantity.
         Where should be overwritten by each construction of new measurement.
 
@@ -65,16 +74,15 @@ class WavesQurryExperiment(ExperimentPrototype):
         """
 
         dummy = -100
-        utlmatic_answer = 42,
+        utlmatic_answer = (42,)
         return {
-            'dummy': dummy,
-            'utlmatic_answer': utlmatic_answer,
+            "dummy": dummy,
+            "utlmatic_answer": utlmatic_answer,
         }
 
-    def analyze(self,
-                ultimate_question: str = '',
-                shots: Optional[int] = None,
-                **otherArgs):
+    def analyze(
+        self, ultimate_question: str = "", shots: Optional[int] = None, **otherArgs
+    ):
         """Analysis of the experiment.
         Where should be overwritten by each construction of new measurement.
         """
@@ -104,21 +112,23 @@ class WavesQurryExperiment(ExperimentPrototype):
 
 
 class WavesExecuter(QurryV5Prototype):
-
     @classmethod
     @property
     def experiment(cls) -> Type[WavesQurryExperiment]:
-        """The container class responding to this QurryV5 class.
-        """
+        """The container class responding to this QurryV5 class."""
         return WavesQurryExperiment
 
     def params_control(
         self,
         waveKey: Hashable = None,
-        expName: str = 'exps',
+        expName: str = "exps",
         waves: Iterable[Hashable] = [],
-        **otherArgs: Any
-    ) -> tuple[WavesQurryExperiment.arguments, WavesQurryExperiment.commonparams, dict[str, Any]]:
+        **otherArgs: Any,
+    ) -> tuple[
+        WavesQurryExperiment.Arguments,
+        WavesQurryExperiment.Commonparams,
+        dict[str, Any],
+    ]:
         """Handling all arguments and initializing a single experiment.
 
         Args:
@@ -142,14 +152,14 @@ class WavesExecuter(QurryV5Prototype):
 
         for w in waves:
             if not self.has(w):
-                raise ValueError(
-                    f"| The wave '{w}' is not in `.waves`.")
+                raise ValueError(f"| The wave '{w}' is not in `.waves`.")
 
         if len(waves) > 0:
             waveKey = None
         else:
             raise ValueError(
-                f"| This is Qurry required multiple waves gvien in `waves` to be measured.")
+                f"| This is Qurry required multiple waves gvien in `waves` to be measured."
+            )
 
         return self.experiment.filter(
             expName=expName,
@@ -163,32 +173,30 @@ class WavesExecuter(QurryV5Prototype):
         expID: Hashable,
         _pbar: Optional[tqdm.tqdm] = None,
     ) -> list[QuantumCircuit]:
-
         assert expID in self.exps
         assert self.exps[expID].commons.expID == expID
         currentExp = self.exps[expID]
-        args: WavesQurryExperiment.arguments = self.exps[expID].args
-        commons: WavesQurryExperiment.commonparams = self.exps[expID].commons
+        args: WavesQurryExperiment.Arguments = self.exps[expID].args
+        commons: WavesQurryExperiment.Commonparams = self.exps[expID].commons
 
         if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str(
-                f"Loading specified {len(args.waves)} circuits.")
+            _pbar.set_description_str(f"Loading specified {len(args.waves)} circuits.")
         circs = [self.waves[c].copy() for c in args.waves]
-        currentExp['expName'] = f"{args.expName}-with{len(circs)}circs"
+        currentExp["expName"] = f"{args.expName}-with{len(circs)}circs"
 
         return circs
 
     def measure(
         self,
         waves: Iterable[Hashable] = [],
-        expName: str = 'exps',
+        expName: str = "exps",
         *args,
         saveLocation: Optional[Union[Path, str]] = None,
-        mode: str = 'w+',
+        mode: str = "w+",
         indent: int = 2,
-        encoding: str = 'utf-8',
+        encoding: str = "utf-8",
         jsonablize: bool = False,
-        **otherArgs: Any
+        **otherArgs: Any,
     ):
         """The main function to measure the wave function,
         which is the :meth:`result` with dedicated arguments.

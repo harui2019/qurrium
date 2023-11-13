@@ -82,7 +82,7 @@ class EntropyHadamardExperiment(ExperimentPrototype):
     __name__ = "qurrentHadamard.Experiment"
     shortName = "qurrent_hadamard.exp"
 
-    class arguments(NamedTuple):
+    class Arguments(NamedTuple):
         """Arguments for the experiment."""
 
         expName: str = "exps"
@@ -158,8 +158,8 @@ class EntropyHadamardTest(QurryV5Prototype):
         degree: Union[tuple[int, int], int] = None,
         **otherArgs: any,
     ) -> tuple[
-        EntropyHadamardExperiment.arguments,
-        EntropyHadamardExperiment.commonparams,
+        EntropyHadamardExperiment.Arguments,
+        EntropyHadamardExperiment.Commonparams,
         dict[str, Any],
     ]:
         """Handling all arguments and initializing a single experiment.
@@ -216,8 +216,8 @@ class EntropyHadamardTest(QurryV5Prototype):
 
         assert expID in self.exps
         assert self.exps[expID].commons.expID == expID
-        args: EntropyHadamardExperiment.arguments = self.exps[expID].args
-        commons: EntropyHadamardExperiment.commonparams = self.exps[expID].commons
+        args: EntropyHadamardExperiment.Arguments = self.exps[expID].args
+        commons: EntropyHadamardExperiment.Commonparams = self.exps[expID].commons
         circuit = self.waves[commons.waveKey]
         numQubits = circuit.num_qubits
 
