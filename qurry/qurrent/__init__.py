@@ -1,9 +1,17 @@
+"""
+================================================================
+Qurrent - Second Renyi Entropy Measurement
+(:mod:`qurry.qurrent`)
+================================================================
+
+"""
 from typing import Literal, Union, overload
 
-from .RandomizedMeasure import EntropyRandomizedMeasure
+from .randomized_measure import EntropyRandomizedMeasure
 from .hadamard_test import EntropyHadamardTest
 
 
+# pylint: disable=invalid-name
 @overload
 def EntropyMeasure(*args, method: Literal["hadamard"], **kwargs) -> EntropyHadamardTest:
     ...
@@ -39,3 +47,6 @@ def EntropyMeasure(
     if method == "hadamard":
         return EntropyHadamardTest(*args, **kwargs)
     return EntropyRandomizedMeasure(*args, **kwargs)
+
+
+# pylint: enable=invalid-name

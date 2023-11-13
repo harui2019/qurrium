@@ -7,6 +7,7 @@ Second Renyi Entropy - Hadamard Test
 """
 from pathlib import Path
 from typing import Union, Optional, NamedTuple, Hashable, Iterable, Type, Any
+import tqdm
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 
@@ -20,6 +21,8 @@ from .postprocess import hadamard_entangled_entropy
 
 
 class EntropyHadamardAnalysis(AnalysisPrototype):
+    """The instance for the analysis of :cls:`EntropyHadamardExperiment`."""
+
     __name__ = "qurrentHadamard.Analysis"
     shortName = "qurrent_hadamard.report"
 
@@ -53,22 +56,10 @@ class EntropyHadamardAnalysis(AnalysisPrototype):
         Args:
             shots (int): Shots of the experiment on quantum machine.
             counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
-            degree (Union[tuple[int, int], int]): Degree of the subsystem.
-            measure (tuple[int, int], optional):
-                Measuring range on quantum circuits. Defaults to None.
-            workers_num (Optional[int], optional):
-                Number of multi-processing workers,
-                if sets to 1, then disable to using multi-processing;
-                if not specified, the use 3/4 of cpu counts by `round(cpu_count*3/4)`.
-                Defaults to None.
 
         Returns:
             dict[str, float]: A dictionary contains
-                purity, entropy, a list of each overlap, puritySD,
-                purity of all system, entropy of all system,
-                a list of each overlap in all system, puritySD of all system,
-                degree, actual measure range,
-                actual measure range in all system, bitstring range.
+                purity, entropy.
         """
 
         result = hadamard_entangled_entropy(
@@ -79,6 +70,8 @@ class EntropyHadamardAnalysis(AnalysisPrototype):
 
 
 class EntropyHadamardExperiment(ExperimentPrototype):
+    """Hadamard test for entanglement entropy."""
+
     __name__ = "qurrentHadamard.Experiment"
     shortName = "qurrent_hadamard.exp"
 
@@ -117,7 +110,7 @@ class EntropyHadamardExperiment(ExperimentPrototype):
         shots = self.commons.shots
         counts = self.afterwards.counts
 
-        qs = self.analysis_container.quantities(
+        qs = self.quantities(
             shots=shots,
             counts=counts,
         )
@@ -131,6 +124,31 @@ class EntropyHadamardExperiment(ExperimentPrototype):
 
         self.reports[serial] = analysis
         return analysis
+
+    @classmethod
+    def quantities(
+        cls,
+        shots: int = None,
+        counts: list[dict[str, int]] = None,
+    ) -> dict[str, float]:
+        """Calculate entangled entropy with more information combined.
+
+        Args:
+            shots (int): Shots of the experiment on quantum machine.
+            counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
+
+        Returns:
+            dict[str, float]: A dictionary contains
+                purity, entropy.
+        """
+
+        if shots is None or counts is None:
+            raise ValueError("shots and counts should be specified.")
+
+        return hadamard_entangled_entropy(
+            shots=shots,
+            counts=counts,
+        )
 
 
 class EntropyHadamardTest(QurryV5Prototype):
@@ -186,8 +204,8 @@ class EntropyHadamardTest(QurryV5Prototype):
         """
 
         # measure and unitary location
-        numQubits = self.waves[waveKey].num_qubits
-        degree = qubit_selector(numQubits, degree=degree)
+        num_qubits = self.waves[waveKey].num_qubits
+        degree = qubit_selector(num_qubits, degree=degree)
 
         if isinstance(waveKey, (list, tuple)):
             waveKey = "-".join([str(i) for i in waveKey])
@@ -203,7 +221,8 @@ class EntropyHadamardTest(QurryV5Prototype):
 
     def method(
         self,
-        expID: str,
+        expID: Hashable,
+        _pbar: Optional[tqdm.tqdm] = None,
     ) -> list[QuantumCircuit]:
         """Returns a list of quantum circuits.
 
@@ -219,43 +238,43 @@ class EntropyHadamardTest(QurryV5Prototype):
         args: EntropyHadamardExperiment.Arguments = self.exps[expID].args
         commons: EntropyHadamardExperiment.Commonparams = self.exps[expID].commons
         circuit = self.waves[commons.waveKey]
-        numQubits = circuit.num_qubits
+        num_qubits = circuit.num_qubits
 
-        qAnc = QuantumRegister(1, "ancilla")
-        qFunc1 = QuantumRegister(numQubits, "q1")
-        qFunc2 = QuantumRegister(numQubits, "q2")
-        cMeas1 = ClassicalRegister(1, "c1")
-        qcExp1 = QuantumCircuit(qAnc, qFunc1, qFunc2, cMeas1)
+        q_ancilla = QuantumRegister(1, "ancilla")
+        q_func1 = QuantumRegister(num_qubits, "q1")
+        q_func2 = QuantumRegister(num_qubits, "q2")
+        c_meas1 = ClassicalRegister(1, "c1")
+        qc_exp1 = QuantumCircuit(q_ancilla, q_func1, q_func2, c_meas1)
 
-        qcExp1.append(
+        qc_exp1.append(
             self.waves.call(
                 wave=commons.waveKey,
             ),
-            [qFunc1[i] for i in range(numQubits)],
+            [q_func1[i] for i in range(num_qubits)],
         )
 
-        qcExp1.append(
+        qc_exp1.append(
             self.waves.call(
                 wave=commons.waveKey,
             ),
-            [qFunc2[i] for i in range(numQubits)],
+            [q_func2[i] for i in range(num_qubits)],
         )
 
-        qcExp1.barrier()
-        qcExp1.h(qAnc)
+        qc_exp1.barrier()
+        qc_exp1.h(q_ancilla)
         for i in range(*args.degree):
-            qcExp1.cswap(qAnc[0], qFunc1[i], qFunc2[i])
-        qcExp1.h(qAnc)
-        qcExp1.measure(qAnc, cMeas1)
+            qc_exp1.cswap(q_ancilla[0], q_func1[i], q_func2[i])
+        qc_exp1.h(q_ancilla)
+        qc_exp1.measure(q_ancilla, c_meas1)
 
-        return [qcExp1]
+        return [qc_exp1]
 
     def measure(
         self,
         wave: Union[QuantumCircuit, any, None] = None,
         degree: Union[int, tuple[int, int], None] = None,
         expName: str = "exps",
-        *args,
+        *,
         saveLocation: Optional[Union[Path, str]] = None,
         mode: str = "w+",
         indent: int = 2,
@@ -286,19 +305,19 @@ class EntropyHadamardTest(QurryV5Prototype):
             dict: The output.
         """
 
-        IDNow = self.result(
+        id_now = self.result(
             wave=wave,
             expName=expName,
             degree=degree,
             saveLocation=None,
             **otherArgs,
         )
-        assert IDNow in self.exps, f"ID {IDNow} not found."
-        assert self.exps[IDNow].commons.expID == IDNow
-        currentExp = self.exps[IDNow]
+        assert id_now in self.exps, f"ID {id_now} not found."
+        assert self.exps[id_now].commons.expID == id_now
+        current_exp = self.exps[id_now]
 
         if isinstance(saveLocation, (Path, str)):
-            currentExp.write(
+            current_exp.write(
                 saveLocation=saveLocation,
                 mode=mode,
                 indent=indent,
@@ -306,4 +325,4 @@ class EntropyHadamardTest(QurryV5Prototype):
                 jsonable=jsonablize,
             )
 
-        return IDNow
+        return id_now

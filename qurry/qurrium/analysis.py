@@ -16,7 +16,7 @@ from ..tools.datetime import current_time
 
 
 class AnalysisPrototype:
-    """The container for the analysis of :cls:`QurryExperiment`."""
+    """The instance for the analysis of :cls:`QurryExperiment`."""
 
     __name__ = "AnalysisPrototype"
 
