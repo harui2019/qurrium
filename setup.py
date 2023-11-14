@@ -87,7 +87,7 @@ setup(
 
     packages=find_packages(
         include=['qurry*', 'qurry.capsule*'],
-        exclude=['cmake', 'symengine'],
+        exclude=['cmake', 'symengine', 'tests'],
     ),
     include_package_data=True,
     ext_modules=re_cythonize(

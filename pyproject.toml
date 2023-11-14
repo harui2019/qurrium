@@ -12,30 +12,34 @@ dynamic = ["version", "readme", "dependencies", "classifiers"]
 
 [tool.setuptools.packages.find]
 include = ['qurry*', 'qurry.capsule*']
-exclude = ['cmake', 'symengine']
+exclude = ['cmake', 'symengine', 'tests']
 
 [tool.cibuildwheel]
 skip = [
     "*-musllinux_i686", # rust tier 2 support
     "pp*",              # Qiskit and Qurry are not pure python packages, See https://github.com/harui2019/qurry/issues/93#issuecomment-1801837481
     "cp312-*",          # Check issue https://github.com/harui2019/qurry/issues/95 for details
+    "cp38-*",          # Check issue https://github.com/harui2019/qurry/issues/95 for details
     # "*-musllinux_*",    # scipy dependency issue, Check issue https://github.com/harui2019/qurry/issues/93 for details
+    "*-manylinux_i686", # scipy dependency issue, Check issue
 ]
 build = [
-    "cp39-*",
+    "*-musllinux_*"
 ]
 before-all = [
     'python -c "print(\"=\"*70)"',
     'python -c "print(\"### Building \".ljust(70, \".\"))"',
     'python -c "print(\"=\"*70)"',
+    "pip install auditwheel-symbols",
 ]
 before-test = [
     'python -c "print(\"=\"*70)"',
     'python -c "print(\"### Testing \".ljust(70, \".\"))"',
     'python -c "print(\"=\"*70)"',
     "pip install pytest",
+    "cd {project} && python setup.py install && cd ..",
 ]
-test-command = ["pytest {project}"]
+test-command = ["pytest {project}/tests"]
 
 [tool.cibuildwheel.linux]
 environment = { PATH = "$HOME/.cargo/bin:$PATH" }
@@ -51,13 +55,13 @@ before-test = [
     # Solution for scipy dependency issue
     # Check https://github.com/harui2019/qurry/issues/95 for details
     # https://github.com/scipy/scipy/issues/16308#issuecomment-1560669084
-    "git clone https://github.com/xianyi/OpenBLAS.git",
-    "cd OpenBLAS",
-    "make -j8",
-    "make PREFIX=/usr/local/OpenBLAS install",
-    "export PKG_CONFIG_PATH=/usr/local/OpenBLAS/lib/pkgconfig",
-    "cd ..",
-    "rm -rf OpenBLAS",
+    # "git clone https://github.com/xianyi/OpenBLAS.git",
+    # "cd OpenBLAS",
+    # "make -j8",
+    # "make PREFIX=/usr/local/OpenBLAS install",
+    # "export PKG_CONFIG_PATH=/usr/local/OpenBLAS/lib/pkgconfig",
+    # "cd ..",
+    # "rm -rf OpenBLAS",
     # end of solution
     "pip install scipy",
     "pip install pytest",
