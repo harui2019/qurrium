@@ -227,12 +227,24 @@ class AnalysisPrototype:
 
     @classmethod
     def read(cls, main: dict[str, Any], side: dict[str, Any]) -> "AnalysisPrototype":
-        """Read the analysis from main and side product dict."""
+        """Read the analysis from main and side product dict.
+
+        Args:
+            main (dict[str, Any]): The main product dict.
+            side (dict[str, Any]): The side product dict.
+
+        Returns:
+            AnalysisPrototype: The analysis instance.
+        """
+        lost_key = []
         for k in ("input", "header") + cls.AnalysisContent._fields:
-            if k in main or k in side:
-                ...
-            else:
-                warnings.warn(f"Analysis main product must contain '{k}' key.")
+            if not (k in main or k in side):
+                lost_key.append(k)
+
+        if len(lost_key) > 0:
+            print(
+                f"| Analysis main product may lost the following keys: {lost_key}."
+            )
 
         content = {k: v for k, v in main.items() if k not in ("input", "header")}
         instance = cls(**main["header"], **main["input"], **content, **side)
