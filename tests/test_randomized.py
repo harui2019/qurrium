@@ -6,11 +6,12 @@ Test the qurry.boorust module.
 """
 from typing import Union
 import os
+import warnings
 import pytest
 import numpy as np
 
 from qurry.capsule import quickRead
-
+from qurry.exceptions import QurryRustUnavailableWarning
 # pylint: disable=import-error, no-name-in-module
 # from qurry.boorust.randomized import (  # type: ignore
 #     ensemble_cell_rust,
@@ -26,10 +27,21 @@ from qurry.capsule import quickRead
 # pylint: enable=import-error, no-name-in-module
 
 from qurry.qurrium.utils.randomized import (
+    RUST_AVAILABLE as rust_available_randomized,
     ensemble_cell as ensemble_cell_py,
     ensemble_cell_cy,
-    ensemble_cell_rust,
 )
+if rust_available_randomized:
+    from qurry.qurrium.utils.randomized import ensemble_cell_rust
+else:
+    def ensemble_cell_rust(*args, **kwargs):
+        """Dummy function."""
+        warnings.warn(
+            "Rust is not available, ensemble_cell_rust is a dummy function.",
+            category=QurryRustUnavailableWarning
+        )
+        return ensemble_cell_py(*args, **kwargs)
+
 from qurry.qurrent.postprocess import entangled_entropy_core
 
 test_setup_ensemble = [
@@ -46,12 +58,13 @@ def test_ensemble_cell_rust(test_items):
     ensemble_cell_cy_result = ensemble_cell_cy(*test_items)
     ensemble_cell_py_result = ensemble_cell_py(*test_items)
 
-    assert (
-        np.abs(ensemble_cell_rust_result - ensemble_cell_cy_result) < 1e-10
-    ), "Rust and Cython results are not equal in ensemble_cell."
-    assert (
-        np.abs(ensemble_cell_rust_result - ensemble_cell_py_result) < 1e-10
-    ), "Rust and Python results are not equal in ensemble_cell."
+    if rust_available_randomized:
+        assert (
+            np.abs(ensemble_cell_rust_result - ensemble_cell_cy_result) < 1e-10
+        ), "Rust and Cython results are not equal in ensemble_cell."
+        assert (
+            np.abs(ensemble_cell_rust_result - ensemble_cell_py_result) < 1e-10
+        ), "Rust and Python results are not equal in ensemble_cell."
     assert (
         np.abs(ensemble_cell_cy_result - ensemble_cell_py_result) < 1e-10
     ), "Cython and Python results are not equal in ensemble_cell."
@@ -90,15 +103,16 @@ def test_entangled_entropy_core(
     cy = entangled_entropy_core(*test_items, backend="Cython")
     py = entangled_entropy_core(*test_items, backend="Python")
 
-    assert (
-        np.abs(np.average(list(rust[0].values())) - np.average(list(cy[0].values())))
-        < 1e-10
-    ), "Rust and Cython results are not equal in entangled_entropy_core."
+    if rust_available_randomized:
+        assert (
+            np.abs(np.average(list(rust[0].values())) - np.average(list(cy[0].values())))
+            < 1e-10
+        ), "Rust and Cython results are not equal in entangled_entropy_core."
 
-    assert (
-        np.abs(np.average(list(rust[0].values())) - np.average(list(py[0].values())))
-        < 1e-10
-    ), "Rust and Python results are not equal in entangled_entropy_core."
+        assert (
+            np.abs(np.average(list(rust[0].values())) - np.average(list(py[0].values())))
+            < 1e-10
+        ), "Rust and Python results are not equal in entangled_entropy_core."
 
     assert (
         np.abs(np.average(list(cy[0].values())) - np.average(list(py[0].values())))
