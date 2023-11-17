@@ -5,8 +5,8 @@ Test the qurry.boorust module.
 
 """
 from typing import Union
-import pytest
 import warnings
+import pytest
 
 # pylint: disable=import-error, no-name-in-module
 # from qurry.boorust.construct import (  # type: ignore
@@ -17,32 +17,35 @@ from qurry.exceptions import QurryRustUnavailableWarning
 from qurry.qurrium.utils.randomized import (
     RUST_AVAILABLE as rust_available_randomized,
     cycling_slice as cycling_slice_py,
-    cycling_slice_rust,
     cycling_slice_cy,
 )
-if rust_available_randomized:
-    from qurry.qurrium.utils.randomized import cycling_slice_rust
-else:
-    def cycling_slice_rust(*args, **kwargs):
-        """Dummy function."""
-        warnings.warn(
-            "Rust is not available, cycling_slice_rust is a dummy function.",
-            category=QurryRustUnavailableWarning
-        )
-        return cycling_slice_py(*args, **kwargs)
-
 from qurry.qurrium.utils.construct import (
     RUST_AVAILABLE as rust_available_construct,
     qubit_selector as qubit_selector_py,
 )
+
+if rust_available_randomized:
+    from qurry.qurrium.utils.randomized import cycling_slice_rust
+else:
+
+    def cycling_slice_rust(*args, **kwargs):
+        """Dummy function."""
+        warnings.warn(
+            "Rust is not available, cycling_slice_rust is a dummy function.",
+            category=QurryRustUnavailableWarning,
+        )
+        return cycling_slice_py(*args, **kwargs)
+
+
 if rust_available_construct:
     from qurry.qurrium.utils.construct import qubit_selector_rust
 else:
+
     def qubit_selector_rust(*args, **kwargs):
         """Dummy function."""
         warnings.warn(
             "Rust is not available, qubit_selector_rust is a dummy function.",
-            category=QurryRustUnavailableWarning
+            category=QurryRustUnavailableWarning,
         )
         return qubit_selector_py(*args, **kwargs)
 
