@@ -37,7 +37,7 @@ except ImportError as err:
         """Dummy function for cycling_slice_rust."""
         raise QurryRustImportError(
             "Rust is not available, using python to calculate cycling slice."
-            + f" More infomation about this error: {err}",
+            + f" More infomation about this error: {FAILED_RUST_IMPORT}",
         )
 
 
