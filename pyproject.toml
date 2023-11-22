@@ -7,8 +7,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "qurry"
-dynamic = ["version", "readme", "dependencies", "classifiers"]
-
+dynamic = [
+    "version",
+    "readme",
+    "dependencies",
+    "classifiers",
+    "requires-python",
+    "description",
+]
 
 [tool.setuptools.packages.find]
 include = ['qurry*', 'qurry.capsule*']
@@ -19,13 +25,11 @@ skip = [
     "*-musllinux_i686", # rust tier 2 support
     "pp*",              # Qiskit and Qurry are not pure python packages, See https://github.com/harui2019/qurry/issues/93#issuecomment-1801837481
     "cp312-*",          # Check issue https://github.com/harui2019/qurry/issues/95 for details
-    "cp38-*",          # Check issue https://github.com/harui2019/qurry/issues/95 for details
-    # "*-musllinux_*",    # scipy dependency issue, Check issue https://github.com/harui2019/qurry/issues/93 for details
-    "*-manylinux_i686", # scipy dependency issue, Check issue
+    "cp38-*",           # Not support for Qurry and won't support for we make type hint in 3.9 syntax.
+    "*-musllinux_*",    # scipy dependency issue, Check issue https://github.com/harui2019/qurry/issues/93 for details
+    "*-manylinux_i686", # scipy dependency issue, Check issue https://github.com/harui2019/qurry/issues/93 for details
 ]
-build = [
-    "*-musllinux_*"
-]
+# build = ["cp39-*"]
 before-all = [
     'python -c "print(\"=\"*70)"',
     'python -c "print(\"### Building \".ljust(70, \".\"))"',
@@ -42,7 +46,7 @@ before-test = [
 test-command = ["pytest {project}/tests"]
 
 [tool.cibuildwheel.linux]
-environment = { PATH = "$HOME/.cargo/bin:$PATH" }
+# environment = { PATH = "$HOME/.cargo/bin:$PATH" }
 before-all = [
     "curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain=nightly --profile=minimal -y",
     'source "$HOME/.cargo/env"',
