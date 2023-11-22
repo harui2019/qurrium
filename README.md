@@ -1,6 +1,6 @@
 # Qurry 🍛 - The Quantum Experiment Manager for Qiskit and The Measuring Tool for Renyi Entropy, Wave Function Overlap, and More
 
-This is a tool to measure the Renyi entropy, Loschmidt Echo, and Magnetization Squared of given wave function. Running on **IBM Qiskit** with the function from constructing experiment object to pending the jobs to IBMQ automatically.
+This is a tool to measure the Renyi entropy, Wave Function Overlap, and Magnetization Squared of given wave function. Running on **IBM Qiskit** with the function from constructing experiment object to pending the jobs to IBMQ automatically.
 
 ---
 
@@ -100,7 +100,7 @@ The following is the methods used to measure.
   - From:
     **Statistical correlations between locally randomized measurements: A toolbox for probing entanglement in many-body quantum states** - A. Elben, B. Vermersch, C. F. Roos, and P. Zoller, [PhysRevA.99.052323](https://doi.org/10.1103/PhysRevA.99.052323)
 
-### `qurrech` - The Loschmidt Echo Measurement
+### `qurrech` - The Wave Function Overlap Measurement
 
 It's similar to `qurrent`.
 
