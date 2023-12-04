@@ -51,11 +51,9 @@ class IBMRunner(Runner):
         backend: Optional[IBMBackend] = None,
         provider: Optional[IBMProvider] = None,
     ):
-        assert (
-            multimanager.summonerID == besummonned
-        ), (
-            "Summoner ID not match, multimanager.summonerID: "+
-            f"{multimanager.summonerID}, besummonned: {besummonned}"
+        assert multimanager.summonerID == besummonned, (
+            "Summoner ID not match, multimanager.summonerID: "
+            + f"{multimanager.summonerID}, besummonned: {besummonned}"
         )
         if backend is None and provider is None:
             raise ValueError("Either backend or provider should be provided.")
@@ -75,7 +73,7 @@ class IBMRunner(Runner):
 
     def pending(
         self,
-        pending_strategy: Literal["default", "onetime", "each", "tags"] = "default",
+        pending_strategy: Literal["onetime", "each", "tags"] = "onetime",
         backend: Optional[IBMBackend] = None,
     ) -> list[tuple[str, str]]:
         if self.backend is None:
@@ -91,8 +89,8 @@ class IBMRunner(Runner):
         else:
             if backend is not None:
                 print(
-                    "| Using backend and provider as "+
-                    f"{self.backend.name} and {self.backend.provider()}."
+                    "| Using backend and provider as "
+                    + f"{self.backend.name} and {self.backend.provider()}."
                 )
             else:
                 ...
@@ -105,7 +103,9 @@ class IBMRunner(Runner):
 
         for id_exec in distributing_pending_progressbar:
             circ_serial_len = len(self.circwserial)
-            for idx, circ in enumerate(self.experiment_container[id_exec].beforewards.circuit):
+            for idx, circ in enumerate(
+                self.experiment_container[id_exec].beforewards.circuit
+            ):
                 self.current_multimanager.beforewards.circuitsMap[id_exec].append(
                     idx + circ_serial_len
                 )
@@ -122,7 +122,7 @@ class IBMRunner(Runner):
                     )
 
                 else:
-                    if pending_strategy != "default" or pending_strategy != "onetime":
+                    if pending_strategy != "onetime":
                         warnings.warn(
                             f"Unknown strategy '{pending_strategy}, use 'onetime'."
                         )
@@ -150,19 +150,27 @@ class IBMRunner(Runner):
                 else:
                     pending_tags = [pk]
 
+                all_pending_tags = [
+                    str(s)
+                    for s in [
+                        self.current_multimanager.multicommons.summonerName,
+                        self.current_multimanager.multicommons.summonerID,
+                        *pending_tags,
+                        *self.current_multimanager.multicommons.tags,
+                    ]
+                ]
+                if len(all_pending_tags) > 8:
+                    all_pending_tags = all_pending_tags[:8]
+                    warnings.warn(
+                        "The max number of tags is 8 in IBMProvider, "
+                        + f"but the number of pending tags is {len(all_pending_tags)}, "
+                        + "so only take first 8.",
+                    )
+
                 pending_job = self.backend.run(
                     circuits=[self.circwserial[idx] for idx in pcirc_idxs],
                     shots=self.current_multimanager.multicommons.shots,
-                    job_tags=[
-                        str(s)
-                        for s in [
-                            self.current_multimanager.multicommons.summonerName,
-                            self.current_multimanager.multicommons.summonerID,
-                            self.current_multimanager.naming_complex.expsName,
-                            *pending_tags,
-                            *self.current_multimanager.multicommons.tags,
-                        ]
-                    ],
+                    job_tags=all_pending_tags,
                     **self.current_multimanager.multicommons.managerRunArgs,
                 )
                 pendingpool_progressbar.set_description_str(
@@ -304,7 +312,8 @@ class IBMRunner(Runner):
                 pending_job = pending_map[pk]
                 if pending_job is not None:
                     pendingpool_progressbar.set_description_str(
-                        f"{pk}/{pending_job.job_id()}/{pending_job.tags()}", refresh=True
+                        f"{pk}/{pending_job.job_id()}/{pending_job.tags()}",
+                        refresh=True,
                     )
                     self.reports[pending_job.job_id()] = {
                         "time": current,
@@ -313,7 +322,8 @@ class IBMRunner(Runner):
 
                     p_result = pending_job.result()
                     counts = get_counts(
-                        result=p_result, result_idx_list=[rk - pcircs[0] for rk in pcircs]
+                        result=p_result,
+                        result_idx_list=[rk - pcircs[0] for rk in pcircs],
                     )
                 else:
                     pendingpool_progressbar.set_description_str(
@@ -355,7 +365,9 @@ class IBMRunner(Runner):
                 self.experiment_container[current_id].afterwards.counts.append(
                     couts_tmp_container[idx]
                 )
-            self.experiment_container[current_id].commons.datetimes[retrieve_times_name] = current
+            self.experiment_container[current_id].commons.datetimes[
+                retrieve_times_name
+            ] = current
             self.current_multimanager.afterwards.allCounts[
                 current_id
             ] = self.experiment_container[current_id].afterwards.counts
