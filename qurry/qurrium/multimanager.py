@@ -874,7 +874,7 @@ class MultiManager:
                 + "- writing... - {elapsed} < {remaining}",
                 ascii=" ▖▘▝▗▚▞█",
             )
-            qurryinfos = {**qurryinfos, **{k: v for k, v in export_qurryinfo_items}}
+            qurryinfos = {**qurryinfos, **dict(export_qurryinfo_items)}
 
             quickJSON(
                 content=qurryinfos,
@@ -885,6 +885,7 @@ class MultiManager:
                 jsonable=True,
                 mute=True,
             )
+            gc.collect()
 
         return multiconfig
 

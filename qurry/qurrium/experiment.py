@@ -1140,7 +1140,12 @@ class ExperimentPrototype(ExperimentPrototypeABC):
                 mute=mute,
             )
 
-        return self.commons.expID, export_material.files
+        all_files_location = export_material.files.copy()
+        del export_set
+        del export_material
+        gc.collect()
+
+        return self.commons.expID, all_files_location
 
     @classmethod
     def _read_core(
