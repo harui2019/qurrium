@@ -367,8 +367,10 @@ class MultiManager:
             is_read (bool, optional): Whether read the experiment. Defaults to False.
             encoding (str, optional): The encoding of json file. Defaults to "utf-8".
             read_from_tarfile (bool, optional): Whether read from tarfile. Defaults to False.
-            filetype (TagList._availableFileType, optional): The filetype of json file. Defaults to "json".
-            version (Literal[&quot;v4&quot;, &quot;v5&quot;], optional): The version of json file. Defaults to "v5".
+            filetype (TagList._availableFileType, optional):
+                The filetype of json file. Defaults to "json".
+            version (Literal[&quot;v4&quot;, &quot;v5&quot;], optional):
+                The version of json file. Defaults to "v5".
             **kwargs (Any): The other arguments of multi-experiment.
 
         Raises:
@@ -849,7 +851,7 @@ class MultiManager:
             workers_num = DEFAULT_POOL_SIZE
 
         if wave_container is not None:
-            qurryinfos = {}
+            qurryinfos: dict[str, dict[str, str]] = {}
             qurryinfos_loc = self.multicommons.exportLocation / "qurryinfo.json"
             if os.path.exists(save_location / qurryinfos_loc):
                 with open(save_location / qurryinfos_loc, "r", encoding="utf-8") as f:
@@ -857,10 +859,10 @@ class MultiManager:
                     qurryinfos = {**qurryinfo_found, **qurryinfos}
 
             print(
-                f"| Export datas of {len(self.beforewards.expsConfig)} "
+                f"| Export data of {len(self.beforewards.expsConfig)} "
                 + f"experiments for {self.summonerID}"
             )
-            export_qurryinfo_items = process_map(
+            export_qurryinfo_items: list[tuple[Hashable, dict[str, str]]] = process_map(
                 write_caller,
                 [
                     (

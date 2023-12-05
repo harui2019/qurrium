@@ -7,7 +7,6 @@ Analysis Instance
 """
 from typing import Optional, NamedTuple, Iterable, Any
 from abc import abstractmethod
-import warnings
 
 from ..capsule import jsonablize
 from ..capsule.hoshi import Hoshi

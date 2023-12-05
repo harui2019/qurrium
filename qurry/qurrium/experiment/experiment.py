@@ -12,17 +12,14 @@ import json
 import warnings
 from abc import abstractmethod, abstractproperty, ABC
 from uuid import uuid4
-from typing import Literal, Union, Optional, NamedTuple, Hashable, Type, Any
+from typing import Union, Optional, NamedTuple, Hashable, Type, Any
 from pathlib import Path
 
-from qiskit import QuantumCircuit
-from qiskit.result import Result
-from qiskit.providers import Backend
-
-from ..tools import backendName, ProcessManager, DEFAULT_POOL_SIZE
-from ..capsule import jsonablize, quickJSON, quickRead
-from ..capsule.hoshi import Hoshi
-from ..exceptions import (
+from ...tools import backendName, ProcessManager, DEFAULT_POOL_SIZE
+from ...tools.datetime import current_time, DatetimeDict
+from ...capsule import jsonablize, quickJSON, quickRead
+from ...capsule.hoshi import Hoshi
+from ...exceptions import (
     QurryInvalidInherition,
     QurryExperimentCountsNotCompleted,
     QurryResetSecurityActivated,
@@ -30,8 +27,14 @@ from ..exceptions import (
     QurryProtectContent,
     QurrySummonerInfoIncompletion,
 )
-from .analysis import AnalysisPrototype, QurryAnalysis
-from ..tools.datetime import current_time, DatetimeDict
+from ..analysis import AnalysisPrototype, QurryAnalysis
+from .container import (
+    Arguments as ExperimentArgs,
+    Commonparams as ExperimentCommonparams,
+    Before as ExperimentBefore,
+    After as ExperimentAfter,
+)
+from .export import Export
 
 
 class ExperimentPrototypeABC(ABC):
@@ -52,168 +55,18 @@ class ExperimentPrototype(ExperimentPrototypeABC):
     """Name of the QurryExperiment which could be overwritten."""
 
     # Experiment Property
-    class Arguments(NamedTuple):
-        """Construct the experiment's parameters for specific options,
-        which is overwritable by the inherition class."""
-
-        expName: str
-        """Name of experiment."""
-
-    class Commonparams(NamedTuple):
-        """Construct the experiment's parameters for system running."""
-
-        expID: str
-        """ID of experiment."""
-        waveKey: Hashable
-        """Key of the chosen wave."""
-
-        # Qiskit argument of experiment.
-        # Multiple jobs shared
-        shots: int
-        """Number of shots to run the program (default: 1024)."""
-        backend: Union[Backend, str]
-        """Backend to execute the circuits on, or the backend used."""
-        runArgs: dict
-        """Arguments of `execute`."""
-
-        # Single job dedicated
-        runBy: Literal["gate", "operator"]
-        """Run circuits by gate or operator."""
-        transpileArgs: dict
-        """Arguments of `qiskit.compiler.transpile`."""
-        decompose: Optional[int]
-        """Decompose the circuit in given times 
-        to show the circuit figures in :property:`.before.figOriginal`."""
-
-        tags: tuple
-        """Tags of experiment."""
-
-        # Auto-analysis when counts are ready
-        defaultAnalysis: list[dict[str, Any]]
-        """When counts are ready, 
-        the experiment will automatically analyze the counts with the given analysis."""
-
-        # Arguments for exportation
-        saveLocation: Union[Path, str]
-        """Location of saving experiment. 
-        If this experiment is called by :cls:`QurryMultiManager`,
-        then `adventure`, `legacy`, `tales`, and `reports` will be exported 
-        to their dedicated folders in this location respectively.
-        This location is the default location for it's not specific 
-        where to save when call :meth:`.write()`, if does, then will be overwriten and update."""
-        filename: str
-        """The name of file to be exported, 
-        it will be decided by the :meth:`.export` when it's called.
-        More info in the pydoc of :prop:`files` or :meth:`.export`.
-        """
-        files: dict[str, Path]
-        """The list of file to be exported.
-        For the `.write` function actually exports 4 different files
-        respecting to `adventure`, `legacy`, `tales`, and `reports` like:
-        
-        ```python
-        files = {
-            'folder': './blabla_experiment/',
-            
-            'args': './blabla_experiment/args/blabla_experiment.id={expID}.args.json',
-            'advent': './blabla_experiment/advent/blabla_experiment.id={expID}.advent.json',
-            'legacy': './blabla_experiment/legacy/blabla_experiment.id={expID}.legacy.json',
-            'tales.dummyx1': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyx1.json',
-            'tales.dummyx2': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyx2.json',
-            ...
-            'tales.dummyxn': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyxn.json',
-            'reports': './blabla_experiment/reports/blabla_experiment.id={expID}.reports.json',
-            'reports.tales.dummyz1': 
-                './blabla_experiment/tales/blabla_experiment.id={expID}.dummyz1.reports.json',
-            'reports.tales.dummyz2': 
-                './blabla_experiment/tales/blabla_experiment.id={expID}.dummyz2.reports.json',
-            ...
-            'reports.tales.dummyzm': 
-                './blabla_experiment/tales/blabla_experiment.id={expID}.dummyzm.reports.json',
-        }
-        ```
-        which `blabla_experiment` is the example filename.
-        If this experiment is called by :cls:`multimanager`, 
-        then the it will be named after `summonerName` as known as the name of :cls:`multimanager`.
-        
-        ```python
-        files = {
-            'folder': './BLABLA_project/',
-            
-            'args': './BLABLA_project/args/index={serial}.id={expID}.args.json',
-            'advent': './BLABLA_project/advent/index={serial}.id={expID}.advent.json',
-            'legacy': './BLABLA_project/legacy/index={serial}.id={expID}.legacy.json',
-            'tales.dummyx1': './BLABLA_project/tales/index={serial}.id={expID}.dummyx1.json',
-            'tales.dummyx2': './BLABLA_project/tales/index={serial}.id={expID}.dummyx2.json',
-            ...
-            'tales.dummyxn': './BLABLA_project/tales/index={serial}.id={expID}.dummyxn.json',
-            'reports': './BLABLA_project/reports/index={serial}.id={expID}.reports.json',
-            'reports.tales.dummyz1': 
-                './BLABLA_project/tales/index={serial}.id={expID}.dummyz1.reports.json',
-            'reports.tales.dummyz2': 
-                './BLABLA_project/tales/index={serial}.id={expID}.dummyz2.reports.json',
-            ...
-            'reports.tales.dummyzm': 
-                './BLABLA_project/tales/index={serial}.id={expID}.dummyzm.reports.json',
-        }
-        ```
-        which `BLBLA_project` is the example :cls:`multimanager` name 
-        stored at :prop:`commonparams.summonerName`.
-        At this senerio, the `expName` will never apply as filename.
-        
-        """
-
-        # Arguments for multi-experiment
-        serial: Optional[int]
-        """Index of experiment in a multiOutput."""
-        summonerID: Optional[str]
-        """ID of experiment of the multiManager."""
-        summonerName: Optional[str]
-        """Name of experiment of the multiManager."""
-
-        # header
-        datetimes: DatetimeDict
-
-    class Before(NamedTuple):
-        """The data of experiment will be independently exported in the folder 'advent',
-        which generated before the experiment.
-        """
-
-        # Experiment Preparation
-        circuit: list[QuantumCircuit]
-        """Circuits of experiment."""
-        figOriginal: list[str]
-        """Raw circuit figures which is the circuit before transpile."""
-
-        # Export data
-        jobID: str
-        """ID of job for pending on real machine (IBMQBackend)."""
-        expName: str
-        """Name of experiment which is also showed on IBM Quantum Computing quene."""
-
-        # side product
-        sideProduct: dict
-        """The data of experiment will be independently exported in the folder 'tales'."""
-
-    class After(NamedTuple):
-        """The data of experiment will be independently exported in the folder 'legacy',
-        which generated after the experiment."""
-
-        # Measurement Result
-        result: list[Result]
-        """Results of experiment."""
-        counts: list[dict[str, int]]
-        """Counts of experiment."""
+    Arguments = ExperimentArgs
+    Commonparams = ExperimentCommonparams
+    Before = ExperimentBefore
+    After = ExperimentAfter
 
     _unexports = ["sideProduct", "result"]
     """Unexports properties.
     """
-
     _deprecated = ["figTranspiled"]
     """Deprecated properties.
         - `figTranspiled` is deprecated since v0.6.0.
     """
-
     tqdm_handleable = False
     """Whether the method :meth:`
     e` can handle the processing bar from :module:`tqdm`."""
@@ -370,9 +223,7 @@ class ExperimentPrototype(ExperimentPrototypeABC):
         _summon_detect = any((not v is None) for v in _summon_check.values())
         _summon_fulfill = all((not v is None) for v in _summon_check.values())
         if _summon_detect:
-            if _summon_fulfill:
-                ...
-            else:
+            if not _summon_fulfill:
                 summon_msg = Hoshi(ljust_description_len=20)
                 summon_msg.newline(("divider",))
                 summon_msg.newline(("h3", "Summoner Info Incompletion"))
@@ -638,113 +489,6 @@ class ExperimentPrototype(ExperimentPrototypeABC):
         return info
 
     # Export
-    class Export(NamedTuple):
-        """Data-stored namedtuple with all experiments data which is jsonable."""
-
-        expID: str = ""
-        """ID of experiment, which will be packed into `.args.json`."""
-        expName: str = "exps"
-        """Name of the experiment, which will be packed into `.args.json`. 
-        If this experiment is called by multimanager, 
-        then this name will never apply as filename."""
-        # Arguments for multi-experiment
-        serial: Optional[int] = None
-        """Index of experiment in a multiOutput, which will be packed into `.args.json`."""
-        summonerID: Optional[str] = None
-        """ID of experiment of the multiManager, which will be packed into `.args.json`."""
-        summonerName: Optional[str] = None
-        """Name of experiment of the multiManager, which will be packed into `.args.json`."""
-
-        filename: str = ""
-        """The name of file to be exported, 
-        it will be decided by the :meth:`.export` when it's called.
-        More info in the pydoc of :prop:`files` or :meth:`.export`, 
-        which will be packed into `.args.json`.
-        """
-        files: dict[str, str] = {}
-        """The list of file to be exported.
-        For the `.write` function actually exports 4 different files
-        respecting to `adventure`, `legacy`, `tales`, and `reports` like:
-        
-        ```python
-        files = {
-            'folder': './blabla_experiment/',
-            'qurryinfo': './blabla_experiment/qurryinfo.json',
-            
-            'args': './blabla_experiment/args/blabla_experiment.id={expID}.args.json',
-            'advent': './blabla_experiment/advent/blabla_experiment.id={expID}.advent.json',
-            'legacy': './blabla_experiment/legacy/blabla_experiment.id={expID}.legacy.json',
-            'tales.dummyx1': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyx1.json',
-            'tales.dummyx2': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyx2.json',
-            ...
-            'tales.dummyxn': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyxn.json',
-            'reports': './blabla_experiment/reports/blabla_experiment.id={expID}.reports.json',
-            'reports.tales.dummyz1': 
-                './blabla_experiment/tales/blabla_experiment.id={expID}.dummyz1.reports.json',
-            'reports.tales.dummyz2': 
-                './blabla_experiment/tales/blabla_experiment.id={expID}.dummyz2.reports.json',
-            ...
-            'reports.tales.dummyzm': 
-                './blabla_experiment/tales/blabla_experiment.id={expID}.dummyzm.reports.json',
-        }
-        ```
-        which `blabla_experiment` is the example filename.
-        If this experiment is called by :cls:`multimanager`, 
-        then the it will be named after `summonerName` as known as the name of :cls:`multimanager`.
-        
-        ```python
-        files = {
-            'folder': './BLABLA_project/',
-            'qurryinfo': './BLABLA_project/qurryinfo.json',
-            
-            'args': './BLABLA_project/args/index={serial}.id={expID}.args.json',
-            'advent': './BLABLA_project/advent/index={serial}.id={expID}.advent.json',
-            'legacy': './BLABLA_project/legacy/index={serial}.id={expID}.legacy.json',
-            'tales.dummyx1': './BLABLA_project/tales/index={serial}.id={expID}.dummyx1.json',
-            'tales.dummyx2': './BLABLA_project/tales/index={serial}.id={expID}.dummyx2.json',
-            ...
-            'tales.dummyxn': './BLABLA_project/tales/index={serial}.id={expID}.dummyxn.json',
-            'reports': './BLABLA_project/reports/index={serial}.id={expID}.reports.json',
-            'reports.tales.dummyz1': 
-                './BLABLA_project/tales/index={serial}.id={expID}.dummyz1.reports.json',
-            'reports.tales.dummyz2': 
-                './BLABLA_project/tales/index={serial}.id={expID}.dummyz2.reports.json',
-            ...
-            'reports.tales.dummyzm': 
-                './BLABLA_project/tales/index={serial}.id={expID}.dummyzm.reports.json',
-        }
-        ```
-        which `BLBLA_project` is the example :cls:`multimanager` name 
-        stored at :prop:`commonparams.summonerName`.
-        At this senerio, the `expName` will never apply as filename.
-        
-        """
-
-        args: dict[str, Any] = {}
-        """Construct the experiment's parameters, which will be packed into `.args.json`."""
-        commons: dict[str, Any] = {}
-        """Construct the experiment's common parameters, which will be packed into `.args.json`."""
-        outfields: dict[str, Any] = {}
-        """Recording the data of other unused arguments, which will be packed into `.args.json`."""
-
-        adventures: dict[str, Any] = {}
-        """Recording the data of 'beforeward', which will be packed into `.advent.json`. 
-        ~A Great Adventure begins~"""
-        legacy: dict[str, Any] = {}
-        """Recording the data of 'afterward', which will be packed into `.legacy.json`. 
-        ~The Legacy remains from the achievement of ancestors~"""
-        tales: dict[str, Any] = {}
-        """Recording the data of 'sideProduct' in 'afterward' and 'beforewards' for API, 
-        which will be packed into `.*.tales.json`. 
-        ~Tales of braves circulate~"""
-
-        reports: dict[str, dict[str, Any]] = {}
-        """Recording the data of 'reports', which will be packed into `.reports.json`. 
-        ~The guild concludes the results.~"""
-        tales_reports: dict[str, dict[str, Any]] = {}
-        """Recording the data of 'sideProduct' in 'reports' for API, 
-        which will be packed into `.*.reprts.json`. 
-        ~Tales of braves circulate~"""
 
     _rjustLen = 3
     """The length of the string to be right-justified for serial number 
@@ -852,18 +596,8 @@ class ExperimentPrototype(ExperimentPrototypeABC):
                 which can be more easily to export as json file.
         """
 
-        # multimanager values
-        summon = all(
-            (not v is None)
-            for v in [
-                self.commons.serial,
-                self.commons.summonerID,
-                self.commons.summonerID,
-            ]
-        )
         # args, commons, outfields
 
-        args: dict[str, Any] = jsonablize(self.args._asdict())
         commons: dict[str, Any] = jsonablize(self.commons._asdict())
         commons["backend"] = (
             self.commons.backend
@@ -871,31 +605,27 @@ class ExperimentPrototype(ExperimentPrototypeABC):
             else backendName(self.commons.backend)
         )
 
-        outfields = jsonablize(self.outfields)
         # adventures, legacy, tales
-        tales = {}
-        adventures_wunex = self.beforewards._asdict()  # With UNEXported data
+        tales: dict[str, str] = {}
         adventures = {}
-        for k, v in adventures_wunex.items():
+        for k, v in self.beforewards._asdict().items():
             if k == "sideProduct":
                 tales = {**tales, **v}
             elif k in self._unexports:
                 ...
             else:
-                adventures[k] = jsonablize(v)
-
-        legacy_with_unexported = self.afterwards._asdict()
+                adventures[k] = v
+        gc.collect()
 
         legacy = {}
-        for k, v in legacy_with_unexported.items():
+        for k, v in self.afterwards._asdict().items():
             if k == "sideProduct":
                 tales = {**tales, **v}
             elif k in self._unexports:
                 ...
             else:
-                legacy[k] = jsonablize(v)
-
-        tales: dict[str, str] = jsonablize(tales)
+                legacy[k] = v
+        gc.collect()
 
         # reports
         reports: dict[str, dict[str, Any]] = {}  # reports formats.
@@ -912,8 +642,16 @@ class ExperimentPrototype(ExperimentPrototypeABC):
         # filename
         filename = ""
         folder = ""
-        files = {}
-        if summon:
+
+        # multi-experiment mode
+        if all(
+            (not v is None)
+            for v in [
+                self.commons.serial,
+                self.commons.summonerID,
+                self.commons.summonerID,
+            ]
+        ):
             folder += f"./{self.commons.summonerName}/"
             filename += f"index={self.commons.serial}.id={self.commons.expID}"
         else:
@@ -936,33 +674,33 @@ class ExperimentPrototype(ExperimentPrototypeABC):
             )
 
         self.commons = self.commons._replace(filename=filename)
-        files["folder"] = folder
-        files["qurryinfo"] = folder + "qurryinfo.json"
-        files["args"] = folder + f"args/{filename}.args.json"
-        files["advent"] = folder + f"advent/{filename}.advent.json"
-        files["legacy"] = folder + f"legacy/{filename}.legacy.json"
+        files = {
+            "folder": folder,
+            "qurryinfo": folder + "qurryinfo.json",
+            "args": folder + f"args/{filename}.args.json",
+            "advent": folder + f"advent/{filename}.advent.json",
+            "legacy": folder + f"legacy/{filename}.legacy.json",
+        }
         for k in tales:
             files[f"tales.{k}"] = folder + f"tales/{filename}.{k}.json"
         files["reports"] = folder + f"reports/{filename}.reports.json"
         for k in tales_reports:
             files[f"reports.tales.{k}"] = folder + f"tales/{filename}.{k}.reports.json"
 
-        files = {k: str(Path(v)) for k, v in files.items()}
-
-        return self.Export(
+        return Export(
             expID=self.commons.expID,
             expName=self.beforewards.expName,
             serial=self.commons.serial,
             summonerID=self.commons.summonerID,
             summonerName=self.commons.summonerName,
             filename=filename,
-            files=files,
-            args=args,
+            files={k: str(Path(v)) for k, v in files.items()},
+            args=jsonablize(self.args._asdict()),
             commons=commons,
-            outfields=outfields,
-            adventures=adventures,
-            legacy=legacy,
-            tales=tales,
+            outfields=jsonablize(self.outfields),
+            adventures=jsonablize(adventures),
+            legacy=jsonablize(legacy),
+            tales=jsonablize(tales),
             reports=reports,
             tales_reports=tales_reports,
         )
@@ -1051,6 +789,9 @@ class ExperimentPrototype(ExperimentPrototypeABC):
             self.commons = self.commons._replace(saveLocation=save_location)
 
         export_material = self.export()
+        for k, v in export_material.files.items():
+            self.commons.files[k] = v
+
         export_set = {}
         # qurryinfo ..........  # file location, dedicated hash
         qurryinfo = {
@@ -1058,12 +799,6 @@ class ExperimentPrototype(ExperimentPrototypeABC):
         }
         # args ...............  # arguments, commonparams, outfields, files
         export_set["args"] = {
-            # 'expID': export_material.expID,
-            # 'expName': export_material.expName,
-            # 'serial': export_material.serial,
-            # 'summonerID': export_material.summonerID,
-            # 'summonerName': export_material.summonerName,
-            # 'filename': export_material.filename,
             "arguments": export_material.args,
             "commonparams": export_material.commons,
             "outfields": export_material.outfields,
@@ -1109,9 +844,6 @@ class ExperimentPrototype(ExperimentPrototypeABC):
         for k in self._required_folder:
             if not os.path.exists(folder / k):
                 os.mkdir(folder / k)
-
-        for k, v in export_material.files.items():
-            self.commons.files[k] = v
 
         for filekey, content in list(export_set.items()) + [("qurryinfo", qurryinfo)]:
             # Exportation of qurryinfo

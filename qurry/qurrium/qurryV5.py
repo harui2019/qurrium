@@ -14,7 +14,7 @@ import tqdm
 
 from qiskit import execute, transpile, QuantumCircuit
 from qiskit.quantum_info import Operator
-from qiskit.providers import Backend
+from qiskit.providers import Backend, JobV1 as Job
 from qiskit.circuit import Gate
 
 from ..tools import ResoureWatch, qurry_progressbar, ProcessManager
@@ -229,16 +229,6 @@ class QurryV5Prototype(ABC):
         Replace the property :prop:`now`. in :cls:`QurryV4`"""
         return self.exps.lastExp
 
-    @property
-    def lastWave(self) -> QuantumCircuit:
-        """The last wave be added."""
-        return self.waves.lastWave
-
-    @property
-    def lastWaveKey(self) -> Hashable:
-        """The key of the last wave be added."""
-        return self.waves.lastWaveKey
-
     @abstractmethod
     def params_control(
         self, waveKey: Hashable, **otherArgs
@@ -351,26 +341,26 @@ class QurryV5Prototype(ABC):
 
         # wave
         if isinstance(wave, QuantumCircuit):
-            waveKey = self.add(wave)
+            wave_key = self.add(wave)
         elif isinstance(wave, Hashable):
             if wave is None:
                 ...
             elif not self.has(wave):
                 raise KeyError(f"Wave '{wave}' not found in '.waves'")
-            waveKey = wave
+            wave_key = wave
         else:
             raise TypeError(
                 f"'{wave}' is a '{type(wave)}' instead of 'QuantumCircuit' or 'Hashable'"
             )
 
-        ctrlArgs: ExperimentPrototype.Arguments
+        ctrl_args: ExperimentPrototype.Arguments
         commons: ExperimentPrototype.Commonparams
         outfields: dict[str, Any]
         # Given parameters and default parameters
         if isinstance(_pbar, tqdm.tqdm):
             _pbar.set_description_str("Prepaing parameters...")
-        ctrlArgs, commons, outfields = self.params_control(
-            waveKey=waveKey,
+        ctrl_args, commons, outfields = self.params_control(
+            waveKey=wave_key,
             expID=expID,
             shots=shots,
             backend=backend,
@@ -392,7 +382,7 @@ class QurryV5Prototype(ABC):
         )
 
         outfield_maybe, outfields_unknown = outfields_check(
-            outfields, ctrlArgs._fields + commons._fields
+            outfields, ctrl_args._fields + commons._fields
         )
         outfields_hint(outfield_maybe, outfields_unknown, mute_outfields_warning)
 
@@ -418,24 +408,24 @@ class QurryV5Prototype(ABC):
 
         if isinstance(_pbar, tqdm.tqdm):
             _pbar.set_description_str("Create experiment instance... ")
-        newExps = self.experiment(
-            **ctrlArgs._asdict(),
+        new_exps = self.experiment(
+            **ctrl_args._asdict(),
             **commons._asdict(),
             **outfields,
         )
 
-        self.exps[newExps.commons.expID] = newExps
+        self.exps[new_exps.commons.expID] = new_exps
         # The last wave only refresh here.
-        self.exps.lastID = newExps.commons.expID
+        self.exps.lastID = new_exps.commons.expID
 
-        assert self.exps.lastID == self.lastID
-        assert self.exps[self.lastID].expID == self.lastExp.expID
-        assert len(self.lastExp.beforewards.circuit) == 0
-        assert len(self.lastExp.beforewards.figOriginal) == 0
-        assert len(self.lastExp.afterwards.result) == 0
-        assert len(self.lastExp.afterwards.counts) == 0
+        assert self.exps.lastID == new_exps.commons.expID
+        assert self.exps[new_exps.commons.expID].expID == self.lastExp.expID
+        assert len(self.exps[new_exps.commons.expID].beforewards.circuit) == 0
+        assert len(self.exps[new_exps.commons.expID].beforewards.figOriginal) == 0
+        assert len(self.exps[new_exps.commons.expID].afterwards.result) == 0
+        assert len(self.exps[new_exps.commons.expID].afterwards.counts) == 0
 
-        return self.lastID
+        return new_exps.commons.expID
 
     # Circuit
     @overload
@@ -470,6 +460,7 @@ class QurryV5Prototype(ABC):
         encoding: str = "utf-8",
         jsonablize: bool = False,
         workers_num: Optional[int] = None,
+        skip_export: bool = False,
         _export_mute: bool = True,
         _pbar: Optional[tqdm.tqdm] = None,
         **allArgs: Any,
@@ -510,64 +501,65 @@ class QurryV5Prototype(ABC):
         if isinstance(_pbar, tqdm.tqdm):
             _pbar.set_description_str("Parameter loading...")
 
-        IDNow = self._params_control_core(**allArgs, _pbar=_pbar)
-        assert IDNow in self.exps, f"ID {IDNow} not found."
-        assert self.exps[IDNow].commons.expID == IDNow
-        currentExp = self.exps[IDNow]
+        id_now = self._params_control_core(**allArgs, _pbar=_pbar)
+        assert id_now in self.exps, f"ID {id_now} not found."
+        assert self.exps[id_now].commons.expID == id_now
+        current_exp = self.exps[id_now]
 
-        if len(currentExp.beforewards.circuit) > 0:
-            return IDNow
+        if len(current_exp.beforewards.circuit) > 0:
+            return id_now
 
         # circuit
         if isinstance(_pbar, tqdm.tqdm):
             _pbar.set_description_str("Circuit creating...")
 
-        howTheMethodGetArgs = inspect.signature(self.method).parameters
-        if "_pbar" in howTheMethodGetArgs:
-            if howTheMethodGetArgs["_pbar"].annotation == Optional[tqdm.tqdm]:
-                cirqs = self.method(IDNow, _pbar=_pbar)
+        how_the_method_get_args = inspect.signature(self.method).parameters
+        if "_pbar" in how_the_method_get_args:
+            if how_the_method_get_args["_pbar"].annotation == Optional[tqdm.tqdm]:
+                cirqs = self.method(id_now, _pbar=_pbar)
             else:
-                cirqs = self.method(IDNow)
+                cirqs = self.method(id_now)
         else:
-            cirqs = self.method(IDNow)
+            cirqs = self.method(id_now)
 
         # draw original
         if isinstance(_pbar, tqdm.tqdm):
             _pbar.set_description_str(f"Circuit drawing by {workers_num} workers...")
-        figOriginals: list[str] = pool.starmap(
-            decomposer_and_drawer, [(_w, currentExp.commons.decompose) for _w in cirqs]
+        fig_originals: list[str] = pool.starmap(
+            decomposer_and_drawer, [(_w, current_exp.commons.decompose) for _w in cirqs]
         )
-        for wd in figOriginals:
-            currentExp.beforewards.figOriginal.append(wd)
+        for wd in fig_originals:
+            current_exp.beforewards.figOriginal.append(wd)
 
         # transpile
         if isinstance(_pbar, tqdm.tqdm):
             _pbar.set_description_str("Circuit transpiling...")
-        transpiledCirqs: list[QuantumCircuit] = transpile(
+        transpiled_circs: list[QuantumCircuit] = transpile(
             cirqs,
-            backend=currentExp.commons.backend,
-            **currentExp.commons.transpileArgs,
+            backend=current_exp.commons.backend,
+            **current_exp.commons.transpileArgs,
         )
-        for _w in transpiledCirqs:
-            currentExp.beforewards.circuit.append(_w)
+        for _w in transpiled_circs:
+            current_exp.beforewards.circuit.append(_w)
         # commons
         date = current_time()
-        currentExp.commons.datetimes["build"] = date
+        current_exp.commons.datetimes["build"] = date
 
-        if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str("Setup data exporting...")
-        # export may be slow, consider export at finish or something
-        if isinstance(saveLocation, (Path, str)):
-            currentExp.write(
-                save_location=saveLocation,
-                mode=mode,
-                indent=indent,
-                encoding=encoding,
-                jsonable=jsonablize,
-                mute=_export_mute,
-            )
+        if not skip_export:
+            if isinstance(_pbar, tqdm.tqdm):
+                _pbar.set_description_str("Setup data exporting...")
+            # export may be slow, consider export at finish or something
+            if isinstance(saveLocation, (Path, str)):
+                current_exp.write(
+                    save_location=saveLocation,
+                    mode=mode,
+                    indent=indent,
+                    encoding=encoding,
+                    jsonable=jsonablize,
+                    mute=_export_mute,
+                )
 
-        return IDNow
+        return id_now
 
     def run(
         self,
@@ -610,30 +602,29 @@ class QurryV5Prototype(ABC):
             )
 
         # preparing
-        IDNow = self.build(saveLocation=None, **allArgs)
-        assert IDNow in self.exps, f"ID {IDNow} not found."
-        assert self.exps[IDNow].commons.expID == IDNow
-        currentExp = self.exps[IDNow]
+        id_now = self.build(saveLocation=None, **allArgs)
+        assert id_now in self.exps, f"ID {id_now} not found."
+        assert self.exps[id_now].commons.expID == id_now
+        current_exp = self.exps[id_now]
 
-        execution = execute(
-            currentExp.beforewards.circuit,
-            **currentExp.commons.runArgs,
-            backend=currentExp.commons.backend,
-            shots=currentExp.commons.shots,
+        execution: Job = execute(
+            current_exp.beforewards.circuit,
+            **current_exp.commons.runArgs,
+            backend=current_exp.commons.backend,
+            shots=current_exp.commons.shots,
         )
         # commons
         date = current_time()
-        currentExp.commons.datetimes["run"] = date
+        current_exp.commons.datetimes["run"] = date
         # beforewards
-        jobID = execution.job_id()
-        currentExp["jobID"] = jobID
+        current_exp["jobID"] = execution.job_id()
         # afterwards
         result = execution.result()
-        currentExp.unlock_afterward(mute_auto_lock=True)
-        currentExp["result"].append(result)
+        current_exp.unlock_afterward(mute_auto_lock=True)
+        current_exp["result"].append(result)
 
         if isinstance(saveLocation, (Path, str)):
-            currentExp.write(
+            current_exp.write(
                 save_location=saveLocation,
                 mode=mode,
                 indent=indent,
@@ -642,7 +633,7 @@ class QurryV5Prototype(ABC):
                 mute=_export_mute,
             )
 
-        return IDNow
+        return id_now
 
     def result(
         self,
@@ -685,28 +676,28 @@ class QurryV5Prototype(ABC):
             )
 
         # preparing
-        IDNow = self.run(saveLocation=None, **allArgs)
-        assert IDNow in self.exps, f"ID {IDNow} not found."
-        assert self.exps[IDNow].commons.expID == IDNow
-        currentExp = self.exps[IDNow]
-        assert len(currentExp.afterwards.result) == 1, "Result should be only one."
+        id_now = self.run(saveLocation=None, **allArgs)
+        assert id_now in self.exps, f"ID {id_now} not found."
+        assert self.exps[id_now].commons.expID == id_now
+        current_exp = self.exps[id_now]
+        assert len(current_exp.afterwards.result) == 1, "Result should be only one."
 
         # afterwards
-        num = len(currentExp.beforewards.circuit)
+        num = len(current_exp.beforewards.circuit)
         counts = get_counts(
-            result=currentExp.afterwards.result[0],
+            result=current_exp.afterwards.result[0],
             num=num,
         )
         for _c in counts:
-            currentExp.afterwards.counts.append(_c)
+            current_exp.afterwards.counts.append(_c)
 
         # default analysis
-        if len(currentExp.commons.defaultAnalysis) > 0:
-            for _analysis in currentExp.commons.defaultAnalysis:
-                currentExp.analyze(**_analysis)
+        if len(current_exp.commons.defaultAnalysis) > 0:
+            for _analysis in current_exp.commons.defaultAnalysis:
+                current_exp.analyze(**_analysis)
 
         if isinstance(saveLocation, (Path, str)):
-            currentExp.write(
+            current_exp.write(
                 save_location=saveLocation,
                 mode=mode,
                 indent=indent,
@@ -715,7 +706,7 @@ class QurryV5Prototype(ABC):
                 mute=_export_mute,
             )
 
-        return IDNow
+        return id_now
 
     def output(
         self,
@@ -769,19 +760,19 @@ class QurryV5Prototype(ABC):
                 f"{self.__name__} can't be initialized with positional arguments."
             )
 
-        IDNow = self.result(
+        id_now = self.result(
             saveLocation=None,
             **otherArgs,
         )
-        assert IDNow in self.exps, f"ID {IDNow} not found."
-        assert self.exps[IDNow].commons.expID == IDNow
-        currentExp = self.exps[IDNow]
+        assert id_now in self.exps, f"ID {id_now} not found."
+        assert self.exps[id_now].commons.expID == id_now
+        current_exp = self.exps[id_now]
 
-        if len(currentExp.afterwards.result) > 0:
-            return IDNow
+        if len(current_exp.afterwards.result) > 0:
+            return id_now
 
         if isinstance(saveLocation, (Path, str)):
-            currentExp.write(
+            current_exp.write(
                 save_location=saveLocation,
                 mode=mode,
                 indent=indent,
@@ -790,12 +781,12 @@ class QurryV5Prototype(ABC):
                 mute=_export_mute,
             )
 
-        return IDNow
+        return id_now
 
     _rjustLen: int = 3
     """The length of the serial number of the experiment."""
 
-    def _paramsControlMulti(
+    def _params_control_multi(
         self,
         # configList
         configList: list[dict[str, Any]],
@@ -877,10 +868,10 @@ class QurryV5Prototype(ABC):
             }
 
         if summonerID in self.multimanagers:
-            currentMultimanager = self.multimanagers[summonerID]
+            current_multimanager = self.multimanagers[summonerID]
             return (
-                list(currentMultimanager.beforewards.expsConfig.values()),
-                currentMultimanager.summonerID,
+                list(current_multimanager.beforewards.expsConfig.values()),
+                current_multimanager.summonerID,
             )
 
         is_read = is_retrieve | is_read
@@ -891,7 +882,7 @@ class QurryV5Prototype(ABC):
             contain_checker(config, checker)
 
         if is_read:
-            currentMultimanager = MultiManager(
+            current_multimanager = MultiManager(
                 summonerID=None,
                 summonerName=summonerName,
                 is_read=is_read,
@@ -900,7 +891,7 @@ class QurryV5Prototype(ABC):
                 version=read_version,
             )
         else:
-            currentMultimanager = MultiManager(
+            current_multimanager = MultiManager(
                 summonerID=summonerID,
                 summonerName=summonerName,
                 shots=shots,
@@ -915,25 +906,25 @@ class QurryV5Prototype(ABC):
                 datetimes=DatetimeDict(),
             )
 
-        self.multimanagers[currentMultimanager.summonerID] = currentMultimanager
+        self.multimanagers[current_multimanager.summonerID] = current_multimanager
 
-        initedConfigList: list[dict[str, Any]] = []
+        initial_config_list: list[dict[str, Any]] = []
         for serial, config in enumerate(configList):
-            initedConfigList.append(
+            initial_config_list.append(
                 {
                     **config,
                     "shots": shots,
                     "backend": backend,
                     # 'provider': provider,
-                    "expName": currentMultimanager.multicommons.summonerName,
-                    "saveLocation": currentMultimanager.multicommons.saveLocation,
+                    "expName": current_multimanager.multicommons.summonerName,
+                    "saveLocation": current_multimanager.multicommons.saveLocation,
                     "serial": serial,
-                    "summonerID": currentMultimanager.multicommons.summonerID,
-                    "summonerName": currentMultimanager.multicommons.summonerName,
+                    "summonerID": current_multimanager.multicommons.summonerID,
+                    "summonerName": current_multimanager.multicommons.summonerName,
                 }
             )
 
-        return initedConfigList, currentMultimanager.summonerID
+        return initial_config_list, current_multimanager.summonerID
 
     def multiBuild(
         self,
@@ -993,7 +984,7 @@ class QurryV5Prototype(ABC):
             managerRunArgs = {}
 
         print("| MultiManager building...")
-        initedConfigList, besummonned = self._paramsControlMulti(
+        initial_config_list, besummonned = self._params_control_multi(
             configList=configList,
             shots=shots,
             backend=backend,
@@ -1008,39 +999,40 @@ class QurryV5Prototype(ABC):
             is_read=False,
             filetype=filetype,
         )
-        currentMultimanager = self.multimanagers[besummonned]
-        assert currentMultimanager.summonerID == besummonned
-        initedConfigListProgress = qurry_progressbar(initedConfigList)
+        current_multimanager = self.multimanagers[besummonned]
+        assert current_multimanager.summonerID == besummonned
+        initial_config_list_progress = qurry_progressbar(initial_config_list)
 
-        initedConfigListProgress.set_description_str("MultiManager building...")
-        for config in initedConfigListProgress:
-            currentID = self.build(
+        initial_config_list_progress.set_description_str("MultiManager building...")
+        for config in initial_config_list_progress:
+            current_id = self.build(
                 **config,
-                _pbar=initedConfigListProgress,
+                skip_export=True,  # export later for it's not efficient for one by one
+                _pbar=initial_config_list_progress,
             )
-            currentMultimanager.beforewards.expsConfig[currentID] = config
-            currentMultimanager.beforewards.circuitsNum[currentID] = len(
-                self.exps[currentID].beforewards.circuit
+            current_multimanager.beforewards.expsConfig[current_id] = config
+            current_multimanager.beforewards.circuitsNum[current_id] = len(
+                self.exps[current_id].beforewards.circuit
             )
-            files = self.exps[currentID].write(mute=True)
+            files = self.exps[current_id].write(mute=True)
 
-            currentMultimanager.beforewards.jobTagList[
-                self.exps[currentID].commons.tags
-            ].append(currentID)
-            currentMultimanager.beforewards.filesTagList[
-                self.exps[currentID].commons.tags
+            current_multimanager.beforewards.jobTagList[
+                self.exps[current_id].commons.tags
+            ].append(current_id)
+            current_multimanager.beforewards.filesTagList[
+                self.exps[current_id].commons.tags
             ].append(files)
-            currentMultimanager.beforewards.indexTagList[
-                self.exps[currentID].commons.tags
-            ].append(self.exps[currentID].commons.serial)
+            current_multimanager.beforewards.indexTagList[
+                self.exps[current_id].commons.tags
+            ].append(self.exps[current_id].commons.serial)
 
-        filesMulti = currentMultimanager.write()
+        current_multimanager.write()
 
-        assert len(currentMultimanager.beforewards.pendingPools) == 0
-        assert len(currentMultimanager.beforewards.circuitsMap) == 0
-        assert len(currentMultimanager.beforewards.jobID) == 0
+        assert len(current_multimanager.beforewards.pendingPools) == 0
+        assert len(current_multimanager.beforewards.circuitsMap) == 0
+        assert len(current_multimanager.beforewards.jobID) == 0
 
-        return currentMultimanager.multicommons.summonerID
+        return current_multimanager.multicommons.summonerID
 
     def multiOutput(
         self,
@@ -1118,43 +1110,43 @@ class QurryV5Prototype(ABC):
             jobsType="local",
             filetype=filetype,
         )
-        currentMultimanager = self.multimanagers[besummonned]
-        assert currentMultimanager.summonerID == besummonned
-        circSerial = []
+        current_multimanager = self.multimanagers[besummonned]
+        assert current_multimanager.summonerID == besummonned
+        circ_serial: list[int] = []
 
-        experimentProgress = qurry_progressbar(
-            currentMultimanager.beforewards.expsConfig
+        experiment_progress = qurry_progressbar(
+            current_multimanager.beforewards.expsConfig
         )
 
-        for id_exec in experimentProgress:
-            experimentProgress.set_description_str("Experiments running...")
-            currentID = self.output(
+        for id_exec in experiment_progress:
+            experiment_progress.set_description_str("Experiments running...")
+            current_id = self.output(
                 expID=id_exec,
-                saveLocation=currentMultimanager.multicommons.saveLocation,
+                saveLocation=current_multimanager.multicommons.saveLocation,
                 _export_mute=True,
             )
 
-            circSerialLen = len(circSerial)
-            tmpCircSerial = [
-                idx + circSerialLen
-                for idx in range(len(self.exps[currentID].beforewards.circuit))
+            circ_serial_len = len(circ_serial)
+            tmp_circ_serial = [
+                idx + circ_serial_len
+                for idx in range(len(self.exps[current_id].beforewards.circuit))
             ]
 
-            circSerial += tmpCircSerial
-            currentMultimanager.beforewards.pendingPools[currentID] = tmpCircSerial
-            currentMultimanager.beforewards.circuitsMap[currentID] = tmpCircSerial
-            currentMultimanager.beforewards.jobID.append((currentID, "local"))
+            circ_serial += tmp_circ_serial
+            current_multimanager.beforewards.pendingPools[current_id] = tmp_circ_serial
+            current_multimanager.beforewards.circuitsMap[current_id] = tmp_circ_serial
+            current_multimanager.beforewards.jobID.append((current_id, "local"))
 
-            currentMultimanager.afterwards.allCounts[currentID] = self.exps[
-                currentID
+            current_multimanager.afterwards.allCounts[current_id] = self.exps[
+                current_id
             ].afterwards.counts
 
-        currentMultimanager.multicommons.datetimes.add_serial("output")
+        current_multimanager.multicommons.datetimes.add_serial("output")
         if len(defaultMultiAnalysis) > 0:
             print("| MultiOutput analyzing...")
             for analysis in defaultMultiAnalysis:
                 self.multiAnalysis(
-                    summonerID=currentMultimanager.multicommons.summonerID,
+                    summonerID=current_multimanager.multicommons.summonerID,
                     analysisName=analysisName,
                     _write=False,
                     **analysis,
@@ -1163,7 +1155,7 @@ class QurryV5Prototype(ABC):
         bewritten = self.multiWrite(besummonned)
         assert bewritten == besummonned
 
-        return currentMultimanager.multicommons.summonerID
+        return current_multimanager.multicommons.summonerID
 
     def multiPending(
         self,
@@ -1226,23 +1218,23 @@ class QurryV5Prototype(ABC):
             jobsType=f"{jobsType}.{pendingStrategy}",
             filetype=filetype,
         )
-        currentMultimanager = self.multimanagers[besummonned]
-        assert currentMultimanager.summonerID == besummonned
+        current_multimanager = self.multimanagers[besummonned]
+        assert current_multimanager.summonerID == besummonned
 
         print("| MultiPending running...")
         self.accessor = ExtraBackendAccessor(
-            multimanager=currentMultimanager,
+            multimanager=current_multimanager,
             experiment_container=self.exps,
             backend=backend,
             backend_type=jobsType,
         )
-        bependings = self.accessor.pending(
+        self.accessor.pending(
             pending_strategy=pendingStrategy,
         )
         bewritten = self.multiWrite(besummonned)
         assert bewritten == besummonned
 
-        return currentMultimanager.multicommons.summonerID
+        return current_multimanager.multicommons.summonerID
 
     def multiAnalysis(
         self,
@@ -1278,25 +1270,23 @@ class QurryV5Prototype(ABC):
             specificAnalysisArgs = {}
 
         if summonerID in self.multimanagers:
-            currentMultimanager = self.multimanagers[summonerID]
+            current_multimanager = self.multimanagers[summonerID]
         else:
             raise ValueError("No such summonerID in multimanagers.")
 
-        reportName = currentMultimanager.analyze(
+        report_name = current_multimanager.analyze(
             self.exps,
             analysis_name=analysisName,
             no_serialize=noSerialize,
             specific_analysis_args=specificAnalysisArgs,
             **analysisArgs,
         )
-        print(f'| "{reportName}" has been completed.')
+        print(f'| "{report_name}" has been completed.')
 
         if _write:
-            filesMulti = currentMultimanager.write(_only_quantity=True)
-        else:
-            filesMulti = {}
+            current_multimanager.write(_only_quantity=True)
 
-        return currentMultimanager.multicommons.summonerID
+        return current_multimanager.multicommons.summonerID
 
     def multiWrite(
         self,
@@ -1325,16 +1315,16 @@ class QurryV5Prototype(ABC):
         if not summonerID in self.multimanagers:
             raise ValueError("No such summonerID in multimanagers.", summonerID)
 
-        currentMultimanager = self.multimanagers[summonerID]
-        assert currentMultimanager.summonerID == summonerID
+        current_multimanager = self.multimanagers[summonerID]
+        assert current_multimanager.summonerID == summonerID
 
-        filesMulti = currentMultimanager.write(
+        current_multimanager.write(
             save_location=saveLocation if saveLocation is not None else None,
             wave_container=self.exps,
         )
 
         if compress:
-            currentMultimanager.compress(
+            current_multimanager.compress(
                 compress_overwrite=compressOverwrite,
                 remain_only_compressed=remainOnlyCompressed,
             )
@@ -1345,7 +1335,7 @@ class QurryV5Prototype(ABC):
                     + "but 'compress' is False."
                 )
 
-        return currentMultimanager.multicommons.summonerID
+        return current_multimanager.multicommons.summonerID
 
     def multiRead(
         self,
@@ -1377,7 +1367,7 @@ class QurryV5Prototype(ABC):
         """
 
         print("| MultiRead running...")
-        initedConfigList, besummonned = self._paramsControlMulti(
+        _, besummonned = self._params_control_multi(
             configList=[],
             summonerName=summonerName,
             summonerID=summonerID,
@@ -1471,51 +1461,51 @@ class QurryV5Prototype(ABC):
             saveLocation=saveLocation,
             read_from_tarfile=read_from_tarfile,
         )
-        currentMultimanager = self.multimanagers[besummonned]
-        assert currentMultimanager.summonerID == besummonned
+        current_multimanager = self.multimanagers[besummonned]
+        assert current_multimanager.summonerID == besummonned
 
         print("| MultiRetrieve running...")
-        jobsType, pendingStrategy = currentMultimanager.multicommons.jobsType.split(".")
+        jobs_type, _pending_strategy = current_multimanager.multicommons.jobsType.split(".")
 
         self.accessor = ExtraBackendAccessor(
-            multimanager=currentMultimanager,
+            multimanager=current_multimanager,
             experiment_container=self.exps,
             backend=backend,
-            backend_type=jobsType,
+            backend_type=jobs_type,
         )
 
-        if jobsType == "IBMQ":
-            beretrieveds = self.accessor.retrieve(
+        if jobs_type == "IBMQ":
+            self.accessor.retrieve(
                 provider=backend.provider(),
                 refresh=refresh,
                 overwrite=overwrite,
             )
-        elif jobsType == "IBM":
-            beretrieveds = self.accessor.retrieve(
+        elif jobs_type == "IBM":
+            self.accessor.retrieve(
                 overwrite=overwrite,
             )
 
         else:
             warnings.warn(
                 f"Jobstype of '{besummonned}' is "
-                + f"{currentMultimanager.multicommons.jobsType} which is not supported."
+                + f"{current_multimanager.multicommons.jobsType} which is not supported."
             )
             return besummonned
 
-        print(f"| Retrieve {currentMultimanager.summonerName} completed.")
+        print(f"| Retrieve {current_multimanager.summonerName} completed.")
         bewritten = self.multiWrite(besummonned, compress=not skipCompress)
         assert bewritten == besummonned
 
         if len(defaultMultiAnalysis) > 0:
             for analysis in defaultMultiAnalysis:
                 self.multiAnalysis(
-                    summonerID=currentMultimanager.multicommons.summonerID,
+                    summonerID=current_multimanager.multicommons.summonerID,
                     analysisName=analysisName,
                     _write=False,
                     **analysis,
                 )
 
-        return currentMultimanager.multicommons.summonerID
+        return current_multimanager.multicommons.summonerID
 
     def multiReadV4(
         self,
@@ -1545,7 +1535,7 @@ class QurryV5Prototype(ABC):
             Hashable: SummonerID (ID of multimanager).
         """
 
-        initedConfigList, besummonned = self._paramsControlMulti(
+        _initial_config_list, besummonned = self._params_control_multi(
             configList=[],
             summonerName=summonerName,
             summonerID=summonerID,
@@ -1556,7 +1546,7 @@ class QurryV5Prototype(ABC):
 
         assert besummonned in self.multimanagers
         assert self.multimanagers[besummonned].multicommons.summonerID == besummonned
-        currentMultimanager = self.multimanagers[besummonned]
+        current_multimanager = self.multimanagers[besummonned]
 
         quene: list[ExperimentPrototype] = self.experiment.readV4(
             save_location=saveLocation,
@@ -1565,10 +1555,10 @@ class QurryV5Prototype(ABC):
         )
         for exp in quene:
             self.exps[exp.expID] = exp
-            currentMultimanager.beforewards.jobID.append(
-                [exp.expID, currentMultimanager.multicommons.jobsType]
+            current_multimanager.beforewards.jobID.append(
+                [exp.expID, current_multimanager.multicommons.jobsType]
             )
-            currentMultimanager.afterwards.allCounts[exp.expID] = exp.afterwards.counts
+            current_multimanager.afterwards.allCounts[exp.expID] = exp.afterwards.counts
 
         # if len(defaultMultiAnalysis) > 0:
         #     currentMultimanager = self.multimanagers[besummonned]
@@ -1584,7 +1574,7 @@ class QurryV5Prototype(ABC):
 
     def reset(
         self,
-        *args,
+        *,
         keepWave: bool = True,
         security: bool = False,
     ) -> None:
@@ -1594,12 +1584,12 @@ class QurryV5Prototype(ABC):
             security (bool, optional): Security for reset. Defaults to `False`.
         """
 
-        tmpWaveContainer = {k: v for k, v in self.waves.items()} if keepWave else {}
+        tmp_wave_container = dict(self.waves.items()) if keepWave else {}
 
         if security and isinstance(security, bool):
             self.__init__()
             gc.collect()
-            for k, v in tmpWaveContainer.items():
+            for k, v in tmp_wave_container.items():
                 self.add(v, k)
             warnings.warn(
                 "The measurement has reset and release memory allocating.",
@@ -1669,17 +1659,16 @@ class QurryV5(QurryV5Prototype):
     ) -> list[QuantumCircuit]:
         assert expID in self.exps
         assert self.exps[expID].commons.expID == expID
-        currentExp = self.exps[expID]
+        current_exp = self.exps[expID]
         args: QurryExperiment.Arguments = self.exps[expID].args
         commons: QurryExperiment.Commonparams = self.exps[expID].commons
         circuit = self.waves[commons.waveKey]
-        numQubits = circuit.num_qubits
-
-        currentExp[
+        
+        current_exp[
             "expName"
-        ] = f"{args.expName}-{currentExp.commons.waveKey}-x{args.sampling}"
+        ] = f"{args.expName}-{current_exp.commons.waveKey}-x{args.sampling}"
         print(
-            f"| Directly call: {currentExp.commons.waveKey} with sampling {args.sampling} times."
+            f"| Directly call: {current_exp.commons.waveKey} with sampling {args.sampling} times."
         )
 
         return [circuit for i in range(args.sampling)]
@@ -1732,19 +1721,19 @@ class QurryV5(QurryV5Prototype):
             dict: The output.
         """
 
-        IDNow = self.result(
+        id_now = self.result(
             wave=wave,
             expName=expName,
             sampling=sampling,
             saveLocation=None,
             **otherArgs,
         )
-        assert IDNow in self.exps, f"ID {IDNow} not found."
-        assert self.exps[IDNow].commons.expID == IDNow
-        currentExp = self.exps[IDNow]
+        assert id_now in self.exps, f"ID {id_now} not found."
+        assert self.exps[id_now].commons.expID == id_now
+        current_exp = self.exps[id_now]
 
         if isinstance(saveLocation, (Path, str)):
-            currentExp.write(
+            current_exp.write(
                 save_location=saveLocation,
                 mode=mode,
                 indent=indent,
@@ -1752,4 +1741,4 @@ class QurryV5(QurryV5Prototype):
                 jsonable=jsonablize,
             )
 
-        return IDNow
+        return id_now
