@@ -597,7 +597,10 @@ class MultiManager:
             workers_num = DEFAULT_POOL_SIZE
 
         if wave_container is not None:
-            for id_exec in self.beforewards.exps_config:
+            for id_exec in qurry_progressbar(
+                self.beforewards.exps_config,
+                desc="Exporting...",
+            ):
                 wave_container[id_exec].write(
                     save_location=self.multicommons.save_location,
                     mute=True,
