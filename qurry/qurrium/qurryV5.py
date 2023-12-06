@@ -496,13 +496,18 @@ class QurryV5Prototype(ABC):
         current_exp.unlock_afterward(mute_auto_lock=True)
         current_exp["result"].append(result)
 
-
         return id_now
 
     def result(
         self,
         *args,
         save_location: Optional[Union[Path, str]] = None,
+        mode: str = "w+",
+        indent: int = 2,
+        encoding: str = "utf-8",
+        jsonablize: bool = False,
+        _export_mute: bool = False,
+        _pbar: Optional[tqdm.tqdm] = None,
         **other_kwargs: Any,
     ) -> str:
         """Export the result after running the job.
@@ -535,7 +540,16 @@ class QurryV5Prototype(ABC):
             )
 
         # preparing
-        id_now = self.run(save_location=save_location, **other_kwargs)
+        id_now = self.run(
+            save_location=save_location,
+            mode=mode,
+            indent=indent,
+            encoding=encoding,
+            jsonablize=jsonablize,
+            _export_mute=_export_mute,
+            _pbar=_pbar,
+            **other_kwargs,
+        )
         assert id_now in self.exps, f"ID {id_now} not found."
         assert self.exps[id_now].commons.exp_id == id_now
         current_exp = self.exps[id_now]
@@ -555,6 +569,18 @@ class QurryV5Prototype(ABC):
             for _analysis in current_exp.commons.default_analysis:
                 current_exp.analyze(**_analysis)
 
+        if isinstance(save_location, (Path, str)):
+            if isinstance(_pbar, tqdm.tqdm):
+                _pbar.set_description_str("Exporting data... ")
+            current_exp.write(
+                save_location=save_location,
+                mode=mode,
+                indent=indent,
+                encoding=encoding,
+                jsonable=jsonablize,
+                mute=_export_mute,
+            )
+
         return id_now
 
     def output(
@@ -566,7 +592,8 @@ class QurryV5Prototype(ABC):
         encoding: str = "utf-8",
         jsonablize: bool = False,
         _export_mute: bool = False,
-        **otherArgs: Any,
+        _pbar: Optional[tqdm.tqdm] = None,
+        **other_kwargs: Any,
     ):
         """Export the result after running the job.
         ## The second finishing point.
@@ -611,7 +638,13 @@ class QurryV5Prototype(ABC):
 
         id_now = self.result(
             save_location=save_location,
-            **otherArgs,
+            mode=mode,
+            indent=indent,
+            encoding=encoding,
+            jsonablize=jsonablize,
+            _export_mute=_export_mute,
+            _pbar=_pbar,
+            **other_kwargs,
         )
         assert id_now in self.exps, f"ID {id_now} not found."
         assert self.exps[id_now].commons.exp_id == id_now
@@ -620,16 +653,6 @@ class QurryV5Prototype(ABC):
         if len(current_exp.afterwards.result) > 0:
             return id_now
 
-        if isinstance(save_location, (Path, str)):
-            current_exp.write(
-                save_location=save_location,
-                mode=mode,
-                indent=indent,
-                encoding=encoding,
-                jsonable=jsonablize,
-                mute=_export_mute,
-            )
-
         return id_now
 
     _rjustLen: int = 3
@@ -637,21 +660,14 @@ class QurryV5Prototype(ABC):
 
     def _params_control_multi(
         self,
-        # configList
         config_list: list[dict[str, Any]],
-        # defaultConfig of `IBMQJobManager().run`
-        # Multiple jobs shared
         summoner_name: str = "exps",
         summoner_id: Optional[str] = None,
         shots: int = 1024,
         backend: Backend = GeneralAerSimulator(),
-        # provider: AccountProvider = None,
-        # Other arguments of experiment
-        # Multiple jobs shared
         tags: Optional[list[str]] = None,
         save_location: Union[Path, str] = Path("./"),
         jobstype: BackendChoiceLiteral = "local",
-        # IBMQJobManager() dedicated
         manager_run_args: Optional[dict[str, Any]] = None,
         filetype: TagList._availableFileType = "json",
         is_retrieve: bool = False,
@@ -777,21 +793,14 @@ class QurryV5Prototype(ABC):
 
     # pylint: disable=invalid-name
     def multiBuild(
-        # pylint: enable=invalid-name
         self,
-        # configList
         config_list: list[dict[str, Any]],
-        # defaultConfig of `IBMQJobManager().run`
-        # Multiple jobs shared
         summoner_name: str = "exps",
         summoner_id: Optional[str] = None,
         shots: int = 1024,
         backend: Backend = GeneralAerSimulator(),
-        # IBMQJobManager() dedicated
         tags: Optional[list[str]] = None,
         manager_run_args: Optional[dict[str, Any]] = None,
-        # Other arguments of experiment
-        # Multiple jobs shared
         save_location: Union[Path, str] = Path("./"),
         jobstype: Union[Literal["local"], BackendChoiceLiteral] = "local",
         filetype: TagList._availableFileType = "json",
@@ -866,8 +875,7 @@ class QurryV5Prototype(ABC):
                 self.exps[current_id].beforewards.circuit
             )
             files = self.exps[current_id].write(
-                save_location=current_multimanager.multicommons.save_location,
-                mute=True
+                save_location=current_multimanager.multicommons.save_location, mute=True
             )
 
             current_multimanager.beforewards.jobTagList[
@@ -888,26 +896,16 @@ class QurryV5Prototype(ABC):
 
         return current_multimanager.multicommons.summoner_id
 
-    # pylint: disable=invalid-name
     def multiOutput(
-        # pylint: enable=invalid-name
         self,
-        # configList
         config_list: list[dict[str, Any]],
-        # defaultConfig of `IBMQJobManager().run`
-        # Multiple jobs shared
         summoner_name: str = "exps",
         summoner_id: Optional[str] = None,
         shots: int = 1024,
         backend: Backend = GeneralAerSimulator(),
         tags: Optional[list[str]] = None,
-        # provider: AccountProvider = None,
-        # IBMQJobManager() dedicated
-        # Other arguments of experiment
-        # Multiple jobs shared
         save_location: Union[Path, str] = Path("./"),
         filetype: TagList._availableFileType = "json",
-        # analysis preparation
     ) -> Hashable:
         """Running multiple jobs on local backend and output the analysis.
 
@@ -992,29 +990,22 @@ class QurryV5Prototype(ABC):
             current_multimanager.afterwards.allCounts[current_id] = self.exps[
                 current_id
             ].afterwards.counts
-
         current_multimanager.multicommons.datetimes.add_serial("output")
-
-        bewritten = self.multiWrite(besummonned)
-        assert bewritten == besummonned
+        # For output include writting, no need to write again
+        # bewritten = self.multiWrite(besummonned)
+        # assert bewritten == besummonned
 
         return current_multimanager.multicommons.summoner_id
 
-    # pylint: disable=invalid-name
     def multiPending(
-        # pylint: enable=invalid-name
         self,
-        # configList
         config_list: list[dict[str, Any]],
-        # Multiple jobs shared
         summoner_name: str = "exps",
         summoner_id: Optional[str] = None,
         shots: int = 1024,
         backend: Backend = GeneralAerSimulator(),
         tags: Optional[list[str]] = None,
         manager_run_args: Optional[dict[str, Any]] = None,
-        # Other arguments of experiment
-        # Multiple jobs shared
         save_location: Union[Path, str] = Path("./"),
         jobstype: BackendChoiceLiteral = "IBM",
         filetype: TagList._availableFileType = "json",
@@ -1081,9 +1072,7 @@ class QurryV5Prototype(ABC):
 
         return current_multimanager.multicommons.summoner_id
 
-    # pylint: disable=invalid-name
     def multiAnalysis(
-        # pylint: enable=invalid-name
         self,
         summoner_id: str,
         analysis_name: str = "report",
@@ -1135,7 +1124,6 @@ class QurryV5Prototype(ABC):
 
         return current_multimanager.multicommons.summoner_id
 
-    # pylint: disable=invalid-name
     def multiWrite(
         self,
         summoner_id: Hashable,
@@ -1144,7 +1132,6 @@ class QurryV5Prototype(ABC):
         compress_overwrite: bool = False,
         remain_only_compressed: bool = False,
     ) -> Hashable:
-        # pylint: enable=invalid-name
         """Write the multimanager to the file.
 
         Args:
@@ -1186,16 +1173,10 @@ class QurryV5Prototype(ABC):
 
         return current_multimanager.multicommons.summoner_id
 
-    # pylint: disable=invalid-name
     def multiRead(
-        # pylint: enable=invalid-name
         self,
-        # configList
         summoner_name: str = "exps",
         summoner_id: Optional[str] = None,
-        # IBMQJobManager() dedicated
-        # Other arguments of experiment
-        # Multiple jobs shared
         save_location: Union[Path, str] = Path("./"),
         read_from_tarfile: bool = False,
         # defaultMultiAnalysis: list[dict[str, Any]] = []
@@ -1239,9 +1220,7 @@ class QurryV5Prototype(ABC):
 
         return besummonned
 
-    # pylint: disable=invalid-name
     def multiRetrieve(
-        # pylint: enable=invalid-name
         self,
         summoner_name: str = "exps",
         summoner_id: Optional[str] = None,
@@ -1349,7 +1328,9 @@ class QurryV5Prototype(ABC):
         tmp_wave_container = dict(self.waves.items()) if keepWave else {}
 
         if security and isinstance(security, bool):
+            # pylint: disable=unnecessary-dunder-call
             self.__init__()
+            # pylint: enable=unnecessary-dunder-call
             gc.collect()
             for k, v in tmp_wave_container.items():
                 self.add(v, k)
@@ -1363,6 +1344,9 @@ class QurryV5Prototype(ABC):
                 + "if you are sure to do this, then use '.reset(security=True)'.",
                 QurryResetSecurityActivated,
             )
+
+
+# pylint: enable=invalid-name
 
 
 class QurryV5(QurryV5Prototype):

@@ -7,21 +7,20 @@ MultiManager for Qurry (:mod:`qurry.qurrium.multimanager`)
 import os
 import gc
 import shutil
-import json
 import tarfile
 import warnings
 
 from pathlib import Path
-from typing import Literal, Union, Optional, NamedTuple, Hashable, Any, Iterable
+from typing import Literal, Union, Optional, Hashable, Any
 from uuid import uuid4, UUID
-from tqdm.contrib.concurrent import process_map
 
-from qiskit.result import Result
-from qiskit.providers import Backend
+# from tqdm.contrib.concurrent import process_map
+
 
 from .container import (
     MultiCommonparams,
-    Before, After,
+    Before,
+    After,
 )
 from ..container import ExperimentContainer, QuantityContainer
 from ..experiment import ExperimentPrototype
@@ -29,7 +28,7 @@ from ..utils.iocontrol import naming
 from ...tools.datetime import current_time, DatetimeDict
 from ...declare.multimanager import multicommonConfig
 from ...tools import qurry_progressbar, DEFAULT_POOL_SIZE
-from ...capsule import quickJSON, quickRead
+from ...capsule import quickJSON
 from ...capsule.mori import TagList, GitSyncControl
 from ...exceptions import (
     QurryInvalidArgument,
@@ -66,6 +65,7 @@ def write_caller(
 
 class MultiManager:
     """The manager of multiple experiments."""
+
     MultiCommonparams = MultiCommonparams
     Before = Before
     After = After
@@ -281,6 +281,7 @@ class MultiManager:
                     mutlticonfig_name=multiconfig_name_v5,
                     save_location=self.naming_complex.save_location,
                     export_location=self.naming_complex.export_location,
+                    encoding=encoding,
                 )
                 files = rawread_multiconfig["files"]
                 old_files = rawread_multiconfig["files"].copy()
@@ -309,6 +310,7 @@ class MultiManager:
                     mutlticonfig_name=multiconfig_name_v7,
                     save_location=self.naming_complex.save_location,
                     export_location=self.naming_complex.export_location,
+                    encoding=encoding,
                 )
                 files = rawread_multiconfig["files"]
 
@@ -553,7 +555,8 @@ class MultiManager:
             elif isinstance(self[k], (dict, list)):
                 export_progress.set_description_str(f"{k} as {exporting_name[k]}")
                 filename = (
-                    Path(self.multicommons.export_location) / f"{exporting_name[k]}.json"
+                    Path(self.multicommons.export_location)
+                    / f"{exporting_name[k]}.json"
                 )
                 self.multicommons.files[exporting_name[k]] = str(filename)
                 if not k in self._syncPrevent:
@@ -593,44 +596,52 @@ class MultiManager:
         if workers_num is None:
             workers_num = DEFAULT_POOL_SIZE
 
-        # if wave_container is not None:
-        #     qurryinfos: dict[str, dict[str, str]] = {}
-        #     qurryinfos_loc = self.multicommons.export_location / "qurryinfo.json"
-        #     if os.path.exists(save_location / qurryinfos_loc):
-        #         with open(save_location / qurryinfos_loc, "r", encoding="utf-8") as f:
-        #             qurryinfo_found: dict[str, dict[str, str]] = json.load(f)
-        #             qurryinfos = {**qurryinfo_found, **qurryinfos}
+        if wave_container is not None:
+            for id_exec in self.beforewards.expsConfig:
+                wave_container[id_exec].write(
+                    save_location=self.multicommons.export_location,
+                    mute=True,
+                )
 
-        #     print(
-        #         f"| Export data of {len(self.beforewards.expsConfig)} "
-        #         + f"experiments for {self.summoner_id}"
-        #     )
-        #     export_qurryinfo_items: list[tuple[Hashable, dict[str, str]]] = process_map(
-        #         write_caller,
-        #         [
-        #             (
-        #                 wave_container[id_exec],
-        #                 self.multicommons.save_location,
-        #                 self.summoner_id,
-        #             )
-        #             for id_exec in self.beforewards.expsConfig
-        #         ],
-        #         bar_format="| {n_fmt}/{total_fmt} {percentage:3.0f}%|{bar}| "
-        #         + "- writing... - {elapsed} < {remaining}",
-        #         ascii=" ▖▘▝▗▚▞█",
-        #     )
-        #     qurryinfos = {**qurryinfos, **dict(export_qurryinfo_items)}
+            # See: https://github.com/harui2019/qurry/issues/103
+            # For why disable this part.
+            # qurryinfos: dict[str, dict[str, str]] = {}
+            # qurryinfos_loc = self.multicommons.export_location / "qurryinfo.json"
+            # if os.path.exists(save_location / qurryinfos_loc):
+            #     with open(save_location / qurryinfos_loc, "r", encoding="utf-8") as f:
+            #         qurryinfo_found: dict[str, dict[str, str]] = json.load(f)
+            #         qurryinfos = {**qurryinfo_found, **qurryinfos}
 
-        #     quickJSON(
-        #         content=qurryinfos,
-        #         filename=qurryinfos_loc,
-        #         mode="w+",
-        #         indent=indent,
-        #         encoding=encoding,
-        #         jsonable=True,
-        #         mute=True,
-        #     )
-        #     gc.collect()
+            # print(
+            #     f"| Export data of {len(self.beforewards.expsConfig)} "
+            #     + f"experiments for {self.summoner_id}"
+            # )
+            # export_qurryinfo_items: list[tuple[Hashable, dict[str, str]]] = process_map(
+            #     write_caller,
+            #     [
+            #         (
+            #             wave_container[id_exec],
+            #             self.multicommons.save_location,
+            #             self.summoner_id,
+            #         )
+            #         for id_exec in self.beforewards.expsConfig
+            #     ],
+            #     bar_format="| {n_fmt}/{total_fmt} {percentage:3.0f}%|{bar}| "
+            #     + "- writing... - {elapsed} < {remaining}",
+            #     ascii=" ▖▘▝▗▚▞█",
+            # )
+            # qurryinfos = {**qurryinfos, **dict(export_qurryinfo_items)}
+
+            # quickJSON(
+            #     content=qurryinfos,
+            #     filename=qurryinfos_loc,
+            #     mode="w+",
+            #     indent=indent,
+            #     encoding=encoding,
+            #     jsonable=True,
+            #     mute=True,
+            # )
+            # gc.collect()
 
         return multiconfig
 
