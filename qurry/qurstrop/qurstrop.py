@@ -119,7 +119,7 @@
 #                     f"but operator {k1} in '.strOpLib' lost this key, " +
 #                     "initialization has been canceled.")
 
-#         self._expsConfig = self.expsConfig(
+#         self._exps_config = self.exps_config(
 #             name="qurstropConfig",
 #         )
 #         self._expsBase = self.expsBase(
@@ -135,13 +135,13 @@
 #                 'order': 'The String Order Parameters.',
 #             },
 #         )
-#         self._expsMultiConfig = self.expsConfigMulti(
+#         self._expsMultiConfig = self.exps_configMulti(
 #             name="qurstropConfigMulti",
 #         )
 #         self.shortName = 'qurstrop'
 #         self.__name__ = 'StringOperator'
 
-#         return self._expsConfig, self._expsBase
+#         return self._exps_config, self._expsBase
 
 #     """Arguments and Parameters control"""
 

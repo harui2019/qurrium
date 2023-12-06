@@ -347,14 +347,14 @@ class MultiManager:
                 "filetype": filetype,
             }
             self.beforewards = self.Before(
-                expsConfig={},
-                circuitsNum={},
-                circuitsMap=TagList(),
-                pendingPools=TagList(),
+                exps_config={},
+                circuits_num={},
+                circuits_map=TagList(),
+                pending_pool=TagList(),
                 job_id=[],
-                jobTagList=TagList(),
-                filesTagList=TagList(),
-                indexTagList=TagList(),
+                job_taglist=TagList(),
+                files_taglist=TagList(),
+                index_taglist=TagList(),
             )
             self.afterwards = self.After(
                 retrievedResult={},
@@ -597,7 +597,7 @@ class MultiManager:
             workers_num = DEFAULT_POOL_SIZE
 
         if wave_container is not None:
-            for id_exec in self.beforewards.expsConfig:
+            for id_exec in self.beforewards.exps_config:
                 wave_container[id_exec].write(
                     save_location=self.multicommons.export_location,
                     mute=True,
@@ -613,7 +613,7 @@ class MultiManager:
             #         qurryinfos = {**qurryinfo_found, **qurryinfos}
 
             # print(
-            #     f"| Export data of {len(self.beforewards.expsConfig)} "
+            #     f"| Export data of {len(self.beforewards.exps_config)} "
             #     + f"experiments for {self.summoner_id}"
             # )
             # export_qurryinfo_items: list[tuple[Hashable, dict[str, str]]] = process_map(
@@ -624,7 +624,7 @@ class MultiManager:
             #             self.multicommons.save_location,
             #             self.summoner_id,
             #         )
-            #         for id_exec in self.beforewards.expsConfig
+            #         for id_exec in self.beforewards.exps_config
             #     ],
             #     bar_format="| {n_fmt}/{total_fmt} {percentage:3.0f}%|{bar}| "
             #     + "- writing... - {elapsed} < {remaining}",

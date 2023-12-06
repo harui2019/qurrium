@@ -96,7 +96,7 @@ class IBMRunner(Runner):
                 ...
 
         distributing_pending_progressbar = qurry_progressbar(
-            self.current_multimanager.beforewards.expsConfig,
+            self.current_multimanager.beforewards.exps_config,
             bar_format="| {n_fmt}/{total_fmt} - Preparing pending pool - {elapsed} < {remaining}",
             # leave=False,
         )
@@ -106,18 +106,18 @@ class IBMRunner(Runner):
             for idx, circ in enumerate(
                 self.experiment_container[id_exec].beforewards.circuit
             ):
-                self.current_multimanager.beforewards.circuitsMap[id_exec].append(
+                self.current_multimanager.beforewards.circuits_map[id_exec].append(
                     idx + circ_serial_len
                 )
 
                 if pending_strategy == "each":
-                    self.current_multimanager.beforewards.pendingPools[id_exec].append(
+                    self.current_multimanager.beforewards.pending_pool[id_exec].append(
                         idx + circ_serial_len
                     )
 
                 elif pending_strategy == "tags":
                     tags = self.experiment_container[id_exec].commons.tags
-                    self.current_multimanager.beforewards.pendingPools[tags].append(
+                    self.current_multimanager.beforewards.pending_pool[tags].append(
                         idx + circ_serial_len
                     )
 
@@ -126,7 +126,7 @@ class IBMRunner(Runner):
                         warnings.warn(
                             f"Unknown strategy '{pending_strategy}, use 'onetime'."
                         )
-                    self.current_multimanager.beforewards.pendingPools[
+                    self.current_multimanager.beforewards.pending_pool[
                         "_onetime"
                     ].append(idx + circ_serial_len)
 
@@ -136,7 +136,7 @@ class IBMRunner(Runner):
         self.current_multimanager.multicommons.datetimes["pending"] = current
 
         pendingpool_progressbar = qurry_progressbar(
-            self.current_multimanager.beforewards.pendingPools.items(),
+            self.current_multimanager.beforewards.pending_pool.items(),
             bar_format="| {n_fmt}/{total_fmt} - pending: {desc} - {elapsed} < {remaining}",
             # leave=False,
         )
@@ -176,7 +176,7 @@ class IBMRunner(Runner):
                 pendingpool_progressbar.set_description_str(
                     f"{pk}/{pending_job.job_id()}/{pending_job.tags()}"
                 )
-                self.current_multimanager.beforewards.jobID.append(
+                self.current_multimanager.beforewards.job_id.append(
                     (pending_job.job_id(), pk)
                 )
                 self.reports[pending_job.job_id()] = {
@@ -185,17 +185,17 @@ class IBMRunner(Runner):
                 }
 
             else:
-                self.current_multimanager.beforewards.jobID.append((None, pk))
+                self.current_multimanager.beforewards.job_id.append((None, pk))
                 warnings.warn(f"| Pending pool '{pk}' is empty.")
 
-        for id_exec in self.current_multimanager.beforewards.expsConfig:
+        for id_exec in self.current_multimanager.beforewards.exps_config:
             self.experiment_container[id_exec].commons.datetimes["pending"] = current
 
         self.current_multimanager.multicommons.datetimes[
             "pendingCompleted"
         ] = current_time()
 
-        return self.current_multimanager.beforewards.jobID
+        return self.current_multimanager.beforewards.job_id
 
     def retrieve(
         self,
@@ -223,7 +223,7 @@ class IBMRunner(Runner):
             print("| Seems to there are some retrieves before.")
             print("| You can use `overwrite=True` to overwrite the previous retrieve.")
 
-            return self.current_multimanager.beforewards.jobID
+            return self.current_multimanager.beforewards.job_id
 
         if overwrite:
             print("| Overwrite the previous retrieve.")
@@ -239,7 +239,7 @@ class IBMRunner(Runner):
             print("| Downgrade compatibility with qiskit-ibmq-provider is available.")
 
         retrieve_progressbar = qurry_progressbar(
-            self.current_multimanager.beforewards.jobID,
+            self.current_multimanager.beforewards.job_id,
             bar_format="| {n_fmt}/{total_fmt} - retrieve: {desc} - {elapsed} < {remaining}",
             # leave=False,
         )
@@ -300,7 +300,7 @@ class IBMRunner(Runner):
                     pending_map[pk] = None
 
         pendingpool_progressbar = qurry_progressbar(
-            self.current_multimanager.beforewards.pendingPools.items(),
+            self.current_multimanager.beforewards.pending_pool.items(),
             bar_format=(
                 "| {n_fmt}/{total_fmt} - get counts: {desc} - {elapsed} < {remaining}"
             ),
@@ -348,7 +348,7 @@ class IBMRunner(Runner):
                 warnings.warn(f"Pending pool '{pk}' is empty.")
 
         distributing_progressbar = qurry_progressbar(
-            self.current_multimanager.beforewards.circuitsMap.items(),
+            self.current_multimanager.beforewards.circuits_map.items(),
             bar_format=(
                 "| {n_fmt}/{total_fmt} - Distributing {desc} - {elapsed} < {remaining}"
             ),
@@ -372,4 +372,4 @@ class IBMRunner(Runner):
                 current_id
             ] = self.experiment_container[current_id].afterwards.counts
 
-        return self.current_multimanager.beforewards.jobID
+        return self.current_multimanager.beforewards.job_id

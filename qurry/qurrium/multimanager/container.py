@@ -103,16 +103,16 @@ class MultiCommonparams(NamedTuple):
 class Before(NamedTuple):
     """`dataNeccessary` and `expsMultiMain` in V4 format."""
 
-    expsConfig: dict[str, dict[str, any]]
+    exps_config: dict[str, dict[str, any]]
     """The dict of config of each experiments."""
-    circuitsNum: dict[str, int]
+    circuits_num: dict[str, int]
     """The map with tags of index of experiments, which multiple experiments shared."""
 
-    pendingPools: TagList[int]
+    pending_pool: TagList[int]
     """The pool of pending jobs, which multiple experiments shared, 
     it works only when executing experiments is remote.
     """
-    circuitsMap: TagList[str]
+    circuits_map: TagList[str]
     """The map of circuits of each experiments in the index of pending, 
     which multiple experiments shared.
     """
@@ -121,22 +121,22 @@ class Before(NamedTuple):
     it works only when executing experiments is remote.
     """
 
-    jobTagList: TagList[str]
-    filesTagList: TagList[str]
-    indexTagList: TagList[Union[str, int]]
+    job_taglist: TagList[str]
+    files_taglist: TagList[str]
+    index_taglist: TagList[Union[str, int]]
 
     @staticmethod
     def exporting_name():
         """The exporting name of :cls:`Before`."""
         return {
-            "expsConfig": "exps.config",
-            "circuitsNum": "circuitsNum",
-            "pendingPools": "pendingPools",
-            "circuitsMap": "circuitsMap",
+            "exps_config": "exps.config",
+            "circuits_num": "circuitsNum",
+            "pending_pool": "pendingPools",
+            "circuits_map": "circuitsMap",
             "job_id": "jobID",
-            "jobTagList": "job.tagList",
-            "filesTagList": "files.tagList",
-            "indexTagList": "index.tagList",
+            "job_taglist": "job.tagList",
+            "files_taglist": "files.tagList",
+            "index_taglist": "index.tagList",
         }
 
     @classmethod
@@ -150,7 +150,7 @@ class Before(NamedTuple):
             file_location = {}
 
         return cls(
-            expsConfig=quickRead(
+            exps_config=quickRead(
                 filename=(
                     "exps.config.json"
                     if version == "v7"
@@ -158,18 +158,18 @@ class Before(NamedTuple):
                 ),
                 save_location=export_location,
             ),
-            circuitsNum=quickRead(
+            circuits_num=quickRead(
                 filename=(
                     "circuitsNum.json"
                     if version == "v7"
-                    else Path(file_location["circuitsNum"]).name
+                    else Path(file_location["circuits_num"]).name
                 ),
                 save_location=export_location,
             ),
-            circuitsMap=TagList.read(
+            circuits_map=TagList.read(
                 save_location=export_location, tagListName="circuitsMap"
             ),
-            pendingPools=TagList.read(
+            pending_pool=TagList.read(
                 save_location=export_location, tagListName="pendingPools"
             ),
             job_id=quickRead(
@@ -180,15 +180,15 @@ class Before(NamedTuple):
                 ),
                 save_location=export_location,
             ),
-            jobTagList=TagList.read(
+            job_taglist=TagList.read(
                 save_location=export_location,
                 tagListName="job.tagList" if version == "v7" else "tagMapExpsID",
             ),
-            filesTagList=TagList.read(
+            files_taglist=TagList.read(
                 save_location=export_location,
                 tagListName="files.tagList" if version == "v7" else "tagMapFiles",
             ),
-            indexTagList=TagList.read(
+            index_taglist=TagList.read(
                 save_location=export_location,
                 tagListName="index.tagList" if version == "v7" else "tagMapIndex",
             ),

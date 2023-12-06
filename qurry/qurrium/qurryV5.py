@@ -735,7 +735,7 @@ class QurryV5Prototype(ABC):
         if summoner_id in self.multimanagers:
             current_multimanager = self.multimanagers[summoner_id]
             return (
-                list(current_multimanager.beforewards.expsConfig.values()),
+                list(current_multimanager.beforewards.exps_config.values()),
                 current_multimanager.summoner_id,
             )
 
@@ -870,28 +870,28 @@ class QurryV5Prototype(ABC):
                 skip_export=True,  # export later for it's not efficient for one by one
                 _pbar=initial_config_list_progress,
             )
-            current_multimanager.beforewards.expsConfig[current_id] = config
-            current_multimanager.beforewards.circuitsNum[current_id] = len(
+            current_multimanager.beforewards.exps_config[current_id] = config
+            current_multimanager.beforewards.circuits_num[current_id] = len(
                 self.exps[current_id].beforewards.circuit
             )
             files = self.exps[current_id].write(
                 save_location=current_multimanager.multicommons.save_location, mute=True
             )
 
-            current_multimanager.beforewards.jobTagList[
+            current_multimanager.beforewards.job_taglist[
                 self.exps[current_id].commons.tags
             ].append(current_id)
-            current_multimanager.beforewards.filesTagList[
+            current_multimanager.beforewards.files_taglist[
                 self.exps[current_id].commons.tags
             ].append(files)
-            current_multimanager.beforewards.indexTagList[
+            current_multimanager.beforewards.index_taglist[
                 self.exps[current_id].commons.tags
             ].append(self.exps[current_id].commons.serial)
 
         current_multimanager.write()
 
-        assert len(current_multimanager.beforewards.pendingPools) == 0
-        assert len(current_multimanager.beforewards.circuitsMap) == 0
+        assert len(current_multimanager.beforewards.pending_pool) == 0
+        assert len(current_multimanager.beforewards.circuits_map) == 0
         assert len(current_multimanager.beforewards.job_id) == 0
 
         return current_multimanager.multicommons.summoner_id
@@ -965,7 +965,7 @@ class QurryV5Prototype(ABC):
         circ_serial: list[int] = []
 
         experiment_progress = qurry_progressbar(
-            current_multimanager.beforewards.expsConfig
+            current_multimanager.beforewards.exps_config
         )
 
         for id_exec in experiment_progress:
@@ -983,8 +983,8 @@ class QurryV5Prototype(ABC):
             ]
 
             circ_serial += tmp_circ_serial
-            current_multimanager.beforewards.pendingPools[current_id] = tmp_circ_serial
-            current_multimanager.beforewards.circuitsMap[current_id] = tmp_circ_serial
+            current_multimanager.beforewards.pending_pool[current_id] = tmp_circ_serial
+            current_multimanager.beforewards.circuits_map[current_id] = tmp_circ_serial
             current_multimanager.beforewards.job_id.append((current_id, "local"))
 
             current_multimanager.afterwards.allCounts[current_id] = self.exps[
