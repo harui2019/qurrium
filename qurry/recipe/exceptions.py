@@ -1,4 +1,9 @@
-# General Error
+"""
+================================================================
+Exceptions (:mod:`qurry.recipe.exceptions`)
+================================================================
+
+"""
 
 
 class QurecipeError(Exception):
@@ -14,7 +19,6 @@ class QurecipeError(Exception):
         return repr(self.message)
 
 
-# General Warning
 class QurecipeWarning(Warning):
     """Base class for warning raised by Qurecipe."""
 
@@ -33,4 +37,5 @@ class QurecipeCaseNotFoundError(QurecipeError):
 
 
 class InitialStateQubitsNumberNotFitting(QurecipeWarning):
-    """Raised when the initial state's qubit number is not fitting the number Qurecipe object get."""
+    """Raised when the initial state's qubit number is
+    not fitting the number Qurecipe object get."""

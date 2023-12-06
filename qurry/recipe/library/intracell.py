@@ -1,5 +1,10 @@
-from qiskit import QuantumCircuit, QuantumRegister
+"""
+================================================================
+Intracell Library (:mod:`qurry.recipe.library.intracell`)
+================================================================
+"""
 from typing import Literal, NamedTuple
+from qiskit import QuantumCircuit, QuantumRegister
 
 from ..recipe import Qurecipe
 
@@ -54,7 +59,8 @@ class Intracell(Qurecipe):
     Args:
         num_qubits (int): Number of qubits.
         state (str, optional):
-            Choosing the state. There are 'singlet', 'minus', 'plus' which 'minus' is same as 'singlet'.
+            Choosing the state. There are 'singlet', 'minus', 'plus',
+            which 'minus' is same as 'singlet'.
             Defaults to "singlet".
         name (str, optional): Name of case. Defaults to "intracell".
 
@@ -87,7 +93,9 @@ class Intracell(Qurecipe):
 
         return [qc]
 
-    class arguments(NamedTuple):
+    class Arguments(NamedTuple):
+        """The parameters of the case."""
+
         num_qubits: int = 1
         name: str = ""
 
@@ -104,7 +112,8 @@ class Intracell(Qurecipe):
         Args:
             num_qubits (int): Number of qubits.
             state (str, optional):
-                Choosing the state. There are 'singlet', 'minus', 'plus' which 'minus' is same as 'singlet'.
+                Choosing the state. There are 'singlet', 'minus', 'plus',
+                which 'minus' is same as 'singlet'.
                 Defaults to "singlet".
             name (str, optional): Name of case. Defaults to "intracell".
 
@@ -115,15 +124,17 @@ class Intracell(Qurecipe):
         if num_qubits % 2 != 0:
             raise ValueError("Only lattices can construct using this gate.")
 
-        self.case_name = f"intracell_{state}"
-        self.params: Intracell.arguments
-        self._initialize(
+        super().__init__(
             name=name,
             num_qubits=num_qubits,
             state=state,
+            case_name=f"intracell_{state}",
         )
 
+        self.params: Intracell.Arguments
 
+
+# pylint: disable=invalid-name
 def Singlet(
     num_qubits: int,
     name: str = "singlet",
@@ -164,3 +175,6 @@ def Singlet(
         state="singlet",
         name=name,
     )
+
+
+# pylint: enable=invalid-name

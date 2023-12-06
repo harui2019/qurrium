@@ -1,5 +1,11 @@
+"""
+================================================================
+Paramagnet Library (:mod:`qurry.recipe.library.paramagnet`)
+================================================================
+
+"""
+from typing import Literal, NamedTuple
 from qiskit import QuantumCircuit, QuantumRegister
-from typing import Literal, NamedTuple, Union
 
 from ..recipe import Qurecipe
 
@@ -61,8 +67,8 @@ class TrivialParamagnet(Qurecipe):
         q = QuantumRegister(self.params.num_qubits, "q")
         qc = QuantumCircuit(q)
         qc.name = self.case_name
-
-        [qc.h(q[i]) for i in range(self.params.num_qubits)]
+        for i in range(self.params.num_qubits):
+            qc.h(q[i])
 
         return [qc]
 
@@ -78,10 +84,10 @@ class TrivialParamagnet(Qurecipe):
             name (str, optional): Name of case. Defaults to "trivialParamagnet".
         """
 
-        self.case_name = "trivialPM"
-        self._initialize(
-            name=name,
+        super().__init__(
             num_qubits=num_qubits,
+            name=name,
+            case_name="trivialPM",
         )
 
 
@@ -146,7 +152,8 @@ class GHZ(Qurecipe):
         q = QuantumRegister(self.params.num_qubits, "q")
         qc = QuantumCircuit(q)
         qc.h(q[0])
-        [qc.cx(q[i], q[i + 1]) for i in range(self.params.num_qubits - 1)]
+        for i in range(self.params.num_qubits - 1):
+            qc.cx(q[i], q[i + 1])
 
         return [qc]
 
@@ -162,10 +169,10 @@ class GHZ(Qurecipe):
             name (str, optional): Name of case. Defaults to "cat".
         """
 
-        self.case_name = "cat"
-        self._initialize(
-            name=name,
+        super().__init__(
             num_qubits=num_qubits,
+            name=name,
+            case_name="cat",
         )
 
 
@@ -286,21 +293,23 @@ class TopologicalParamagnet(Qurecipe):
             QuantumCircuit: The example circuit.
         """
 
-        qPairNum = int(self.params.num_qubits / 2)
+        q_pair_num = int(self.params.num_qubits / 2)
         border_cond = self.params.border_cond
 
         q = QuantumRegister(self.params.num_qubits, "q")
         qc = QuantumCircuit(q)
-        [qc.h(q[i]) for i in range(self.params.num_qubits)]
-        [qc.cz(q[2 * j], q[2 * j + 1]) for j in range(qPairNum)]
-        [
-            qc.cz(q[(2 * j + 1)], q[(2 * j + 2) % (2 * qPairNum)])
-            for j in range(qPairNum if border_cond == "period" else qPairNum - 1)
-        ]
+        for i in range(self.params.num_qubits):
+            qc.h(q[i])
+        for j in range(q_pair_num):
+            qc.cz(q[2 * j], q[2 * j + 1])
+        for j in range(q_pair_num if border_cond == "period" else q_pair_num - 1):
+            qc.cz(q[(2 * j + 1)], q[(2 * j + 2) % (2 * q_pair_num)])
 
         return [qc]
 
-    class arguments(NamedTuple):
+    class Arguments(NamedTuple):
+        """The parameters of the case."""
+
         num_qubits: int = 2
         """Number of qubits. Defaults to 2."""
         name: str = ""
@@ -328,16 +337,15 @@ class TopologicalParamagnet(Qurecipe):
 
         if num_qubits % 2 != 0:
             raise ValueError("Only lattices can construct using this gate.")
-
-        self.case_name = f"cluster_{border_cond}"
-        self.params: TopologicalParamagnet.arguments
-        self._initialize(
-            name=name,
+        self.params: TopologicalParamagnet.Arguments
+        super().__init__(
             num_qubits=num_qubits,
-            border_cond=border_cond,
+            name=name,
+            case_name=f"cluster_{border_cond}",
         )
 
 
+# pylint: disable=invalid-name
 def Cluster(
     num_qubits: int,
     border_cond: Literal["period", "open"] = "period",
@@ -457,3 +465,6 @@ def Cluster(
         border_cond=border_cond,
         name=name,
     )
+
+
+# pylint: enable=invalid-name

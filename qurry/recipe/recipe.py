@@ -61,26 +61,19 @@ class Qurecipe(QurecipeABC):
 
         return [qc]
 
-    def __init__(
-        self,
-        num_qubits: int,
-        name: str = "_dummy",
-    ) -> None:
+    def __init__(self, num_qubits: int, name: str = "_dummy", **kwargs) -> None:
         """Initializing the case.
 
         Args:
             numQubits (int): The number of qubits for constructing the example circuit.
         """
 
-        self.case_name = "_dummy"
-        self._initialize(
-            name=name,
-            num_qubits=num_qubits,
-        )
+        self._initialize(name=name, num_qubits=num_qubits, **kwargs)
 
-    def _initialize(self, name: str, **kwargs) -> None:
+    def _initialize(self, name: str, case_name: str = "_dummy", **kwargs) -> None:
         """Initializing the case."""
 
+        self.case_name = case_name
         if hasattr(self, "params"):
             return
         for k in self._required_fields:
