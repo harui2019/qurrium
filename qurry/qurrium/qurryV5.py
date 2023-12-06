@@ -1120,7 +1120,10 @@ class QurryV5Prototype(ABC):
         print(f'| "{report_name}" has been completed.')
 
         if _write:
-            current_multimanager.write(_only_quantity=True)
+            self.multiWrite(
+                summoner_id=summoner_id,
+                only_quantity=True,
+            )
 
         return current_multimanager.multicommons.summoner_id
 
@@ -1131,6 +1134,7 @@ class QurryV5Prototype(ABC):
         compress: bool = True,
         compress_overwrite: bool = False,
         remain_only_compressed: bool = False,
+        only_quantity: bool = False,
     ) -> Hashable:
         """Write the multimanager to the file.
 
@@ -1155,8 +1159,9 @@ class QurryV5Prototype(ABC):
         assert current_multimanager.summoner_id == summoner_id
 
         current_multimanager.write(
-            save_location=save_location if save_location is not None else None,
+            save_location=save_location,
             wave_container=self.exps,
+            _only_quantity=only_quantity,
         )
 
         if compress:

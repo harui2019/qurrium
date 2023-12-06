@@ -599,7 +599,7 @@ class MultiManager:
         if wave_container is not None:
             for id_exec in self.beforewards.exps_config:
                 wave_container[id_exec].write(
-                    save_location=self.multicommons.export_location,
+                    save_location=self.multicommons.save_location,
                     mute=True,
                 )
 
