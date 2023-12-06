@@ -12,17 +12,17 @@ from qiskit import QuantumCircuit
 from ...exceptions import QurryExtraPackageRequired
 
 try:
-    from qiskit.providers.ibmq import IBMQBackend
-    from qiskit.providers.ibmq.job import IBMQJob
-    from qiskit.providers.ibmq.exceptions import IBMQBackendApiError
+    from qiskit.providers.ibmq import IBMQBackend  # type: ignore
+    from qiskit.providers.ibmq.job import IBMQJob  # type: ignore
+    from qiskit.providers.ibmq.exceptions import IBMQBackendApiError  # type: ignore
 
     QISKIT_IBMQ_PROVIDER = True
 except ImportError:
     QISKIT_IBMQ_PROVIDER = False
 try:
-    from qiskit_ibm_provider import IBMBackend, IBMProvider
-    from qiskit_ibm_provider.job import IBMCircuitJob
-    from qiskit_ibm_provider.exceptions import IBMBackendApiError
+    from qiskit_ibm_provider import IBMBackend, IBMProvider  # type: ignore
+    from qiskit_ibm_provider.job import IBMCircuitJob  # type: ignore
+    from qiskit_ibm_provider.exceptions import IBMBackendApiError  # type: ignore
 except ImportError:
     raise QurryExtraPackageRequired(
         "These module requires the install of `qiskit-ibm-provider`,"

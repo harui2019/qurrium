@@ -12,12 +12,12 @@ from qiskit import QuantumCircuit
 from ...exceptions import QurryExtraPackageRequired
 
 try:
-    from qiskit.providers.ibmq import IBMQBackend, IBMQJobManager, AccountProvider # type: ignore
+    from qiskit.providers.ibmq import IBMQBackend, IBMQJobManager, AccountProvider  # type: ignore
     from qiskit.providers.ibmq.managed import (  # type: ignore
         ManagedJobSet,
         IBMQJobManagerInvalidStateError,
     )
-    from qiskit.providers.ibmq.exceptions import IBMQError # type: ignore
+    from qiskit.providers.ibmq.exceptions import IBMQError  # type: ignore
 except ImportError as exception:
     raise QurryExtraPackageRequired(
         "These module requires the install of "
