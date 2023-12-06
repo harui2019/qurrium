@@ -11,10 +11,10 @@ from pathlib import Path
 import json
 import gc
 
-from ..capsule import jsonablize
-from ..capsule.hoshi import Hoshi
-from ..exceptions import QurryInvalidInherition
-from ..tools.datetime import current_time
+from ...capsule import jsonablize
+from ...capsule.hoshi import Hoshi
+from ...exceptions import QurryInvalidInherition
+from ...tools.datetime import current_time
 
 
 class AnalysisPrototype:
