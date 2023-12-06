@@ -544,7 +544,7 @@ class ExperimentPrototype(ExperimentPrototypeABC):
         ```
         which `blabla_experiment` is the example filename.
         If this experiment is called by :cls:`multimanager`,
-        then the it will be named after `summoner_name` as known as the name of :cls:`multimanager`.
+        then the it will be named after `` as known as the name of :cls:`multimanager`.
 
         ```python
         files = {
@@ -569,7 +569,7 @@ class ExperimentPrototype(ExperimentPrototypeABC):
         }
         ```
         which `BLBLA_project` is the example :cls:`multimanager` name
-        stored at :prop:`commonparams.summoner_name`.
+        stored at :prop:`commonparams.`.
         At this senerio, the `exp_name` will never apply as filename.
 
         - reports formats.
