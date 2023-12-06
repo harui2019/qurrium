@@ -40,7 +40,6 @@ from .qurrium import QurryV5 as Qurry, WavesExecuter
 from .tools import (
     BackendWrapper,
     BackendManager,
-    ResoureWatch,
     version_check,
     cmdWrapper,
     pytorchCUDACheck,
