@@ -19,7 +19,7 @@ multicommonConfig = DefaultConfig(
         'export_location': None,
         'files': {},
         'jobstype': None,
-        'manager_run_args': None,
+        'manager_run_args': {},
         'filetype': 'json',
         'datetimes': DatetimeDict(),
     }
