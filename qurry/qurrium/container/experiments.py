@@ -23,7 +23,7 @@ class ExperimentContainer(dict[Hashable, ExperimentPrototype]):
         exp_id: Optional[Hashable] = None,
     ) -> ExperimentPrototype:
         """Call an experiment by its id.
-        
+
         Args:
             exp_id: The id of the experiment to be called.
 

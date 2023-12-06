@@ -7,13 +7,13 @@ from .RandomizedMeasure import EchoRandomizedListen
 
 def EchoListen(
     *args,
-    method: Literal['randomized', 'hadamard'] = 'randomized',
+    method: Literal["randomized", "hadamard"] = "randomized",
     **kwargs,
 ) -> Union[EchoRandomizedListen, EchoHadamardTest]:
     """Call `EchoListen` methods.
 
     Args:
-        method (Literal[&#39;randomized&#39;, &#39;hadamard&#39], optional): 
+        method (Literal[&#39;randomized&#39;, &#39;hadamard&#39], optional):
 
             - randomized: running by haar randomized measure.
             - hadamard: running by hadamard test.
@@ -22,7 +22,7 @@ def EchoListen(
     Returns:
         EchoListenBase: method.
     """
-    if method == 'hadamard':
+    if method == "hadamard":
         return EchoHadamardTest(*args, **kwargs)
     else:
         return EchoRandomizedListen(*args, **kwargs)

@@ -22,9 +22,9 @@ class AnalysesContainer(dict[Hashable, AnalysisPrototype]):
         self,
     ) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, dict[str, Any]]]]:
         """Export the analysis container.
-        
+
         Returns:
-            tuple[dict[str, dict[str, Any]], dict[str, dict[str, dict[str, Any]]]]: 
+            tuple[dict[str, dict[str, Any]], dict[str, dict[str, dict[str, Any]]]]:
             The first element is a dictionary of reports formats. The second element is a
             dictionary of tales_reports formats.
         """

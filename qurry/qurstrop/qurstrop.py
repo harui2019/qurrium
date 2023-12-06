@@ -158,7 +158,7 @@
 #         """Handling all arguments and initializing a single experiment.
 
 #         Args:
-#             wave (Union[QuantumCircuit, int, None], optional): 
+#             wave (Union[QuantumCircuit, int, None], optional):
 #                 The index of the wave function in `self.waves` or add new one to calaculation,
 #                 then choose one of waves as the experiment material.
 #                 If input is `QuantumCircuit`, then add and use it.
@@ -170,16 +170,16 @@
 #                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
 #                 This name is also used for creating a folder to store the exports.
 #                 Defaults to `'exps'`.
-                
+
 #             string (Literal['i', 'zy'], optional):
 #                 The string operator.
-                
+
 #             i (Optional[int], optional):
 #                 The index of beginning qubits in the quantum circuit.
-                
+
 #             k (Optional[int], optional):
 #                 The index of ending qubits in the quantum circuit.
-            
+
 #             otherArgs (any):
 #                 Other arguments.
 
@@ -251,7 +251,7 @@
 #         Where should be overwritten by each construction of new measurement.
 
 #         Returns:
-#             Union[QuantumCircuit, list[QuantumCircuit]]: 
+#             Union[QuantumCircuit, list[QuantumCircuit]]:
 #                 The quantum circuit of experiment.
 #         """
 #         argsNow: self.argsCore = self.now
@@ -367,7 +367,7 @@
 #         """
 
 #         Args:
-#             wave (Union[QuantumCircuit, int, None], optional): 
+#             wave (Union[QuantumCircuit, int, None], optional):
 #                 The index of the wave function in `self.waves` or add new one to calaculation,
 #                 then choose one of waves as the experiment material.
 #                 If input is `QuantumCircuit`, then add and use it.
@@ -379,13 +379,13 @@
 #                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
 #                 This name is also used for creating a folder to store the exports.
 #                 Defaults to `'exps'`.
-                
+
 #             string (Literal['i', 'zy'], optional):
 #                 The string operator.
-                
+
 #             i (Optional[int], optional):
 #                 The index of beginning qubits in the quantum circuit.
-                
+
 #             k (Optional[int], optional):
 #                 The index of ending qubits in the quantum circuit.
 

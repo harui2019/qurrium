@@ -12,7 +12,6 @@ CaseDictionary: dict[str, Qurecipe] = {
     "cat": GHZ,
     "topParamagnet": TopologicalParamagnet,
     "topPM": TopologicalParamagnet,
-    
     "cluster": Cluster,
     "singlet": Singlet,
     "intracell": Intracell,

@@ -10,7 +10,7 @@ class Intracell(Qurecipe):
     ### `intracell-minus`, `singlet` At 8 qubits:
 
     ```
-        ┌───┐┌───┐     
+        ┌───┐┌───┐
     q0: ┤ X ├┤ H ├──■──
         ├───┤└───┘┌─┴─┐
     q1: ┤ X ├─────┤ X ├
@@ -32,7 +32,7 @@ class Intracell(Qurecipe):
     ### `intracell-plus` At 8 qubits:
 
     ```
-        ┌───┐     
+        ┌───┐
     q0: ┤ H ├──■──
         ├───┤┌─┴─┐
     q1: ┤ X ├┤ X ├
@@ -53,7 +53,7 @@ class Intracell(Qurecipe):
 
     Args:
         num_qubits (int): Number of qubits.
-        state (str, optional): 
+        state (str, optional):
             Choosing the state. There are 'singlet', 'minus', 'plus' which 'minus' is same as 'singlet'.
             Defaults to "singlet".
         name (str, optional): Name of case. Defaults to "intracell".
@@ -75,36 +75,35 @@ class Intracell(Qurecipe):
 
         # intracell
         for i in range(0, self.params.num_qubits, 2):
-            if self.params.state == 'minus' or self.params.state == 'singlet':
+            if self.params.state == "minus" or self.params.state == "singlet":
                 qc.x(i)
-            elif self.params.state == 'plus':
+            elif self.params.state == "plus":
                 ...
             else:
-                raise ValueError(
-                    f"Initial state is invalid: '{self.params.state}'.")
+                raise ValueError(f"Initial state is invalid: '{self.params.state}'.")
             qc.h(i)
-            qc.x(i+1)
-            qc.cx(i, i+1)
+            qc.x(i + 1)
+            qc.cx(i, i + 1)
 
         return [qc]
 
     class arguments(NamedTuple):
         num_qubits: int = 1
-        name: str = ''
+        name: str = ""
 
-        state: Literal['singlet', 'minus', 'plus'] = 'singlet'
+        state: Literal["singlet", "minus", "plus"] = "singlet"
 
     def __init__(
         self,
         num_qubits: int,
-        state: Literal['singlet', 'minus', 'plus'] = 'singlet',
+        state: Literal["singlet", "minus", "plus"] = "singlet",
         name: str = "intracell",
     ) -> None:
         """Initializing the case.
 
         Args:
             num_qubits (int): Number of qubits.
-            state (str, optional): 
+            state (str, optional):
                 Choosing the state. There are 'singlet', 'minus', 'plus' which 'minus' is same as 'singlet'.
                 Defaults to "singlet".
             name (str, optional): Name of case. Defaults to "intracell".
@@ -116,7 +115,7 @@ class Intracell(Qurecipe):
         if num_qubits % 2 != 0:
             raise ValueError("Only lattices can construct using this gate.")
 
-        self.case_name = f'intracell_{state}'
+        self.case_name = f"intracell_{state}"
         self.params: Intracell.arguments
         self._initialize(
             name=name,
@@ -134,7 +133,7 @@ def Singlet(
     ### `intracell-minus`, `singlet` At 8 qubits:
 
     ```
-        ┌───┐┌───┐     
+        ┌───┐┌───┐
     q0: ┤ X ├┤ H ├──■──
         ├───┤└───┘┌─┴─┐
     q1: ┤ X ├─────┤ X ├
@@ -162,6 +161,6 @@ def Singlet(
     """
     return Intracell(
         num_qubits=num_qubits,
-        state='singlet',
+        state="singlet",
         name=name,
     )

@@ -41,18 +41,18 @@ from .tools import (
     BackendWrapper,
     BackendManager,
     version_check,
-    cmdWrapper,
-    pytorchCUDACheck,
+    cmd_wrapper,
+    pytorch_cuda_check,
 )
 
 from .version import __version__, __version_str__
 
 # pylint: disable=no-name-in-module,import-error,wrong-import-order,no-member
 try:
-    import qurry.boorust # type: ignore
+    import qurry.boorust  # type: ignore
 
-    sys.modules["qurry.boorust.construct"] = qurry.boorust.construct # type: ignore
-    sys.modules["qurry.boorust.randomized"] = qurry.boorust.randomized # type: ignore
+    sys.modules["qurry.boorust.construct"] = qurry.boorust.construct  # type: ignore
+    sys.modules["qurry.boorust.randomized"] = qurry.boorust.randomized  # type: ignore
     RUST_AVAILABLE = True
     FAILED_RUST_IMPORT = None
 except ModuleNotFoundError as qurry_boorust_import_error:

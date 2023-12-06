@@ -12,6 +12,7 @@ import numpy as np
 
 from qurry.capsule import quickRead
 from qurry.exceptions import QurryRustUnavailableWarning
+
 # pylint: disable=import-error, no-name-in-module
 # from qurry.boorust.randomized import (  # type: ignore
 #     ensemble_cell_rust,
@@ -31,16 +32,19 @@ from qurry.qurrium.utils.randomized import (
     ensemble_cell as ensemble_cell_py,
     ensemble_cell_cy,
 )
+
 if rust_available_randomized:
     from qurry.qurrium.utils.randomized import ensemble_cell_rust
 else:
+
     def ensemble_cell_rust(*args, **kwargs):
         """Dummy function."""
         warnings.warn(
             "Rust is not available, ensemble_cell_rust is a dummy function.",
-            category=QurryRustUnavailableWarning
+            category=QurryRustUnavailableWarning,
         )
         return ensemble_cell_py(*args, **kwargs)
+
 
 from qurry.qurrent.postprocess import entangled_entropy_core
 
@@ -105,12 +109,16 @@ def test_entangled_entropy_core(
 
     if rust_available_randomized:
         assert (
-            np.abs(np.average(list(rust[0].values())) - np.average(list(cy[0].values())))
+            np.abs(
+                np.average(list(rust[0].values())) - np.average(list(cy[0].values()))
+            )
             < 1e-10
         ), "Rust and Cython results are not equal in entangled_entropy_core."
 
         assert (
-            np.abs(np.average(list(rust[0].values())) - np.average(list(py[0].values())))
+            np.abs(
+                np.average(list(rust[0].values())) - np.average(list(py[0].values()))
+            )
             < 1e-10
         ), "Rust and Python results are not equal in entangled_entropy_core."
 

@@ -61,7 +61,7 @@ class TrivialParamagnet(Qurecipe):
         q = QuantumRegister(self.params.num_qubits, "q")
         qc = QuantumCircuit(q)
         qc.name = self.case_name
-        
+
         [qc.h(q[i]) for i in range(self.params.num_qubits)]
 
         return [qc]
@@ -69,7 +69,7 @@ class TrivialParamagnet(Qurecipe):
     def __init__(
         self,
         num_qubits: int,
-        name: str = 'trivialPM',
+        name: str = "trivialPM",
     ) -> None:
         """Initializing the case.
 
@@ -78,7 +78,7 @@ class TrivialParamagnet(Qurecipe):
             name (str, optional): Name of case. Defaults to "trivialParamagnet".
         """
 
-        self.case_name = 'trivialPM'
+        self.case_name = "trivialPM"
         self._initialize(
             name=name,
             num_qubits=num_qubits,
@@ -92,19 +92,19 @@ class GHZ(Qurecipe):
     ### Open boundary at 8 qubits:
 
     ```
-        ┌───┐                                    
+        ┌───┐
     q0: ┤ H ├──■────────────────────────────────
-        └───┘┌─┴─┐                              
+        └───┘┌─┴─┐
     q1: ─────┤ X ├──■───────────────────────────
-             └───┘┌─┴─┐                         
+             └───┘┌─┴─┐
     q2: ──────────┤ X ├──■──────────────────────
-                  └───┘┌─┴─┐                    
+                  └───┘┌─┴─┐
     q3: ───────────────┤ X ├──■─────────────────
-                       └───┘┌─┴─┐               
+                       └───┘┌─┴─┐
     q4: ────────────────────┤ X ├──■────────────
-                            └───┘┌─┴─┐          
+                            └───┘┌─┴─┐
     q5: ─────────────────────────┤ X ├──■───────
-                                 └───┘┌─┴─┐     
+                                 └───┘┌─┴─┐
     q6: ──────────────────────────────┤ X ├──■──
                                       └───┘┌─┴─┐
     q7: ───────────────────────────────────┤ X ├
@@ -146,14 +146,14 @@ class GHZ(Qurecipe):
         q = QuantumRegister(self.params.num_qubits, "q")
         qc = QuantumCircuit(q)
         qc.h(q[0])
-        [qc.cx(q[i], q[i+1]) for i in range(self.params.num_qubits-1)]
+        [qc.cx(q[i], q[i + 1]) for i in range(self.params.num_qubits - 1)]
 
         return [qc]
 
     def __init__(
         self,
         num_qubits: int,
-        name: str = 'cat', 
+        name: str = "cat",
     ) -> None:
         """Initializing the case.
 
@@ -162,7 +162,7 @@ class GHZ(Qurecipe):
             name (str, optional): Name of case. Defaults to "cat".
         """
 
-        self.case_name = 'cat'
+        self.case_name = "cat"
         self._initialize(
             name=name,
             num_qubits=num_qubits,
@@ -178,23 +178,23 @@ class TopologicalParamagnet(Qurecipe):
     - Open boundary at 8 qubits:
 
     ```
-        ┌───┐      
+        ┌───┐
     q0: ┤ H ├─■────
-        ├───┤ │    
+        ├───┤ │
     q1: ┤ H ├─■──■─
-        ├───┤    │ 
+        ├───┤    │
     q2: ┤ H ├─■──■─
-        ├───┤ │    
+        ├───┤ │
     q3: ┤ H ├─■──■─
-        ├───┤    │ 
+        ├───┤    │
     q4: ┤ H ├─■──■─
-        ├───┤ │    
+        ├───┤ │
     q5: ┤ H ├─■──■─
-        ├───┤    │ 
+        ├───┤    │
     q6: ┤ H ├─■──■─
-        ├───┤ │    
+        ├───┤ │
     q7: ┤ H ├─■────
-        └───┘         
+        └───┘
     ```
 
     - Measureing entropy on `Aer.get_backend('aer_simulator')`.
@@ -225,23 +225,23 @@ class TopologicalParamagnet(Qurecipe):
     - Period boundary at 8 qubits:
 
     ```
-        ┌───┐         
+        ┌───┐
     q0: ┤ H ├─■─────■─
-        ├───┤ │     │ 
+        ├───┤ │     │
     q1: ┤ H ├─■──■──┼─
-        ├───┤    │  │ 
+        ├───┤    │  │
     q2: ┤ H ├─■──■──┼─
-        ├───┤ │     │ 
+        ├───┤ │     │
     q3: ┤ H ├─■──■──┼─
-        ├───┤    │  │ 
+        ├───┤    │  │
     q4: ┤ H ├─■──■──┼─
-        ├───┤ │     │ 
+        ├───┤ │     │
     q5: ┤ H ├─■──■──┼─
-        ├───┤    │  │ 
+        ├───┤    │  │
     q6: ┤ H ├─■──■──┼─
-        ├───┤ │     │ 
+        ├───┤ │     │
     q7: ┤ H ├─■─────■─
-        └───┘              
+        └───┘
     ```
 
     - Measureing entropy on `Aer.get_backend('aer_simulator')`.
@@ -286,31 +286,32 @@ class TopologicalParamagnet(Qurecipe):
             QuantumCircuit: The example circuit.
         """
 
-        qPairNum = int(self.params.num_qubits/2)
+        qPairNum = int(self.params.num_qubits / 2)
         border_cond = self.params.border_cond
 
         q = QuantumRegister(self.params.num_qubits, "q")
         qc = QuantumCircuit(q)
         [qc.h(q[i]) for i in range(self.params.num_qubits)]
-        [qc.cz(q[2*j], q[2*j+1]) for j in range(qPairNum)]
-        [qc.cz(q[(2*j+1)], q[(2*j+2) % (2*qPairNum)]) for j in range(
-            qPairNum if border_cond == 'period' else qPairNum-1
-        )]
+        [qc.cz(q[2 * j], q[2 * j + 1]) for j in range(qPairNum)]
+        [
+            qc.cz(q[(2 * j + 1)], q[(2 * j + 2) % (2 * qPairNum)])
+            for j in range(qPairNum if border_cond == "period" else qPairNum - 1)
+        ]
 
         return [qc]
 
     class arguments(NamedTuple):
         num_qubits: int = 2
         """Number of qubits. Defaults to 2."""
-        name: str = ''
+        name: str = ""
         """Name of the circuit. Defaults to ''."""
-        border_cond: Literal['open', 'period'] = 'open'
+        border_cond: Literal["open", "period"] = "open"
         """Border condition is 'open' or 'period'. Defaults to `'open`."""
 
     def __init__(
         self,
         num_qubits: int,
-        border_cond: Literal['period', 'open'] = "period",
+        border_cond: Literal["period", "open"] = "period",
         name: str = "topParamagnet",
     ) -> None:
         """Initializing the case.
@@ -328,7 +329,7 @@ class TopologicalParamagnet(Qurecipe):
         if num_qubits % 2 != 0:
             raise ValueError("Only lattices can construct using this gate.")
 
-        self.case_name = f'cluster_{border_cond}'
+        self.case_name = f"cluster_{border_cond}"
         self.params: TopologicalParamagnet.arguments
         self._initialize(
             name=name,
@@ -339,7 +340,7 @@ class TopologicalParamagnet(Qurecipe):
 
 def Cluster(
     num_qubits: int,
-    border_cond: Literal['period', 'open'] = "period",
+    border_cond: Literal["period", "open"] = "period",
     name: str = "topParamagnet",
 ) -> TopologicalParamagnet:
     """Another name of The entangled circuit `Topological paramagnet`.
@@ -350,23 +351,23 @@ def Cluster(
     - Open boundary at 8 qubits:
 
     ```
-        ┌───┐      
+        ┌───┐
     q0: ┤ H ├─■────
-        ├───┤ │    
+        ├───┤ │
     q1: ┤ H ├─■──■─
-        ├───┤    │ 
+        ├───┤    │
     q2: ┤ H ├─■──■─
-        ├───┤ │    
+        ├───┤ │
     q3: ┤ H ├─■──■─
-        ├───┤    │ 
+        ├───┤    │
     q4: ┤ H ├─■──■─
-        ├───┤ │    
+        ├───┤ │
     q5: ┤ H ├─■──■─
-        ├───┤    │ 
+        ├───┤    │
     q6: ┤ H ├─■──■─
-        ├───┤ │    
+        ├───┤ │
     q7: ┤ H ├─■────
-        └───┘         
+        └───┘
     ```
 
     - Measureing entropy on `Aer.get_backend('aer_simulator')`.
@@ -397,23 +398,23 @@ def Cluster(
     - Open boundary at 8 qubits:
 
     ```
-        ┌───┐         
+        ┌───┐
     q0: ┤ H ├─■─────■─
-        ├───┤ │     │ 
+        ├───┤ │     │
     q1: ┤ H ├─■──■──┼─
-        ├───┤    │  │ 
+        ├───┤    │  │
     q2: ┤ H ├─■──■──┼─
-        ├───┤ │     │ 
+        ├───┤ │     │
     q3: ┤ H ├─■──■──┼─
-        ├───┤    │  │ 
+        ├───┤    │  │
     q4: ┤ H ├─■──■──┼─
-        ├───┤ │     │ 
+        ├───┤ │     │
     q5: ┤ H ├─■──■──┼─
-        ├───┤    │  │ 
+        ├───┤    │  │
     q6: ┤ H ├─■──■──┼─
-        ├───┤ │     │ 
+        ├───┤ │     │
     q7: ┤ H ├─■─────■─
-        └───┘              
+        └───┘
     ```
 
     - Measureing entropy on `Aer.get_backend('aer_simulator')`.
@@ -449,8 +450,8 @@ def Cluster(
 
     Raises:
         ValueError: When given number of qubits is not even.
-    """    
-    
+    """
+
     return TopologicalParamagnet(
         num_qubits=num_qubits,
         border_cond=border_cond,

@@ -7,18 +7,19 @@ from typing import Literal, Union, Optional, Hashable, MutableMapping, Type, Typ
 
 
 def wave_container_maker(
-    typename: str = 'WaveContainer',
+    typename: str = "WaveContainer",
     base_type: Type[MutableMapping[Hashable, QuantumCircuit]] = dict,
 ) -> Type[MutableMapping]:
     if not isinstance(typename, str):
-        raise TypeError('`typename` should be a string.')
+        raise TypeError("`typename` should be a string.")
 
     if not isinstance(base_type, type):
-        raise TypeError('`base_type` should be a type.')
+        raise TypeError("`base_type` should be a type.")
 
     if not isinstance(base_type(), MutableMapping):
         raise TypeError(
-            '`base_type` should be a dict-like structure or a MutableMapping basically.')
+            "`base_type` should be a dict-like structure or a MutableMapping basically."
+        )
 
     @property
     def lastWave(self) -> Optional[QuantumCircuit]:
@@ -37,9 +38,8 @@ def wave_container_maker(
         self: MutableMapping[Hashable, QuantumCircuit],
         wave: QuantumCircuit,
         key: Optional[Hashable] = None,
-        replace: Literal[True, False, 'duplicate'] = False,
+        replace: Literal[True, False, "duplicate"] = False,
     ) -> Hashable:
-
         self.lastWaveKey = _add(self, wave, key, replace)
         return self.lastWaveKey
 
@@ -49,9 +49,13 @@ def wave_container_maker(
     def get_wave(
         self: MutableMapping[Hashable, QuantumCircuit],
         wave: Union[list[Hashable], Hashable, None] = None,
-        runBy: Optional[Literal['gate', 'operator',
-                                'instruction', 'copy', 'call']] = None
-    ) -> Union[list[Union[Gate, Operator, Instruction, QuantumCircuit]], Union[Gate, Operator, Instruction, QuantumCircuit]]:
+        runBy: Optional[
+            Literal["gate", "operator", "instruction", "copy", "call"]
+        ] = None,
+    ) -> Union[
+        list[Union[Gate, Operator, Instruction, QuantumCircuit]],
+        Union[Gate, Operator, Instruction, QuantumCircuit],
+    ]:
         """Parse wave Circuit into `Instruction` as `Gate` or `Operator` on `QuantumCircuit`.
 
         Args:
@@ -65,7 +69,7 @@ def wave_container_maker(
 
         Returns:
             Union[
-                list[Union[Gate, Operator, Instruction, QuantumCircuit]], 
+                list[Union[Gate, Operator, Instruction, QuantumCircuit]],
                 Union[Gate, Operator, Instruction, QuantumCircuit]
             ]: The result of the wave as `Gate` or `Operator`.
         """
@@ -78,15 +82,15 @@ def wave_container_maker(
         if wave not in self:
             raise KeyError(f"Wave {wave} not found in {self}")
 
-        if runBy == 'operator':
+        if runBy == "operator":
             return Operator(self[wave])
-        elif runBy == 'gate':
+        elif runBy == "gate":
             return self[wave].to_gate()
-        elif runBy == 'instruction':
+        elif runBy == "instruction":
             return self[wave].to_instruction()
-        elif runBy == 'copy':
+        elif runBy == "copy":
             return self[wave].copy()
-        elif runBy == 'call':
+        elif runBy == "call":
             self.lastWaveKey = wave
             return self[wave]
         else:
@@ -109,14 +113,13 @@ def wave_container_maker(
         """
         return self.get_wave(
             wave=wave,
-            runBy='call',
+            runBy="call",
         )
 
     def __call__(
         self: MutableMapping[Hashable, QuantumCircuit],
         wave: Union[list[Hashable], Hashable, None] = None,
     ) -> Union[list[QuantumCircuit], QuantumCircuit]:
-
         return self.call(wave=wave)
 
     def operator(
@@ -136,7 +139,7 @@ def wave_container_maker(
         """
         return self.get_wave(
             wave=wave,
-            runBy='operator',
+            runBy="operator",
         )
 
     def gate(
@@ -156,7 +159,7 @@ def wave_container_maker(
         """
         return self.get_wave(
             wave=wave,
-            runBy='gate',
+            runBy="gate",
         )
 
     def copy_circuit(
@@ -176,7 +179,7 @@ def wave_container_maker(
         """
         return self.get_wave(
             wave=wave,
-            runBy='copy',
+            runBy="copy",
         )
 
     def instruction(
@@ -196,7 +199,7 @@ def wave_container_maker(
         """
         return self.get_wave(
             wave=wave,
-            runBy='instruction',
+            runBy="instruction",
         )
 
     def has(
@@ -214,26 +217,24 @@ def wave_container_maker(
         return wavename in self
 
     def __repr__(self: MutableMapping[Hashable, QuantumCircuit]):
-        inner_lines = '\n'.join('    %s: ...' % k for k in self.keys())
+        inner_lines = "\n".join("    %s: ..." % k for k in self.keys())
         inner_lines2 = "{\n%s\n}" % inner_lines
         return f"<{typename}={inner_lines2} with {len(self)} waves load, a customized dictionary>"
 
     class_namespace = {
-        '__init__': constructor,
-        '__call__': __call__,
-
-        'lastWave': lastWave,
-        'add': add,
-        'remove': remove,
-        'get_wave': get_wave,
-        'call': call,
-        'operator': operator,
-        'gate': gate,
-        'copy_circuit': copy_circuit,
-        'instruction': instruction,
-        'has': has,
-
-        '__repr__': __repr__,
+        "__init__": constructor,
+        "__call__": __call__,
+        "lastWave": lastWave,
+        "add": add,
+        "remove": remove,
+        "get_wave": get_wave,
+        "call": call,
+        "operator": operator,
+        "gate": gate,
+        "copy_circuit": copy_circuit,
+        "instruction": instruction,
+        "has": has,
+        "__repr__": __repr__,
     }
 
     result = type(typename, (base_type,), class_namespace)
@@ -241,7 +242,7 @@ def wave_container_maker(
     return result
 
 
-DyanmicWaveContainerByDict = wave_container_maker('WaveContainer', dict)
+DyanmicWaveContainerByDict = wave_container_maker("WaveContainer", dict)
 """A Qurry standard wave function container should be something dict-like structure, basically a typing.MutableMapping."""
 
 
@@ -249,7 +250,7 @@ def _add(
     _wave_container: MutableMapping[Hashable, QuantumCircuit],
     wave: QuantumCircuit,
     key: Optional[Hashable] = None,
-    replace: Literal[True, False, 'duplicate'] = False,
+    replace: Literal[True, False, "duplicate"] = False,
 ) -> Hashable:
     """Add new wave function to measure.
 
@@ -270,8 +271,7 @@ def _add(
     """
 
     if not isinstance(wave, QuantumCircuit):
-        raise TypeError(
-            f"waveCircuit should be a QuantumCircuit, not {type(wave)}")
+        raise TypeError(f"waveCircuit should be a QuantumCircuit, not {type(wave)}")
 
     if key is None:
         key = len(_wave_container)
@@ -281,9 +281,9 @@ def _add(
         if key in _wave_container:
             if replace == True:
                 pass
-            elif replace == 'duplicate':
+            elif replace == "duplicate":
                 if isinstance(key, tuple):
-                    key += (len(_wave_container), )
+                    key += (len(_wave_container),)
                 else:
                     key = f"{key}.{len(_wave_container)}"
             else:
@@ -292,8 +292,7 @@ def _add(
 
     else:
         key = len(_wave_container)
-        warnings.warn(
-            f"'{key}' is '{type(key)}', a unhashable key, skipped being add.")
+        warnings.warn(f"'{key}' is '{type(key)}', a unhashable key, skipped being add.")
 
     return key
 
@@ -302,5 +301,4 @@ def _remove(
     _wave_container: MutableMapping[Hashable, QuantumCircuit],
     key: Optional[Hashable] = None,
 ) -> None:
-
     del _wave_container[key]

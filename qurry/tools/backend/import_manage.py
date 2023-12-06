@@ -122,7 +122,7 @@ except ImportError as err:
 
 # pylint: enable=ungrouped-imports, too-few-public-methods
 
-from ..command import pytorchCUDACheck
+from ..command import pytorch_cuda_check
 from ...exceptions import QurryExtraPackageRequired
 from ...capsule.hoshi import Hoshi
 
@@ -363,7 +363,7 @@ def _version_check():
             }
         )
 
-    pytorchCUDACheck()
+    pytorch_cuda_check()
 
     return check_msg
 

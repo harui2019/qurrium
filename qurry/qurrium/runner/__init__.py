@@ -6,10 +6,15 @@ Runner for running on Different Backends (IBM, IBMQ, ThirdParty, etc.)
 
 """
 from .runner import Runner, ThirdPartyRunner
-from .accesor import BACKEND_AVAILABLE, BackendChoice, BackendChoiceLiteral, ExtraBackendAccessor
+from .accesor import (
+    BACKEND_AVAILABLE,
+    BackendChoice,
+    BackendChoiceLiteral,
+    ExtraBackendAccessor,
+)
 
-if BACKEND_AVAILABLE['IBMQ']:
+if BACKEND_AVAILABLE["IBMQ"]:
     from .ibmqrunner import IBMQRunner
 
-if BACKEND_AVAILABLE['IBM']:
+if BACKEND_AVAILABLE["IBM"]:
     from .ibmrunner import IBMRunner

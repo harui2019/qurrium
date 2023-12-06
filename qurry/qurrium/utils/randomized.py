@@ -88,9 +88,7 @@ except ImportError as err:
 
 
 ExistingProcessBackendLabel = Literal["Cython", "Rust", "Python"]
-BackendAvailabilities: dict[
-    ExistingProcessBackendLabel, Union[bool, ImportError]
-] = {
+BackendAvailabilities: dict[ExistingProcessBackendLabel, Union[bool, ImportError]] = {
     "Cython": CYTHON_AVAILABLE if CYTHON_AVAILABLE else FAILED_PYX_IMPORT,
     "Rust": RUST_AVAILABLE if RUST_AVAILABLE else FAILED_RUST_IMPORT,
     "Python": True,

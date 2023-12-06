@@ -9,8 +9,10 @@ import warnings
 from typing import Iterable, Any
 
 from ...exceptions import QurryWarning, QurryUnrecongnizedArguments
+
 try:
     from ...boost.inputfixer import damerau_levenshtein_distance_cy  # type: ignore
+
     CYTHON_AVAILABLE = True
 except ImportError:
     CYTHON_AVAILABLE = False
@@ -18,8 +20,10 @@ except ImportError:
     def damerau_levenshtein_distance_cy(*args, **kwargs):
         """Dummy function for Cython version of `damerau_levenshtein_distance`"""
         raise NotImplementedError(
-            "Cython version of `damerau_levenshtein_distance` is not available, " +
-            "please re-install qurry with `pip install qurry[cython]`.")
+            "Cython version of `damerau_levenshtein_distance` is not available, "
+            + "please re-install qurry with `pip install qurry[cython]`."
+        )
+
 
 # pylint: disable=line-too-long
 
@@ -52,7 +56,7 @@ def damerau_levenshtein_distance_py(
 
     This implementation is based on Michael Homer's implementation
     (https://web.archive.org/web/20150909134357/http://mwh.geek.nz:80/2009/04/26/python-damerau-levenshtein-distance/)
-    and inspired by https://github.com/lanl/pyxDamerauLevenshtein, 
+    and inspired by https://github.com/lanl/pyxDamerauLevenshtein,
     a Cython implementation of same algorithm.
 
     For more powerful string comparison, including Levenshtein distance,
@@ -74,21 +78,21 @@ def damerau_levenshtein_distance_py(
         return len(seq1)
 
     first_differing_index = 0
-    while all([
-        first_differing_index < len(seq1) - 1,
-        first_differing_index < len(seq2) - 1,
-        seq1[first_differing_index] == seq2[first_differing_index]
-    ]):
+    while all(
+        [
+            first_differing_index < len(seq1) - 1,
+            first_differing_index < len(seq2) - 1,
+            seq1[first_differing_index] == seq2[first_differing_index],
+        ]
+    ):
         first_differing_index += 1
 
     seq1 = seq1[first_differing_index:]
     seq2 = seq2[first_differing_index:]
 
-    two_ago, one_ago, this_row = [], [
-    ], (list(range(1, len(seq2) + 1)) + [0])
+    two_ago, one_ago, this_row = [], [], (list(range(1, len(seq2) + 1)) + [0])
     for x, _ in enumerate(seq1):
-        two_ago, one_ago, this_row = one_ago, this_row, [
-            0] * len(seq2) + [x + 1]
+        two_ago, one_ago, this_row = one_ago, this_row, [0] * len(seq2) + [x + 1]
         for y, _ in enumerate(seq2):
             del_cost = one_ago[y] + 1
             add_cost = this_row[y - 1] + 1
@@ -96,12 +100,15 @@ def damerau_levenshtein_distance_py(
             # fun fact: isinstance(bool(...), int) == True
             this_row[y] = min(del_cost, add_cost, sub_cost)
 
-            if all([
-                x > 0, y > 0,
-                seq1[x] == seq2[y - 1],
-                seq1[x - 1] == seq2[y],
-                seq1[x] != seq2[y]
-            ]):
+            if all(
+                [
+                    x > 0,
+                    y > 0,
+                    seq1[x] == seq2[y - 1],
+                    seq1[x - 1] == seq2[y],
+                    seq1[x] != seq2[y],
+                ]
+            ):
                 this_row[y] = min(this_row[y], two_ago[y - 2] + 1)
 
     return this_row[len(seq2) - 1]
@@ -129,11 +136,12 @@ def damerau_levenshtein_distance(
 
     if len(seq1) > 100 or len(seq2) > 100:
         warnings.warn(
-            "If you want to compare long strings, " +
-            "we recommend using `RapidFuzz` instead of this function." +
-            "This function is designed for input suggestion for short string." +
-            "which is hard to handle very long string. ",
-            QurryWarning)
+            "If you want to compare long strings, "
+            + "we recommend using `RapidFuzz` instead of this function."
+            + "This function is designed for input suggestion for short string."
+            + "which is hard to handle very long string. ",
+            QurryWarning,
+        )
 
     if CYTHON_AVAILABLE:
         return damerau_levenshtein_distance_cy(seq1, seq2)
@@ -156,9 +164,9 @@ def outfields_check(
 
     Returns:
         tuple[dict[str, list[str]], list[str]]:
-            outfields_maybe: 
+            outfields_maybe:
                 The outfields that may be in the infields but typing wrong.
-            outfields_unknown: 
+            outfields_unknown:
                 The outfields that are not in the infields.
     """
 
@@ -173,8 +181,7 @@ def outfields_check(
                 tmp.append(k2)
         if len(tmp) > 0:
             outfield_maybe[k] = tmp
-    outfields_unknown = [
-        k for k in outfields.keys() if k not in outfield_maybe]
+    outfields_unknown = [k for k in outfields.keys() if k not in outfield_maybe]
 
     return outfield_maybe, outfields_unknown
 
@@ -187,26 +194,26 @@ def outfields_hint(
     """Print the outfields that may be in the infields but typing wrong.
 
     Args:
-        outfields_maybe (dict[str, list[str]]): 
+        outfields_maybe (dict[str, list[str]]):
             The outfields that may be in the infields but typing wrong.
-        outfields_unknown (list[str]): 
+        outfields_unknown (list[str]):
             The outfields that are not in the infields.
-        mute_outfields_warning (bool, optional): 
+        mute_outfields_warning (bool, optional):
             Mute the warning of unrecognized arguments. Defaults to False.
     """
-    if len(outfields_maybe)+len(outfields_unknown) == 0:
+    if len(outfields_maybe) + len(outfields_unknown) == 0:
         return None
 
     if not mute_outfields_warning:
         warnings.warn(
-            "| The following keys are not recognized as arguments for main process of experiment " +
-            ', but still kept in experiment record.',
-            QurryUnrecongnizedArguments
+            "| The following keys are not recognized as arguments for main process of experiment "
+            + ", but still kept in experiment record.",
+            QurryUnrecongnizedArguments,
         )
-    print('| Maybe you want to use these arguments: ')
+    print("| Maybe you want to use these arguments: ")
     for k, v in outfields_maybe.items():
         print(f"| - '{k}' maybe {v}")
     if len(outfields_unknown) > 0:
-        print('| The following are not recognized as arguments:', outfields_unknown)
+        print("| The following are not recognized as arguments:", outfields_unknown)
 
     return None
