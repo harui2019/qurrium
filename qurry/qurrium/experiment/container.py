@@ -148,7 +148,7 @@ class Commonparams(NamedTuple):
             "defaultAnalysis": "default_analysis",
             "saveLocation": "save_location",
             "summonerID": "summoner_id",
-            "summoner_name": "summoner_name",
+            "summonerName": "summoner_name",
         }
 
     @staticmethod
