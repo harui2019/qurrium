@@ -613,52 +613,8 @@ class ExperimentPrototype(ExperimentPrototypeABC):
             Export: A namedtuple containing the data of experiment
                 which can be more easily to export as json file.
         """
-
-        # args, commons, outfields
-
-        # commons: dict[str, Any] = jsonablize(self.commons._asdict())
-        # commons["backend"] = (
-        #     self.commons.backend
-        #     if isinstance(self.commons.backend, str)
-        #     else backendName(self.commons.backend)
-        # )
-
-        # adventures, legacy, tales
-        # tales: dict[str, str] = {}
-        # adventures = {}
-        # for k, v in self.beforewards._asdict().items():
-        #     if k == "side_product":
-        #         tales = {**tales, **v}
-        #     elif k in self._unexports:
-        #         ...
-        #     else:
-        #         adventures[k] = v
-        # gc.collect()
         adventures, tales = self.beforewards.export(unexports=self._unexports)
-
-        # legacy = {}
-        # for k, v in self.afterwards._asdict().items():
-        #     if k == "side_product":
-        #         tales = {**tales, **v}
-        #     elif k in self._unexports:
-        #         ...
-        #     else:
-        #         legacy[k] = v
-        # gc.collect()
         legacy = self.afterwards.export(unexports=self._unexports)
-
-        # reports
-        # reports: dict[str, dict[str, Any]] = {}  # reports formats.
-        # # tales_reports formats.
-        # tales_reports: dict[str, dict[str, dict[str, Any]]] = {}
-        # for k, al in self.reports.items():
-        #     report_main, report_tales = al.export()
-        #     reports[k] = report_main
-        #     for tk, tv in report_tales.items():
-        #         if tk not in tales_reports:
-        #             tales_reports[tk] = {}
-        #         tales_reports[tk][k] = tv
-
         reports, tales_reports = self.reports.export()
 
         # filename
