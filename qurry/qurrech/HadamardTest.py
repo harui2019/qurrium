@@ -265,7 +265,7 @@ class EchoHadamardTest(QurryV5Prototype):
         return self.experiment.filter(
             exp_name=exp_name,
             wave_key=wave_key,
-            wave_key2=wave_key_2,
+            wave_key_2=wave_key_2,
             degree=degree,
             **other_kwargs,
         )
