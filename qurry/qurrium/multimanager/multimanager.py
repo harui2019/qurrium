@@ -692,7 +692,7 @@ class MultiManager:
         specific_analysis_args: Optional[
             dict[Hashable, Union[dict[str, Any], bool]]
         ] = None,
-        **analysisArgs: Any,
+        **analysis_args: Any,
     ) -> str:
         """Run the analysis for multiple experiments.
 
@@ -744,7 +744,7 @@ class MultiManager:
                         )
                         continue
                     report = wave_continer[k].analyze(
-                        **analysisArgs,
+                        **analysis_args,
                         **({"pbar": all_counts_progress} if tqdm_handleable else {}),
                     )
                 else:
@@ -754,7 +754,7 @@ class MultiManager:
                     )
             else:
                 report = wave_continer[k].analyze(
-                    **analysisArgs,
+                    **analysis_args,
                     **({"pbar": all_counts_progress} if tqdm_handleable else {}),
                 )
 

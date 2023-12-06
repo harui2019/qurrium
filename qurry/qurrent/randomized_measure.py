@@ -604,7 +604,7 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
         times: int = 100,
         measure: tuple[int, int] = None,
         unitary_loc: tuple[int, int] = None,
-        **otherArgs,
+        **other_kwargs,
     ) -> tuple[
         EntropyRandomizedExperiment.Arguments,
         EntropyRandomizedExperiment.Commonparams,
@@ -626,7 +626,7 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
                 This name is also used for creating a folder to store the exports.
                 Defaults to `'exps'`.
 
-            otherArgs (any):
+            other_kwargs (any):
                 Other arguments.
 
         Returns:
@@ -660,7 +660,7 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
             times=times,
             measure=measure,
             unitary_loc=unitary_loc,
-            **otherArgs,
+            **other_kwargs,
         )
 
     def method(
@@ -764,7 +764,7 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
         indent: int = 2,
         encoding: str = "utf-8",
         jsonablize: bool = False,
-        **otherArgs: any,
+        **other_kwargs: any,
     ) -> str:
         """
 
@@ -782,7 +782,7 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
                 This name is also used for creating a folder to store the exports.
                 Defaults to `'exps'`.
 
-            otherArgs (any):
+            other_kwargs (any):
                 Other arguments.
 
         Returns:
@@ -796,7 +796,7 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
             measure=measure,
             unitary_loc=unitary_loc,
             save_location=None,
-            **otherArgs,
+            **other_kwargs,
         )
         assert id_now in self.exps, f"ID {id_now} not found."
         assert self.exps[id_now].commons.exp_id == id_now

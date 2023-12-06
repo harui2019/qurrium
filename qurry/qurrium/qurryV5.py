@@ -624,7 +624,7 @@ class QurryV5Prototype(ABC):
             _export_mute (bool, optional):
                 Whether to mute the export hint. Defaults to True.
 
-            otherArgs (Any):
+            other_kwargs (Any):
                 Other arguments.
 
         Returns:
@@ -766,7 +766,7 @@ class QurryV5Prototype(ABC):
                 save_location=save_location,
                 files={},
                 jobstype=jobstype,
-                managerRunArgs=manager_run_args,
+                manager_run_args=manager_run_args,
                 filetype=filetype,
                 datetimes=DatetimeDict(),
             )
@@ -1363,7 +1363,7 @@ class QurryV5(QurryV5Prototype):
         wave_key: Hashable = None,
         exp_name: str = "exps",
         sampling: int = 1,
-        **otherArgs: Any,
+        **other_kwargs: Any,
     ) -> tuple[QurryExperiment.Arguments, QurryExperiment.Commonparams, dict[str, Any]]:
         """Handling all arguments and initializing a single experiment.
 
@@ -1379,7 +1379,7 @@ class QurryV5(QurryV5Prototype):
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
                 This name is also used for creating a folder to store the exports.
                 Defaults to `'exps'`.
-            otherArgs (Any):
+            other_kwargs (Any):
                 Other arguments.
 
         Returns:
@@ -1396,7 +1396,7 @@ class QurryV5(QurryV5Prototype):
             exp_name=exp_name,
             wave_key=wave_key,
             sampling=sampling,
-            **otherArgs,
+            **other_kwargs,
         )
 
     def method(
@@ -1430,7 +1430,7 @@ class QurryV5(QurryV5Prototype):
         indent: int = 2,
         encoding: str = "utf-8",
         jsonablize: bool = False,
-        **otherArgs: Any,
+        **other_kwargs: Any,
     ):
         """The main function to measure the wave function,
         which is the :meth:`result` with dedicated arguments.
@@ -1461,7 +1461,7 @@ class QurryV5(QurryV5Prototype):
             jsonablize (bool, optional):
                 Whether to jsonablize the experiment output. Defaults to False.
 
-            otherArgs (Any):
+            other_kwargs (Any):
                 Other arguments in :meth:`result`.
 
         Returns:
@@ -1473,7 +1473,7 @@ class QurryV5(QurryV5Prototype):
             exp_name=exp_name,
             sampling=sampling,
             save_location=None,
-            **otherArgs,
+            **other_kwargs,
         )
         assert id_now in self.exps, f"ID {id_now} not found."
         assert self.exps[id_now].commons.exp_id == id_now

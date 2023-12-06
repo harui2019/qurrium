@@ -185,11 +185,11 @@ class ExtraBackendAccessor:
         return self.multirunner.current_multimanager.summoner_id, self.jobs
 
     def retrieve(
-        self, overwrite: bool = False, **otherArgs: any
+        self, overwrite: bool = False, **other_kwargs: any
     ) -> tuple[str, list[tuple[str, str]]]:
         """Retrieve jobs from remote backend."""
 
-        self.jobs = self.multirunner.retrieve(overwrite=overwrite, **otherArgs)
+        self.jobs = self.multirunner.retrieve(overwrite=overwrite, **other_kwargs)
         self.jobs_info = Hoshi(
             [
                 (

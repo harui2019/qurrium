@@ -276,7 +276,7 @@ class EntropyHadamardTest(QurryV5Prototype):
         indent: int = 2,
         encoding: str = "utf-8",
         jsonablize: bool = False,
-        **otherArgs: any,
+        **other_kwargs: any,
     ):
         """
 
@@ -306,7 +306,7 @@ class EntropyHadamardTest(QurryV5Prototype):
             exp_name=exp_name,
             degree=degree,
             save_location=None,
-            **otherArgs,
+            **other_kwargs,
         )
         assert id_now in self.exps, f"ID {id_now} not found."
         assert self.exps[id_now].commons.exp_id == id_now

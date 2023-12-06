@@ -130,7 +130,7 @@ class WavesExecuter(QurryV5Prototype):
         wave_key: Hashable = None,
         exp_name: str = "exps",
         waves: Optional[Iterable[Hashable]] = None,
-        **otherArgs: Any,
+        **other_kwargs: Any,
     ) -> tuple[
         WavesQurryExperiment.Arguments,
         WavesQurryExperiment.Commonparams,
@@ -150,7 +150,7 @@ class WavesExecuter(QurryV5Prototype):
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
                 This name is also used for creating a folder to store the exports.
                 Defaults to `'exps'`.
-            otherArgs (Any):
+            other_kwargs (Any):
                 Other arguments.
 
         Returns:
@@ -174,7 +174,7 @@ class WavesExecuter(QurryV5Prototype):
             exp_name=exp_name,
             wave_key=wave_key,
             waves=waves,
-            **otherArgs,
+            **other_kwargs,
         )
 
     def method(
@@ -205,7 +205,7 @@ class WavesExecuter(QurryV5Prototype):
         indent: int = 2,
         encoding: str = "utf-8",
         jsonablize: bool = False,
-        **otherArgs: Any,
+        **other_kwargs: Any,
     ):
         """The main function to measure the wave function,
         which is the :meth:`result` with dedicated arguments.
@@ -234,7 +234,7 @@ class WavesExecuter(QurryV5Prototype):
             jsonablize (bool, optional):
                 Whether to jsonablize the experiment output. Defaults to False.
 
-            otherArgs (Any):
+            other_kwargs (Any):
                 Other arguments in :meth:`result`.
 
         Returns:
@@ -246,7 +246,7 @@ class WavesExecuter(QurryV5Prototype):
             waves=waves,
             exp_name=exp_name,
             save_location=None,
-            **otherArgs,
+            **other_kwargs,
         )
         assert id_now in self.exps, f"ID {id_now} not found."
         assert self.exps[id_now].commons.exp_id == id_now
