@@ -16,8 +16,8 @@ class IOComplex(NamedTuple):
     """The complex of IO control."""
 
     expsName: str
-    saveLocation: Path
-    exportLocation: Path
+    save_location: Path
+    export_location: Path
     tarName: str
     tarLocation: Path
 
@@ -101,14 +101,14 @@ def naming(
         # findIndexProgress = qurryProgressBar(
         #     range(1), bar_format='| {desc}')
         # with findIndexProgress as pb:
-        #     while os.path.exists(exportLocation):
-        #         pb.set_description_str(f"{exportLocation} is repeat location.")
+        #     while os.path.exists(export_location):
+        #         pb.set_description_str(f"{export_location} is repeat location.")
         #         indexRename += 1
         #         immutableName = f"{expsName}.{str(indexRename).rjust(_rjustLen, '0')}"
-        #         exportLocation = save_location / immutableName
+        #         export_location = save_location / immutableName
         #     pb.set_description_str(
-        #         f'Write "{immutableName}", at location "{exportLocation}"')
-        #     os.makedirs(exportLocation)
+        #         f'Write "{immutableName}", at location "{export_location}"')
+        #     os.makedirs(export_location)
 
         while os.path.exists(export_location):
             print(f"| {export_location} is repeat location.")
@@ -120,8 +120,8 @@ def naming(
 
     return IOComplex(
         expsName=immutable_name,
-        saveLocation=save_location,
-        exportLocation=export_location,
+        save_location=save_location,
+        export_location=export_location,
         tarName=f"{immutable_name}.{FULL_SUFFIX_OF_COMPRESS_FORMAT}",
         tarLocation=save_location
         / f"{immutable_name}.{FULL_SUFFIX_OF_COMPRESS_FORMAT}",

@@ -157,7 +157,7 @@ class MagnetSquareExperiment(ExperimentPrototype):
     class Arguments(NamedTuple):
         """Arguments for the experiment."""
 
-        expName: str = "exps"
+        exp_name: str = "exps"
         num_qubits: int = 0
         workers_num: int = DEFAULT_POOL_SIZE
 
@@ -207,7 +207,7 @@ class MagnetSquareExperiment(ExperimentPrototype):
 def _circuit_method_core(
     idx: int,
     tgtCircuit: QuantumCircuit,
-    expName: str,
+    exp_name: str,
     i: int,
     j: int,
 ):
@@ -221,7 +221,7 @@ def _circuit_method_core(
     qFunc = QuantumRegister(num_qubits, "q1")
     cMeas = ClassicalRegister(2, "c1")
     qcExp = QuantumCircuit(qFunc, cMeas)
-    qcExp.name = f"{expName}-{idx}-{i}-{j}"
+    qcExp.name = f"{exp_name}-{idx}-{i}-{j}"
 
     qcExp.append(tgtCircuit, [qFunc[i] for i in range(num_qubits)])
     qcExp.barrier()
@@ -242,7 +242,7 @@ class MagnetSquare(QurryV5Prototype):
         return MagnetSquareExperiment
 
     def params_control(
-        self, expName: str = "exps", waveKey: Hashable = None, **otherArgs: any
+        self, exp_name: str = "exps", wave_key: Hashable = None, **otherArgs: any
     ) -> tuple[
         MagnetSquareExperiment.Arguments,
         MagnetSquareExperiment.Commonparams,
@@ -251,7 +251,7 @@ class MagnetSquare(QurryV5Prototype):
         """Handling all arguments and initializing a single experiment.
 
         Args:
-            waveKey (Hashable):
+            wave_key (Hashable):
                 The index of the wave function in `self.waves` or add new one to calaculation,
                 then choose one of waves as the experiment material.
                 If input is `QuantumCircuit`, then add and use it.
@@ -259,7 +259,7 @@ class MagnetSquare(QurryV5Prototype):
                 If input is `None` or something illegal, then use `.lastWave'.
                 Defaults to None.
 
-            expName (str, optional):
+            exp_name (str, optional):
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
                 This name is also used for creating a folder to store the exports.
                 Defaults to `'exps'`.
@@ -271,25 +271,25 @@ class MagnetSquare(QurryV5Prototype):
             dict: The export will be processed in `.paramsControlCore`
         """
 
-        num_qubits = self.waves[waveKey].num_qubits
-        expName = f"w={waveKey}-Nq={num_qubits}.{self.shortName}"
+        num_qubits = self.waves[wave_key].num_qubits
+        exp_name = f"w={wave_key}-Nq={num_qubits}.{self.shortName}"
 
         return self.experiment.filter(
-            expName=expName,
-            waveKey=waveKey,
+            exp_name=exp_name,
+            wave_key=wave_key,
             num_qubits=num_qubits,
             **otherArgs,
         )
 
     def method(
         self,
-        expID: str,
+        exp_id: str,
     ) -> list[QuantumCircuit]:
-        assert expID in self.exps
-        assert self.exps[expID].commons.expID == expID
-        args: MagnetSquareExperiment.Arguments = self.exps[expID].args
-        commons: MagnetSquareExperiment.Commonparams = self.exps[expID].commons
-        circuit = self.waves[commons.waveKey]
+        assert exp_id in self.exps
+        assert self.exps[exp_id].commons.exp_id == exp_id
+        args: MagnetSquareExperiment.Arguments = self.exps[exp_id].args
+        commons: MagnetSquareExperiment.Commonparams = self.exps[exp_id].commons
+        circuit = self.waves[commons.wave_key]
         assert circuit.num_qubits == args.num_qubits
 
         permut = [b for b in permutations([a for a in range(args.num_qubits)], 2)]
@@ -297,24 +297,24 @@ class MagnetSquare(QurryV5Prototype):
 
         qcList = pool.starmap(
             _circuit_method_core,
-            [(idx, circuit, args.expName, i, j) for idx, (i, j) in enumerate(permut)],
+            [(idx, circuit, args.exp_name, i, j) for idx, (i, j) in enumerate(permut)],
         )
         if isinstance(commons.serial, int):
             print(
-                f"| Build circuit: {commons.waveKey}, worker={args.workers_num},"
-                + f" serial={commons.serial}, by={commons.summonerName} done."
+                f"| Build circuit: {commons.wave_key}, worker={args.workers_num},"
+                + f" serial={commons.serial}, by={commons.summoner_name} done."
             )
         else:
-            print(f"| Build circuit: {commons.waveKey} done.", end="\r")
+            print(f"| Build circuit: {commons.wave_key} done.", end="\r")
 
         return qcList
 
     def measure(
         self,
         wave: Union[QuantumCircuit, any, None] = None,
-        expName: str = "exps",
+        exp_name: str = "exps",
         *args,
-        saveLocation: Optional[Union[Path, str]] = None,
+        save_location: Optional[Union[Path, str]] = None,
         mode: str = "w+",
         indent: int = 2,
         encoding: str = "utf-8",
@@ -332,7 +332,7 @@ class MagnetSquare(QurryV5Prototype):
                 If input is `None` or something illegal, then use `.lastWave'.
                 Defaults to None.
 
-            expName (str, optional):
+            exp_name (str, optional):
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
                 This name is also used for creating a folder to store the exports.
                 Defaults to `'exps'`.
@@ -346,17 +346,17 @@ class MagnetSquare(QurryV5Prototype):
 
         IDNow = self.result(
             wave=wave,
-            expName=expName,
-            saveLocation=None,
+            exp_name=exp_name,
+            save_location=None,
             **otherArgs,
         )
         assert IDNow in self.exps, f"ID {IDNow} not found."
-        assert self.exps[IDNow].commons.expID == IDNow
+        assert self.exps[IDNow].commons.exp_id == IDNow
         currentExp = self.exps[IDNow]
 
-        if isinstance(saveLocation, (Path, str)):
+        if isinstance(save_location, (Path, str)):
             currentExp.write(
-                save_location=saveLocation,
+                save_location=save_location,
                 mode=mode,
                 indent=indent,
                 encoding=encoding,

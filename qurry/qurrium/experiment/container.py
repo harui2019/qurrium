@@ -5,30 +5,33 @@ The experiment container
 ================================================================
 
 """
-from typing import Literal, Union, Optional, NamedTuple, Hashable, Any
+import json
+from typing import Union, Optional, NamedTuple, Hashable, Any
 from pathlib import Path
 
 from qiskit import QuantumCircuit
 from qiskit.result import Result
 from qiskit.providers import Backend
 
+from ...tools import backendName
 from ...tools.datetime import DatetimeDict
+from ...capsule import jsonablize
 
 
 class Arguments(NamedTuple):
     """Construct the experiment's parameters for specific options,
     which is overwritable by the inherition class."""
 
-    expName: str
+    exp_name: str
     """Name of experiment."""
 
 
 class Commonparams(NamedTuple):
     """Construct the experiment's parameters for system running."""
 
-    expID: str
+    exp_id: str
     """ID of experiment."""
-    waveKey: Hashable
+    wave_key: Hashable
     """Key of the chosen wave."""
 
     # Qiskit argument of experiment.
@@ -37,28 +40,23 @@ class Commonparams(NamedTuple):
     """Number of shots to run the program (default: 1024)."""
     backend: Union[Backend, str]
     """Backend to execute the circuits on, or the backend used."""
-    runArgs: dict
+    run_args: dict
     """Arguments of `execute`."""
 
     # Single job dedicated
-    runBy: Literal["gate", "operator"]
-    """Run circuits by gate or operator."""
-    transpileArgs: dict
+    transpile_args: dict
     """Arguments of `qiskit.compiler.transpile`."""
-    decompose: Optional[int]
-    """Decompose the circuit in given times 
-    to show the circuit figures in :property:`.before.figOriginal`."""
 
     tags: tuple
     """Tags of experiment."""
 
     # Auto-analysis when counts are ready
-    defaultAnalysis: list[dict[str, Any]]
+    default_analysis: list[dict[str, Any]]
     """When counts are ready, 
     the experiment will automatically analyze the counts with the given analysis."""
 
     # Arguments for exportation
-    saveLocation: Union[Path, str]
+    save_location: Union[Path, str]
     """Location of saving experiment. 
     If this experiment is called by :cls:`QurryMultiManager`,
     then `adventure`, `legacy`, `tales`, and `reports` will be exported 
@@ -79,64 +77,159 @@ class Commonparams(NamedTuple):
     files = {
         'folder': './blabla_experiment/',
         
-        'args': './blabla_experiment/args/blabla_experiment.id={expID}.args.json',
-        'advent': './blabla_experiment/advent/blabla_experiment.id={expID}.advent.json',
-        'legacy': './blabla_experiment/legacy/blabla_experiment.id={expID}.legacy.json',
-        'tales.dummyx1': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyx1.json',
-        'tales.dummyx2': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyx2.json',
+        'args': './blabla_experiment/args/blabla_experiment.id={exp_id}.args.json',
+        'advent': './blabla_experiment/advent/blabla_experiment.id={exp_id}.advent.json',
+        'legacy': './blabla_experiment/legacy/blabla_experiment.id={exp_id}.legacy.json',
+        'tales.dummyx1': './blabla_experiment/tales/blabla_experiment.id={exp_id}.dummyx1.json',
+        'tales.dummyx2': './blabla_experiment/tales/blabla_experiment.id={exp_id}.dummyx2.json',
         ...
-        'tales.dummyxn': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyxn.json',
-        'reports': './blabla_experiment/reports/blabla_experiment.id={expID}.reports.json',
+        'tales.dummyxn': './blabla_experiment/tales/blabla_experiment.id={exp_id}.dummyxn.json',
+        'reports': './blabla_experiment/reports/blabla_experiment.id={exp_id}.reports.json',
         'reports.tales.dummyz1': 
-            './blabla_experiment/tales/blabla_experiment.id={expID}.dummyz1.reports.json',
+            './blabla_experiment/tales/blabla_experiment.id={exp_id}.dummyz1.reports.json',
         'reports.tales.dummyz2': 
-            './blabla_experiment/tales/blabla_experiment.id={expID}.dummyz2.reports.json',
+            './blabla_experiment/tales/blabla_experiment.id={exp_id}.dummyz2.reports.json',
         ...
         'reports.tales.dummyzm': 
-            './blabla_experiment/tales/blabla_experiment.id={expID}.dummyzm.reports.json',
+            './blabla_experiment/tales/blabla_experiment.id={exp_id}.dummyzm.reports.json',
     }
     ```
     which `blabla_experiment` is the example filename.
     If this experiment is called by :cls:`multimanager`, 
-    then the it will be named after `summonerName` as known as the name of :cls:`multimanager`.
+    then the it will be named after `summoner_name` as known as the name of :cls:`multimanager`.
     
     ```python
     files = {
         'folder': './BLABLA_project/',
         
-        'args': './BLABLA_project/args/index={serial}.id={expID}.args.json',
-        'advent': './BLABLA_project/advent/index={serial}.id={expID}.advent.json',
-        'legacy': './BLABLA_project/legacy/index={serial}.id={expID}.legacy.json',
-        'tales.dummyx1': './BLABLA_project/tales/index={serial}.id={expID}.dummyx1.json',
-        'tales.dummyx2': './BLABLA_project/tales/index={serial}.id={expID}.dummyx2.json',
+        'args': './BLABLA_project/args/index={serial}.id={exp_id}.args.json',
+        'advent': './BLABLA_project/advent/index={serial}.id={exp_id}.advent.json',
+        'legacy': './BLABLA_project/legacy/index={serial}.id={exp_id}.legacy.json',
+        'tales.dummyx1': './BLABLA_project/tales/index={serial}.id={exp_id}.dummyx1.json',
+        'tales.dummyx2': './BLABLA_project/tales/index={serial}.id={exp_id}.dummyx2.json',
         ...
-        'tales.dummyxn': './BLABLA_project/tales/index={serial}.id={expID}.dummyxn.json',
-        'reports': './BLABLA_project/reports/index={serial}.id={expID}.reports.json',
+        'tales.dummyxn': './BLABLA_project/tales/index={serial}.id={exp_id}.dummyxn.json',
+        'reports': './BLABLA_project/reports/index={serial}.id={exp_id}.reports.json',
         'reports.tales.dummyz1': 
-            './BLABLA_project/tales/index={serial}.id={expID}.dummyz1.reports.json',
+            './BLABLA_project/tales/index={serial}.id={exp_id}.dummyz1.reports.json',
         'reports.tales.dummyz2': 
-            './BLABLA_project/tales/index={serial}.id={expID}.dummyz2.reports.json',
+            './BLABLA_project/tales/index={serial}.id={exp_id}.dummyz2.reports.json',
         ...
         'reports.tales.dummyzm': 
-            './BLABLA_project/tales/index={serial}.id={expID}.dummyzm.reports.json',
+            './BLABLA_project/tales/index={serial}.id={exp_id}.dummyzm.reports.json',
     }
     ```
     which `BLBLA_project` is the example :cls:`multimanager` name 
-    stored at :prop:`commonparams.summonerName`.
-    At this senerio, the `expName` will never apply as filename.
+    stored at :prop:`commonparams.summoner_name`.
+    At this senerio, the `exp_name` will never apply as filename.
     
     """
 
     # Arguments for multi-experiment
     serial: Optional[int]
     """Index of experiment in a multiOutput."""
-    summonerID: Optional[str]
+    summoner_id: Optional[str]
     """ID of experiment of the multiManager."""
-    summonerName: Optional[str]
+    summoner_name: Optional[str]
     """Name of experiment of the multiManager."""
 
     # header
     datetimes: DatetimeDict
+
+    @staticmethod
+    def v5_to_v7_field():
+        """The field name of v5 to v7."""
+        return {
+            "expName": "exp_name",
+            "expID": "exp_id",
+            "waveKey": "wave_key",
+            "runArgs": "run_args",
+            "transpileArgs": "transpile_args",
+            "defaultAnalysis": "default_analysis",
+            "saveLocation": "save_location",
+            "summonerID": "summoner_id",
+            "summoner_name": "summoner_name",
+        }
+
+    @staticmethod
+    def default_value():
+        """The default value of each field."""
+        return {
+            "exp_name": None,
+            "exp_id": None,
+            "wave_key": None,
+            "shots": None,
+            "backend": None,
+            "run_args": {},
+            "transpile_args": {},
+            "tags": (),
+            "default_analysis": [],
+            "save_location": None,
+            "filename": None,
+            "files": {},
+            "serial": None,
+            "summoner_id": None,
+            "summoner_name": None,
+            "datetimes": DatetimeDict(),
+        }
+
+    @classmethod
+    def read_as_dict(
+        cls,
+        exp_id: str,
+        file_index: dict[str, str],
+        save_location: Path,
+        encoding: str = "utf-8",
+    ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+        """Read the exported experiment file.
+
+        Args:
+            exp_id (str): The ID of experiment.
+            file_index (dict[str, str]): The index of exported experiment file.
+            save_location (Path): The location of exported experiment file.
+            encoding (str, optional): The encoding of exported experiment file. Defaults to "utf-8".
+
+        Returns:
+            tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+                The experiment's arguments,
+                the experiment's common parameters,
+                and the experiment's side product.
+        """
+        raw_data = {}
+        with open(save_location / file_index["args"], "r", encoding=encoding) as f:
+            raw_data = json.load(f)
+        data_args: dict[str, dict[str, Any]] = {
+            "arguments": raw_data["arguments"],
+            "commonparams": raw_data["commonparams"],
+            "outfields": raw_data["outfields"],
+        }
+        for k, nk in cls.v5_to_v7_field().items():
+            if k in data_args["commonparams"]:
+                data_args["commonparams"][nk] = data_args["commonparams"].pop(k)
+            if k in data_args["arguments"]:
+                data_args["arguments"][nk] = data_args["arguments"].pop(k)
+
+        assert data_args["commonparams"]["exp_id"] == exp_id, "The exp_id is not match."
+
+        return (
+            data_args["arguments"],
+            data_args["commonparams"],
+            data_args["outfields"],
+        )
+
+    def export(self: NamedTuple) -> dict[str, Any]:
+        """Export the experiment's common parameters.
+
+        Returns:
+            dict[str, Any]: The experiment's common parameters.
+        """
+        # pylint: disable=no-member
+        commons: dict[str, Any] = jsonablize(self._asdict())
+        # pylint: enable=no-member
+        commons["backend"] = (
+            self.backend if isinstance(self.backend, str) else backendName(self.backend)
+        )
+        return commons
 
 
 class Before(NamedTuple):
@@ -145,20 +238,113 @@ class Before(NamedTuple):
     """
 
     # Experiment Preparation
-    circuit: list[QuantumCircuit]
+    circuit: Union[list[QuantumCircuit], list[str]]
     """Circuits of experiment."""
-    figOriginal: list[str]
+    fig_original: list[str]
     """Raw circuit figures which is the circuit before transpile."""
 
     # Export data
-    jobID: str
+    job_id: str
     """ID of job for pending on real machine (IBMQBackend)."""
-    expName: str
+    exp_name: str
     """Name of experiment which is also showed on IBM Quantum Computing quene."""
 
     # side product
-    sideProduct: dict
+    side_product: dict
     """The data of experiment will be independently exported in the folder 'tales'."""
+
+    @staticmethod
+    def v5_to_v7_field():
+        """The field name of v5 to v7."""
+        return {
+            "jobID": "job_id",
+            "expName": "exp_name",
+            "figOriginal": "fig_original",
+            "sideProduct": "side_product",
+        }
+
+    @staticmethod
+    def default_value():
+        """These default value are used for autofill the missing value."""
+        return {
+            "circuit": [],
+            "job_id": None,
+            "exp_name": None,
+            "fig_original": [],
+            "side_product": {},
+        }
+
+    @classmethod
+    def read(
+        cls,
+        file_index: dict[str, str],
+        save_location: Path,
+        encoding: str = "utf-8",
+    ) -> "Before":
+        """Read the exported experiment file.
+
+        Args:
+            file_index (dict[str, str]): The index of exported experiment file.
+            save_location (Path): The location of exported experiment file.
+            encoding (str, optional): The encoding of exported experiment file. Defaults to "utf-8".
+
+        Returns:
+            tuple[dict[str, Any], "Before", dict[str, Any]]:
+                The experiment's arguments,
+                the experiment's common parameters,
+                and the experiment's side product.
+        """
+        raw_data = {}
+        with open(save_location / file_index["advent"], "r", encoding=encoding) as f:
+            raw_data = json.load(f)
+        advent: dict[str, Any] = raw_data["adventures"]
+        for k, nk in cls.v5_to_v7_field().items():
+            if k in advent:
+                advent[nk] = advent.pop(k)
+        for k, dv in cls.default_value().items():
+            if k not in advent:
+                advent[k] = dv
+        assert "side_product" in advent, "The side product is not found."
+
+        for filekey, filename in file_index.items():
+            filekeydiv = filekey.split(".")
+            if filekeydiv[0] == "tales":
+                with open(save_location / filename, "r", encoding=encoding) as f:
+                    advent["side_product"][filekeydiv[1]] = json.load(f)
+
+        return cls(**advent)
+
+    def export(
+        self,
+        unexports: Optional[list[str]] = None,
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        """Export the experiment's data before executing.
+
+        Args:
+            unexports (Optional[list[str]], optional): The list of unexported key. Defaults to None.
+
+        Returns:
+            tuple[dict[str, Any], dict[str, Any]]:
+                The experiment's arguments,
+                and the experiment's side product.
+        """
+
+        if unexports is None:
+            unexports = []
+
+        tales: dict[str, str] = {}
+        adventures = {}
+        # pylint: disable=no-member
+        for k, v in self._asdict().items():
+            # pylint: enable=no-member
+            if k == "side_product":
+                tales = {**tales, **v}
+            elif k in unexports:
+                ...
+            else:
+                adventures[k] = v
+
+        return adventures, tales
 
 
 class After(NamedTuple):
@@ -170,3 +356,62 @@ class After(NamedTuple):
     """Results of experiment."""
     counts: list[dict[str, int]]
     """Counts of experiment."""
+
+    @staticmethod
+    def default_value():
+        """The default value of each field."""
+        return {
+            "result": [],
+            "counts": [],
+        }
+
+    @classmethod
+    def read(
+        cls,
+        file_index: dict[str, str],
+        save_location: Path,
+        encoding: str = "utf-8",
+    ) -> "After":
+        """Read the exported experiment file.
+
+        Args:
+            file_index (dict[str, str]): The index of exported experiment file.
+            save_location (Path): The location of exported experiment file.
+            encoding (str, optional): The encoding of exported experiment file. Defaults to "utf-8".
+
+        Returns:
+            tuple[dict[str, Any], "After", dict[str, Any]]:
+                The experiment's arguments,
+                the experiment's common parameters,
+                and the experiment's side product.
+        """
+        raw_data = {}
+        with open(save_location / file_index["legacy"], encoding=encoding) as f:
+            raw_data = json.load(f)
+        legacy: dict[str, Any] = raw_data["legacy"]
+        for k, dv in cls.default_value().items():
+            if k not in legacy:
+                legacy[k] = dv
+
+        return cls(**legacy)
+
+    def export(
+        self,
+        unexports: Optional[list[str]] = None,
+    ) -> dict[str, Any]:
+        """Export the experiment's data after executing.
+
+        Args:
+            unexports (Optional[list[str]], optional): The list of unexported key. Defaults to None.
+
+        Returns:
+            dict[str, Any]: The experiment's data after executing.
+        """
+        legacy = {}
+        # pylint: disable=no-member
+        for k, v in self._asdict().items():
+            # pylint: enable=no-member
+            if k not in unexports:
+                legacy[k] = v
+
+        return legacy

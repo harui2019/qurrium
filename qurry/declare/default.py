@@ -12,7 +12,7 @@ from ..capsule.mori import DefaultConfig
 from ..tools.watch import ResoureWatch
 
 transpileConfig = DefaultConfig(
-    name='transpileArgs',
+    name='transpile_args',
     default={
         'basis_gates': None,
         'inst_map': None,
@@ -38,7 +38,7 @@ transpileConfig = DefaultConfig(
 )
 
 managerRunConfig = DefaultConfig(
-    name='managerRunArgs',
+    name='manager_run_args',
     default={
         'max_experiments_per_job': None,
         'job_share_level': None,
@@ -64,7 +64,7 @@ managerRunConfig = DefaultConfig(
 )
 
 runConfig = DefaultConfig(
-    name='runArgs',
+    name='run_args',
     default={
         'basis_gates': None,
         'coupling_map': None,  # circuit transpile options

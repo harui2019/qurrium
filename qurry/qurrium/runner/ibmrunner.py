@@ -51,9 +51,9 @@ class IBMRunner(Runner):
         backend: Optional[IBMBackend] = None,
         provider: Optional[IBMProvider] = None,
     ):
-        assert multimanager.summonerID == besummonned, (
-            "Summoner ID not match, multimanager.summonerID: "
-            + f"{multimanager.summonerID}, besummonned: {besummonned}"
+        assert multimanager.summoner_id == besummonned, (
+            "Summoner ID not match, multimanager.summoner_id: "
+            + f"{multimanager.summoner_id}, besummonned: {besummonned}"
         )
         if backend is None and provider is None:
             raise ValueError("Either backend or provider should be provided.")
@@ -153,8 +153,8 @@ class IBMRunner(Runner):
                 all_pending_tags = [
                     str(s)
                     for s in [
-                        self.current_multimanager.multicommons.summonerName,
-                        self.current_multimanager.multicommons.summonerID,
+                        self.current_multimanager.multicommons.summoner_name,
+                        self.current_multimanager.multicommons.summoner_id,
                         *pending_tags,
                         *self.current_multimanager.multicommons.tags,
                     ]
@@ -171,7 +171,7 @@ class IBMRunner(Runner):
                     circuits=[self.circwserial[idx] for idx in pcirc_idxs],
                     shots=self.current_multimanager.multicommons.shots,
                     job_tags=all_pending_tags,
-                    **self.current_multimanager.multicommons.managerRunArgs,
+                    **self.current_multimanager.multicommons.manager_run_args,
                 )
                 pendingpool_progressbar.set_description_str(
                     f"{pk}/{pending_job.job_id()}/{pending_job.tags()}"
@@ -359,7 +359,7 @@ class IBMRunner(Runner):
                 f"{current_id} with {len(idx_circs)} circuits", refresh=True
             )
             self.experiment_container[current_id].reset_counts(
-                summonerID=self.current_multimanager.summonerID
+                summoner_id=self.current_multimanager.summoner_id
             )
             for idx in idx_circs:
                 self.experiment_container[current_id].afterwards.counts.append(

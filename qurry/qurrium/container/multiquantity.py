@@ -42,7 +42,7 @@ class QuantityContainer(dict[str, TagList[dict[str, float]]]):
             name (Optional[str], optional): The name of the analysis. Defaults to None.
         """
         self[key] = TagList.read(
-            saveLocation=save_location,
+            save_location=save_location,
             tagListName=taglist_name,
             name=name,
         )
@@ -81,7 +81,7 @@ class QuantityContainer(dict[str, TagList[dict[str, float]]]):
         for i, (k, v) in enumerate(quantity_progress):
             quantity_progress.set_description_str(f"exporting quantity: {k}")
             filename = v.export(
-                saveLocation=save_location,
+                save_location=save_location,
                 tagListName="quantity",
                 name=f"{k}",
                 filetype=filetype,

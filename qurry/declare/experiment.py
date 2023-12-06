@@ -14,33 +14,33 @@ from ..tools.datetime import DatetimeDict
 commonparamsConfig = DefaultConfig(
     name='commonparams',
     default={
-        'expID': None,
-        'waveKey': None,
+        'exp_id': None,
+        'wave_key': None,
         'shots': 1024,
         'backend': GeneralAerSimulator(),
         'provider': None,
-        'runArgs': {},
+        'run_args': {},
         'runBy': 'gate',
-        'transpileArgs': {},
+        'transpile_args': {},
         'decompose': None,
         'tags': (),
-        'defaultAnalysis': [],
-        'saveLocation': Path('./'),
+        'default_analysis': [],
+        'save_location': Path('./'),
         'filetype': 'json',
         'datetimes': DatetimeDict(),
         'serial': None,
-        'summonerID': None,
-        'summonerName': None,
+        'summoner_id': None,
+        'summoner_name': None,
     })
 
 beforeConfig = DefaultConfig(
     name='before',
     default={
         'circuit': [],
-        'figOriginal': [],
-        'jobID': '',
-        'expName': '',
-        'sideProduct': {},
+        'fig_original': [],
+        'job_id': '',
+        'exp_name': '',
+        'side_product': {},
     })
 
 afterConfig = DefaultConfig(

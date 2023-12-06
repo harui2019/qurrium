@@ -363,7 +363,7 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
     class Arguments(NamedTuple):
         """Arguments for the experiment."""
 
-        expName: str = "exps"
+        exp_name: str = "exps"
         times: int = 100
         measure: tuple[int, int] = None
         unitary_loc: tuple[int, int] = None
@@ -599,8 +599,8 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
 
     def params_control(
         self,
-        waveKey: Hashable = None,
-        expName: str = "exps",
+        wave_key: Hashable = None,
+        exp_name: str = "exps",
         times: int = 100,
         measure: tuple[int, int] = None,
         unitary_loc: tuple[int, int] = None,
@@ -613,7 +613,7 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
         """Handling all arguments and initializing a single experiment.
 
         Args:
-            waveKey (Hashable):
+            wave_key (Hashable):
                 The index of the wave function in `self.waves` or add new one to calaculation,
                 then choose one of waves as the experiment material.
                 If input is `QuantumCircuit`, then add and use it.
@@ -621,7 +621,7 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
                 If input is `None` or something illegal, then use `.lastWave'.
                 Defaults to None.
 
-            expName (str, optional):
+            exp_name (str, optional):
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
                 This name is also used for creating a folder to store the exports.
                 Defaults to `'exps'`.
@@ -638,7 +638,7 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
             raise ValueError(f"times should be an integer, but got {times}.")
 
         # measure and unitary location
-        num_qubits = self.waves[waveKey].num_qubits
+        num_qubits = self.waves[wave_key].num_qubits
         if measure is None:
             measure = num_qubits
         measure = qubit_selector(num_qubits, degree=measure)
@@ -652,11 +652,11 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
                 f"unitary_loc range '{unitary_loc}' does not contain measure range '{measure}'."
             )
 
-        expName = f"w={waveKey}.with{times}random.{self.shortName}"
+        exp_name = f"w={wave_key}.with{times}random.{self.shortName}"
 
         return self.experiment.filter(
-            expName=expName,
-            waveKey=waveKey,
+            exp_name=exp_name,
+            wave_key=wave_key,
             times=times,
             measure=measure,
             unitary_loc=unitary_loc,
@@ -665,15 +665,15 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
 
     def method(
         self,
-        expID: str,
+        exp_id: str,
         _pbar: Optional[tqdm.tqdm] = None,
     ) -> list[QuantumCircuit]:
-        assert expID in self.exps
-        assert self.exps[expID].commons.expID == expID
-        current_exp = self.exps[expID]
-        args: EntropyRandomizedExperiment.Arguments = self.exps[expID].args
-        commons: EntropyRandomizedExperiment.Commonparams = self.exps[expID].commons
-        circuit = self.waves[commons.waveKey]
+        assert exp_id in self.exps
+        assert self.exps[exp_id].commons.exp_id == exp_id
+        current_exp = self.exps[exp_id]
+        args: EntropyRandomizedExperiment.Arguments = self.exps[exp_id].args
+        commons: EntropyRandomizedExperiment.Commonparams = self.exps[exp_id].commons
+        circuit = self.waves[commons.wave_key]
         _num_qubits = circuit.num_qubits
 
         pool = ProcessManager(args.workers_num)
@@ -706,7 +706,7 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
                 (
                     i,
                     circuit,
-                    args.expName,
+                    args.exp_name,
                     args.unitary_loc,
                     unitary_list[i],
                     args.measure,
@@ -723,11 +723,11 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
             local_random_unitary_operators,
             [(args.unitary_loc, unitary_list[i]) for i in range(args.times)],
         )
-        current_exp.beforewards.sideProduct["unitaryOP"] = dict(
+        current_exp.beforewards.side_product["unitaryOP"] = dict(
             enumerate(unitary_operator_list)
         )
 
-        # currentExp.beforewards.sideProduct['unitaryOP'] = {
+        # currentExp.beforewards.side_product['unitaryOP'] = {
         #     k: {i: np.array(v[i]).tolist() for i in range(*args.unitary_loc)}
         #     for k, v in unitaryList.items()}
 
@@ -739,11 +739,11 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
             local_random_unitary_pauli_coeff,
             [(args.unitary_loc, unitary_operator_list[i]) for i in range(args.times)],
         )
-        current_exp.beforewards.sideProduct["randomized"] = {
+        current_exp.beforewards.side_product["randomized"] = {
             i: v for i, v in enumerate(randomized_list)
         }
 
-        # currentExp.beforewards.sideProduct['randomized'] = {i: {
+        # currentExp.beforewards.side_product['randomized'] = {i: {
         #     j: qubitOpToPauliCoeff(
         #         unitaryList[i][j])
         #     for j in range(*args.unitary_loc)
@@ -757,9 +757,9 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
         times: int = 100,
         measure: Union[int, tuple[int, int], None] = None,
         unitary_loc: Union[int, tuple[int, int], None] = None,
-        expName: str = "exps",
+        exp_name: str = "exps",
         *,
-        saveLocation: Optional[Union[Path, str]] = None,
+        save_location: Optional[Union[Path, str]] = None,
         mode: str = "w+",
         indent: int = 2,
         encoding: str = "utf-8",
@@ -777,7 +777,7 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
                 If input is `None` or something illegal, then use `.lastWave'.
                 Defaults to None.
 
-            expName (str, optional):
+            exp_name (str, optional):
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
                 This name is also used for creating a folder to store the exports.
                 Defaults to `'exps'`.
@@ -791,20 +791,20 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
 
         id_now = self.result(
             wave=wave,
-            expName=expName,
+            exp_name=exp_name,
             times=times,
             measure=measure,
             unitary_loc=unitary_loc,
-            saveLocation=None,
+            save_location=None,
             **otherArgs,
         )
         assert id_now in self.exps, f"ID {id_now} not found."
-        assert self.exps[id_now].commons.expID == id_now
+        assert self.exps[id_now].commons.exp_id == id_now
         current_exp = self.exps[id_now]
 
-        if isinstance(saveLocation, (Path, str)):
+        if isinstance(save_location, (Path, str)):
             current_exp.write(
-                save_location=saveLocation,
+                save_location=save_location,
                 mode=mode,
                 indent=indent,
                 encoding=encoding,

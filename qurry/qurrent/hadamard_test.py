@@ -78,7 +78,7 @@ class EntropyHadamardExperiment(ExperimentPrototype):
     class Arguments(NamedTuple):
         """Arguments for the experiment."""
 
-        expName: str = "exps"
+        exp_name: str = "exps"
         degree: tuple[int, int] = None
 
     @classmethod
@@ -167,10 +167,10 @@ class EntropyHadamardTest(QurryV5Prototype):
 
     def params_control(
         self,
-        waveKey: Hashable = None,
-        expName: str = "exps",
+        wave_key: Hashable = None,
+        exp_name: str = "exps",
         degree: Union[tuple[int, int], int] = None,
-        **otherArgs: any,
+        **other_kwargs: any,
     ) -> tuple[
         EntropyHadamardExperiment.Arguments,
         EntropyHadamardExperiment.Commonparams,
@@ -187,7 +187,7 @@ class EntropyHadamardTest(QurryV5Prototype):
                 If input is `None` or something illegal, then use `.lastWave'.
                 Defaults to None.
 
-            expName (str, optional):
+            exp_name (str, optional):
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
                 This name is also used for creating a folder to store the exports.
                 Defaults to `'exps'`.
@@ -200,40 +200,40 @@ class EntropyHadamardTest(QurryV5Prototype):
         """
 
         # measure and unitary location
-        num_qubits = self.waves[waveKey].num_qubits
+        num_qubits = self.waves[wave_key].num_qubits
         degree = qubit_selector(num_qubits, degree=degree)
 
-        if isinstance(waveKey, (list, tuple)):
-            waveKey = "-".join([str(i) for i in waveKey])
+        if isinstance(wave_key, (list, tuple)):
+            wave_key = "-".join([str(i) for i in wave_key])
 
-        expName = f"w={waveKey}.subsys=from{degree[0]}to{degree[1]}.{self.shortName}"
+        exp_name = f"w={wave_key}.subsys=from{degree[0]}to{degree[1]}.{self.shortName}"
 
         return self.experiment.filter(
-            expName=expName,
-            waveKey=waveKey,
+            exp_name=exp_name,
+            wave_key=wave_key,
             degree=degree,
-            **otherArgs,
+            **other_kwargs,
         )
 
     def method(
         self,
-        expID: Hashable,
+        exp_id: Hashable,
         _pbar: Optional[tqdm.tqdm] = None,
     ) -> list[QuantumCircuit]:
         """Returns a list of quantum circuits.
 
         Args:
-            expID (str): The ID of the experiment.
+            exp_id (str): The ID of the experiment.
 
         Returns:
             list[QuantumCircuit]: The quantum circuits.
         """
 
-        assert expID in self.exps
-        assert self.exps[expID].commons.expID == expID
-        args: EntropyHadamardExperiment.Arguments = self.exps[expID].args
-        commons: EntropyHadamardExperiment.Commonparams = self.exps[expID].commons
-        circuit = self.waves[commons.waveKey]
+        assert exp_id in self.exps
+        assert self.exps[exp_id].commons.exp_id == exp_id
+        args: EntropyHadamardExperiment.Arguments = self.exps[exp_id].args
+        commons: EntropyHadamardExperiment.Commonparams = self.exps[exp_id].commons
+        circuit = self.waves[commons.wave_key]
         num_qubits = circuit.num_qubits
 
         q_ancilla = QuantumRegister(1, "ancilla")
@@ -244,14 +244,14 @@ class EntropyHadamardTest(QurryV5Prototype):
 
         qc_exp1.append(
             self.waves.call(
-                wave=commons.waveKey,
+                wave=commons.wave_key,
             ),
             [q_func1[i] for i in range(num_qubits)],
         )
 
         qc_exp1.append(
             self.waves.call(
-                wave=commons.waveKey,
+                wave=commons.wave_key,
             ),
             [q_func2[i] for i in range(num_qubits)],
         )
@@ -269,9 +269,9 @@ class EntropyHadamardTest(QurryV5Prototype):
         self,
         wave: Union[QuantumCircuit, any, None] = None,
         degree: Union[int, tuple[int, int], None] = None,
-        expName: str = "exps",
+        exp_name: str = "exps",
         *,
-        saveLocation: Optional[Union[Path, str]] = None,
+        save_location: Optional[Union[Path, str]] = None,
         mode: str = "w+",
         indent: int = 2,
         encoding: str = "utf-8",
@@ -289,7 +289,7 @@ class EntropyHadamardTest(QurryV5Prototype):
                 If input is `None` or something illegal, then use `.lastWave'.
                 Defaults to None.
 
-            expName (str, optional):
+            exp_name (str, optional):
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
                 This name is also used for creating a folder to store the exports.
                 Defaults to `'exps'`.
@@ -303,18 +303,18 @@ class EntropyHadamardTest(QurryV5Prototype):
 
         id_now = self.result(
             wave=wave,
-            expName=expName,
+            exp_name=exp_name,
             degree=degree,
-            saveLocation=None,
+            save_location=None,
             **otherArgs,
         )
         assert id_now in self.exps, f"ID {id_now} not found."
-        assert self.exps[id_now].commons.expID == id_now
+        assert self.exps[id_now].commons.exp_id == id_now
         current_exp = self.exps[id_now]
 
-        if isinstance(saveLocation, (Path, str)):
+        if isinstance(save_location, (Path, str)):
             current_exp.write(
-                save_location=saveLocation,
+                save_location=save_location,
                 mode=mode,
                 indent=indent,
                 encoding=encoding,

@@ -184,12 +184,12 @@
 #                 Other arguments.
 
 #         Raises:
-#             KeyError: Given `expID` does not exist.
+#             KeyError: Given `exp_id` does not exist.
 #             TypeError: When parameters are not all to be `int`.
 #             KeyError: The given parameters lost degree of freedom.".
 
 #         Returns:
-#             tuple[str, dict[str, any]]: Current `expID` and arguments.
+#             tuple[str, dict[str, any]]: Current `exp_id` and arguments.
 #         """
 
 #         # wave

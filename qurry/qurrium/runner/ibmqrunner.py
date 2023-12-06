@@ -12,12 +12,12 @@ from qiskit import QuantumCircuit
 from ...exceptions import QurryExtraPackageRequired
 
 try:
-    from qiskit.providers.ibmq import IBMQBackend, IBMQJobManager, AccountProvider
-    from qiskit.providers.ibmq.managed import (
+    from qiskit.providers.ibmq import IBMQBackend, IBMQJobManager, AccountProvider # type: ignore
+    from qiskit.providers.ibmq.managed import (  # type: ignore
         ManagedJobSet,
         IBMQJobManagerInvalidStateError,
     )
-    from qiskit.providers.ibmq.exceptions import IBMQError
+    from qiskit.providers.ibmq.exceptions import IBMQError # type: ignore
 except ImportError as exception:
     raise QurryExtraPackageRequired(
         "These module requires the install of "
@@ -69,9 +69,9 @@ class IBMQRunner(Runner):
         backend: Optional[IBMQBackend] = None,
         provider: Optional[AccountProvider] = None,
     ):
-        assert multimanager.summonerID == besummonned, (
-            "Summoner ID not match, multimanager.summonerID: "
-            + f"{multimanager.summonerID}, besummonned: {besummonned}"
+        assert multimanager.summoner_id == besummonned, (
+            "Summoner ID not match, multimanager.summoner_id: "
+            + f"{multimanager.summoner_id}, besummonned: {besummonned}"
         )
         if backend is None and provider is None:
             raise ValueError("At least one of backend and provider should be given.")
@@ -187,16 +187,16 @@ class IBMQRunner(Runner):
             if len(pcirc_idxs) > 0:
                 if pk == "_onetime":
                     pending_name = (
-                        f"{self.current_multimanager.multicommons.summonerName}"
+                        f"{self.current_multimanager.multicommons.summoner_name}"
                     )
                 elif isinstance(pk, (list, tuple)):
                     pending_name = (
-                        f"{self.current_multimanager.multicommons.summonerName}"
+                        f"{self.current_multimanager.multicommons.summoner_name}"
                         + f'-{"-".join(pk)}'
                     )
                 else:
                     pending_name = (
-                        f"{self.current_multimanager.multicommons.summonerName}"
+                        f"{self.current_multimanager.multicommons.summoner_name}"
                         + f"-{pk}"
                     )
 
@@ -206,7 +206,7 @@ class IBMQRunner(Runner):
                     backend=self.backend,
                     shots=self.current_multimanager.multicommons.shots,
                     name=pending_name,
-                    manager_run_args=self.current_multimanager.multicommons.managerRunArgs,
+                    manager_run_args=self.current_multimanager.multicommons.manager_run_args,
                 )
                 pendingpool_progressbar.set_description_str(
                     f"{pk}/{pending_job.jobID}/{pending_job.name}"
@@ -349,7 +349,7 @@ class IBMQRunner(Runner):
                 f"{current_id} with {len(idx_circs)} circuits"
             )
             self.experiment_container[current_id].reset_counts(
-                summonerID=self.current_multimanager.summonerID
+                summoner_id=self.current_multimanager.summoner_id
             )
             for idx in idx_circs:
                 self.experiment_container[current_id].afterwards.counts.append(
@@ -382,7 +382,7 @@ def IBMQPending(
         backend (IBMQBackend): The IBMQ backend instance.
         shots (int, optional): Shots for IBMQ backends. Defaults to 1024.
         name (str, optional): Jobs name for IBMQ backends. Defaults to 'qurryV5'.
-        managerRunArgs (dict[str, any], optional):
+        manager_run_args (dict[str, any], optional):
             Extra arguments for `IBMQManager.run`. Defaults to {}.
 
     Returns:

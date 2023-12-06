@@ -10,16 +10,16 @@ from ..tools.datetime import DatetimeDict
 multicommonConfig = DefaultConfig(
     name='multicommon',
     default={
-        'summonerID': None,
-        'summonerName': None,
+        'summoner_id': None,
+        'summoner_name': None,
         'tags': [],
         'shots': 0,
         'backend': None,
-        'saveLocation': None,
-        'exportLocation': None,
+        'save_location': None,
+        'export_location': None,
         'files': {},
-        'jobsType': None,
-        'managerRunArgs': None,
+        'jobstype': None,
+        'manager_run_args': None,
         'filetype': 'json',
         'datetimes': DatetimeDict(),
     }

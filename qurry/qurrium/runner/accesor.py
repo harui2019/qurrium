@@ -117,14 +117,14 @@ class ExtraBackendAccessor:
             if not isinstance(backend, IBMQBackend):
                 raise ValueError(
                     "You must use 'IBMQBackend' from 'qiskit_ibmq_provider' "
-                    + "which imports from 'qiskit.providers.ibmq' for 'IBMQ' jobsType. "
+                    + "which imports from 'qiskit.providers.ibmq' for 'IBMQ' jobstype. "
                     + "If you import backend or provider from 'qiskit_ibm_provider', "
-                    + "it used 'IBMBackend' for 'IBM' jobsType, "
+                    + "it used 'IBMBackend' for 'IBM' jobstype, "
                     + "which is different from 'IBMQBackend'."
                 )
 
             self.multirunner: IBMQRunner = IBMQRunner(
-                besummonned=multimanager.summonerID,
+                besummonned=multimanager.summoner_id,
                 multimanager=multimanager,
                 backend=backend,
                 experimental_container=experiment_container,
@@ -138,7 +138,7 @@ class ExtraBackendAccessor:
             from .ibmrunner import IBMRunner
 
             self.multirunner: IBMRunner = IBMRunner(
-                besummonned=multimanager.summonerID,
+                besummonned=multimanager.summoner_id,
                 multimanager=multimanager,
                 backend=backend,
                 experimental_container=experiment_container,
@@ -172,17 +172,17 @@ class ExtraBackendAccessor:
                     "h1",
                     (
                         "Pending info for "
-                        + f"'{self.multirunner.current_multimanager.summonerID}'"
+                        + f"'{self.multirunner.current_multimanager.summoner_id}'"
                         + f"by '{self.backend_type}'"
                     ),
                 ),
-                *[("itemize", jobTag, jobID, "", 2) for jobID, jobTag in self.jobs],
+                *[("itemize", jobTag, job_id, "", 2) for job_id, jobTag in self.jobs],
             ]
         )
         if len(self.jobs) == 0:
             self.jobs_info.newline(("txt", "No pending job."))
 
-        return self.multirunner.current_multimanager.summonerID, self.jobs
+        return self.multirunner.current_multimanager.summoner_id, self.jobs
 
     def retrieve(
         self, overwrite: bool = False, **otherArgs: any
@@ -196,14 +196,14 @@ class ExtraBackendAccessor:
                     "h1",
                     (
                         "Retriving info  for"
-                        + f"'{self.multirunner.current_multimanager.summonerID}'"
+                        + f"'{self.multirunner.current_multimanager.summoner_id}'"
                         + f"by '{self.backend_type}'"
                     ),
                 ),
-                *[("itemize", jobTag, jobID, "", 2) for jobID, jobTag in self.jobs],
+                *[("itemize", jobTag, job_id, "", 2) for job_id, jobTag in self.jobs],
             ]
         )
         if len(self.jobs) == 0:
             self.jobs_info.newline(("txt", "No pending job."))
 
-        return self.multirunner.current_multimanager.summonerID, self.jobs
+        return self.multirunner.current_multimanager.summoner_id, self.jobs

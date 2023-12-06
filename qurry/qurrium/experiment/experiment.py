@@ -7,17 +7,16 @@ The experiment prototype which is the basic class of all experiments.
 """
 import gc
 import os
-import glob
 import json
 import warnings
 from abc import abstractmethod, abstractproperty, ABC
-from uuid import uuid4
+from uuid import uuid4, UUID
 from typing import Union, Optional, NamedTuple, Hashable, Type, Any
 from pathlib import Path
 
-from ...tools import backendName, ProcessManager, DEFAULT_POOL_SIZE
+from ...tools import ProcessManager, DEFAULT_POOL_SIZE
 from ...tools.datetime import current_time, DatetimeDict
-from ...capsule import jsonablize, quickJSON, quickRead
+from ...capsule import jsonablize, quickJSON
 from ...capsule.hoshi import Hoshi
 from ...exceptions import (
     QurryInvalidInherition,
@@ -26,6 +25,7 @@ from ...exceptions import (
     QurryResetAccomplished,
     QurryProtectContent,
     QurrySummonerInfoIncompletion,
+    QurryInvalidArgument,
 )
 from ..analysis import AnalysisPrototype, QurryAnalysis
 from .container import (
@@ -34,6 +34,7 @@ from .container import (
     Before as ExperimentBefore,
     After as ExperimentAfter,
 )
+from .analyses import AnalysesContainer
 from .export import Export
 
 
@@ -45,7 +46,7 @@ class ExperimentPrototypeABC(ABC):
         """Construct the experiment's parameters for specific options,
         which is overwritable by the inherition class."""
 
-        expName: str
+        exp_name: str
 
 
 class ExperimentPrototype(ExperimentPrototypeABC):
@@ -60,7 +61,7 @@ class ExperimentPrototype(ExperimentPrototypeABC):
     Before = ExperimentBefore
     After = ExperimentAfter
 
-    _unexports = ["sideProduct", "result"]
+    _unexports = ["side_product", "result"]
     """Unexports properties.
     """
     _deprecated = ["figTranspiled"]
@@ -109,12 +110,15 @@ class ExperimentPrototype(ExperimentPrototypeABC):
 
     def __init__(
         self,
-        expID: str,
-        waveKey: Hashable,
+        exp_id: str,
+        wave_key: Hashable,
         *args,
         serial: Optional[int] = None,
-        summonerID: Optional[str] = None,
-        summonerName: Optional[str] = None,
+        summoner_id: Optional[str] = None,
+        summoner_name: Optional[str] = None,
+        beforewards: Optional[ExperimentBefore] = None,
+        afterwards: Optional[ExperimentAfter] = None,
+        reports: Optional[AnalysesContainer] = None,
         **kwargs,
     ) -> None:
         """Initialize the experiment."""
@@ -124,15 +128,17 @@ class ExperimentPrototype(ExperimentPrototypeABC):
                 f"{self.__name__} can't be initialized with positional arguments."
             )
         try:
-            hash(expID)
-        except TypeError as e:
-            expID = None
+            if exp_id is not None:
+                UUID(exp_id, version=4)
+        except ValueError as e:
+            exp_id = None
             warnings.warn(
-                f"'expID' is not hashable, it will be set to generate automatically. {e}"
+                f"exp_id is not a valid UUID, it will be generated automatically.\n{e}",
+                category=QurryInvalidArgument,
             )
         finally:
-            if expID is None:
-                expID = str(uuid4())
+            if exp_id is None:
+                exp_id = str(uuid4())
             else:
                 ...
 
@@ -142,9 +148,9 @@ class ExperimentPrototype(ExperimentPrototypeABC):
                     f"{self.__name__}._analysis_container() "
                     + f"should be inherited from {AnalysisPrototype.__name__}."
                 )
-        if "expName" not in self.Arguments._fields:
+        if "exp_name" not in self.Arguments._fields:
             raise QurryInvalidInherition(
-                f"{self.__name__}.arguments should have 'expName'."
+                f"{self.__name__}.arguments should have 'exp_name'."
             )
         duplicate_fields = set(self.Arguments._fields) & set(self.Commonparams._fields)
         if len(duplicate_fields) > 0:
@@ -167,9 +173,11 @@ class ExperimentPrototype(ExperimentPrototypeABC):
         # Dealing special arguments
         if "datetimes" not in commons:
             commons["datetimes"] = DatetimeDict({"bulid": current_time()})
-        if "defaultAnalysis" in commons:
+        else:
+            commons["datetimes"] = DatetimeDict(commons["datetimes"])
+        if "default_analysis" in commons:
             filted_analysis = []
-            for raw_input_analysis in commons["defaultAnalysis"]:
+            for raw_input_analysis in commons["default_analysis"]:
                 if isinstance(raw_input_analysis, dict):
                     filted_analysis.append(
                         self.analysis_container.input_filter(**raw_input_analysis)[
@@ -185,40 +193,50 @@ class ExperimentPrototype(ExperimentPrototypeABC):
                         f"Analysis input {raw_input_analysis} is not a 'dict' or "
                         + "'.analysis_container.AnalysisInput', it will be ignored."
                     )
-            commons["defaultAnalysis"] = filted_analysis
+            commons["default_analysis"] = filted_analysis
         else:
-            commons["defaultAnalysis"] = []
+            commons["default_analysis"] = []
         if "tags" in commons:
             if isinstance(commons["tags"], list):
                 commons["tags"] = tuple(commons["tags"])
 
         self.args: self.Arguments = self.Arguments(**params)
         self.commons = self.Commonparams(
-            expID=expID,
+            exp_id=exp_id,
             serial=serial,
-            waveKey=waveKey,
-            summonerID=summonerID,
-            summonerName=summonerName,
+            wave_key=wave_key,
+            summoner_id=summoner_id,
+            summoner_name=summoner_name,
             **commons,
         )
         self.outfields: dict[str, Any] = outfields
-        self.beforewards = self.Before(
-            circuit=[],
-            figOriginal=[],
-            jobID="",
-            expName=self.args.expName,
-            sideProduct={},
+        self.beforewards = (
+            beforewards
+            if isinstance(beforewards, self.Before)
+            else self.Before(
+                circuit=[],
+                fig_original=[],
+                job_id="",
+                exp_name=self.args.exp_name,
+                side_product={},
+            )
         )
-        self.afterwards = self.After(
-            result=[],
-            counts=[],
+        self.afterwards = (
+            afterwards
+            if isinstance(afterwards, self.After)
+            else self.After(
+                result=[],
+                counts=[],
+            )
         )
-        self.reports: dict[str, ExperimentPrototype.analysis_container] = {}
+        self.reports = (
+            reports if isinstance(reports, AnalysesContainer) else AnalysesContainer()
+        )
 
         _summon_check = {
             "serial": self.commons.serial,
-            "summonerID": self.commons.summonerID,
-            "summonerName": self.commons.summonerName,
+            "summoner_id": self.commons.summoner_id,
+            "summoner_name": self.commons.summoner_name,
         }
         _summon_detect = any((not v is None) for v in _summon_check.values())
         _summon_fulfill = all((not v is None) for v in _summon_check.values())
@@ -248,14 +266,14 @@ class ExperimentPrototype(ExperimentPrototypeABC):
         self.mute_auto_lock = False
         """Whether mute the auto-lock message."""
 
-    def reset_counts(self, summonerID: str) -> None:
+    def reset_counts(self, summoner_id: str) -> None:
         """Reset the counts of the experiment."""
-        if summonerID == self.commons.summonerID:
+        if summoner_id == self.commons.summoner_id:
             self.afterwards = self.afterwards._replace(counts=[])
             gc.collect()
         else:
             warnings.warn(
-                "The summonerID is not matched, "
+                "The summoner_id is not matched, "
                 + "the counts will not be reset, it can only be activated by multimanager.",
                 category=QurryResetSecurityActivated,
             )
@@ -348,7 +366,7 @@ class ExperimentPrototype(ExperimentPrototypeABC):
         """
 
         if security and isinstance(security, bool):
-            self.reports = {}
+            self.reports = AnalysesContainer()
             gc.collect()
             if not mute:
                 warnings.warn(
@@ -369,20 +387,20 @@ class ExperimentPrototype(ExperimentPrototypeABC):
 
     # show info
     def __hash__(self) -> int:
-        return hash(self.commons.expID)
+        return hash(self.commons.exp_id)
 
     # pylint: disable=invalid-name
 
     @property
-    def expID(self) -> property:
+    def exp_id(self) -> property:
         """ID of experiment."""
-        return self.commons.expID
+        return self.commons.exp_id
 
     # pylint: enable=invalid-name
 
     def __repr__(self) -> str:
         return (
-            f"<{self.__name__} with expID={self.commons.expID}, "
+            f"<{self.__name__} with exp_id={self.commons.exp_id}, "
             + f"{self.args.__repr__()}, "
             + f"{self.commons.__repr__()}, "
             + f"{len(self.outfields)} unused arguments, "
@@ -408,7 +426,7 @@ class ExperimentPrototype(ExperimentPrototypeABC):
 
         info = Hoshi(
             [
-                ("h1", f"{self.__name__} with expID={self.commons.expID}"),
+                ("h1", f"{self.__name__} with exp_id={self.commons.exp_id}"),
             ],
             name="Hoshi" if hoshi else "QurryExperimentSheet",
         )
@@ -425,9 +443,9 @@ class ExperimentPrototype(ExperimentPrototypeABC):
                     str(v),
                     (
                         ""
-                        if k != "expID"
+                        if k != "exp_id"
                         else "This is ID is generated by Qurry "
-                        + "which is different from 'jobID' for pending."
+                        + "which is different from 'job_id' for pending."
                     ),
                     2,
                 )
@@ -454,7 +472,7 @@ class ExperimentPrototype(ExperimentPrototypeABC):
 
         info.newline(("itemize", "afterwards"))
         for k, v in self.afterwards._asdict().items():
-            if k == "jobID":
+            if k == "job_id":
                 info.newline(
                     (
                         "itemize",
@@ -490,9 +508,9 @@ class ExperimentPrototype(ExperimentPrototypeABC):
 
     # Export
 
-    _rjustLen = 3
+    _rjust_len = 3
     """The length of the string to be right-justified for serial number 
-    when :prop:`expName` is duplicated."""
+    when :prop:`exp_name` is duplicated."""
     _required_folder = ["args", "advent", "legacy", "tales", "reports"]
     """Folder for saving exported files."""
 
@@ -507,52 +525,52 @@ class ExperimentPrototype(ExperimentPrototypeABC):
             'folder': './blabla_experiment/',
             'qurryinfo': './blabla_experiment/qurryinfo.json',
 
-            'args': './blabla_experiment/args/blabla_experiment.id={expID}.args.json',
-            'advent': './blabla_experiment/advent/blabla_experiment.id={expID}.advent.json',
-            'legacy': './blabla_experiment/legacy/blabla_experiment.id={expID}.legacy.json',
-            'tales.dummyx1': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyx1.json',
-            'tales.dummyx2': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyx2.json',
+            'args': './blabla_experiment/args/blabla_experiment.id={exp_id}.args.json',
+            'advent': './blabla_experiment/advent/blabla_experiment.id={exp_id}.advent.json',
+            'legacy': './blabla_experiment/legacy/blabla_experiment.id={exp_id}.legacy.json',
+            'tales.dummyx1': './blabla_experiment/tales/blabla_experiment.id={exp_id}.dummyx1.json',
+            'tales.dummyx2': './blabla_experiment/tales/blabla_experiment.id={exp_id}.dummyx2.json',
             ...
-            'tales.dummyxn': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyxn.json',
-            'reports': ./blabla_experiment/reports/blabla_experiment.id={expID}.reports.json,
+            'tales.dummyxn': './blabla_experiment/tales/blabla_experiment.id={exp_id}.dummyxn.json',
+            'reports': ./blabla_experiment/reports/blabla_experiment.id={exp_id}.reports.json,
             'reports.tales.dummyz1':
-                './blabla_experiment/tales/blabla_experiment.id={expID}.dummyz1.reports.json',
+                './blabla_experiment/tales/blabla_experiment.id={exp_id}.dummyz1.reports.json',
             'reports.tales.dummyz2':
-                './blabla_experiment/tales/blabla_experiment.id={expID}.dummyz2.reports.json',
+                './blabla_experiment/tales/blabla_experiment.id={exp_id}.dummyz2.reports.json',
             ...
             'reports.tales.dummyzm':
-                './blabla_experiment/tales/blabla_experiment.id={expID}.dummyzm.reports.json',
+                './blabla_experiment/tales/blabla_experiment.id={exp_id}.dummyzm.reports.json',
         }
         ```
         which `blabla_experiment` is the example filename.
         If this experiment is called by :cls:`multimanager`,
-        then the it will be named after `summonerName` as known as the name of :cls:`multimanager`.
+        then the it will be named after `summoner_name` as known as the name of :cls:`multimanager`.
 
         ```python
         files = {
             'folder': './BLABLA_project/',
             'qurryinfo': './BLABLA_project/qurryinfo.json',
 
-            'args': './BLABLA_project/args/index={serial}.id={expID}.args.json',
-            'advent': './BLABLA_project/advent/index={serial}.id={expID}.advent.json',
-            'legacy': './BLABLA_project/legacy/index={serial}.id={expID}.legacy.json',
-            'tales.dummyx1': './BLABLA_project/tales/index={serial}.id={expID}.dummyx1.json',
-            'tales.dummyx2': './BLABLA_project/tales/index={serial}.id={expID}.dummyx2.json',
+            'args': './BLABLA_project/args/index={serial}.id={exp_id}.args.json',
+            'advent': './BLABLA_project/advent/index={serial}.id={exp_id}.advent.json',
+            'legacy': './BLABLA_project/legacy/index={serial}.id={exp_id}.legacy.json',
+            'tales.dummyx1': './BLABLA_project/tales/index={serial}.id={exp_id}.dummyx1.json',
+            'tales.dummyx2': './BLABLA_project/tales/index={serial}.id={exp_id}.dummyx2.json',
             ...
-            'tales.dummyxn': './BLABLA_project/tales/index={serial}.id={expID}.dummyxn.json',
-            'reports': ./BLABLA_project/reports/index={serial}.id={expID}.reports.json,
+            'tales.dummyxn': './BLABLA_project/tales/index={serial}.id={exp_id}.dummyxn.json',
+            'reports': ./BLABLA_project/reports/index={serial}.id={exp_id}.reports.json,
             'reports.tales.dummyz1':
-                './BLABLA_project/tales/index={serial}.id={expID}.dummyz1.reports.json',
+                './BLABLA_project/tales/index={serial}.id={exp_id}.dummyz1.reports.json',
             'reports.tales.dummyz2':
-                './BLABLA_project/tales/index={serial}.id={expID}.dummyz2.reports.json',
+                './BLABLA_project/tales/index={serial}.id={exp_id}.dummyz2.reports.json',
             ...
             'reports.tales.dummyzm':
-                './BLABLA_project/tales/index={serial}.id={expID}.dummyzm.reports.json',
+                './BLABLA_project/tales/index={serial}.id={exp_id}.dummyzm.reports.json',
         }
         ```
         which `BLBLA_project` is the example :cls:`multimanager` name
-        stored at :prop:`commonparams.summonerName`.
-        At this senerio, the `expName` will never apply as filename.
+        stored at :prop:`commonparams.summoner_name`.
+        At this senerio, the `exp_name` will never apply as filename.
 
         - reports formats.
 
@@ -598,46 +616,50 @@ class ExperimentPrototype(ExperimentPrototypeABC):
 
         # args, commons, outfields
 
-        commons: dict[str, Any] = jsonablize(self.commons._asdict())
-        commons["backend"] = (
-            self.commons.backend
-            if isinstance(self.commons.backend, str)
-            else backendName(self.commons.backend)
-        )
+        # commons: dict[str, Any] = jsonablize(self.commons._asdict())
+        # commons["backend"] = (
+        #     self.commons.backend
+        #     if isinstance(self.commons.backend, str)
+        #     else backendName(self.commons.backend)
+        # )
 
         # adventures, legacy, tales
-        tales: dict[str, str] = {}
-        adventures = {}
-        for k, v in self.beforewards._asdict().items():
-            if k == "sideProduct":
-                tales = {**tales, **v}
-            elif k in self._unexports:
-                ...
-            else:
-                adventures[k] = v
-        gc.collect()
+        # tales: dict[str, str] = {}
+        # adventures = {}
+        # for k, v in self.beforewards._asdict().items():
+        #     if k == "side_product":
+        #         tales = {**tales, **v}
+        #     elif k in self._unexports:
+        #         ...
+        #     else:
+        #         adventures[k] = v
+        # gc.collect()
+        adventures, tales = self.beforewards.export(unexports=self._unexports)
 
-        legacy = {}
-        for k, v in self.afterwards._asdict().items():
-            if k == "sideProduct":
-                tales = {**tales, **v}
-            elif k in self._unexports:
-                ...
-            else:
-                legacy[k] = v
-        gc.collect()
+        # legacy = {}
+        # for k, v in self.afterwards._asdict().items():
+        #     if k == "side_product":
+        #         tales = {**tales, **v}
+        #     elif k in self._unexports:
+        #         ...
+        #     else:
+        #         legacy[k] = v
+        # gc.collect()
+        legacy = self.afterwards.export(unexports=self._unexports)
 
         # reports
-        reports: dict[str, dict[str, Any]] = {}  # reports formats.
-        # tales_reports formats.
-        tales_reports: dict[str, dict[str, dict[str, Any]]] = {}
-        for k, al in self.reports.items():
-            report_main, report_tales = al.export()
-            reports[k] = report_main
-            for tk, tv in report_tales.items():
-                if tk not in tales_reports:
-                    tales_reports[tk] = {}
-                tales_reports[tk][k] = tv
+        # reports: dict[str, dict[str, Any]] = {}  # reports formats.
+        # # tales_reports formats.
+        # tales_reports: dict[str, dict[str, dict[str, Any]]] = {}
+        # for k, al in self.reports.items():
+        #     report_main, report_tales = al.export()
+        #     reports[k] = report_main
+        #     for tk, tv in report_tales.items():
+        #         if tk not in tales_reports:
+        #             tales_reports[tk] = {}
+        #         tales_reports[tk][k] = tv
+
+        reports, tales_reports = self.reports.export()
 
         # filename
         filename = ""
@@ -648,29 +670,29 @@ class ExperimentPrototype(ExperimentPrototypeABC):
             (not v is None)
             for v in [
                 self.commons.serial,
-                self.commons.summonerID,
-                self.commons.summonerID,
+                self.commons.summoner_id,
+                self.commons.summoner_id,
             ]
         ):
-            folder += f"./{self.commons.summonerName}/"
-            filename += f"index={self.commons.serial}.id={self.commons.expID}"
+            folder += f"./{self.commons.summoner_name}/"
+            filename += f"index={self.commons.serial}.id={self.commons.exp_id}"
         else:
             repeat_times = 1
             tmp = (
                 folder
-                + f"./{self.beforewards.expName}.{str(repeat_times).rjust(self._rjustLen, '0')}/"
+                + f"./{self.beforewards.exp_name}.{str(repeat_times).rjust(self._rjust_len, '0')}/"
             )
             while os.path.exists(tmp):
                 repeat_times += 1
                 tmp = (
                     folder
-                    + f"./{self.beforewards.expName}."
-                    + f"{str(repeat_times).rjust(self._rjustLen, '0')}/"
+                    + f"./{self.beforewards.exp_name}."
+                    + f"{str(repeat_times).rjust(self._rjust_len, '0')}/"
                 )
             folder = tmp
             filename += (
-                f"{self.beforewards.expName}."
-                + f"{str(repeat_times).rjust(self._rjustLen, '0')}.id={self.commons.expID}"
+                f"{self.beforewards.exp_name}."
+                + f"{str(repeat_times).rjust(self._rjust_len, '0')}.id={self.commons.exp_id}"
             )
 
         self.commons = self.commons._replace(filename=filename)
@@ -688,15 +710,15 @@ class ExperimentPrototype(ExperimentPrototypeABC):
             files[f"reports.tales.{k}"] = folder + f"tales/{filename}.{k}.reports.json"
 
         return Export(
-            expID=self.commons.expID,
-            expName=self.beforewards.expName,
+            exp_id=self.commons.exp_id,
+            exp_name=self.beforewards.exp_name,
             serial=self.commons.serial,
-            summonerID=self.commons.summonerID,
-            summonerName=self.commons.summonerName,
+            summoner_id=self.commons.summoner_id,
+            summoner_name=self.commons.summoner_name,
             filename=filename,
             files={k: str(Path(v)) for k, v in files.items()},
             args=jsonablize(self.args._asdict()),
-            commons=commons,
+            commons=self.commons.export(),
             outfields=jsonablize(self.outfields),
             adventures=jsonablize(adventures),
             legacy=jsonablize(legacy),
@@ -725,28 +747,28 @@ class ExperimentPrototype(ExperimentPrototypeABC):
             'folder': './blabla_experiment/',
             'qurrtinfo': './blabla_experiment/qurrtinfo',
 
-            'args': './blabla_experiment/args/blabla_experiment.id={expID}.args.json',
-            'advent': './blabla_experiment/advent/blabla_experiment.id={expID}.advent.json',
-            'legacy': './blabla_experiment/legacy/blabla_experiment.id={expID}.legacy.json',
-            'tales.dummyx1': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyx1.json',
-            'tales.dummyx2': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyx2.json',
+            'args': './blabla_experiment/args/blabla_experiment.id={exp_id}.args.json',
+            'advent': './blabla_experiment/advent/blabla_experiment.id={exp_id}.advent.json',
+            'legacy': './blabla_experiment/legacy/blabla_experiment.id={exp_id}.legacy.json',
+            'tales.dummyx1': './blabla_experiment/tales/blabla_experiment.id={exp_id}.dummyx1.json',
+            'tales.dummyx2': './blabla_experiment/tales/blabla_experiment.id={exp_id}.dummyx2.json',
             ...
-            'tales.dummyxn': './blabla_experiment/tales/blabla_experiment.id={expID}.dummyxn.json',
-            'reports': ./blabla_experiment/reports/blabla_experiment.id={expID}.reports.json,
+            'tales.dummyxn': './blabla_experiment/tales/blabla_experiment.id={exp_id}.dummyxn.json',
+            'reports': ./blabla_experiment/reports/blabla_experiment.id={exp_id}.reports.json,
             'reports.tales.dummyz1':
-                './blabla_experiment/tales/blabla_experiment.id={expID}.dummyz1.reports.json',
+                './blabla_experiment/tales/blabla_experiment.id={exp_id}.dummyz1.reports.json',
             'reports.tales.dummyz2':
-                './blabla_experiment/tales/blabla_experiment.id={expID}.dummyz2.reports.json',
+                './blabla_experiment/tales/blabla_experiment.id={exp_id}.dummyz2.reports.json',
             ...
             'reports.tales.dummyzm':
-                './blabla_experiment/tales/blabla_experiment.id={expID}.dummyzm.reports.json',
+                './blabla_experiment/tales/blabla_experiment.id={exp_id}.dummyzm.reports.json',
         }
         ```
 
         Args:
             save_location (Optional[Union[Path, str]], optional):
                 Where to save the export content as `json` file.
-                If `saveLocation == None`, then use the value in `self.commons` to be exported,
+                If `save_location == None`, then use the value in `self.commons` to be exported,
                 if it's None too, then raise error.
                 Defaults to `None`.
 
@@ -775,18 +797,18 @@ class ExperimentPrototype(ExperimentPrototypeABC):
         elif isinstance(save_location, str):
             save_location = Path(save_location)
         elif save_location is None:
-            save_location = Path(self.commons.saveLocation)
-            if self.commons.saveLocation is None:
+            save_location = Path(self.commons.save_location)
+            if self.commons.save_location is None:
                 raise ValueError(
-                    "saveLocation is None, please provide a valid saveLocation"
+                    "save_location is None, please provide a valid save_location"
                 )
         else:
             raise TypeError(
-                f"saveLocation must be Path or str, not {type(save_location)}"
+                f"save_location must be Path or str, not {type(save_location)}"
             )
 
-        if self.commons.saveLocation != save_location:
-            self.commons = self.commons._replace(saveLocation=save_location)
+        if self.commons.save_location != save_location:
+            self.commons = self.commons._replace(save_location=save_location)
 
         export_material = self.export()
         for k, v in export_material.files.items():
@@ -795,7 +817,7 @@ class ExperimentPrototype(ExperimentPrototypeABC):
         export_set = {}
         # qurryinfo ..........  # file location, dedicated hash
         qurryinfo = {
-            export_material.expID: export_material.files,
+            export_material.exp_id: export_material.files,
         }
         # args ...............  # arguments, commonparams, outfields, files
         export_set["args"] = {
@@ -849,8 +871,8 @@ class ExperimentPrototype(ExperimentPrototypeABC):
             # Exportation of qurryinfo
             if filekey == "qurryinfo":
                 if (
-                    _qurryinfo_hold_access == self.commons.summonerID
-                    and self.commons.summonerID is not None
+                    _qurryinfo_hold_access == self.commons.summoner_id
+                    and self.commons.summoner_id is not None
                 ):
                     ...
                 elif os.path.exists(save_location / export_material.files["qurryinfo"]):
@@ -877,12 +899,12 @@ class ExperimentPrototype(ExperimentPrototypeABC):
         del export_material
         gc.collect()
 
-        return self.commons.expID, all_files_location
+        return self.commons.exp_id, all_files_location
 
     @classmethod
     def _read_core(
         cls,
-        expID: str,
+        exp_id: str,
         file_index: dict[str, str],
         save_location: Union[Path, str] = Path("./"),
         encoding: str = "utf-8",
@@ -890,14 +912,14 @@ class ExperimentPrototype(ExperimentPrototypeABC):
         """Core of read function.
 
         Args:
-            expID (str): The id of the experiment to be read.
+            exp_id (str): The id of the experiment to be read.
             file_index (dict[str, str]): The index of the experiment to be read.
             save_location (Union[Path, str]): The location of the experiment to be read.
             encoding (str): Encoding method, for :func:`mori.quickJSON`.
 
         Raises:
-            ValueError: 'saveLocation' needs to be the type of 'str' or 'Path'.
-            FileNotFoundError: When `saveLocation` is not available.
+            ValueError: 'save_location' needs to be the type of 'str' or 'Path'.
+            FileNotFoundError: When `save_location` is not available.
 
         Returns:
             QurryExperiment: The experiment to be read.
@@ -906,108 +928,43 @@ class ExperimentPrototype(ExperimentPrototypeABC):
         if isinstance(save_location, (Path, str)):
             save_location = Path(save_location)
         else:
-            raise ValueError("'saveLocation' needs to be the type of 'str' or 'Path'.")
+            raise ValueError("'save_location' needs to be the type of 'str' or 'Path'.")
         if not os.path.exists(save_location):
             raise FileNotFoundError(
-                f"'saveLocation' does not exist, '{save_location}'."
+                f"'save_location' does not exist, '{save_location}'."
             )
 
-        export_material_set = {}
-        export_set = {}
-        for filekey, filename in file_index.items():
-            filekeydiv = filekey.split(".")
-
-            if filekey == "args":
-                with open(save_location / filename, "r", encoding=encoding) as f:
-                    export_set["args"] = json.load(f)
-                for ak in ["arguments", "commonparams", "outfields"]:
-                    export_material_set[ak]: dict[str, Any] = export_set["args"][ak]
-
-            elif filekey == "advent":
-                with open(save_location / filename, "r", encoding=encoding) as f:
-                    export_set["advent"] = json.load(f)
-                export_material_set["adventures"]: dict[str, Any] = export_set[
-                    "advent"
-                ]["adventures"]
-
-            elif filekey == "legacy":
-                with open(save_location / filename, "r", encoding=encoding) as f:
-                    export_set["legacy"] = json.load(f)
-                export_material_set["legacy"]: dict[str, Any] = export_set["legacy"][
-                    "legacy"
-                ]
-
-            elif filekey == "reports":
-                with open(save_location / filename, "r", encoding=encoding) as f:
-                    export_set["reports"] = json.load(f)
-                export_material_set["reports"]: dict[str, Any] = export_set["reports"][
-                    "reports"
-                ]
-
-            elif filekeydiv[0] == "tales":
-                with open(save_location / filename, "r", encoding=encoding) as f:
-                    export_set[filekey] = json.load(f)
-                if "tales" not in export_material_set:
-                    export_material_set["tales"] = {}
-                export_material_set["tales"][filekeydiv[1]] = export_set[filekey]
-
-            elif filekeydiv[0] == "reports" and filekeydiv[1] == "tales":
-                with open(save_location / filename, "r", encoding=encoding) as f:
-                    export_set[filekey] = json.load(f)
-                if "tales_report" not in export_material_set:
-                    export_material_set["tales_report"]: dict[str, dict[str, Any]] = {}
-                export_material_set["tales_report"][filekeydiv[2]] = export_set[filekey]
-            elif filekey in ["qurryinfo", "folder"]:
-                pass
-            else:
-                warnings.warn(
-                    f"Unknown filekey '{filekey}' found in the index of '{expID}'."
-                )
-        del export_set
-        gc.collect()
         # Construct the experiment
         # arguments, commonparams, outfields
+        export_material_set = {}
+        (
+            export_material_set["arguments"],
+            export_material_set["commonparams"],
+            export_material_set["outfields"],
+        ) = cls.Commonparams.read_as_dict(
+            exp_id=exp_id,
+            file_index=file_index,
+            save_location=save_location,
+            encoding=encoding,
+        )
         instance = cls(
             **export_material_set["commonparams"],
             **export_material_set["arguments"],
             **export_material_set["outfields"],
+            beforewards=cls.Before.read(
+                file_index=file_index, save_location=save_location, encoding=encoding
+            ),
+            afterwards=cls.After.read(
+                file_index=file_index, save_location=save_location, encoding=encoding
+            ),
+            reports=AnalysesContainer(
+                **cls.analysis_container.read(
+                    file_index=file_index,
+                    save_location=save_location,
+                    encoding=encoding,
+                )
+            ),
         )
-        # beforewards
-        # Hint: It should avoid to use ._replace
-        for k, v in export_material_set["adventures"].items():
-            if isinstance(instance[k], list):
-                for vv in v:
-                    instance[k].append(vv)
-            else:
-                instance[k] = v
-        if "tales" in export_material_set:
-            for k, v in export_material_set["tales"].items():
-                instance["sideProduct"][k] = v
-        # afterwards
-        for k, v in export_material_set["legacy"].items():
-            # instance.unlock_afterward(mute_auto_lock=True)
-            for vv in v:
-                instance[k].append(vv)
-        # reports
-        if "reports" in export_material_set:
-            mains = dict(export_material_set["reports"].items())
-            sides = {k: {} for k in export_material_set["reports"]}
-        else:
-            mains = {}
-            sides = {}
-        if "tales_report" in export_material_set:
-            for tk, tv in export_material_set["tales_report"].items():
-                for k, v in tv.items():
-                    if k not in sides:
-                        sides[k] = {}
-                        mains[k] = {}
-                    sides[k][tk] = v
-        del export_material_set
-        gc.collect()
-        # print(mains, sides, 'mains, sides')
-        for k, v in mains.items():
-            instance.reports[k] = cls.analysis_container.read(v, sides[k])
-
         return instance
 
     @classmethod
@@ -1033,18 +990,18 @@ class ExperimentPrototype(ExperimentPrototypeABC):
                 Encoding method, for :func:`mori.quickJSON`. Defaults to 'utf-8'.
 
         Raises:
-            ValueError: 'saveLocation' needs to be the type of 'str' or 'Path'.
-            FileNotFoundError: When `saveLocation` is not available.
+            ValueError: 'save_location' needs to be the type of 'str' or 'Path'.
+            FileNotFoundError: When `save_location` is not available.
 
         """
 
         if isinstance(save_location, (Path, str)):
             save_location = Path(save_location)
         else:
-            raise ValueError("'saveLocation' needs to be the type of 'str' or 'Path'.")
+            raise ValueError("'save_location' needs to be the type of 'str' or 'Path'.")
         if not os.path.exists(save_location):
             raise FileNotFoundError(
-                f"'saveLocation' does not exist, '{save_location}'."
+                f"'save_location' does not exist, '{save_location}'."
             )
 
         export_location = save_location / name_or_id
@@ -1075,173 +1032,12 @@ class ExperimentPrototype(ExperimentPrototypeABC):
         quene = pool.starmap(
             cls._read_core,
             [
-                (expID, fileIndex, save_location, encoding)
-                for expID, fileIndex in qurryinfo.items()
+                (exp_id, fileIndex, save_location, encoding)
+                for exp_id, fileIndex in qurryinfo.items()
             ],
         )
 
         return quene
-
-    @classmethod
-    def readV4(
-        cls,
-        name: Union[Path, str],
-        summonerID: Optional[str] = None,
-        save_location: Union[Path, str] = Path("./"),
-        encoding: str = "utf-8",
-    ) -> list["ExperimentPrototype"]:
-        """Read the experiment from file made by QurryV4,
-        it's only available for the export of multiOutput.
-        Replacement of :func:`QurryV4().readLegacy`
-
-        Args:
-            name (Union[Path, str]):
-                The name or id of the experiment to be read.
-            summonerID (Optional[str], optional):
-                The id of the summoner to be read.
-                Defaults to None.
-            save_location (Union[Path, str], optional):
-                The location of the experiment to be read.
-                Defaults to Path('./').
-            indent (int, optional):
-                Indent length for json, for :func:`mori.quickJSON`. Defaults to 2.
-            encoding (str, optional):
-                Encoding method, for :func:`mori.quickJSON`. Defaults to 'utf-8'.
-
-        Raises:
-            ValueError: 'saveLocation' needs to be the type of 'str' or 'Path'.
-            FileNotFoundError: When `saveLocation` is not available.
-
-        """
-
-        if isinstance(save_location, (Path, str)):
-            save_location = Path(save_location)
-        else:
-            raise ValueError("'saveLocation' needs to be the type of 'str' or 'Path'.")
-        if not os.path.exists(save_location):
-            raise FileNotFoundError(
-                f"'saveLocation' does not exist, '{save_location}'."
-            )
-
-        export_location = save_location / name
-        if not os.path.exists(export_location):
-            raise FileNotFoundError(
-                f"'exportLoaction' does not exist, '{export_location}'."
-            )
-
-        config_dict = quickRead(
-            filename=f"{name}.configDict.json",
-            saveLocation=export_location,
-        )
-        qurryinfo_v4: dict[str, dict[str, str]] = {}
-        for k, v in config_dict.items():
-            export_loc_tmp = Path(v["exportLocation"]).name
-            qurryinfo_v4[k] = {
-                "folder": export_loc_tmp,
-                "legacy": str(Path(export_loc_tmp) / "legacy" / f"*expId={k}*.json"),
-                "tales": str(Path(export_loc_tmp) / "tales" / f"*expId={k}*.json"),
-            }
-
-        queue = []
-        for exp_id, file_index in qurryinfo_v4.items():
-            queue.append(
-                cls._readV4_core(
-                    exp_id, file_index, name, summonerID, save_location, encoding
-                )
-            )
-
-        return queue
-
-    @classmethod
-    def _readV4_core(
-        cls,
-        expID: str,
-        file_index: dict[str, str],
-        summonerName: str,
-        summonerID: Optional[str] = None,
-        save_location: Union[Path, str] = Path("./"),
-        encoding: str = "utf-8",
-    ) -> "ExperimentPrototype":
-        if isinstance(save_location, (Path, str)):
-            save_location = Path(save_location)
-        else:
-            raise ValueError("'saveLocation' needs to be the type of 'str' or 'Path'.")
-        if not os.path.exists(save_location):
-            raise FileNotFoundError(
-                f"'saveLocation' does not exist, '{save_location}'."
-            )
-
-        legacy_read = {}
-        lsfolder = glob.glob(str(save_location / file_index["legacy"]))
-        if len(lsfolder) == 0:
-            raise FileNotFoundError(
-                f"The file 'expID={expID}' not found "
-                + "at the legacy folder of '{fileIndex['legacy']}'."
-            )
-        for p in lsfolder:
-            with open(p, "r", encoding=encoding) as the_legacy:
-                legacy_read = json.load(the_legacy)
-
-        tales_read = {}
-        lsfoldertales = glob.glob(str(save_location / file_index["tales"]))
-        for p in lsfoldertales:
-            tmp = Path(p)
-            with open(p, "r", encoding="utf-8") as the_tales:
-                tales_read[tmp.suffixes[-2][1:]] = json.load(the_tales)
-
-        infields = {}
-        commonsinput = {
-            "files": {"v4": file_index},
-            "summonerName": summonerName,
-            "summonerID": summonerID,
-        }
-        beforewards = {}
-        afterwards = {}
-        outfields = {"oldTales": tales_read}
-
-        for k in legacy_read:
-            if k in cls.Arguments._fields:
-                infields[k] = legacy_read[k]
-            elif k in cls.Commonparams._fields:
-                commonsinput[k] = legacy_read[k]
-            elif k in cls.Before._fields:
-                beforewards[k] = legacy_read[k]
-            elif k in cls.After._fields:
-                afterwards[k] = legacy_read[k]
-
-            elif k == "figRaw":
-                beforewards["figOriginal"] = legacy_read[k]
-            elif k == "dateCreate":
-                commonsinput["datetimes"] = DatetimeDict(
-                    {
-                        "build": legacy_read[k],
-                        "transformToV5": current_time(),
-                    }
-                )
-            elif k == "expIndex":
-                commonsinput["serial"] = legacy_read[k]
-            elif k == "tags":
-                commonsinput["serial"] = legacy_read[k]
-
-            else:
-                outfields[k] = legacy_read[k]
-
-        if "wave" in legacy_read:
-            infields["waveKey"] = legacy_read["wave"]
-
-        instance = cls(
-            **infields,
-            **commonsinput,
-            **outfields,
-        )
-
-        for k, v in beforewards.items():
-            instance[k] = v
-        for k, v in afterwards.items():
-            for vv in v:
-                instance[k].append(vv)
-
-        return instance
 
 
 class QurryExperiment(ExperimentPrototype):
@@ -1254,7 +1050,7 @@ class QurryExperiment(ExperimentPrototype):
         which is overwritable by the inherition class.
         """
 
-        expName: str = "exps"
+        exp_name: str = "exps"
         sampling: int = 1
 
     @classmethod

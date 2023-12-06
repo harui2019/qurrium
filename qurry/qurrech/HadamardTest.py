@@ -74,7 +74,8 @@ class EntropyHadamardAnalysis(AnalysisPrototype):
             shots (int): Shots of the experiment on quantum machine.
             counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
             degree (Union[tuple[int, int], int]): Degree of the subsystem.
-            measure (tuple[int, int], optional): Measuring range on quantum circuits. Defaults to None.
+            measure (tuple[int, int], optional):
+                Measuring range on quantum circuits. Defaults to None.
             workers_num (Optional[int], optional):
                 Number of multi-processing workers,
                 if sets to 1, then disable to using multi-processing;
@@ -94,14 +95,16 @@ class EntropyHadamardAnalysis(AnalysisPrototype):
 
 
 class EchoHadamardExperiment(ExperimentPrototype):
+    """The experiment for calculating entangled entropy with more information combined."""
+
     __name__ = "qurrechHadamard.Experiment"
     shortName = "qurrech_hadamard.exp"
 
     class Arguments(NamedTuple):
         """Arguments for the experiment."""
 
-        expName: str = "exps"
-        waveKey2: Hashable = None
+        exp_name: str = "exps"
+        wave_key_2: Hashable = None
         degree: tuple[int, int] = None
 
     @classmethod
@@ -171,6 +174,8 @@ class EchoHadamardExperiment(ExperimentPrototype):
 
 
 class EchoHadamardTest(QurryV5Prototype):
+    """The experiment for calculating entangled entropy with more information combined."""
+
     __name__ = "qurrentHadamard"
     shortName = "qurrech_hadamard"
 
@@ -182,11 +187,11 @@ class EchoHadamardTest(QurryV5Prototype):
 
     def params_control(
         self,
-        waveKey: Hashable = None,
-        waveKey2: Union[Hashable, QuantumCircuit] = None,
-        expName: str = "exps",
+        wave_key: Hashable = None,
+        wave_key_2: Union[Hashable, QuantumCircuit] = None,
+        exp_name: str = "exps",
         degree: Union[tuple[int, int], int] = None,
-        **otherArgs: any,
+        **other_kwargs: any,
     ) -> tuple[
         EchoHadamardExperiment.Arguments,
         EchoHadamardExperiment.Commonparams,
@@ -211,7 +216,7 @@ class EchoHadamardTest(QurryV5Prototype):
                 If input is `None` or something illegal, then use `.lastWave'.
                 Defaults to None.
 
-            expName (str, optional):
+            exp_name (str, optional):
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
                 This name is also used for creating a folder to store the exports.
                 Defaults to `'exps'`.
@@ -223,91 +228,97 @@ class EchoHadamardTest(QurryV5Prototype):
             dict: The export will be processed in `.paramsControlCore`
         """
         # wave
-        if isinstance(waveKey2, QuantumCircuit):
-            waveKey2 = self.add(waveKey2)
-        elif isinstance(waveKey2, Hashable):
-            if waveKey2 is None:
+        if isinstance(wave_key_2, QuantumCircuit):
+            wave_key_2 = self.add(wave_key_2)
+        elif isinstance(wave_key_2, Hashable):
+            if wave_key_2 is None:
                 ...
-            elif not self.has(waveKey2):
-                raise KeyError(f"Wave '{waveKey2}' not found in '.waves'")
+            elif not self.has(wave_key_2):
+                raise KeyError(f"Wave '{wave_key_2}' not found in '.waves'")
         else:
             raise TypeError(
-                f"'{waveKey2}' is a '{type(waveKey2)}' instead of 'QuantumCircuit' or 'Hashable'"
+                f"'{wave_key_2}' is a '{type(wave_key_2)}' "
+                + "instead of 'QuantumCircuit' or 'Hashable'"
             )
 
-        numQubits = self.waves[waveKey].num_qubits
-        numQubits2 = self.waves[waveKey2].num_qubits
-        if numQubits != numQubits2:
+        num_qubits = self.waves[wave_key].num_qubits
+        num_qubits_2 = self.waves[wave_key_2].num_qubits
+        if num_qubits != num_qubits_2:
             raise ValueError(
-                f"The number of qubits of two wave functions must be the same, but {waveKey}: {numQubits} != {waveKey2}: {numQubits2}."
+                "The number of qubits of two wave functions must be the same, "
+                + f"but {wave_key}: {num_qubits} != {wave_key_2}: {num_qubits_2}."
             )
 
         # measure and unitary location
-        degree = qubit_selector(numQubits, degree=degree)
+        degree = qubit_selector(num_qubits, degree=degree)
 
-        if isinstance(waveKey, (list, tuple)):
-            waveKey = "-".join([str(i) for i in waveKey])
-        if isinstance(waveKey2, (list, tuple)):
-            waveKey2 = "-".join([str(i) for i in waveKey2])
+        if isinstance(wave_key, (list, tuple)):
+            wave_key = "-".join([str(i) for i in wave_key])
+        if isinstance(wave_key_2, (list, tuple)):
+            wave_key_2 = "-".join([str(i) for i in wave_key_2])
 
-        expName = f"w={waveKey}+{waveKey2}.overlap=from{degree[0]}to{degree[1]}.{self.shortName}"
+        exp_name = (
+            f"w={wave_key}+{wave_key_2}.overlap="
+            + f"from{degree[0]}to{degree[1]}.{self.shortName}"
+        )
 
         return self.experiment.filter(
-            expName=expName,
-            waveKey=waveKey,
-            waveKey2=waveKey2,
+            exp_name=exp_name,
+            wave_key=wave_key,
+            wave_key2=wave_key_2,
             degree=degree,
-            **otherArgs,
+            **other_kwargs,
         )
 
     def method(
         self,
-        expID: str,
+        exp_id: str,
+        _pbar: Optional[Any] = None,
     ) -> list[QuantumCircuit]:
-        assert expID in self.exps
-        assert self.exps[expID].commons.expID == expID
-        args: EchoHadamardExperiment.Arguments = self.exps[expID].args
-        commons: EchoHadamardExperiment.Commonparams = self.exps[expID].commons
-        circuit = self.waves[commons.waveKey]
-        numQubits = circuit.num_qubits
+        assert exp_id in self.exps
+        assert self.exps[exp_id].commons.exp_id == exp_id
+        args: EchoHadamardExperiment.Arguments = self.exps[exp_id].args
+        commons: EchoHadamardExperiment.Commonparams = self.exps[exp_id].commons
+        circuit = self.waves[commons.wave_key]
+        num_qubits = circuit.num_qubits
 
-        qAnc = QuantumRegister(1, "ancilla")
-        qFunc1 = QuantumRegister(numQubits, "q1")
-        qFunc2 = QuantumRegister(numQubits, "q2")
-        cMeas1 = ClassicalRegister(1, "c1")
-        qcExp1 = QuantumCircuit(qAnc, qFunc1, qFunc2, cMeas1)
+        q_anc = QuantumRegister(1, "ancilla")
+        q_func1 = QuantumRegister(num_qubits, "q1")
+        q_func2 = QuantumRegister(num_qubits, "q2")
+        c_meas1 = ClassicalRegister(1, "c1")
+        qc_exp1 = QuantumCircuit(q_anc, q_func1, q_func2, c_meas1)
 
-        qcExp1.append(
+        qc_exp1.append(
             self.waves.call(
-                wave=commons.waveKey,
+                wave=commons.wave_key,
             ),
-            [qFunc1[i] for i in range(numQubits)],
+            [q_func1[i] for i in range(num_qubits)],
         )
 
-        qcExp1.append(
+        qc_exp1.append(
             self.waves.call(
-                wave=args.waveKey2,
+                wave=args.wave_key_2,
             ),
-            [qFunc2[i] for i in range(numQubits)],
+            [q_func2[i] for i in range(num_qubits)],
         )
 
-        qcExp1.barrier()
-        qcExp1.h(qAnc)
+        qc_exp1.barrier()
+        qc_exp1.h(q_anc)
         for i in range(*args.degree):
-            qcExp1.cswap(qAnc[0], qFunc1[i], qFunc2[i])
-        qcExp1.h(qAnc)
-        qcExp1.measure(qAnc, cMeas1)
+            qc_exp1.cswap(q_anc[0], q_func1[i], q_func2[i])
+        qc_exp1.h(q_anc)
+        qc_exp1.measure(q_anc, c_meas1)
 
-        return [qcExp1]
+        return [qc_exp1]
 
     def measure(
         self,
         wave: Union[QuantumCircuit, any, None] = None,
         wave2: Union[QuantumCircuit, any, None] = None,
         degree: Union[int, tuple[int, int], None] = None,
-        expName: str = "exps",
+        exp_name: str = "exps",
         *args,
-        saveLocation: Optional[Union[Path, str]] = None,
+        save_location: Optional[Union[Path, str]] = None,
         mode: str = "w+",
         indent: int = 2,
         encoding: str = "utf-8",
@@ -315,7 +326,6 @@ class EchoHadamardTest(QurryV5Prototype):
         **otherArgs: any,
     ):
         """
-
         Args:
             wave (Union[QuantumCircuit, int, None], optional):
                 The index of the wave function in `self.waves` or add new one to calaculation,
@@ -325,7 +335,7 @@ class EchoHadamardTest(QurryV5Prototype):
                 If input is `None` or something illegal, then use `.lastWave'.
                 Defaults to None.
 
-            expName (str, optional):
+            exp_name (str, optional):
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
                 This name is also used for creating a folder to store the exports.
                 Defaults to `'exps'`.
@@ -337,25 +347,25 @@ class EchoHadamardTest(QurryV5Prototype):
             dict: The output.
         """
 
-        IDNow = self.result(
+        id_now = self.result(
             wave=wave,  # First wave will be taken by _paramsControlMain
-            waveKey2=wave2,  # Second wave will be taken by paramsControl
-            expName=expName,
+            wave_key_2=wave2,  # Second wave will be taken by paramsControl
+            exp_name=exp_name,
             degree=degree,
-            saveLocation=None,
+            save_location=None,
             **otherArgs,
         )
-        assert IDNow in self.exps, f"ID {IDNow} not found."
-        assert self.exps[IDNow].commons.expID == IDNow
-        currentExp = self.exps[IDNow]
+        assert id_now in self.exps, f"ID {id_now} not found."
+        assert self.exps[id_now].commons.exp_id == id_now
+        current_exp = self.exps[id_now]
 
-        if isinstance(saveLocation, (Path, str)):
-            currentExp.write(
-                save_location=saveLocation,
+        if isinstance(save_location, (Path, str)):
+            current_exp.write(
+                save_location=save_location,
                 mode=mode,
                 indent=indent,
                 encoding=encoding,
                 jsonable=jsonablize,
             )
 
-        return IDNow
+        return id_now

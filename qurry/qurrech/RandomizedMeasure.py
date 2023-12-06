@@ -18,7 +18,7 @@ from ..qurrium import (
     QurryV5Prototype,
     ExperimentPrototype,
     AnalysisPrototype,
-    qubit_selector
+    qubit_selector,
 )
 from ..qurrium.utils.randomized import (
     random_unitary,
@@ -29,10 +29,12 @@ from ..tools import (
     qurry_progressbar,
     ProcessManager,
     workers_distribution,
-    DEFAULT_POOL_SIZE
+    DEFAULT_POOL_SIZE,
 )
+
 try:
     from ..boost.randomized import echoCellCore  # type: ignore
+
     CYTHON_AVAILABLE = True
     FAILED_PYX_IMPORT = None
 except ImportError as err:
@@ -43,8 +45,10 @@ except ImportError as err:
     def echoCellCore(*args, **kwargs):
         """Dummy function for purityCellCore."""
         raise QurryCythonImportError(
-            "Cython is not available, using python to calculate purity cell." +
-            f" More infomation about this error: {FAILED_PYX_IMPORT}")
+            "Cython is not available, using python to calculate purity cell."
+            + f" More infomation about this error: {FAILED_PYX_IMPORT}"
+        )
+
     # pylint: enable=invalid-name, unused-argument
 
 
@@ -55,9 +59,9 @@ def _echo_cell_cy(
     bitstring_range: tuple[int, int],
     subsystem_size: int,
 ) -> tuple[int, float]:
-
     return idx, echoCellCore(
-        dict(first_counts), dict(second_counts), bitstring_range, subsystem_size)
+        dict(first_counts), dict(second_counts), bitstring_range, subsystem_size
+    )
 
 
 def _echo_cell(
@@ -84,24 +88,27 @@ def _echo_cell(
     assert shots == shots2, f"shots {shots} does not match shots2 {shots2}"
 
     first_counts_under_degree = dict.fromkeys(
-        [k[bitstring_range[0]:bitstring_range[1]] for k in first_counts], 0)
+        [k[bitstring_range[0] : bitstring_range[1]] for k in first_counts], 0
+    )
     for bitstring in list(first_counts):
         first_counts_under_degree[
-            bitstring[bitstring_range[0]:bitstring_range[1]]
+            bitstring[bitstring_range[0] : bitstring_range[1]]
         ] += first_counts[bitstring]
 
     second_counts_under_degree = dict.fromkeys(
-        [k[bitstring_range[0]:bitstring_range[1]] for k in second_counts], 0)
+        [k[bitstring_range[0] : bitstring_range[1]] for k in second_counts], 0
+    )
     for bitstring in list(second_counts):
         second_counts_under_degree[
-            bitstring[bitstring_range[0]:bitstring_range[1]]
+            bitstring[bitstring_range[0] : bitstring_range[1]]
         ] += second_counts[bitstring]
 
     echo_cell = np.float64(0)
     for s_i, s_i_meas in first_counts_under_degree.items():
         for s_j, s_j_meas in second_counts_under_degree.items():
             echo_cell += ensemble_cell(
-                s_i, s_i_meas, s_j, s_j_meas, subsystem_size, shots)
+                s_i, s_i_meas, s_j, s_j_meas, subsystem_size, shots
+            )
 
     return idx, echo_cell
 
@@ -122,8 +129,8 @@ def _overlap_echo_core(
         counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
         degree (Union[tuple[int, int], int]): Degree of the subsystem.
         measure (tuple[int, int], optional): Measuring range on quantum circuits. Defaults to None.
-        workers_num (Optional[int], optional): 
-            Number of multi-processing workers, 
+        workers_num (Optional[int], optional):
+            Number of multi-processing workers,
             if sets to 1, then disable to using multi-processing;
             if not specified, then use the number of all cpu counts - 2 by `cpu_count() - 2`.
             Defaults to None.
@@ -140,7 +147,9 @@ def _overlap_echo_core(
 
     # check shots
     sample_shots = sum(counts[0].values())
-    assert sample_shots == shots, f"shots {shots} does not match sample_shots {sample_shots}"
+    assert (
+        sample_shots == shots
+    ), f"shots {shots} does not match sample_shots {sample_shots}"
 
     # Determine worker number
     launch_worker = workers_distribution(workers_num)
@@ -152,46 +161,46 @@ def _overlap_echo_core(
     # Determine subsystem size
     if isinstance(degree, int):
         subsystem_size = degree
-        degree = qubit_selector(
-            len(list(counts[0].keys())[0]), degree=degree)
+        degree = qubit_selector(len(list(counts[0].keys())[0]), degree=degree)
 
     elif isinstance(degree, (tuple, list)):
         subsystem_size = max(degree) - min(degree)
 
     else:
         raise ValueError(
-            f"'degree' must be 'int' or 'tuple[int, int]', but get '{degree}'.")
+            f"'degree' must be 'int' or 'tuple[int, int]', but get '{degree}'."
+        )
 
     if measure is None:
         measure = qubit_selector(len(list(counts[0].keys())[0]))
 
     if (min(degree) < min(measure)) or (max(degree) > max(measure)):
         raise ValueError(
-            f"Measure range '{measure}' does not contain subsystem '{degree}'.")
+            f"Measure range '{measure}' does not contain subsystem '{degree}'."
+        )
 
     bitstring_range = (min(degree) - min(measure), max(degree) - min(measure))
     print(
-        f"| Subsystem size: {subsystem_size}, bitstring range: {bitstring_range}, measure range: {measure}.")
+        f"| Subsystem size: {subsystem_size}, bitstring range: "
+        + f"{bitstring_range}, measure range: {measure}."
+    )
 
-    times = len(counts)/2
+    times = len(counts) / 2
     assert times == int(times), f"counts {len(counts)} is not even."
     times = int(times)
     counts_pair = list(zip(counts[:times], counts[times:]))
 
     begin_time = time.time()
 
-    msg = (
-        f"| Partition: {bitstring_range}, Measure: {measure}"
-    )
+    msg = f"| Partition: {bitstring_range}, Measure: {measure}"
 
     if not (CYTHON_AVAILABLE and use_cython):
         warnings.warn(
-            "Cython is not available, using python to calculate purity cell." +
-            f" More infomation about this error: {FAILED_PYX_IMPORT}",
+            "Cython is not available, using python to calculate purity cell."
+            + f" More infomation about this error: {FAILED_PYX_IMPORT}",
             category=QurryCythonUnavailableWarning,
         )
-    cell_calculator = (_echo_cell_cy if (
-        use_cython and CYTHON_AVAILABLE) else _echo_cell)
+    cell_calculator = _echo_cell_cy if (use_cython and CYTHON_AVAILABLE) else _echo_cell
 
     if launch_worker == 1:
         echo_cell_items = []
@@ -200,25 +209,31 @@ def _overlap_echo_core(
             print(msg)
         for i, (c1, c2) in enumerate(counts_pair):
             if not _hide_print:
-                print(" "*150, end="\r")
+                print(" " * 150, end="\r")
                 print(
-                    f"| Calculating overlap {i} and {times+i} " +
-                    f"by summarize {len(c1)*len(c2)} values - {i+1}/{times}" +
-                    f" - {round(time.time() - begin_time, 3)}s.", end="\r")
-            echo_cell_items.append(cell_calculator(
-                i, c1, c2, bitstring_range, subsystem_size))
+                    f"| Calculating overlap {i} and {times+i} "
+                    + f"by summarize {len(c1)*len(c2)} values - {i+1}/{times}"
+                    + f" - {round(time.time() - begin_time, 3)}s.",
+                    end="\r",
+                )
+            echo_cell_items.append(
+                cell_calculator(i, c1, c2, bitstring_range, subsystem_size)
+            )
 
         if not _hide_print:
-            print(" "*150, end="\r")
+            print(" " * 150, end="\r")
         take_time = round(time.time() - begin_time, 3)
     else:
         msg += f", {launch_worker} workers, {times} overlaps."
 
         pool = ProcessManager(launch_worker)
         echo_cell_items = pool.starmap(
-            cell_calculator, [
+            cell_calculator,
+            [
                 (i, c1, c2, bitstring_range, subsystem_size)
-                for i, (c1, c2) in enumerate(counts_pair)])
+                for i, (c1, c2) in enumerate(counts_pair)
+            ],
+        )
         take_time = round(time.time() - begin_time, 3)
 
     if not _hide_print:
@@ -241,16 +256,16 @@ def overlap_echo(
 
     - Reference:
         - Used in:
-            Statistical correlations between locally randomized measurements: 
-            A toolbox for probing entanglement in many-body quantum states - 
-            A. Elben, B. Vermersch, C. F. Roos, and P. Zoller, 
+            Statistical correlations between locally randomized measurements:
+            A toolbox for probing entanglement in many-body quantum states -
+            A. Elben, B. Vermersch, C. F. Roos, and P. Zoller,
             [PhysRevA.99.052323](https://doi.org/10.1103/PhysRevA.99.052323)
 
         - `bibtex`:
 
     ```bibtex
         @article{PhysRevA.99.052323,
-            title = {Statistical correlations between locally randomized measurements: 
+            title = {Statistical correlations between locally randomized measurements:
             A toolbox for probing entanglement in many-body quantum states},
             author = {Elben, A. and Vermersch, B. and Roos, C. F. and Zoller, P.},
             journal = {Phys. Rev. A},
@@ -271,8 +286,8 @@ def overlap_echo(
         counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
         degree (Union[tuple[int, int], int]): Degree of the subsystem.
         measure (tuple[int, int], optional): Measuring range on quantum circuits. Defaults to None.
-        workers_num (Optional[int], optional): 
-            Number of multi-processing workers, 
+        workers_num (Optional[int], optional):
+            Number of multi-processing workers,
             if sets to 1, then disable to using multi-processing;
             if not specified, then use the number of all cpu counts - 2 by `cpu_count() - 2`.
             Defaults to None.
@@ -282,20 +297,19 @@ def overlap_echo(
         use_cython (bool, optional): Use cython to calculate purity cell. Defaults to True.
 
     Returns:
-        dict[str, float]: A dictionary contains purity, entropy, 
+        dict[str, float]: A dictionary contains purity, entropy,
             a list of each overlap, puritySD, degree, actual measure range, bitstring range.
     """
 
     if isinstance(pbar, tqdm.tqdm):
-        pbar.set_description_str(
-            f"Calculate overlap with {len(counts)} counts.")
+        pbar.set_description_str(f"Calculate overlap with {len(counts)} counts.")
 
     (
         echo_cell_dict,
         bitstring_range,
         measure_range,
-        msg_of_process,
-        takeTime,
+        _msg_of_process,
+        _take_time,
     ) = _overlap_echo_core(
         shots=shots,
         counts=counts,
@@ -310,15 +324,13 @@ def overlap_echo(
     purity_sd = np.std(echo_cell_list, dtype=np.float64)
 
     quantity = {
-        'echo': echo,
-        'echoCells': echo_cell_dict,
-        'echoSD': purity_sd,
-
-        'degree': degree,
-        'measureActually': measure_range,
-        'bitStringRange': bitstring_range,
-
-        'countsNum': len(counts),
+        "echo": echo,
+        "echoCells": echo_cell_dict,
+        "echoSD": purity_sd,
+        "degree": degree,
+        "measureActually": measure_range,
+        "bitStringRange": bitstring_range,
+        "countsNum": len(counts),
     }
 
     return quantity
@@ -327,19 +339,17 @@ def overlap_echo(
 def _circuit_method_core(
     idx: int,
     target_circuit: QuantumCircuit,
-    expName: str,
+    exp_name: str,
     unitary_loc: tuple[int, int],
     unitary_sub_list: dict[int, Operator],
     measure: tuple[int, int],
 ) -> QuantumCircuit:
-
     num_qubits = target_circuit.num_qubits
 
-    q_func1 = QuantumRegister(num_qubits, 'q1')
-    c_meas1 = ClassicalRegister(
-        measure[1]-measure[0], 'c1')
+    q_func1 = QuantumRegister(num_qubits, "q1")
+    c_meas1 = ClassicalRegister(measure[1] - measure[0], "c1")
     qc_exp1 = QuantumCircuit(q_func1, c_meas1)
-    qc_exp1.name = f"{expName}-{idx}"
+    qc_exp1.name = f"{exp_name}-{idx}"
 
     qc_exp1.append(target_circuit, [q_func1[i] for i in range(num_qubits)])
 
@@ -348,17 +358,16 @@ def _circuit_method_core(
         qc_exp1.append(unitary_sub_list[j], [j])
 
     for j in range(*measure):
-        qc_exp1.measure(q_func1[j], c_meas1[j-measure[0]])
+        qc_exp1.measure(q_func1[j], c_meas1[j - measure[0]])
 
     return qc_exp1
 
 
 class EchoRandomizedAnalysis(AnalysisPrototype):
-    """The analysis of loschmidt echo.
-    """
+    """The analysis of loschmidt echo."""
 
-    __name__ = 'qurrentRandomized.Analysis'
-    shortName = 'qurrent_haar.report'
+    __name__ = "qurrentRandomized.Analysis"
+    shortName = "qurrent_haar.report"
 
     class AnalysisInput(NamedTuple):
         """To set the analysis."""
@@ -391,7 +400,7 @@ class EchoRandomizedAnalysis(AnalysisPrototype):
     def default_side_product_fields(self) -> Iterable[str]:
         """The fields that will be stored as side product."""
         return [
-            'echoCells',
+            "echoCells",
         ]
 
 
@@ -400,8 +409,8 @@ class EchoRandomizedExperiment(ExperimentPrototype):
 
     - Reference:
         - Used in:
-            Simple mitigation of global depolarizing errors in quantum simulations - 
-            Vovrosh, Joseph and Khosla, Kiran E. and Greenaway, Sean and Self, 
+            Simple mitigation of global depolarizing errors in quantum simulations -
+            Vovrosh, Joseph and Khosla, Kiran E. and Greenaway, Sean and Self,
             Christopher and Kim, M. S. and Knolle, Johannes,
             [PhysRevE.104.035309](https://link.aps.org/doi/10.1103/PhysRevE.104.035309)
 
@@ -410,7 +419,7 @@ class EchoRandomizedExperiment(ExperimentPrototype):
     ```bibtex
         @article{PhysRevE.104.035309,
             title = {Simple mitigation of global depolarizing errors in quantum simulations},
-            author = {Vovrosh, Joseph and Khosla, Kiran E. and Greenaway, Sean and Self, 
+            author = {Vovrosh, Joseph and Khosla, Kiran E. and Greenaway, Sean and Self,
             Christopher and Kim, M. S. and Knolle, Johannes},
             journal = {Phys. Rev. E},
             volume = {104},
@@ -426,13 +435,14 @@ class EchoRandomizedExperiment(ExperimentPrototype):
     ```
     """
 
-    __name__ = 'qurrechRandomized.Experiment'
-    shortName = 'qurrech_haar.exp'
+    __name__ = "qurrechRandomized.Experiment"
+    shortName = "qurrech_haar.exp"
 
     class Arguments(NamedTuple):
         """Arguments for the experiment."""
-        expName: str = 'exps'
-        waveKey2: Hashable = None
+
+        exp_name: str = "exps"
+        wave_key_2: Hashable = None
         times: int = 100
         measure: tuple[int, int] = None
         unitary_loc: tuple[int, int] = None
@@ -441,8 +451,7 @@ class EchoRandomizedExperiment(ExperimentPrototype):
     @classmethod
     @property
     def analysis_container(cls) -> Type[EchoRandomizedAnalysis]:
-        """The container class responding to this QurryV5 class.
-        """
+        """The container class responding to this QurryV5 class."""
         return EchoRandomizedAnalysis
 
     def analyze(
@@ -455,23 +464,22 @@ class EchoRandomizedExperiment(ExperimentPrototype):
 
         Args:
             degree (Union[tuple[int, int], int]): Degree of the subsystem.
-            workers_num (Optional[int], optional): 
-                Number of multi-processing workers, 
+            workers_num (Optional[int], optional):
+                Number of multi-processing workers,
                 if sets to 1, then disable to using multi-processing;
                 if not specified, then use the number of all cpu counts - 2 by `cpu_count() - 2`.
                 Defaults to None.
 
         Returns:
-            dict[str, float]: A dictionary contains 
-                purity, entropy, a list of each overlap, puritySD, 
-                purity of all system, entropy of all system, 
+            dict[str, float]: A dictionary contains
+                purity, entropy, a list of each overlap, puritySD,
+                purity of all system, entropy of all system,
                 a list of each overlap in all system, puritySD of all system,
                 degree, actual measure range, actual measure range in all system, bitstring range.
         """
 
         if degree is None:
-            raise ValueError(
-                "degree must be specified, but get None.")
+            raise ValueError("degree must be specified, but get None.")
 
         self.args: EchoRandomizedExperiment.Arguments
         shots = self.commons.shots
@@ -492,7 +500,7 @@ class EchoRandomizedExperiment(ExperimentPrototype):
         else:
             pbar_selfhost = qurry_progressbar(
                 range(1),
-                bar_format='simple',
+                bar_format="simple",
             )
 
             with pbar_selfhost as pb_self:
@@ -534,10 +542,10 @@ class EchoRandomizedExperiment(ExperimentPrototype):
             shots (int): Shots of the experiment on quantum machine.
             counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
             degree (Union[tuple[int, int], int]): Degree of the subsystem.
-            measure (tuple[int, int], optional): 
+            measure (tuple[int, int], optional):
                 Measuring range on quantum circuits. Defaults to None.
-            workers_num (Optional[int], optional): 
-                Number of multi-processing workers, 
+            workers_num (Optional[int], optional):
+                Number of multi-processing workers,
                 if sets to 1, then disable to using multi-processing;
                 if not specified, then use the number of all cpu counts - 2 by `cpu_count() - 2`.
                 Defaults to None.
@@ -545,15 +553,14 @@ class EchoRandomizedExperiment(ExperimentPrototype):
             use_cython (bool, optional): Use cython to calculate purity cell. Defaults to True.
 
         Returns:
-            dict[str, float]: A dictionary contains 
-                purity, entropy, a list of each overlap, puritySD, 
-                purity of all system, entropy of all system, 
+            dict[str, float]: A dictionary contains
+                purity, entropy, a list of each overlap, puritySD,
+                purity of all system, entropy of all system,
                 a list of each overlap in all system, puritySD of all system,
                 degree, actual measure range, actual measure range in all system, bitstring range.
         """
         if any(i is None for i in [shots, counts, degree]):
-            raise ValueError(
-                "shots, counts, degree must be specified, but get None.")
+            raise ValueError("shots, counts, degree must be specified, but get None.")
 
         return overlap_echo(
             shots=shots,
@@ -567,9 +574,10 @@ class EchoRandomizedExperiment(ExperimentPrototype):
 
 
 class EchoRandomizedListen(QurryV5Prototype):
+    """Randomized measure experiment."""
 
-    __name__ = 'qurrechRandomized'
-    shortName = 'qurrech_haar'
+    __name__ = "qurrechRandomized"
+    shortName = "qurrech_haar"
 
     tqdm_handleable = True
     """The handleable of tqdm."""
@@ -577,24 +585,27 @@ class EchoRandomizedListen(QurryV5Prototype):
     @classmethod
     @property
     def experiment(cls) -> Type[EchoRandomizedExperiment]:
-        """The container class responding to this QurryV5 class.
-        """
+        """The container class responding to this QurryV5 class."""
         return EchoRandomizedExperiment
 
     def params_control(
         self,
-        waveKey: Hashable = None,
-        waveKey2: Union[Hashable, QuantumCircuit] = None,
-        expName: str = 'exps',
+        wave_key: Hashable = None,
+        wave_key_2: Union[Hashable, QuantumCircuit] = None,
+        exp_name: str = "exps",
         times: int = 100,
         measure: tuple[int, int] = None,
         unitary_loc: tuple[int, int] = None,
-        **otherArgs: any
-    ) -> tuple[EchoRandomizedExperiment.Arguments, EchoRandomizedExperiment.Commonparams, dict[str, Any]]:
+        **other_kwargs: any,
+    ) -> tuple[
+        EchoRandomizedExperiment.Arguments,
+        EchoRandomizedExperiment.Commonparams,
+        dict[str, Any],
+    ]:
         """Handling all arguments and initializing a single experiment.
 
         Args:
-            waveKey (Hashable):
+            wave_key (Hashable):
                 The index of the wave function in `self.waves` or add new one to calaculation,
                 then choose one of waves as the experiment material.
                 If input is `QuantumCircuit`, then add and use it.
@@ -602,7 +613,7 @@ class EchoRandomizedListen(QurryV5Prototype):
                 If input is `None` or something illegal, then use `.lastWave'.
                 Defaults to None.
 
-            expName (str, optional):
+            exp_name (str, optional):
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
                 This name is also used for creating a folder to store the exports.
                 Defaults to `'exps'`.
@@ -614,90 +625,96 @@ class EchoRandomizedListen(QurryV5Prototype):
             dict: The export will be processed in `.paramsControlCore`
         """
         # wave
-        if isinstance(waveKey2, QuantumCircuit):
-            waveKey2 = self.add(waveKey2)
-        elif isinstance(waveKey2, Hashable):
-            if waveKey2 is None:
+        if isinstance(wave_key_2, QuantumCircuit):
+            wave_key_2 = self.add(wave_key_2)
+        elif isinstance(wave_key_2, Hashable):
+            if wave_key_2 is None:
                 ...
-            elif not self.has(waveKey2):
-                raise KeyError(f"Wave '{waveKey2}' not found in '.waves'")
+            elif not self.has(wave_key_2):
+                raise KeyError(f"Wave '{wave_key_2}' not found in '.waves'")
         else:
             raise TypeError(
-                f"'{waveKey2}' is a '{type(waveKey2)}' instead of 'QuantumCircuit' or 'Hashable'")
+                f"'{wave_key_2}' is a '{type(wave_key_2)}' "
+                + "instead of 'QuantumCircuit' or 'Hashable'"
+            )
 
-        numQubits = self.waves[waveKey].num_qubits
-        numQubits2 = self.waves[waveKey2].num_qubits
-        if numQubits != numQubits2:
+        num_qubits = self.waves[wave_key].num_qubits
+        num_qubits2 = self.waves[wave_key_2].num_qubits
+        if num_qubits != num_qubits2:
             raise ValueError(
-                f"The number of qubits of two wave functions must be the same, but {waveKey}: {numQubits} != {waveKey2}: {numQubits2}.")
+                "The number of qubits of two wave functions must be the same, "
+                + f"but {wave_key}: {num_qubits} != {wave_key_2}: {num_qubits2}."
+            )
 
         # times
         if not isinstance(times, int):
             raise ValueError(f"times should be an integer, but got {times}.")
 
         # measure and unitary location
-        num_qubits = self.waves[waveKey].num_qubits
-        num_qubits2 = self.waves[waveKey2].num_qubits
+        num_qubits = self.waves[wave_key].num_qubits
+        num_qubits2 = self.waves[wave_key_2].num_qubits
         if num_qubits != num_qubits2:
             raise ValueError(
-                f"The number of qubits of two wave functions must be the same, but {waveKey}: {num_qubits} != {waveKey2}: {num_qubits2}.")
+                "The number of qubits of two wave functions must be the same, "
+                + f"but {wave_key}: {num_qubits} != {wave_key_2}: {num_qubits2}."
+            )
 
         if measure is None:
             measure = num_qubits
-        measure = qubit_selector(
-            num_qubits, degree=measure)
+        measure = qubit_selector(num_qubits, degree=measure)
 
         if unitary_loc is None:
             unitary_loc = num_qubits
-        unitary_loc = qubit_selector(
-            num_qubits, degree=unitary_loc)
+        unitary_loc = qubit_selector(num_qubits, degree=unitary_loc)
 
         if (min(measure) < min(unitary_loc)) or (max(measure) > max(unitary_loc)):
             raise ValueError(
-                f"unitary_loc range '{unitary_loc}' does not contain measure range '{measure}'.")
+                f"unitary_loc range '{unitary_loc}' does not contain measure range '{measure}'."
+            )
 
-        expName = f"w={waveKey}+{waveKey2}.with{times}random.{self.shortName}"
+        exp_name = f"w={wave_key}+{wave_key_2}.with{times}random.{self.shortName}"
 
         return self.experiment.filter(
-            expName=expName,
-            waveKey=waveKey,
-            waveKey2=waveKey2,
+            exp_name=exp_name,
+            wave_key=wave_key,
+            wave_key_2=wave_key_2,
             times=times,
             measure=measure,
             unitary_loc=unitary_loc,
-            **otherArgs,
+            **other_kwargs,
         )
 
     def method(
         self,
-        expID: str,
+        exp_id: str,
+        _pbar: Optional[tqdm.tqdm] = None,
     ) -> list[QuantumCircuit]:
+        assert exp_id in self.exps
+        assert self.exps[exp_id].commons.exp_id == exp_id
+        current_exp = self.exps[exp_id]
+        args: EchoRandomizedExperiment.Arguments = self.exps[exp_id].args
+        commons: EchoRandomizedExperiment.Commonparams = self.exps[exp_id].commons
+        circuit = self.waves[commons.wave_key]
+        circuit2 = self.waves[args.wave_key_2]
 
-        assert expID in self.exps
-        assert self.exps[expID].commons.expID == expID
-        currentExp = self.exps[expID]
-        args: EchoRandomizedExperiment.Arguments = self.exps[expID].args
-        commons: EchoRandomizedExperiment.Commonparams = self.exps[expID].commons
-        circuit = self.waves[commons.waveKey]
-        circuit2 = self.waves[args.waveKey2]
-
-        unitaryList = {i: {
-            j: random_unitary(2) for j in range(*args.unitary_loc)
-        } for i in range(args.times)}
+        unitary_dict = {
+            i: {j: random_unitary(2) for j in range(*args.unitary_loc)}
+            for i in range(args.times)
+        }
 
         if isinstance(commons.serial, int):
             ...
         else:
-            print(f"| Build circuit: {commons.waveKey}.", end="\r")
+            print(f"| Build circuit: {commons.wave_key}.", end="\r")
         # for i in range(args.times):
         #     qFunc1 = QuantumRegister(num_qubits, 'q1')
         #     cMeas1 = ClassicalRegister(
         #         args.measure[1]-args.measure[0], 'c1')
         #     qcExp1 = QuantumCircuit(qFunc1, cMeas1)
-        #     qcExp1.name = f"{args.expName}-{i}"
+        #     qcExp1.name = f"{args.exp_name}-{i}"
 
         #     qcExp1.append(self.waves.call(
-        #         wave=commons.waveKey,
+        #         wave=commons.wave_key,
         #     ), [qFunc1[i] for i in range(num_qubits)])
 
         #     qcExp1.barrier()
@@ -710,27 +727,49 @@ class EchoRandomizedListen(QurryV5Prototype):
         #     qcList.append(qcExp1)
 
         pool = ProcessManager(args.workers_num)
-        qcList = pool.starmap(
-            _circuit_method_core, [(
-                i, circuit, args.expName, args.unitary_loc, unitaryList[i], args.measure
-            ) for i in range(args.times)]+[(
-                i+args.times, circuit2, args.expName, args.unitary_loc, unitaryList[i], args.measure
-            ) for i in range(args.times)])
+        qc_list = pool.starmap(
+            _circuit_method_core,
+            [
+                (
+                    i,
+                    circuit,
+                    args.exp_name,
+                    args.unitary_loc,
+                    unitary_dict[i],
+                    args.measure,
+                )
+                for i in range(args.times)
+            ]
+            + [
+                (
+                    i + args.times,
+                    circuit2,
+                    args.exp_name,
+                    args.unitary_loc,
+                    unitary_dict[i],
+                    args.measure,
+                )
+                for i in range(args.times)
+            ],
+        )
         if isinstance(commons.serial, int):
             ...
         else:
-            print(f"| Build circuit: {commons.waveKey} done.", end="\r")
+            print(f"| Build circuit: {commons.wave_key} done.", end="\r")
 
-        currentExp.beforewards.sideProduct['unitaryOP'] = {
+        current_exp.beforewards.side_product["unitaryOP"] = {
             k: {i: np.array(v[i]).tolist() for i in range(*args.unitary_loc)}
-            for k, v in unitaryList.items()}
-        currentExp.beforewards.sideProduct['randomized'] = {i: {
-            j: qubit_operator_to_pauli_coeff(
-                unitaryList[i][j])
-            for j in range(*args.unitary_loc)
-        } for i in range(args.times)}
+            for k, v in unitary_dict.items()
+        }
+        current_exp.beforewards.side_product["randomized"] = {
+            i: {
+                j: qubit_operator_to_pauli_coeff(unitary_dict[i][j])
+                for j in range(*args.unitary_loc)
+            }
+            for i in range(args.times)
+        }
 
-        return qcList
+        return qc_list
 
     def measure(
         self,
@@ -739,14 +778,14 @@ class EchoRandomizedListen(QurryV5Prototype):
         times: int = 100,
         measure: Union[int, tuple[int, int], None] = None,
         unitary_loc: Union[int, tuple[int, int], None] = None,
-        expName: str = 'exps',
+        exp_name: str = "exps",
         *args,
-        saveLocation: Optional[Union[Path, str]] = None,
-        mode: str = 'w+',
+        save_location: Optional[Union[Path, str]] = None,
+        mode: str = "w+",
         indent: int = 2,
-        encoding: str = 'utf-8',
+        encoding: str = "utf-8",
         jsonablize: bool = False,
-        **otherArgs: any
+        **other_kwargs: any,
     ) -> str:
         """
 
@@ -759,7 +798,7 @@ class EchoRandomizedListen(QurryV5Prototype):
                 If input is `None` or something illegal, then use `.lastWave'.
                 Defaults to None.
 
-            expName (str, optional):
+            exp_name (str, optional):
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
                 This name is also used for creating a folder to store the exports.
                 Defaults to `'exps'`.
@@ -771,27 +810,27 @@ class EchoRandomizedListen(QurryV5Prototype):
             dict: The output.
         """
 
-        IDNow = self.result(
+        id_now = self.result(
             wave=wave,  # First wave will be taken by _paramsControlMain
-            waveKey2=wave2,  # Second wave will be taken by paramsControl
-            expName=expName,
+            wave_key_2=wave2,  # Second wave will be taken by paramsControl
+            exp_name=exp_name,
             times=times,
             measure=measure,
             unitary_loc=unitary_loc,
-            saveLocation=None,
-            **otherArgs,
+            save_location=None,
+            **other_kwargs,
         )
-        assert IDNow in self.exps, f"ID {IDNow} not found."
-        assert self.exps[IDNow].commons.expID == IDNow
-        currentExp = self.exps[IDNow]
+        assert id_now in self.exps, f"ID {id_now} not found."
+        assert self.exps[id_now].commons.exp_id == id_now
+        current_exp = self.exps[id_now]
 
-        if isinstance(saveLocation, (Path, str)):
-            currentExp.write(
-                save_location=saveLocation,
+        if isinstance(save_location, (Path, str)):
+            current_exp.write(
+                save_location=save_location,
                 mode=mode,
                 indent=indent,
                 encoding=encoding,
                 jsonable=jsonablize,
             )
 
-        return IDNow
+        return id_now
