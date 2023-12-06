@@ -62,7 +62,7 @@ class MultiCommonparams(NamedTuple):
             "saveLocation": "save_location",
             "exportLocation": "export_location",
             "jobsType": "jobstype",
-            "manager_run_args": "manager_run_args",
+            "managerRunArgs": "manager_run_args",
         }
 
     @staticmethod
@@ -94,6 +94,12 @@ class MultiCommonparams(NamedTuple):
         rawread_multiconfig = {}
         with open(mutlticonfig_name, "r", encoding=encoding) as f:
             rawread_multiconfig: dict[str, Any] = json.load(f)
+        for k, nk in cls.v5_to_v7_field().items():
+            if k in rawread_multiconfig:
+                rawread_multiconfig[nk] = rawread_multiconfig.pop(k)
+        for k, dv in cls.default_value().items():
+            if k not in rawread_multiconfig:
+                rawread_multiconfig[k] = dv
         rawread_multiconfig["save_location"] = save_location
         rawread_multiconfig["export_location"] = export_location
 
