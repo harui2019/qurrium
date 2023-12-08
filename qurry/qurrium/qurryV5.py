@@ -417,6 +417,8 @@ class QurryV5Prototype(ABC):
             backend=current_exp.commons.backend,
             **current_exp.commons.transpile_args,
         )
+        if isinstance(_pbar, tqdm.tqdm):
+            _pbar.set_description_str("Circuit loading...")
         for _w in transpiled_circs:
             current_exp.beforewards.circuit.append(_w)
         # commons
@@ -991,9 +993,8 @@ class QurryV5Prototype(ABC):
                 current_id
             ].afterwards.counts
         current_multimanager.multicommons.datetimes.add_serial("output")
-        # For output include writting, no need to write again
-        # bewritten = self.multiWrite(besummonned)
-        # assert bewritten == besummonned
+        bewritten = self.multiWrite(besummonned)
+        assert bewritten == besummonned
 
         return current_multimanager.multicommons.summoner_id
 
