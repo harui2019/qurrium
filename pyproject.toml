@@ -26,13 +26,12 @@ manylinux-i686-image = "manylinux2014"
 skip = [
     "*-musllinux_i686", # rust tier 2 support
     "pp*",              # Qiskit and Qurry are not pure python packages, See https://github.com/harui2019/qurry/issues/93#issuecomment-1801837481
-    "cp312-*",          # Check issue https://github.com/harui2019/qurry/issues/95 for details
     "cp38-*",           # Not support for Qurry and won't support for we make type hint in 3.9 syntax.
     "*-musllinux_*",    # qiskit did not support musllinux
     # "*-manylinux_i686", # scipy dependency issue, Check issue https://github.com/harui2019/qurry/issues/93 for details
 ]
 test-skip = "*win32 *linux_i686"
-# build = ["cp39-*"]
+build = ["*-manylinux_aarch64"]
 before-all = [
     'python -c "print(\"=\"*70)"',
     'python -c "print(\"### Building \".ljust(70, \".\"))"',
