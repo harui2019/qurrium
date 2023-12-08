@@ -1,12 +1,15 @@
-# General Error
+"""
+================================================================
+Exceptions (:mod:`qurry.recipe.exceptions`)
+================================================================
+
+"""
+
 
 class QurecipeError(Exception):
     """Base class for errors raised by Qurecipe."""
 
-    def __init__(
-        self,
-        *message
-    ):
+    def __init__(self, *message):
         """Set the error message."""
         super().__init__(" ".join(message))
         self.message = " ".join(message)
@@ -16,14 +19,10 @@ class QurecipeError(Exception):
         return repr(self.message)
 
 
-# General Warning
 class QurecipeWarning(Warning):
     """Base class for warning raised by Qurecipe."""
 
-    def __init__(
-        self,
-        *message
-    ):
+    def __init__(self, *message):
         """Set the error message."""
         super().__init__(" ".join(message))
         self.message = " ".join(message)
@@ -36,5 +35,7 @@ class QurecipeWarning(Warning):
 class QurecipeCaseNotFoundError(QurecipeError):
     """Raised when the case is not found."""
 
+
 class InitialStateQubitsNumberNotFitting(QurecipeWarning):
-    """Raised when the initial state's qubit number is not fitting the number Qurecipe object get."""
+    """Raised when the initial state's qubit number is
+    not fitting the number Qurecipe object get."""

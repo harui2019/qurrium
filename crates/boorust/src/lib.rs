@@ -10,7 +10,7 @@ use crate::randomized::randomized::{
     hamming_distance_rust,
     purity_cell_rust,
 };
-use crate::randomized::construct::{ cycling_slice_rust, qubit_selector_rust, construct_test };
+use crate::randomized::construct::{ cycling_slice_rust, qubit_selector_rust };
 
 #[pymodule]
 fn boorust(py: Python<'_>, m: &PyModule) -> PyResult<()> {
@@ -53,19 +53,19 @@ fn register_child_module(py: Python<'_>, parent_module: &PyModule) -> PyResult<(
 //     Ok(())
 // }
 
-fn ensemble_cell_test() {
-    let s_i = "1010101010101010";
-    let s_i_meas = 100;
-    let s_j = "0101010101010101";
-    let s_j_meas = 100;
-    let a_num = 12;
-    let shots = 1000;
+// fn ensemble_cell_test() {
+//     let s_i = "1010101010101010";
+//     let s_i_meas = 100;
+//     let s_j = "0101010101010101";
+//     let s_j_meas = 100;
+//     let a_num = 12;
+//     let shots = 1000;
 
-    let ensemble_cell_result = ensemble_cell_rust(s_i, s_i_meas, s_j, s_j_meas, a_num, shots);
-    println!("| ensemble_cell x 1: {}", ensemble_cell_result);
-}
+//     let ensemble_cell_result = ensemble_cell_rust(s_i, s_i_meas, s_j, s_j_meas, a_num, shots);
+//     println!("| ensemble_cell x 1: {}", ensemble_cell_result);
+// }
 
-fn main() {
-    ensemble_cell_test();
-    construct_test();
-}
+// fn main() {
+//     ensemble_cell_test();
+//     construct_test();
+// }

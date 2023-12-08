@@ -1,8 +1,20 @@
-from .runner import Runner, ThirdPartyRunner
-from .accesor import BACKEND_AVAILABLE, backendChoice, backendChoiceLiteral, ExtraBackendAccessor
+"""
+================================================================
+Runner for running on Different Backends (IBM, IBMQ, ThirdParty, etc.)
+(:mod:`qurry.qurry.qurrium.runner`)
+================================================================
 
-if BACKEND_AVAILABLE['IBMQ']:
+"""
+from .runner import Runner, ThirdPartyRunner
+from .accesor import (
+    BACKEND_AVAILABLE,
+    BackendChoice,
+    BackendChoiceLiteral,
+    ExtraBackendAccessor,
+)
+
+if BACKEND_AVAILABLE["IBMQ"]:
     from .ibmqrunner import IBMQRunner
 
-if BACKEND_AVAILABLE['IBM']:
+if BACKEND_AVAILABLE["IBM"]:
     from .ibmrunner import IBMRunner

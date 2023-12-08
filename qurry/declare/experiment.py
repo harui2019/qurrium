@@ -7,45 +7,48 @@ Default Configuration for Qurry Experimrnt
 """
 from pathlib import Path
 
-from ..tools.backend import AerSimulator
+from ..tools.backend import GeneralAerSimulator
 from ..capsule.mori import DefaultConfig
-from ..qurrium.utils.datetime import DatetimeDict
+from ..tools.datetime import DatetimeDict
 
 commonparamsConfig = DefaultConfig(
-    name='commonparams',
+    name="commonparams",
     default={
-        'expID': None,
-        'waveKey': None,
-        'shots': 1024,
-        'backend': AerSimulator(),
-        'provider': None,
-        'runArgs': {},
-        'runBy': 'gate',
-        'transpileArgs': {},
-        'decompose': None,
-        'tags': (),
-        'defaultAnalysis': [],
-        'saveLocation': Path('./'),
-        'filetype': 'json',
-        'datetimes': DatetimeDict(),
-        'serial': None,
-        'summonerID': None,
-        'summonerName': None,
-    })
+        "exp_id": None,
+        "wave_key": None,
+        "shots": 1024,
+        "backend": GeneralAerSimulator(),
+        "provider": None,
+        "run_args": {},
+        "runBy": "gate",
+        "transpile_args": {},
+        "decompose": None,
+        "tags": (),
+        "default_analysis": [],
+        "save_location": Path("./"),
+        "filetype": "json",
+        "datetimes": DatetimeDict(),
+        "serial": None,
+        "summoner_id": None,
+        "summoner_name": None,
+    },
+)
 
 beforeConfig = DefaultConfig(
-    name='before',
+    name="before",
     default={
-        'circuit': [],
-        'figOriginal': [],
-        'jobID': '',
-        'expName': '',
-        'sideProduct': {},
-    })
+        "circuit": [],
+        "fig_original": [],
+        "job_id": "",
+        "exp_name": "",
+        "side_product": {},
+    },
+)
 
 afterConfig = DefaultConfig(
-    name='after',
+    name="after",
     default={
-        'result': [],
-        'counts': [],
-    })
+        "result": [],
+        "counts": [],
+    },
+)

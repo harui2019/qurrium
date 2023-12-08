@@ -1,12 +1,15 @@
-# General Error
+"""
+================================================================
+Exceptions (:mod:`qurry.exceptions`)
+================================================================
+
+"""
+
 
 class QurryError(Exception):
     """Base class for errors raised by Qurry."""
 
-    def __init__(
-        self,
-        *message
-    ):
+    def __init__(self, *message):
         """Set the error message."""
         super().__init__(" ".join(message))
         self.message = " ".join(message)
@@ -40,14 +43,15 @@ class QurryCythonImportError(QurryError, ImportError):
     """Cython import error."""
 
 
+class QurryRustImportError(QurryError, ImportError):
+    """Rust import error."""
+
+
 # General Warning
 class QurryWarning(Warning):
     """Base class for warning raised by Qurry."""
 
-    def __init__(
-        self,
-        *message
-    ):
+    def __init__(self, *message):
         """Set the error message."""
         super().__init__(" ".join(message))
         self.message = " ".join(message)
@@ -90,7 +94,17 @@ class QurryProtectContent(QurryWarning):
 
 
 class QurrySummonerInfoIncompletion(QurryWarning):
-    "Warning for summoner info incompletion. The summoner is the instance of :cls:`QurryMultiManager`."
+    """Warning for summoner info incompletion.
+    The summoner is the instance of :cls:`QurryMultiManager`."""
+
 
 class QurryCythonUnavailableWarning(QurryWarning):
     """Cython unavailable warning."""
+
+
+class QurryRustUnavailableWarning(QurryWarning):
+    """Rust unavailable warning."""
+
+
+class QurryDummyRunnerWarning(QurryWarning):
+    """Dummy runner warning."""

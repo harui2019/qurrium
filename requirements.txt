@@ -1,9 +1,9 @@
 # qiskit main
 qiskit>=0.32.2
 qiskit-terra
-qiskit-aer>=0.10.4
-qiskit-ibmq-provider~=0.19.2
-    
+# qiskit-aer>=0.10.4
+requests
+
 # qiskit-aer-gpu ; platform_system=='Linux' and python_version<='3.9'
 tqdm
 matplotlib

@@ -1,5 +1,12 @@
+"""
+================================================================
+Randomized in Cython
+(:mod:`qurry.boost.randomized`)
+================================================================
 
+"""
 
+# pylint: disable=invalid-name, missing-function-docstring, unused-argument
 def ensembleCell(
     sAi: str,
     sAiMeas: int,
@@ -7,31 +14,23 @@ def ensembleCell(
     sAjMeas: int,
     aNum: int,
     shots: int,
-) -> float:
-    ...
-
-
+) -> float: ...
 def cycling_slice(
     target: str,
     start: int,
     end: int,
     step: int,
-) -> str:
-    ...
-
-
+) -> str: ...
 def purityCellCore(
     singleCounts: dict[str, int],
     bitStringRange: tuple[int, int],
     subsystemSize: int,
-) -> float:
-    ...
-
-
+) -> float: ...
 def echoCellCore(
     firstCounts: dict[str, int],
     secondCounts: dict[str, int],
     bitStringRange: tuple[int, int],
     subsystemSize: int,
-) -> float:
-    ...
+) -> float: ...
+
+# pylint: enable=invalid-name, missing-function-docstring, unused-argument

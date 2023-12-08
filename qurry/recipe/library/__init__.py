@@ -1,3 +1,8 @@
+"""
+================================================================
+Library of Qurry Recipes (:mod:`qurry.recipe.library`)
+================================================================
+"""
 from typing import Union
 
 from .paramagnet import TrivialParamagnet, GHZ, TopologicalParamagnet, Cluster
@@ -12,7 +17,6 @@ CaseDictionary: dict[str, Qurecipe] = {
     "cat": GHZ,
     "topParamagnet": TopologicalParamagnet,
     "topPM": TopologicalParamagnet,
-    
     "cluster": Cluster,
     "singlet": Singlet,
     "intracell": Intracell,
@@ -32,5 +36,5 @@ def get_case(
     """
     if name in CaseDictionary:
         return CaseDictionary[name]
-    else:
-        raise QurecipeCaseNotFoundError(f"Qurecipe '{name}' not found.")
+
+    raise QurecipeCaseNotFoundError(f"Qurecipe '{name}' not found.")

@@ -1,12 +1,78 @@
 [build-system]
-requires = [
-    "pytest",
-    "cython", 
-    "setuptools", 
-    "setuptools-rust",
-    "wheel",
-]
+requires = ["pytest", "cython", "setuptools", "setuptools-rust", "wheel"]
 build-backend = "setuptools.build_meta"
 
 # If you find some configurations are similar to what qiskit does,
-# yes, it is. I learned from them.
+# yes, it does. I 'learned' from them.
+
+[project]
+name = "qurry"
+dynamic = [
+    "version",
+    "readme",
+    "dependencies",
+    "classifiers",
+    "requires-python",
+    "description",
+]
+
+[tool.setuptools.packages.find]
+include = ['qurry*', 'qurry.capsule*']
+exclude = ['cmake', 'symengine', 'tests']
+
+[tool.cibuildwheel]
+manylinux-x86_64-image = "manylinux2014"
+manylinux-i686-image = "manylinux2014"
+skip = [
+    "*-musllinux_i686", # rust tier 2 support
+    "pp*",              # Qiskit and Qurry are not pure python packages, See https://github.com/harui2019/qurry/issues/93#issuecomment-1801837481
+    "cp312-*",          # Check issue https://github.com/harui2019/qurry/issues/95 for details
+    "cp38-*",           # Not support for Qurry and won't support for we make type hint in 3.9 syntax.
+    "*-musllinux_*",    # qiskit did not support musllinux
+    # "*-manylinux_i686", # scipy dependency issue, Check issue https://github.com/harui2019/qurry/issues/93 for details
+]
+test-skip = "*win32 *linux_i686"
+# build = ["cp39-*"]
+before-all = [
+    'python -c "print(\"=\"*70)"',
+    'python -c "print(\"### Building \".ljust(70, \".\"))"',
+    'python -c "print(\"=\"*70)"',
+    "pip install auditwheel-symbols",
+]
+before-test = [
+    'python -c "print(\"=\"*70)"',
+    'python -c "print(\"### Testing \".ljust(70, \".\"))"',
+    'python -c "print(\"=\"*70)"',
+    "pip install pytest",
+    "cd {project} && python setup.py install && cd ..",
+]
+test-command = ["pytest {project}/tests"]
+
+[tool.cibuildwheel.linux]
+environment = { PATH = "$HOME/.cargo/bin:$PATH" }
+before-all = [
+    "curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain=nightly --profile=minimal -y",
+    'source "$HOME/.cargo/env"',
+    "rustup show",
+]
+before-test = [
+    'python -c "print(\"=\"*70)"',
+    'python -c "print(\"### Testing on Linux \".ljust(70, \".\"))"',
+    'python -c "print(\"=\"*70)"',
+    # Solution for scipy dependency issue
+    # Check https://github.com/harui2019/qurry/issues/95 for details
+    # https://github.com/scipy/scipy/issues/16308#issuecomment-1560669084
+    # "git clone https://github.com/xianyi/OpenBLAS.git",
+    # "cd OpenBLAS",
+    # "make -j8",
+    # "make PREFIX=/usr/local/OpenBLAS install",
+    # "export PKG_CONFIG_PATH=/usr/local/OpenBLAS/lib/pkgconfig",
+    # "cd ..",
+    # "rm -rf OpenBLAS",
+    # end of solution
+    "pip install scipy",
+    "pip install pytest",
+]
+
+[tool.cibuildwheel.macos]
+before-all = ["rustup show"]

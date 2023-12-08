@@ -119,7 +119,7 @@
 #                     f"but operator {k1} in '.strOpLib' lost this key, " +
 #                     "initialization has been canceled.")
 
-#         self._expsConfig = self.expsConfig(
+#         self._exps_config = self.exps_config(
 #             name="qurstropConfig",
 #         )
 #         self._expsBase = self.expsBase(
@@ -135,13 +135,13 @@
 #                 'order': 'The String Order Parameters.',
 #             },
 #         )
-#         self._expsMultiConfig = self.expsConfigMulti(
+#         self._expsMultiConfig = self.exps_configMulti(
 #             name="qurstropConfigMulti",
 #         )
 #         self.shortName = 'qurstrop'
 #         self.__name__ = 'StringOperator'
 
-#         return self._expsConfig, self._expsBase
+#         return self._exps_config, self._expsBase
 
 #     """Arguments and Parameters control"""
 
@@ -158,7 +158,7 @@
 #         """Handling all arguments and initializing a single experiment.
 
 #         Args:
-#             wave (Union[QuantumCircuit, int, None], optional): 
+#             wave (Union[QuantumCircuit, int, None], optional):
 #                 The index of the wave function in `self.waves` or add new one to calaculation,
 #                 then choose one of waves as the experiment material.
 #                 If input is `QuantumCircuit`, then add and use it.
@@ -170,26 +170,26 @@
 #                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
 #                 This name is also used for creating a folder to store the exports.
 #                 Defaults to `'exps'`.
-                
+
 #             string (Literal['i', 'zy'], optional):
 #                 The string operator.
-                
+
 #             i (Optional[int], optional):
 #                 The index of beginning qubits in the quantum circuit.
-                
+
 #             k (Optional[int], optional):
 #                 The index of ending qubits in the quantum circuit.
-            
+
 #             otherArgs (any):
 #                 Other arguments.
 
 #         Raises:
-#             KeyError: Given `expID` does not exist.
+#             KeyError: Given `exp_id` does not exist.
 #             TypeError: When parameters are not all to be `int`.
 #             KeyError: The given parameters lost degree of freedom.".
 
 #         Returns:
-#             tuple[str, dict[str, any]]: Current `expID` and arguments.
+#             tuple[str, dict[str, any]]: Current `exp_id` and arguments.
 #         """
 
 #         # wave
@@ -251,7 +251,7 @@
 #         Where should be overwritten by each construction of new measurement.
 
 #         Returns:
-#             Union[QuantumCircuit, list[QuantumCircuit]]: 
+#             Union[QuantumCircuit, list[QuantumCircuit]]:
 #                 The quantum circuit of experiment.
 #         """
 #         argsNow: self.argsCore = self.now
@@ -367,7 +367,7 @@
 #         """
 
 #         Args:
-#             wave (Union[QuantumCircuit, int, None], optional): 
+#             wave (Union[QuantumCircuit, int, None], optional):
 #                 The index of the wave function in `self.waves` or add new one to calaculation,
 #                 then choose one of waves as the experiment material.
 #                 If input is `QuantumCircuit`, then add and use it.
@@ -379,13 +379,13 @@
 #                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
 #                 This name is also used for creating a folder to store the exports.
 #                 Defaults to `'exps'`.
-                
+
 #             string (Literal['i', 'zy'], optional):
 #                 The string operator.
-                
+
 #             i (Optional[int], optional):
 #                 The index of beginning qubits in the quantum circuit.
-                
+
 #             k (Optional[int], optional):
 #                 The index of ending qubits in the quantum circuit.
 

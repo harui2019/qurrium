@@ -1,12 +1,16 @@
+"""
+================================================================
+Command tools (:mod:`qurry.tools.command`)
+================================================================
+"""
 import os
 import warnings
 from typing import Optional
 
 from ..exceptions import QurryImportWarning
 
-def cmdWrapper(
-    cmd: str = ""
-) -> None:
+
+def cmd_wrapper(cmd: str = "") -> None:
     """Use command in anywhere, no matter it's in `.ipynb` or '.py'.
 
     Args:
@@ -14,32 +18,45 @@ def cmdWrapper(
             jupyter environment. Defaults to "".
     """
     try:
-        from IPython import get_ipython
+        # pylint: disable=import-outside-toplevel
+        from IPython.core.getipython import get_ipython
+
+        # pylint: disable=import-outside-toplevel
+
         get_ipython().system(cmd)
-    except:
+    except ImportError:
         os.system(cmd)
 
 
-def pytorchCUDACheck() -> Optional[bool]:
+def pytorch_cuda_check() -> Optional[bool]:
     """Via pytorch to check Nvidia CUDA available.
 
     Returns:
         bool: Available of CUDA by pytorch if pytorch is available, else 'None'.
     """
     try:
+        # pylint: disable=import-outside-toplevel
         import torch
-        print(" - Torch CUDA available --------- %s" %
-              (torch.cuda.is_available()))
-        print(">>> Using torch %s %s" % (
-            torch.__version__,
-            torch.cuda.get_device_properties(
-                0) if torch.cuda.is_available() else 'CPU'
-        ))
+
+        # pylint: disable=import-outside-toplevel
+
+        print(f" - Torch CUDA available --------- {torch.cuda.is_available()}")
+        print(
+            ">>> Using torch "
+            + " ".join(
+                (
+                    torch.__version__,
+                    torch.cuda.get_device_properties(0)
+                    if torch.cuda.is_available()
+                    else "CPU",
+                )
+            )
+        )
         return torch.cuda.is_available()
-    except ImportError as e:
+    except ImportError:
         warnings.warn(
-            "Torch CUDA checking method requires pytorch" +
-            " which has been installed in this enviornment.",
-            category=QurryImportWarning
+            "Torch CUDA checking method requires pytorch"
+            + " which has been installed in this enviornment.",
+            category=QurryImportWarning,
         )
         return None

@@ -27,14 +27,10 @@ class WaveContainer(dict[Hashable, QuantumCircuit]):
         self: MutableMapping[Hashable, QuantumCircuit],
         wave: QuantumCircuit,
         key: Optional[Hashable] = None,
-        replace: Literal[True, False, 'duplicate'] = False,
+        replace: Literal[True, False, "duplicate"] = False,
     ) -> Hashable:
-
         self.lastWaveKey = _add(
-            _wave_container=self,
-            wave=wave,
-            key=key,
-            replace=replace
+            _wave_container=self, wave=wave, key=key, replace=replace
         )
         return self.lastWaveKey
 
@@ -47,9 +43,13 @@ class WaveContainer(dict[Hashable, QuantumCircuit]):
     def get_wave(
         self: MutableMapping[Hashable, QuantumCircuit],
         wave: Union[list[Hashable], Hashable, None] = None,
-        runBy: Optional[Literal['gate', 'operator',
-                                'instruction', 'copy', 'call']] = None,
-    ) -> Union[list[Union[Gate, Operator, Instruction, QuantumCircuit]], Union[Gate, Operator, Instruction, QuantumCircuit]]:
+        runBy: Optional[
+            Literal["gate", "operator", "instruction", "copy", "call"]
+        ] = None,
+    ) -> Union[
+        list[Union[Gate, Operator, Instruction, QuantumCircuit]],
+        Union[Gate, Operator, Instruction, QuantumCircuit],
+    ]:
         """Parse wave Circuit into `Instruction` as `Gate` or `Operator` on `QuantumCircuit`.
 
         Args:
@@ -63,7 +63,7 @@ class WaveContainer(dict[Hashable, QuantumCircuit]):
 
         Returns:
             Union[
-                list[Union[Gate, Operator, Instruction, QuantumCircuit]], 
+                list[Union[Gate, Operator, Instruction, QuantumCircuit]],
                 Union[Gate, Operator, Instruction, QuantumCircuit]
             ]: The result of the wave as `Gate` or `Operator`.
         """
@@ -76,15 +76,15 @@ class WaveContainer(dict[Hashable, QuantumCircuit]):
         if wave not in self:
             raise KeyError(f"Wave {wave} not found in {self}")
 
-        if runBy == 'operator':
+        if runBy == "operator":
             return Operator(self[wave])
-        elif runBy == 'gate':
+        elif runBy == "gate":
             return self[wave].to_gate()
-        elif runBy == 'instruction':
+        elif runBy == "instruction":
             return self[wave].to_instruction()
-        elif runBy == 'copy':
+        elif runBy == "copy":
             return self[wave].copy()
-        elif runBy == 'call':
+        elif runBy == "call":
             self.lastWaveKey = wave
             return self[wave]
         else:
@@ -107,14 +107,13 @@ class WaveContainer(dict[Hashable, QuantumCircuit]):
         """
         return self.get_wave(
             wave=wave,
-            runBy='call',
+            runBy="call",
         )
 
     def __call__(
         self: MutableMapping[Hashable, QuantumCircuit],
         wave: Union[list[Hashable], Hashable, None] = None,
     ) -> Union[list[QuantumCircuit], QuantumCircuit]:
-
         return self.call(wave=wave)
 
     def operator(
@@ -134,7 +133,7 @@ class WaveContainer(dict[Hashable, QuantumCircuit]):
         """
         return self.get_wave(
             wave=wave,
-            runBy='operator',
+            runBy="operator",
         )
 
     def gate(
@@ -154,7 +153,7 @@ class WaveContainer(dict[Hashable, QuantumCircuit]):
         """
         return self.get_wave(
             wave=wave,
-            runBy='gate',
+            runBy="gate",
         )
 
     def copy_circuit(
@@ -174,7 +173,7 @@ class WaveContainer(dict[Hashable, QuantumCircuit]):
         """
         return self.get_wave(
             wave=wave,
-            runBy='copy',
+            runBy="copy",
         )
 
     def instruction(
@@ -194,7 +193,7 @@ class WaveContainer(dict[Hashable, QuantumCircuit]):
         """
         return self.get_wave(
             wave=wave,
-            runBy='instruction',
+            runBy="instruction",
         )
 
     def has(
@@ -212,6 +211,6 @@ class WaveContainer(dict[Hashable, QuantumCircuit]):
         return wavename in self
 
     def __repr__(self):
-        inner_lines = '\n'.join('    %s: ...' % str(k) for k in self.keys())
+        inner_lines = "\n".join("    %s: ..." % str(k) for k in self.keys())
         inner_lines2 = "{\n%s\n}" % inner_lines
         return f"<{self.__name__}={inner_lines2} with {len(self)} waves load, a customized dictionary>"
