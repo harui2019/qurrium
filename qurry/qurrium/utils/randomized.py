@@ -41,22 +41,19 @@ except ImportError as err:
         """Dummy function for ensemble_cell_rust."""
         raise QurryRustImportError(
             "Rust is not available, using python to calculate ensemble cell."
-            + f" More infomation about this error: {err}",
-        )
+        ) from FAILED_RUST_IMPORT
 
     def hamming_distance_rust_source(*args, **kwargs):
         """Dummy function for hamming_distance_rust."""
         raise QurryRustImportError(
             "Rust is not available, using python to calculate hamming distance."
-            + f" More infomation about this error: {err}",
-        )
+        ) from FAILED_RUST_IMPORT
 
     def cycling_slice_rust_source(*args, **kwargs):
         """Dummy function for cycling_slice_rust."""
         raise QurryRustImportError(
             "Rust is not available, using python to calculate cycling slice."
-            + f" More infomation about this error: {err}",
-        )
+        ) from FAILED_RUST_IMPORT
 
 
 try:
@@ -76,15 +73,13 @@ except ImportError as err:
         """Dummy function for ensembleCell."""
         raise QurryCythonImportError(
             "Cython is not available, using python to calculate ensemble cell."
-            + f" More infomation about this error: {FAILED_PYX_IMPORT}",
-        )
+        ) from FAILED_PYX_IMPORT
 
     def cycling_slice_cy_source(*args, **kwargs):
         """Dummy function for cycling_slice_cy."""
         raise QurryCythonImportError(
             "Cython is not available, using python to calculate cycling slice."
-            + f" More infomation about this error: {FAILED_PYX_IMPORT}",
-        )
+        ) from FAILED_PYX_IMPORT
 
 
 ExistingProcessBackendLabel = Literal["Cython", "Rust", "Python"]

@@ -41,8 +41,7 @@ except ImportError as err:
         """Dummy function for purityCellCore."""
         raise QurryCythonImportError(
             "Cython is not available, using python to calculate purity cell."
-            + f" More infomation about this error: {FAILED_PYX_IMPORT}",
-        )
+        ) from FAILED_PYX_IMPORT
 
     # pylint: enable=invalid-name, unused-argument
 
@@ -68,15 +67,13 @@ except ImportError as err:
         """Dummy function for purity_cell_rust."""
         raise QurryRustImportError(
             "Rust is not available, using python to calculate purity cell."
-            + f" More infomation about this error: {err}",
-        )
+        ) from FAILED_RUST_IMPORT
 
     def entangled_entropy_core_rust_source(*args, **kwargs):
         """Dummy function for entangled_entropy_core_rust."""
         raise QurryRustImportError(
             "Rust is not available, using python to calculate entangled entropy."
-            + f" More infomation about this error: {err}",
-        )
+        ) from FAILED_RUST_IMPORT
 
 
 ExistingProcessBackendLabel = Literal["Cython", "Rust", "Python"]

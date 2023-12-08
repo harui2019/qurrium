@@ -46,8 +46,7 @@ except ImportError as err:
         """Dummy function for purityCellCore."""
         raise QurryCythonImportError(
             "Cython is not available, using python to calculate purity cell."
-            + f" More infomation about this error: {FAILED_PYX_IMPORT}"
-        )
+        ) from FAILED_PYX_IMPORT
 
     # pylint: enable=invalid-name, unused-argument
 
