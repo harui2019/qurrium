@@ -38,31 +38,6 @@ from ...exceptions import (
 )
 
 
-def write_caller(
-    iterable: tuple[ExperimentPrototype, Union[Path, str], Hashable]
-) -> tuple[Hashable, dict[str, str]]:
-    """The caller of :func:`ExperimentPrototype.write` for multiprocessing.
-
-    Args:
-        iterable (tuple[ExperimentPrototype, Union[Path, str], Hashable]):
-            The iterable of :func:`ExperimentPrototype.write` for multiprocessing.
-
-            - iterable[0]: ExperimentPrototype
-            - iterable[1]: save_location
-            - iterable[2]: _qurryinfo_hold_access
-
-    Returns:
-        tuple[Hashable, dict[str, str]]: The tuple of experimentID and the dict of files.
-    """
-    experiment, save_location, summoner_id = iterable
-
-    return experiment.write(
-        save_location=save_location,
-        mute=True,
-        _qurryinfo_hold_access=summoner_id,
-    )
-
-
 class MultiManager:
     """The manager of multiple experiments."""
 
@@ -605,46 +580,6 @@ class MultiManager:
                     save_location=self.multicommons.save_location,
                     mute=True,
                 )
-
-            # See: https://github.com/harui2019/qurry/issues/103
-            # For why disable this part.
-            # qurryinfos: dict[str, dict[str, str]] = {}
-            # qurryinfos_loc = self.multicommons.export_location / "qurryinfo.json"
-            # if os.path.exists(save_location / qurryinfos_loc):
-            #     with open(save_location / qurryinfos_loc, "r", encoding="utf-8") as f:
-            #         qurryinfo_found: dict[str, dict[str, str]] = json.load(f)
-            #         qurryinfos = {**qurryinfo_found, **qurryinfos}
-
-            # print(
-            #     f"| Export data of {len(self.beforewards.exps_config)} "
-            #     + f"experiments for {self.summoner_id}"
-            # )
-            # export_qurryinfo_items: list[tuple[Hashable, dict[str, str]]] = process_map(
-            #     write_caller,
-            #     [
-            #         (
-            #             wave_container[id_exec],
-            #             self.multicommons.save_location,
-            #             self.summoner_id,
-            #         )
-            #         for id_exec in self.beforewards.exps_config
-            #     ],
-            #     bar_format="| {n_fmt}/{total_fmt} {percentage:3.0f}%|{bar}| "
-            #     + "- writing... - {elapsed} < {remaining}",
-            #     ascii=" ▖▘▝▗▚▞█",
-            # )
-            # qurryinfos = {**qurryinfos, **dict(export_qurryinfo_items)}
-
-            # quickJSON(
-            #     content=qurryinfos,
-            #     filename=qurryinfos_loc,
-            #     mode="w+",
-            #     indent=indent,
-            #     encoding=encoding,
-            #     jsonable=True,
-            #     mute=True,
-            # )
-            # gc.collect()
 
         return multiconfig
 

@@ -1,3 +1,9 @@
+"""
+================================================================
+Qurrium (:mod:`qurry.qurry.qurrium`)
+================================================================
+
+"""
 from .qurryV5 import QurryV5, QurryV5Prototype
 from .experiment import QurryExperiment, ExperimentPrototype
 from .analysis import QurryAnalysis, AnalysisPrototype
@@ -19,4 +25,5 @@ from .utils import (
     decomposer,
 )
 
-pauliMatrix = {"rx": RXmatrix, "ry": RYmatrix, "rz": RZmatrix}
+PauliMatrix = {"rx": RXmatrix, "ry": RYmatrix, "rz": RZmatrix}
+"""Pauli matrix dictionary."""

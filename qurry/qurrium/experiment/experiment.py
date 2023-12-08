@@ -13,6 +13,7 @@ from abc import abstractmethod, abstractproperty, ABC
 from uuid import uuid4, UUID
 from typing import Union, Optional, NamedTuple, Hashable, Type, Any
 from pathlib import Path
+import tqdm
 
 from ...tools import ProcessManager, DEFAULT_POOL_SIZE
 from ...tools.datetime import current_time, DatetimeDict
@@ -692,6 +693,7 @@ class ExperimentPrototype(ExperimentPrototypeABC):
         jsonable: bool = False,
         # zip: bool = False,
         mute: bool = False,
+        _pbar: Optional[tqdm.tqdm] = None,
         _qurryinfo_hold_access: Optional[str] = None,
     ) -> tuple[str, dict[str, str]]:
         """Export the experiment data, if there is a previous export, then will overwrite.
@@ -747,6 +749,8 @@ class ExperimentPrototype(ExperimentPrototypeABC):
         Returns:
             dict[any]: the export content.
         """
+        if _pbar is not None:
+            _pbar.set_description_str("Preparing to export...")
 
         if isinstance(save_location, Path):
             ...
@@ -806,6 +810,7 @@ class ExperimentPrototype(ExperimentPrototypeABC):
             "reports": export_material.reports,
         }
         # reports.tales ......  # tales_reports
+        # TODO: consider multiprocessing
         for tk, tv in export_material.tales_reports.items():
             if isinstance(tv, (dict, list, tuple)):
                 export_set[f"reports.tales.{tk}"] = tv
@@ -816,6 +821,8 @@ class ExperimentPrototype(ExperimentPrototypeABC):
                     f"reports.tales.{tk} is not in export_names, it's not exported."
                 )
         # Exportation
+        if _pbar is not None:
+            _pbar.set_description_str("Exporting...")
         folder = save_location / Path(export_material.files["folder"])
         if not os.path.exists(folder):
             os.mkdir(folder)
