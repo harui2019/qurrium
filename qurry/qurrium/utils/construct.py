@@ -10,10 +10,16 @@ from typing import Union, Hashable, Optional, Literal
 from qiskit import QuantumCircuit
 from qiskit.result import Result
 from qiskit.exceptions import QiskitError
+try:
+    from qiskit.providers.ibmq.exceptions import IBMQError
+except ImportError:
+    IBMQError = QiskitError
+try:
+    from qiskit_ibm_provider.exceptions import IBMError
+except ImportError:
+    IBMError = QiskitError
 
-from ...exceptions import (
-    QurryRustImportError,
-)
+from ...exceptions import QurryRustImportError
 
 try:
     # from ...boorust.randomized import (  # type: ignore
@@ -210,19 +216,19 @@ def decomposer_and_drawer(
     return decomposer(qc, decompose).draw("text")
 
 
-def get_counts(
+def get_counts_and_exceptions(
     result: Union[Result, None],
     num: Optional[int] = None,
     result_idx_list: Optional[list[int]] = None,
-) -> list[dict[str, int]]:
-    """Computing specific squantity.
-    Where should be overwritten by each construction of new measurement.
+) -> tuple[list[dict[str, int]], dict[str, Exception]]:
+    """Get counts and exceptions from result.
 
     Returns:
-        tuple[dict, dict]:
-            Counts, purity, entropy of experiment.
+        tuple[list[dict[str, int]], dict[str, Exception]]:
+            Counts and exceptions.
     """
     counts: list[dict[str, int]] = []
+    exceptions: dict[str, Exception] = {}
     if result is None:
         counts.append({})
         print("| Failed Job result skip.")
@@ -251,8 +257,9 @@ def get_counts(
                 all_meas = result.get_counts(i)
                 counts.append(all_meas)
 
-    except QiskitError as err_1:
+    except (QiskitError, IBMQError, IBMError) as err_1:
         counts.append({})
+        exceptions[result.job_id] = err_1
         print("| Failed Job result skip, Job ID:", result.job_id, err_1)
 
-    return counts
+    return counts, exceptions

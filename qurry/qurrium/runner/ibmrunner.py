@@ -22,7 +22,7 @@ except ImportError:
 try:
     from qiskit_ibm_provider import IBMBackend, IBMProvider  # type: ignore
     from qiskit_ibm_provider.job import IBMCircuitJob  # type: ignore
-    from qiskit_ibm_provider.exceptions import IBMBackendApiError  # type: ignore
+    from qiskit_ibm_provider.exceptions import IBMError  # type: ignore
 except ImportError:
     raise QurryExtraPackageRequired(
         "These module requires the install of `qiskit-ibm-provider`,"
@@ -32,7 +32,7 @@ except ImportError:
 from .runner import Runner, retrieve_times_namer
 from ..multimanager import MultiManager
 from ..container import ExperimentContainer
-from ..utils import get_counts
+from ..utils import get_counts_and_exceptions
 from ...tools import qurry_progressbar, current_time
 
 
@@ -276,7 +276,7 @@ class IBMRunner(Runner):
                             f"{pk}/{pending_id}", refresh=True
                         )
                         pending_map[pk] = provider.retrieve_job(job_id=pending_id)
-                    except IBMBackendApiError as e:
+                    except IBMError as e:
                         pending_map[pk] = None
                         retrieve_progressbar.set_description_str(
                             f"{pk}/{pending_id} - Error: {e}", refresh=True
@@ -293,7 +293,7 @@ class IBMRunner(Runner):
                         f"{pk}/{pending_id}", refresh=True
                     )
                     pending_map[pk] = provider.retrieve_job(job_id=pending_id)
-                except IBMBackendApiError as e:
+                except IBMError as e:
                     retrieve_progressbar.set_description_str(
                         f"{pk}/{pending_id} - Error: {e}", refresh=True
                     )
@@ -319,31 +319,37 @@ class IBMRunner(Runner):
                         "time": current,
                         "type": "retrieve",
                     }
-
-                    p_result = pending_job.result()
-                    counts = get_counts(
-                        result=p_result,
-                        result_idx_list=[rk - pcircs[0] for rk in pcircs],
-                    )
+                    try:
+                        counts, exceptions = get_counts_and_exceptions(
+                            result=pending_job.result(),
+                            result_idx_list=[rk - pcircs[0] for rk in pcircs],
+                        )
+                    except IBMError as e:
+                        counts, exceptions = [{}], {pending_job.job_id(): e}
                 else:
                     pendingpool_progressbar.set_description_str(
                         f"{pk} failed - No available tags", refresh=True
                     )
 
-                    counts = get_counts(
+                    counts, exceptions = get_counts_and_exceptions(
                         result=None, result_idx_list=[rk - pcircs[0] for rk in pcircs]
                     )
                     pendingpool_progressbar.set_description_str(
                         f"{pk} failed - No available tags - {len(counts)}", refresh=True
                     )
-
                 for rk in pcircs:
                     couts_tmp_container[rk] = counts[rk - pcircs[0]]
                     pendingpool_progressbar.set_description_str(
                         f"{pk} - Packing: {rk} with len {len(counts[rk - pcircs[0]])}",
                         refresh=True,
                     )
-
+                if len(exceptions) > 0:
+                    if "exceptions" not in self.current_multimanager.outfields:
+                        self.current_multimanager.outfields["exceptions"] = {}
+                    for result_id, exception_item in exceptions.items():
+                        self.current_multimanager.outfields["exceptions"][
+                            result_id
+                        ] = exception_item
             else:
                 warnings.warn(f"Pending pool '{pk}' is empty.")
 

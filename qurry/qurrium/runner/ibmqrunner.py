@@ -27,7 +27,7 @@ except ImportError as exception:
 from .runner import Runner, retrieve_times_namer
 from ..multimanager import MultiManager
 from ..container import ExperimentContainer
-from ..utils import get_counts
+from ..utils import get_counts_and_exceptions
 from ...tools import qurry_progressbar, current_time
 
 
@@ -313,16 +313,20 @@ class IBMQRunner(Runner):
                 }
 
                 if pending_job.managedJob is not None:
-                    p_result = pending_job.managedJob.results()
-                    counts = get_counts(
-                        result=p_result,
-                        result_idx_list=[rk - pcircs[0] for rk in pcircs],
-                    )
+                    try:
+                        counts, exceptions = get_counts_and_exceptions(
+                            result=pending_job.managedJob.results(),
+                            result_idx_list=[rk - pcircs[0] for rk in pcircs],
+                        )
+                    except IBMQError as e:
+                        counts, exceptions = [{}], {
+                            pending_job.managedJob.job_set_id(): e
+                        }
                     pendingpool_progressbar.set_description_str(
                         f"{pk}/{pending_job.jobID}/{pending_job.name} - len: {len(counts)}"
                     )
                 else:
-                    counts = get_counts(
+                    counts, exceptions = get_counts_and_exceptions(
                         result=None, result_idx_list=[rk - pcircs[0] for rk in pcircs]
                     )
                     pendingpool_progressbar.set_description_str(
@@ -334,7 +338,13 @@ class IBMQRunner(Runner):
                         f"{pk}/{pending_job.jobID}/{pending_job.name} - "
                         + f"Packing: {rk} with len {len(counts[rk - pcircs[0]])}"
                     )
-
+                if len(exceptions) > 0:
+                    if "exceptions" not in self.current_multimanager.outfields:
+                        self.current_multimanager.outfields["exceptions"] = {}
+                    for result_id, exception_item in exceptions.items():
+                        self.current_multimanager.outfields["exceptions"][
+                            result_id
+                        ] = exception_item
             else:
                 warnings.warn(f"Pending pool '{pk}' is empty.")
 

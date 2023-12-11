@@ -46,6 +46,8 @@ class QurryCythonImportError(QurryError, ImportError):
 class QurryRustImportError(QurryError, ImportError):
     """Rust import error."""
 
+class QurryCountLost(QurryError):
+    """Count lost error."""
 
 # General Warning
 class QurryWarning(Warning):
