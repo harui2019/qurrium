@@ -303,24 +303,25 @@ class IBMRunner(Runner):
         ), "retrieve_principal should not be None."
 
         for pending_id, pk in retrieve_progressbar:
+            pending_tags = pk_from_list_to_tuple(pk)
             if pending_id is None:
-                warnings.warn(f"Pending pool '{pk}' is empty.")
+                warnings.warn(f"Pending pool '{pending_tags}' is empty.")
                 continue
             try:
                 retrieve_progressbar.set_description_str(
-                    f"{pk}/{pending_id}", refresh=True
+                    f"{pending_tags}/{pending_id}", refresh=True
                 )
-                pending_map[pk] = retrieve_principal.retrieve_job(job_id=pending_id)
+                pending_map[pending_tags] = retrieve_principal.retrieve_job(job_id=pending_id)
             except IBMError as e:
                 retrieve_progressbar.set_description_str(
-                    f"{pk}/{pending_id} - Error: {e}", refresh=True
+                    f"{pending_tags}/{pending_id} - Error: {e}", refresh=True
                 )
-                pending_map[pk] = None
+                pending_map[pending_tags] = None
             except IBMQError as e:
                 retrieve_progressbar.set_description_str(
-                    f"{pk}/{pending_id} - Error: {e}", refresh=True
+                    f"{pending_tags}/{pending_id} - Error: {e}", refresh=True
                 )
-                pending_map[pk] = None
+                pending_map[pending_tags] = None
 
         pendingpool_progressbar = qurry_progressbar(
             self.current_multimanager.beforewards.pending_pool.items(),
@@ -331,46 +332,47 @@ class IBMRunner(Runner):
         )
 
         for pk, pcircs in pendingpool_progressbar:
+            pending_tags = pk_from_list_to_tuple(pk)
             if len(pcircs) == 0:
-                warnings.warn(f"Pending pool '{pk}' is empty.")
+                warnings.warn(f"Pending pool '{pending_tags}' is empty.")
                 continue
 
-            if pending_map[pk] is not None:
+            if pending_map[pending_tags] is not None:
                 pendingpool_progressbar.set_description_str(
-                    f"{pk}/{pending_map[pk].job_id()}/{pending_map[pk].tags()}",
+                    f"{pending_tags}/{pending_map[pending_tags].job_id()}/{pending_map[pending_tags].tags()}",
                     refresh=True,
                 )
-                self.reports[pending_map[pk].job_id()] = {
+                self.reports[pending_map[pending_tags].job_id()] = {
                     "time": current,
                     "type": "retrieve",
                 }
                 try:
                     counts, exceptions = get_counts_and_exceptions(
-                        result=pending_map[pk].result(),
+                        result=pending_map[pending_tags].result(),
                         result_idx_list=[rk - pcircs[0] for rk in pcircs],
                     )
                 except IBMError as e:
-                    counts, exceptions = [{} for rk in pcircs], {
-                        pending_map[pk].job_id(): e
+                    counts, exceptions = [{} for _ in pcircs], {
+                        pending_map[pending_tags].job_id(): e
                     }
             else:
                 pendingpool_progressbar.set_description_str(
-                    f"{pk} failed - No available tags", refresh=True
+                    f"{pending_tags} failed - No available tags", refresh=True
                 )
                 counts, exceptions = get_counts_and_exceptions(
                     result=None, result_idx_list=[rk - pcircs[0] for rk in pcircs]
                 )
                 pendingpool_progressbar.set_description_str(
-                    f"{pk} failed - No available tags - {len(counts)}", refresh=True
+                    f"{pending_tags} failed - No available tags - {len(counts)}", refresh=True
                 )
             assert len(counts) == len(pcircs), (
                 f"Length of counts {len(counts)} not equal to length of "
-                + f"pcircs {len(pcircs)} in pending pool '{pk}'."
+                + f"pcircs {len(pcircs)} in pending pool '{pending_tags}'."
             )
             for rk in pcircs:
                 couts_tmp_container[rk] = counts[rk - pcircs[0]]
                 pendingpool_progressbar.set_description_str(
-                    f"{pk} - Packing: {rk} with len {len(counts[rk - pcircs[0]])}",
+                    f"{pending_tags} - Packing: {rk} with len {len(counts[rk - pcircs[0]])}",
                     refresh=True,
                 )
             if len(exceptions) > 0:
