@@ -10,16 +10,8 @@ from typing import Union, Hashable, Optional, Literal
 from qiskit import QuantumCircuit
 from qiskit.result import Result
 from qiskit.exceptions import QiskitError
-try:
-    from qiskit.providers.ibmq.exceptions import IBMQError
-except ImportError:
-    IBMQError = QiskitError
-try:
-    from qiskit_ibm_provider.exceptions import IBMError
-except ImportError:
-    IBMError = QiskitError
 
-from ...exceptions import QurryRustImportError
+from ...exceptions import QurryRustImportError, QurryCountLost
 
 try:
     # from ...boorust.randomized import (  # type: ignore
@@ -217,11 +209,18 @@ def decomposer_and_drawer(
 
 
 def get_counts_and_exceptions(
-    result: Union[Result, None],
+    result: Optional[Result],
     num: Optional[int] = None,
     result_idx_list: Optional[list[int]] = None,
 ) -> tuple[list[dict[str, int]], dict[str, Exception]]:
     """Get counts and exceptions from result.
+    
+    Args:
+        result (Optional[Result]): The result of job.
+        num (Optional[int], optional): The number of counts wanted to be extracted.
+            Defaults to None.
+        result_idx_list (Optional[list[int]], optional): The index of counts wanted to be extracted.
+            Defaults to None.
 
     Returns:
         tuple[list[dict[str, int]], dict[str, Exception]]:
@@ -229,37 +228,56 @@ def get_counts_and_exceptions(
     """
     counts: list[dict[str, int]] = []
     exceptions: dict[str, Exception] = {}
-    if result is None:
-        counts.append({})
-        print("| Failed Job result skip.")
-        return counts
+    if num is None and result_idx_list is None:
+        idx_list = []
+    elif result_idx_list is None:
+        idx_list = list(range(num))
+    elif num is None:
+        idx_list = result_idx_list
+    else:
+        if num != len(result_idx_list):
+            warnings.warn(
+                "The number of result is not equal to the length of "
+                + "'result_idx_list', use length of 'result_idx_list'."
+            )
+        else:
+            warnings.warn(
+                "The 'num' is not None, but 'result_idx_list' is not None, "
+                + "use 'result_idx_list'."
+            )
+        idx_list = result_idx_list
 
-    try:
-        if num is None and result_idx_list is None:
+    if result is None:
+        exceptions["None"] = QurryCountLost("Result is None")
+        print("| Failed Job result skip.")
+        for _ in idx_list:
+            counts.append({})
+        return counts, exceptions
+
+    if len(idx_list) == 0:
+        try:
             get: Union[list[dict[str, int]], dict[str, int]] = result.get_counts()
             if isinstance(get, list):
                 counts: list[dict[str, int]] = get
             else:
                 counts.append(get)
-        else:
-            if result_idx_list is None:
-                result_idx_list = list(range(num))
-            elif num is None:
-                ...
-            else:
-                if num != len(result_idx_list):
-                    warnings.warn(
-                        "The number of result is not equal to the length of "
-                        + "'result_idx_list', use length of 'result_idx_list'."
-                    )
+        except QiskitError as err_1:
+            exceptions[result.job_id] = err_1
+            print("| Failed Job result skip, Job ID:", result.job_id, err_1)
+        return counts, exceptions
 
-            for i in result_idx_list:
-                all_meas = result.get_counts(i)
-                counts.append(all_meas)
-
-    except (QiskitError, IBMQError, IBMError) as err_1:
-        counts.append({})
-        exceptions[result.job_id] = err_1
-        print("| Failed Job result skip, Job ID:", result.job_id, err_1)
+    for i in idx_list:
+        try:
+            all_meas = result.get_counts(i)
+        except QiskitError as err_2:
+            exceptions[f"{result.job_id}.{i}"] = err_2
+            print(
+                "| Failed Job result skip, Job ID/which counts:",
+                result.job_id,
+                i,
+                err_2,
+            )
+            all_meas = {}
+        counts.append(all_meas)
 
     return counts, exceptions

@@ -408,12 +408,13 @@ def IBMQPending(
         shots=shots,
         name=name,
     )
-    jobID = pending_job.job_set_id()
-    report = pending_job.report()
-    name = pending_job.name()
 
     return QurryIBMQBackendIO(
-        managedJob=pending_job, jobID=jobID, report=report, name=name, type="pending"
+        managedJob=pending_job,
+        jobID=pending_job.job_set_id(),
+        report=pending_job.report(),
+        name=pending_job.name(),
+        type="pending",
     )
 
 
