@@ -65,9 +65,10 @@ class ExperimentPrototype(ExperimentPrototypeABC):
     _unexports = ["side_product", "result"]
     """Unexports properties.
     """
-    _deprecated = ["figTranspiled"]
+    _deprecated = ["figTranspiled", "fig_original"]
     """Deprecated properties.
         - `figTranspiled` is deprecated since v0.6.0.
+        - `fig_original` is deprecated since v0.6.10.
     """
     tqdm_handleable = False
     """Whether the method :meth:`

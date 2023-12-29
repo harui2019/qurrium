@@ -300,6 +300,7 @@ class QurryV5Prototype(ABC):
         self.exps[new_exps.commons.exp_id] = new_exps
         assert len(self.exps[new_exps.commons.exp_id].beforewards.circuit) == 0
         assert len(self.exps[new_exps.commons.exp_id].beforewards.fig_original) == 0
+        assert len(self.exps[new_exps.commons.exp_id].beforewards.circuit_qasm) == 0
         assert len(self.exps[new_exps.commons.exp_id].afterwards.result) == 0
         assert len(self.exps[new_exps.commons.exp_id].afterwards.counts) == 0
 
@@ -403,11 +404,13 @@ class QurryV5Prototype(ABC):
         # draw original
         if isinstance(_pbar, tqdm.tqdm):
             _pbar.set_description_str(f"Circuit drawing by {workers_num} workers...")
-        fig_originals: list[str] = pool.starmap(
-            decomposer_and_drawer, [(_w, 0) for _w in cirqs]
-        )
-        for wd in fig_originals:
-            current_exp.beforewards.fig_original.append(wd)
+        # fig_originals: list[str] = pool.starmap(
+        #     decomposer_and_drawer, [(_w, 0) for _w in cirqs]
+        # )
+        # for wd in fig_originals:
+        #     current_exp.beforewards.fig_original.append(wd)
+        for _w in cirqs:
+            current_exp.beforewards.circuit_qasm.append(_w.qasm())
 
         # transpile
         if isinstance(_pbar, tqdm.tqdm):
