@@ -402,13 +402,17 @@ class QurryV5Prototype(ABC):
             cirqs = self.method(id_now)
 
         # draw original
-        if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str(f"Circuit drawing by {workers_num} workers...")
+        # if isinstance(_pbar, tqdm.tqdm):
+        #     _pbar.set_description_str(f"Circuit drawing by {workers_num} workers...")
         # fig_originals: list[str] = pool.starmap(
         #     decomposer_and_drawer, [(_w, 0) for _w in cirqs]
         # )
         # for wd in fig_originals:
         #     current_exp.beforewards.fig_original.append(wd)
+        
+        # qasm
+        if isinstance(_pbar, tqdm.tqdm):
+            _pbar.set_description_str(f"Exporting OpenQASM string...")
         for _w in cirqs:
             current_exp.beforewards.circuit_qasm.append(_w.qasm())
 
