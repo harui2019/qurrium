@@ -73,8 +73,26 @@ class EntropyAnalysisContent(NamedTuple):
 
     num_qubits: Optional[int] = None
     """The number of qubits of the system."""
-    measure: Optional[tuple[int, int]] = None
-    """The qubit range of the measurement."""
+    measure: Optional[tuple[str, Union[list[int], tuple[int, int]]]] = None
+    """The qubit range of the measurement and text description.
+    
+    - The first element is the text description.
+    - The second element is the qubit range of the measurement.
+    
+    ---
+    - When the measurement is specified, it will be:
+    
+    >>> ("measure range:", (0, 3))
+    
+    - When the measurement is not specified, it will be:
+    
+    >>> ("not specified, use all qubits", (0, 3))
+    
+    - When null counts exist, it will be:
+    
+    >>> ("The following is the index of null counts.", [0, 1, 2, 3])
+    
+    """
     measureActually: Optional[tuple[int, int]] = None
     """The qubit range of the measurement actually used."""
     measureActuallyAllSys: Optional[tuple[int, int]] = None
@@ -162,6 +180,38 @@ def randomized_entangled_entropy_complex(
             a list of each overlap in all system, puritySD of all system,
             degree, actual measure range, actual measure range in all system, bitstring range.
     """
+    null_counts = [i for i, c in enumerate(counts) if len(c) == 0]
+    if len(null_counts) > 0:
+        return {
+            # target system
+            "purity": np.NaN,
+            "entropy": np.NaN,
+            "purityCells": {},
+            "puritySD": np.NaN,
+            "entropySD": np.NaN,
+            "bitStringRange": (),
+            # all system
+            "allSystemSource": "Null counts exist, no measure.",
+            "purityAllSys": np.NaN,
+            "entropyAllSys": np.NaN,
+            "purityCellsAllSys": {},
+            "puritySDAllSys": np.NaN,
+            "entropySDAllSys": np.NaN,
+            "bitsStringRangeAllSys": (),
+            # mitigated
+            "errorRate": np.NaN,
+            "mitigatedPurity": np.NaN,
+            "mitigatedEntropy": np.NaN,
+            # info
+            "degree": degree,
+            "num_qubits": np.NaN,
+            "measure": ("The following is the index of null counts.", null_counts),
+            "measureActually": (),
+            "measureActuallyAllSys": (),
+            "countsNum": len(counts),
+            "takingTime": 0,
+            "takingTimeAllSys": 0,
+        }
 
     if isinstance(pbar, tqdm.tqdm):
         pbar.set_description_str(f"Calculate specific degree {degree} by {backend}.")
@@ -231,9 +281,9 @@ def randomized_entangled_entropy_complex(
     entropy_sd_allsys = purity_sd_allsys / np.log(2) / purity_allsys
 
     if measure is None:
-        measure_info = "not specified, use all qubits"
+        measure_info = ("not specified, use all qubits", measure_range)
     else:
-        measure_info = f"measure range: {measure}"
+        measure_info = ("measure range:", measure)
 
     num_qubits = len(list(counts[0].keys())[0])
     if isinstance(degree, tuple):
