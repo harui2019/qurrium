@@ -172,40 +172,37 @@ def wave_selector(
 
 def decomposer(
     qc: QuantumCircuit,
-    decompose: int = 2,
+    reps: int = 2,
 ) -> QuantumCircuit:
     """Decompose the circuit with giving times.
 
     Args:
         qc (QuantumCircuit): The circuit wanted to be decomposed.
-        decompose (int, optional):  Decide the times of decomposing the circuit.
+        reps (int, optional):  Decide the times of decomposing the circuit.
             Draw quantum circuit with composed circuit. Defaults to 2.
 
     Returns:
         QuantumCircuit: The decomposed circuit.
     """
 
-    qc_result = qc
-    for _ in range(decompose):
-        qc_result = qc_result.decompose()
-    return qc_result
+    return qc.decompose(reps=reps)
 
 
 def decomposer_and_drawer(
     qc: QuantumCircuit,
-    decompose: int = 2,
+    reps: int = 2,
 ) -> str:
     """Decompose the circuit with giving times and draw it.
 
     Args:
         qc (QuantumCircuit): The circuit wanted to be decomposed.
-        decompose (int, optional):  Decide the times of decomposing the circuit.
+        reps (int, optional): Decide the times of decomposing the circuit.
             Draw quantum circuit with composed circuit. Defaults to 2.
 
     Returns:
         str: The drawing of decomposed circuit.
     """
-    return decomposer(qc, decompose).draw("text")
+    return decomposer(qc, reps).draw("text")
 
 
 def get_counts_and_exceptions(
