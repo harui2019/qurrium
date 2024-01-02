@@ -217,6 +217,7 @@ class ExperimentPrototype(ExperimentPrototypeABC):
             if isinstance(beforewards, self.Before)
             else self.Before(
                 circuit=[],
+                circuit_qasm=[],
                 fig_original=[],
                 job_id="",
                 exp_name=self.args.exp_name,
