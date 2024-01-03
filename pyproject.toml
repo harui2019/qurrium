@@ -7,18 +7,35 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "qurry"
-dynamic = [
-    "version",
-    "readme",
-    "dependencies",
-    "classifiers",
-    "requires-python",
-    "description",
+dynamic = ["version", "readme", "dependencies"]
+description = "Qurry 🍛 - The Measuring Tool for Renyi Entropy, Loschmidt Echo, and Magnetization Squared, The Library of Some Common Cases"
+authors = [{ name = "Huai-Chung Chang", email = "harui2019@proton.me" }]
+classifiers = [
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: Implementation :: CPython",
 ]
+requires-python = ">=3.9"
+
+[project.urls]
+Issues = "https://github.com/harui2019/qurry/issues"
+Homepage = "https://github.com/harui2019/qurry"
 
 [tool.setuptools.packages.find]
 include = ['qurry*', 'qurry.capsule*']
 exclude = ['cmake', 'symengine', 'tests']
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.dynamic]
+readme = { file = "README.md", content-type = "text/markdown" }
+dependencies = { file = "requirements.txt" }
+
 
 [tool.cibuildwheel]
 manylinux-x86_64-image = "manylinux2014"
@@ -75,3 +92,17 @@ before-test = [
 
 [tool.cibuildwheel.macos]
 before-all = ["rustup show"]
+
+[tool.pylint."messages control"]
+disable = [
+    "too-many-lines",
+    "too-many-branches",
+    "too-many-locals",
+    "too-many-nested-blocks",
+    "too-many-statements",
+    "too-many-instance-attributes",
+    "too-many-arguments",
+    "too-many-public-methods",
+    "too-few-public-methods",
+    "too-many-ancestors",
+]
