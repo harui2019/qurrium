@@ -1,15 +1,15 @@
 """
 ================================================================
-Intracell Library (:mod:`qurry.recipe.library.intracell`)
+Intracell (:mod:`qurry.recipe.library.simple.intracell`)
 ================================================================
+
 """
-from typing import Literal, NamedTuple
-from qiskit import QuantumCircuit, QuantumRegister
+from typing import Literal
 
-from ..recipe import Qurecipe
+from ..n_body import TwoBody
 
 
-class Intracell(Qurecipe):
+class Intracell(TwoBody):
     """The entangled circuit `intracell`.
 
     ### `intracell-minus`, `singlet` At 8 qubits:
@@ -59,47 +59,31 @@ class Intracell(Qurecipe):
     Args:
         num_qubits (int): Number of qubits.
         state (str, optional):
-            Choosing the state. There are 'singlet', 'minus', 'plus',
+            Choosing the state. There are 'singlet', 'minus', 'plus'
             which 'minus' is same as 'singlet'.
             Defaults to "singlet".
         name (str, optional): Name of case. Defaults to "intracell".
-
-    Raises:
-        ValueError: When given number of qubits is not even.
-
     """
 
-    def method(self) -> list[QuantumCircuit]:
-        """Construct the example circuit.
+    @property
+    def state(self) -> Literal["singlet", "minus", "plus"]:
+        """The state of the circuit.
 
         Returns:
-            QuantumCircuit: The example circuit.
+            The state of the circuit.
         """
-        q = QuantumRegister(self.params.num_qubits)
-        qc = QuantumCircuit(q)
-        qc.name = self.case_name
+        return self._state
 
-        # intracell
-        for i in range(0, self.params.num_qubits, 2):
-            if self.params.state == "minus" or self.params.state == "singlet":
-                qc.x(i)
-            elif self.params.state == "plus":
-                ...
-            else:
-                raise ValueError(f"Initial state is invalid: '{self.params.state}'.")
-            qc.h(i)
-            qc.x(i + 1)
-            qc.cx(i, i + 1)
+    @state.setter
+    def state(self, state: Literal["singlet", "minus", "plus"]) -> None:
+        """Set the state of the circuit.
 
-        return [qc]
-
-    class Arguments(NamedTuple):
-        """The parameters of the case."""
-
-        num_qubits: int = 1
-        name: str = ""
-
-        state: Literal["singlet", "minus", "plus"] = "singlet"
+        Args:
+            state: The new state of the circuit.
+        """
+        if hasattr(self, "_state"):
+            raise AttributeError("Attribute 'state' is read-only.")
+        self._state = state
 
     def __init__(
         self,
@@ -112,33 +96,40 @@ class Intracell(Qurecipe):
         Args:
             num_qubits (int): Number of qubits.
             state (str, optional):
-                Choosing the state. There are 'singlet', 'minus', 'plus',
+                Choosing the state. There are 'singlet', 'minus', 'plus'
                 which 'minus' is same as 'singlet'.
                 Defaults to "singlet".
             name (str, optional): Name of case. Defaults to "intracell".
 
         Raises:
             ValueError: When given number of qubits is not even.
+            ValueError: When given state is invalid.
+
         """
+        super().__init__(name=name)
+        if state not in ["singlet", "minus", "plus"]:
+            raise ValueError(f"Initial state is invalid: '{state}'.")
+        self.num_qubits = num_qubits
+        self.state = state
 
-        if num_qubits % 2 != 0:
-            raise ValueError("Only lattices can construct using this gate.")
+    def _build(self) -> None:
+        if self._is_built:
+            return
+        super()._build()
 
-        super().__init__(
-            name=name,
-            num_qubits=num_qubits,
-            state=state,
-            case_name=f"intracell_{state}",
-        )
+        num_qubits = self.num_qubits
+        if num_qubits == 0:
+            return
 
-        self.params: Intracell.Arguments
+        for i in range(0, num_qubits, 2):
+            if self.state in ["minus", "singlet"]:
+                self.x(i)
+            self.h(i)
+            self.x(i + 1)
+            self.cx(i, i + 1)
 
 
-# pylint: disable=invalid-name
-def Singlet(
-    num_qubits: int,
-    name: str = "singlet",
-) -> Intracell:
+class Singlet(Intracell):
     """One of the state 'singlet' of The entangled circuit `intracell`.
 
     ### `intracell-minus`, `singlet` At 8 qubits:
@@ -170,11 +161,15 @@ def Singlet(
     Raises:
         ValueError: When given number of qubits is not even.
     """
-    return Intracell(
-        num_qubits=num_qubits,
-        state="singlet",
-        name=name,
-    )
 
+    def __init__(self, num_qubits: int, name: str = "intracell") -> None:
+        """Initializing the case.
 
-# pylint: enable=invalid-name
+        Args:
+            num_qubits (int): Number of qubits.
+            name (str, optional): Name of case. Defaults to "intracell".
+
+        Raises:
+            ValueError: When given number of qubits is not even.
+        """
+        super().__init__(num_qubits, "singlet", name)
