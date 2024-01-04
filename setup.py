@@ -4,7 +4,6 @@ Setup Script for Qurry
 ================================================================
 
 """
-import os
 from pathlib import Path
 from setuptools import setup, Extension
 from setuptools_rust import Binding, RustExtension
@@ -52,12 +51,6 @@ with open(ver_path, encoding="utf-8") as ver_file:
 
 __version_str__ = allow_locals["__version_str__"]
 print(f"| Version: {__version_str__}")
-
-README_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)), "README.md")
-with open(README_PATH, encoding="utf-8") as readme_file:
-    README = readme_file.read()
-
-__author__ = "Huai-Chung Chang (harui2019@proton.me)"
 
 
 setup(
