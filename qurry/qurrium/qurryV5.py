@@ -15,7 +15,7 @@ import tqdm
 from qiskit import execute, transpile, QuantumCircuit
 from qiskit.providers import Backend, JobV1 as Job
 
-from ..tools import qurry_progressbar, ProcessManager
+from ..tools import qurry_progressbar
 from ..capsule.mori import TagList
 from ..tools.backend import GeneralAerSimulator
 from ..tools.datetime import current_time, DatetimeDict
@@ -30,7 +30,7 @@ from .container import WaveContainer, ExperimentContainer
 from .multimanager import MultiManager
 from .runner import BackendChoiceLiteral, ExtraBackendAccessor
 
-from .utils import get_counts_and_exceptions, decomposer_and_drawer
+from .utils import get_counts_and_exceptions
 from .utils.inputfixer import outfields_check, outfields_hint
 from ..exceptions import QurryResetAccomplished, QurryResetSecurityActivated
 
@@ -338,7 +338,6 @@ class QurryV5Prototype(ABC):
         indent: int = 2,
         encoding: str = "utf-8",
         jsonablize: bool = False,
-        workers_num: Optional[int] = None,
         skip_export: bool = False,
         _export_mute: bool = True,
         _pbar: Optional[tqdm.tqdm] = None,
@@ -374,8 +373,6 @@ class QurryV5Prototype(ABC):
                 f"{self.__name__} can't be initialized with positional arguments."
             )
 
-        pool = ProcessManager(workers_num)
-
         # preparing
         if isinstance(_pbar, tqdm.tqdm):
             _pbar.set_description_str("Parameter loading...")
@@ -409,10 +406,10 @@ class QurryV5Prototype(ABC):
         # )
         # for wd in fig_originals:
         #     current_exp.beforewards.fig_original.append(wd)
-        
+
         # qasm
         if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str(f"Exporting OpenQASM string...")
+            _pbar.set_description_str("Exporting OpenQASM string...")
         for _w in cirqs:
             current_exp.beforewards.circuit_qasm.append(_w.qasm())
 

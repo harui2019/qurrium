@@ -812,7 +812,6 @@ class ExperimentPrototype(ExperimentPrototypeABC):
             "reports": export_material.reports,
         }
         # reports.tales ......  # tales_reports
-        # TODO: consider multiprocessing
         for tk, tv in export_material.tales_reports.items():
             if isinstance(tv, (dict, list, tuple)):
                 export_set[f"reports.tales.{tk}"] = tv
