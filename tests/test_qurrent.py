@@ -9,7 +9,7 @@ import pytest
 from qurry.qurrent import EntropyMeasure
 from qurry.tools.backend import GeneralAerSimulator
 from qurry.capsule import mori, hoshi
-from qurry.recipe.library import TrivialParamagnet, GHZ, TopologicalParamagnet
+from qurry.recipe import TrivialParamagnet, GHZ, TopologicalParamagnet
 
 tag_list = mori.TagList()
 statesheet = hoshi.Hoshi()
