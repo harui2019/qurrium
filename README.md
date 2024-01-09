@@ -82,6 +82,12 @@ After you finish the installation and want to comfirm the installation.
 
 Not available now, but coming soon
 
+### By TestPyPI
+
+```bash
+pip install -i https://test.pypi.org/simple/ qurry==0.6.(specific version)
+```
+
 ---
 
 ## Measurement
