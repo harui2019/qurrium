@@ -60,7 +60,7 @@ before-test = [
     'python -c "print(\"### Testing \".ljust(70, \".\"))"',
     'python -c "print(\"=\"*70)"',
     "pip install pytest",
-    "cd {project} && python setup.py install && cd ..",
+    "cd {project} && pip install .  && cd ..",
 ]
 test-command = ["pytest {project}/tests"]
 
