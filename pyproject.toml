@@ -48,7 +48,7 @@ skip = [
     # "*-manylinux_i686", # scipy dependency issue, Check issue https://github.com/harui2019/qurry/issues/93 for details
 ]
 test-skip = "*win32 *linux_i686"
-build = ["*-manylinux_aarch64"]
+# build = ["*-manylinux_aarch64"]
 before-all = [
     'python -c "print(\"=\"*70)"',
     'python -c "print(\"### Building \".ljust(70, \".\"))"',

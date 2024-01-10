@@ -3,11 +3,12 @@ name: Wheel Builds
 on:
   push:
     branches:
-      # - "main"
-      # - "pre-release"
-      - blabla # not ready yet
+      - "main"
+      - "pre-release"
+      - "dev"
 
 jobs:
+
   build_wheels:
     name: Build wheels
     runs-on: ${{ matrix.os }}
@@ -34,13 +35,17 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.13.0
-      # - uses: actions/upload-artifact@v3
-      #   with:
-      #     path: ./wheelhouse/*.whl
-      # - name: Publish package distributions to PyPI
-      #   uses: pypa/gh-action-pypi-publish@release/v1
-      #   with:
-      #     packages-dir: wheelhouse/
+
+      - uses: actions/upload-artifact@v3
+        with:
+          path: ./wheelhouse/*.whl
+      - name: Publish package distributions to PyPI
+
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: wheelhouse/
+          repository-url: https://test.pypi.org/legacy/
+
 
   build_wheels_macos_arm:
     name: Build wheels on macOS arm
@@ -69,6 +74,7 @@ jobs:
           CIBW_ENVIRONMENT: >-
             CARGO_BUILD_TARGET="aarch64-apple-darwin"
             PYO3_CROSS_LIB_DIR="/Library/Frameworks/Python.framework/Versions/$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')/lib/python$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')"
+
       # - uses: actions/upload-artifact@v3
       #   with:
       #     path: ./wheelhouse/*.whl
@@ -106,6 +112,7 @@ jobs:
         env:
           CIBW_ARCHS_LINUX: s390x
           CIBW_TEST_SKIP: "cp*"
+
       # - uses: actions/upload-artifact@v3
       #   with:
       #     path: ./wheelhouse/*.whl
@@ -143,6 +150,7 @@ jobs:
         env:
           CIBW_ARCHS_LINUX: ppc64le
           CIBW_TEST_SKIP: "cp*"
+
       # - uses: actions/upload-artifact@v3
       #   with:
       #     path: ./wheelhouse/*.whl
@@ -179,6 +187,7 @@ jobs:
         uses: pypa/cibuildwheel@v2.13.0
         env:
           CIBW_ARCHS_LINUX: aarch64
+
       # - uses: actions/upload-artifact@v3
       #   with:
       #     path: ./wheelhouse/*.whl
