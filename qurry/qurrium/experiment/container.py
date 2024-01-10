@@ -240,6 +240,8 @@ class Before(NamedTuple):
     # Experiment Preparation
     circuit: Union[list[QuantumCircuit], list[str]]
     """Circuits of experiment."""
+    circuit_qasm: list[str]
+    """OpenQASM of circuits."""
     fig_original: list[str]
     """Raw circuit figures which is the circuit before transpile."""
 
@@ -268,6 +270,7 @@ class Before(NamedTuple):
         """These default value are used for autofill the missing value."""
         return {
             "circuit": [],
+            "circuit_qasm": [],
             "job_id": None,
             "exp_name": None,
             "fig_original": [],

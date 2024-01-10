@@ -9,7 +9,7 @@ import pytest
 from qurry.qurrent import EntropyMeasure
 from qurry.tools.backend import GeneralAerSimulator
 from qurry.capsule import mori, hoshi
-from qurry.recipe.library import TrivialParamagnet, GHZ, TopologicalParamagnet
+from qurry.recipe import TrivialParamagnet, GHZ, TopologicalParamagnet
 
 tag_list = mori.TagList()
 statesheet = hoshi.Hoshi()
@@ -22,18 +22,14 @@ wave_adds_01 = []
 wave_adds_02 = []
 
 for i in range(4, 7, 2):
-    wave_adds_01.append(expDemo01.add(TrivialParamagnet(i).wave(), f"{i}-trivial"))
-    wave_adds_02.append(expDemo02.add(TrivialParamagnet(i).wave(), f"{i}-trivial"))
+    wave_adds_01.append(expDemo01.add(TrivialParamagnet(i), f"{i}-trivial"))
+    wave_adds_02.append(expDemo02.add(TrivialParamagnet(i), f"{i}-trivial"))
 
-    wave_adds_01.append(expDemo01.add(GHZ(i).wave(), f"{i}-GHZ"))
-    wave_adds_02.append(expDemo02.add(GHZ(i).wave(), f"{i}-GHZ"))
+    wave_adds_01.append(expDemo01.add(GHZ(i), f"{i}-GHZ"))
+    wave_adds_02.append(expDemo02.add(GHZ(i), f"{i}-GHZ"))
 
-    wave_adds_01.append(
-        expDemo01.add(TopologicalParamagnet(i).wave(), f"{i}-topological")
-    )
-    wave_adds_02.append(
-        expDemo02.add(TopologicalParamagnet(i).wave(), f"{i}-topological")
-    )
+    wave_adds_01.append(expDemo01.add(TopologicalParamagnet(i), f"{i}-topological"))
+    wave_adds_02.append(expDemo02.add(TopologicalParamagnet(i), f"{i}-topological"))
 
 backend = GeneralAerSimulator()
 # backend = BasicAer.backends()[0]

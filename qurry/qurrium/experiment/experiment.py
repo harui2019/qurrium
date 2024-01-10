@@ -65,9 +65,10 @@ class ExperimentPrototype(ExperimentPrototypeABC):
     _unexports = ["side_product", "result"]
     """Unexports properties.
     """
-    _deprecated = ["figTranspiled"]
+    _deprecated = ["figTranspiled", "fig_original"]
     """Deprecated properties.
         - `figTranspiled` is deprecated since v0.6.0.
+        - `fig_original` is deprecated since v0.6.10.
     """
     tqdm_handleable = False
     """Whether the method :meth:`
@@ -216,6 +217,7 @@ class ExperimentPrototype(ExperimentPrototypeABC):
             if isinstance(beforewards, self.Before)
             else self.Before(
                 circuit=[],
+                circuit_qasm=[],
                 fig_original=[],
                 job_id="",
                 exp_name=self.args.exp_name,
@@ -810,7 +812,6 @@ class ExperimentPrototype(ExperimentPrototypeABC):
             "reports": export_material.reports,
         }
         # reports.tales ......  # tales_reports
-        # TODO: consider multiprocessing
         for tk, tv in export_material.tales_reports.items():
             if isinstance(tv, (dict, list, tuple)):
                 export_set[f"reports.tales.{tk}"] = tv

@@ -15,7 +15,7 @@ import tqdm
 from qiskit import execute, transpile, QuantumCircuit
 from qiskit.providers import Backend, JobV1 as Job
 
-from ..tools import qurry_progressbar, ProcessManager
+from ..tools import qurry_progressbar
 from ..capsule.mori import TagList
 from ..tools.backend import GeneralAerSimulator
 from ..tools.datetime import current_time, DatetimeDict
@@ -30,7 +30,7 @@ from .container import WaveContainer, ExperimentContainer
 from .multimanager import MultiManager
 from .runner import BackendChoiceLiteral, ExtraBackendAccessor
 
-from .utils import get_counts, decomposer_and_drawer
+from .utils import get_counts_and_exceptions
 from .utils.inputfixer import outfields_check, outfields_hint
 from ..exceptions import QurryResetAccomplished, QurryResetSecurityActivated
 
@@ -300,6 +300,7 @@ class QurryV5Prototype(ABC):
         self.exps[new_exps.commons.exp_id] = new_exps
         assert len(self.exps[new_exps.commons.exp_id].beforewards.circuit) == 0
         assert len(self.exps[new_exps.commons.exp_id].beforewards.fig_original) == 0
+        assert len(self.exps[new_exps.commons.exp_id].beforewards.circuit_qasm) == 0
         assert len(self.exps[new_exps.commons.exp_id].afterwards.result) == 0
         assert len(self.exps[new_exps.commons.exp_id].afterwards.counts) == 0
 
@@ -337,7 +338,6 @@ class QurryV5Prototype(ABC):
         indent: int = 2,
         encoding: str = "utf-8",
         jsonablize: bool = False,
-        workers_num: Optional[int] = None,
         skip_export: bool = False,
         _export_mute: bool = True,
         _pbar: Optional[tqdm.tqdm] = None,
@@ -373,8 +373,6 @@ class QurryV5Prototype(ABC):
                 f"{self.__name__} can't be initialized with positional arguments."
             )
 
-        pool = ProcessManager(workers_num)
-
         # preparing
         if isinstance(_pbar, tqdm.tqdm):
             _pbar.set_description_str("Parameter loading...")
@@ -401,13 +399,19 @@ class QurryV5Prototype(ABC):
             cirqs = self.method(id_now)
 
         # draw original
+        # if isinstance(_pbar, tqdm.tqdm):
+        #     _pbar.set_description_str(f"Circuit drawing by {workers_num} workers...")
+        # fig_originals: list[str] = pool.starmap(
+        #     decomposer_and_drawer, [(_w, 0) for _w in cirqs]
+        # )
+        # for wd in fig_originals:
+        #     current_exp.beforewards.fig_original.append(wd)
+
+        # qasm
         if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str(f"Circuit drawing by {workers_num} workers...")
-        fig_originals: list[str] = pool.starmap(
-            decomposer_and_drawer, [(_w, 0) for _w in cirqs]
-        )
-        for wd in fig_originals:
-            current_exp.beforewards.fig_original.append(wd)
+            _pbar.set_description_str("Exporting OpenQASM string...")
+        for _w in cirqs:
+            current_exp.beforewards.circuit_qasm.append(_w.qasm())
 
         # transpile
         if isinstance(_pbar, tqdm.tqdm):
@@ -559,10 +563,15 @@ class QurryV5Prototype(ABC):
 
         # afterwards
         num = len(current_exp.beforewards.circuit)
-        counts = get_counts(
+        counts, exceptions = get_counts_and_exceptions(
             result=current_exp.afterwards.result[0],
             num=num,
         )
+        if len(exceptions) > 0:
+            if "exceptions" not in current_exp.outfields:
+                current_exp.outfields["exceptions"] = {}
+            for result_id, exception_item in exceptions.items():
+                current_exp.outfields["exceptions"][result_id] = exception_item
         for _c in counts:
             current_exp.afterwards.counts.append(_c)
 
@@ -1081,6 +1090,7 @@ class QurryV5Prototype(ABC):
         specific_analysis_args: Optional[
             dict[Hashable, Union[dict[str, Any], bool]]
         ] = None,
+        skip_compress: bool = False,
         _write: bool = True,
         **analysis_args: Any,
     ) -> Hashable:
@@ -1124,6 +1134,7 @@ class QurryV5Prototype(ABC):
             self.multiWrite(
                 summoner_id=summoner_id,
                 only_quantity=True,
+                compress=not skip_compress,
             )
 
         return current_multimanager.multicommons.summoner_id
