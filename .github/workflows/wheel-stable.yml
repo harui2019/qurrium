@@ -3,7 +3,9 @@ name: Wheel Builds
 on:
   push:
     tags:
-      - "*dev*"
+      - "*"
+    branches:
+      - main
 
 jobs:
   build_wheels:

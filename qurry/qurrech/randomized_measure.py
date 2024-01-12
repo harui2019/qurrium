@@ -4,338 +4,36 @@ Loschmidt Echo - Randomized Measure
 ===========================================================
 
 """
-import time
-import warnings
 from pathlib import Path
 from typing import Union, Optional, NamedTuple, Hashable, Iterable, Type, Any
-import numpy as np
 import tqdm
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.quantum_info import Operator
 
-from ..exceptions import QurryCythonImportError, QurryCythonUnavailableWarning
 from ..qurrium import (
     QurryV5Prototype,
     ExperimentPrototype,
     AnalysisPrototype,
-    qubit_selector,
 )
 from ..qurrium.utils.randomized import (
+    local_random_unitary_operators,
+    local_random_unitary_pauli_coeff,
     random_unitary,
-    qubit_operator_to_pauli_coeff,
-    ensemble_cell,
+)
+from ..process.utils import qubit_selector
+from ..process.randomized_measure.wavefunction_overlap import (
+    randomized_overlap_echo,
+    ExistingProcessBackendLabel,
+    DEFAULT_PROCESS_BACKEND,
 )
 from ..tools import (
     qurry_progressbar,
     ProcessManager,
-    workers_distribution,
     DEFAULT_POOL_SIZE,
 )
 
-try:
-    from ..boost.randomized import echoCellCore  # type: ignore
 
-    CYTHON_AVAILABLE = True
-    FAILED_PYX_IMPORT = None
-except ImportError as err:
-    FAILED_PYX_IMPORT = err
-    CYTHON_AVAILABLE = False
-    # pylint: disable=invalid-name, unused-argument
-
-    def echoCellCore(*args, **kwargs):
-        """Dummy function for purityCellCore."""
-        raise QurryCythonImportError(
-            "Cython is not available, using python to calculate purity cell."
-        ) from FAILED_PYX_IMPORT
-
-    # pylint: enable=invalid-name, unused-argument
-
-
-def _echo_cell_cy(
-    idx: int,
-    first_counts: dict[str, int],
-    second_counts: dict[str, int],
-    bitstring_range: tuple[int, int],
-    subsystem_size: int,
-) -> tuple[int, float]:
-    return idx, echoCellCore(
-        dict(first_counts), dict(second_counts), bitstring_range, subsystem_size
-    )
-
-
-def _echo_cell(
-    idx: int,
-    first_counts: dict[str, int],
-    second_counts: dict[str, int],
-    bitstring_range: tuple[int, int],
-    subsystem_size: int,
-) -> tuple[int, float]:
-    """Calculate the purity cell, one of overlap, of a subsystem.
-
-    Args:
-        idx (int): Index of the cell (counts).
-        singleCounts (dict[str, int]): Counts measured by the single quantum circuit.
-        bitStringRange (tuple[int, int]): The range of the subsystem.
-        subsystemSize (int): Subsystem size included.
-
-    Returns:
-        tuple[int, float]: Index, one of overlap purity.
-    """
-
-    shots = sum(first_counts.values())
-    shots2 = sum(second_counts.values())
-    assert shots == shots2, f"shots {shots} does not match shots2 {shots2}"
-
-    first_counts_under_degree = dict.fromkeys(
-        [k[bitstring_range[0] : bitstring_range[1]] for k in first_counts], 0
-    )
-    for bitstring in list(first_counts):
-        first_counts_under_degree[
-            bitstring[bitstring_range[0] : bitstring_range[1]]
-        ] += first_counts[bitstring]
-
-    second_counts_under_degree = dict.fromkeys(
-        [k[bitstring_range[0] : bitstring_range[1]] for k in second_counts], 0
-    )
-    for bitstring in list(second_counts):
-        second_counts_under_degree[
-            bitstring[bitstring_range[0] : bitstring_range[1]]
-        ] += second_counts[bitstring]
-
-    echo_cell = np.float64(0)
-    for s_i, s_i_meas in first_counts_under_degree.items():
-        for s_j, s_j_meas in second_counts_under_degree.items():
-            echo_cell += ensemble_cell(
-                s_i, s_i_meas, s_j, s_j_meas, subsystem_size, shots
-            )
-
-    return idx, echo_cell
-
-
-def _overlap_echo_core(
-    shots: int,
-    counts: list[dict[str, int]],
-    degree: Union[tuple[int, int], int],
-    measure: tuple[int, int] = None,
-    workers_num: Optional[int] = None,
-    use_cython: bool = True,
-    _hide_print: bool = False,
-) -> tuple[dict[int, float], tuple[int, int], tuple[int, int]]:
-    """The core function of entangled entropy.
-
-    Args:
-        shots (int): Shots of the experiment on quantum machine.
-        counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
-        degree (Union[tuple[int, int], int]): Degree of the subsystem.
-        measure (tuple[int, int], optional): Measuring range on quantum circuits. Defaults to None.
-        workers_num (Optional[int], optional):
-            Number of multi-processing workers,
-            if sets to 1, then disable to using multi-processing;
-            if not specified, then use the number of all cpu counts - 2 by `cpu_count() - 2`.
-            Defaults to None.
-        use_cython (bool, optional): Use cython to calculate purity cell. Defaults to True.
-        _hide_print (bool, optional): Hide print. Defaults to False.
-
-    Raises:
-        ValueError: Get degree neither 'int' nor 'tuple[int, int]'.
-        ValueError: Measure range does not contain subsystem.
-
-    Returns:
-        tuple[list[float], tuple[int, int], tuple[int, int]]: _description_
-    """
-
-    # check shots
-    sample_shots = sum(counts[0].values())
-    assert (
-        sample_shots == shots
-    ), f"shots {shots} does not match sample_shots {sample_shots}"
-
-    # Determine worker number
-    launch_worker = workers_distribution(workers_num)
-
-    # Determine degree
-    if degree is None:
-        degree = qubit_selector(len(list(counts[0].keys())[0]))
-
-    # Determine subsystem size
-    if isinstance(degree, int):
-        subsystem_size = degree
-        degree = qubit_selector(len(list(counts[0].keys())[0]), degree=degree)
-
-    elif isinstance(degree, (tuple, list)):
-        subsystem_size = max(degree) - min(degree)
-
-    else:
-        raise ValueError(
-            f"'degree' must be 'int' or 'tuple[int, int]', but get '{degree}'."
-        )
-
-    if measure is None:
-        measure = qubit_selector(len(list(counts[0].keys())[0]))
-
-    if (min(degree) < min(measure)) or (max(degree) > max(measure)):
-        raise ValueError(
-            f"Measure range '{measure}' does not contain subsystem '{degree}'."
-        )
-
-    bitstring_range = (min(degree) - min(measure), max(degree) - min(measure))
-    print(
-        f"| Subsystem size: {subsystem_size}, bitstring range: "
-        + f"{bitstring_range}, measure range: {measure}."
-    )
-
-    times = len(counts) / 2
-    assert times == int(times), f"counts {len(counts)} is not even."
-    times = int(times)
-    counts_pair = list(zip(counts[:times], counts[times:]))
-
-    begin_time = time.time()
-
-    msg = f"| Partition: {bitstring_range}, Measure: {measure}"
-
-    if not (CYTHON_AVAILABLE and use_cython):
-        warnings.warn(
-            "Cython is not available, using python to calculate purity cell."
-            + f" More infomation about this error: {FAILED_PYX_IMPORT}",
-            category=QurryCythonUnavailableWarning,
-        )
-    cell_calculator = _echo_cell_cy if (use_cython and CYTHON_AVAILABLE) else _echo_cell
-
-    if launch_worker == 1:
-        echo_cell_items = []
-        msg += f", single process, {times} overlaps, it will take a lot of time."
-        if not _hide_print:
-            print(msg)
-        for i, (c1, c2) in enumerate(counts_pair):
-            if not _hide_print:
-                print(" " * 150, end="\r")
-                print(
-                    f"| Calculating overlap {i} and {times+i} "
-                    + f"by summarize {len(c1)*len(c2)} values - {i+1}/{times}"
-                    + f" - {round(time.time() - begin_time, 3)}s.",
-                    end="\r",
-                )
-            echo_cell_items.append(
-                cell_calculator(i, c1, c2, bitstring_range, subsystem_size)
-            )
-
-        if not _hide_print:
-            print(" " * 150, end="\r")
-        take_time = round(time.time() - begin_time, 3)
-    else:
-        msg += f", {launch_worker} workers, {times} overlaps."
-
-        pool = ProcessManager(launch_worker)
-        echo_cell_items = pool.starmap(
-            cell_calculator,
-            [
-                (i, c1, c2, bitstring_range, subsystem_size)
-                for i, (c1, c2) in enumerate(counts_pair)
-            ],
-        )
-        take_time = round(time.time() - begin_time, 3)
-
-    if not _hide_print:
-        print(f"| Calculating overlap end - {take_time}s.")
-
-    purity_cell_dict = dict(echo_cell_items)
-    return purity_cell_dict, bitstring_range, measure, msg, take_time
-
-
-def overlap_echo(
-    shots: int,
-    counts: list[dict[str, int]],
-    degree: Union[tuple[int, int], int],
-    measure: tuple[int, int] = None,
-    workers_num: Optional[int] = None,
-    pbar: Optional[tqdm.tqdm] = None,
-    use_cython: bool = True,
-) -> dict[str, float]:
-    """Calculate entangled entropy.
-
-    - Reference:
-        - Used in:
-            Statistical correlations between locally randomized measurements:
-            A toolbox for probing entanglement in many-body quantum states -
-            A. Elben, B. Vermersch, C. F. Roos, and P. Zoller,
-            [PhysRevA.99.052323](https://doi.org/10.1103/PhysRevA.99.052323)
-
-        - `bibtex`:
-
-    ```bibtex
-        @article{PhysRevA.99.052323,
-            title = {Statistical correlations between locally randomized measurements:
-            A toolbox for probing entanglement in many-body quantum states},
-            author = {Elben, A. and Vermersch, B. and Roos, C. F. and Zoller, P.},
-            journal = {Phys. Rev. A},
-            volume = {99},
-            issue = {5},
-            pages = {052323},
-            numpages = {12},
-            year = {2019},
-            month = {May},
-            publisher = {American Physical Society},
-            doi = {10.1103/PhysRevA.99.052323},
-            url = {https://link.aps.org/doi/10.1103/PhysRevA.99.052323}
-        }
-        ```
-
-    Args:
-        shots (int): Shots of the experiment on quantum machine.
-        counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
-        degree (Union[tuple[int, int], int]): Degree of the subsystem.
-        measure (tuple[int, int], optional): Measuring range on quantum circuits. Defaults to None.
-        workers_num (Optional[int], optional):
-            Number of multi-processing workers,
-            if sets to 1, then disable to using multi-processing;
-            if not specified, then use the number of all cpu counts - 2 by `cpu_count() - 2`.
-            Defaults to None.
-        pbar (Optional[tqdm.tqdm], optional): Progress bar. Defaults to None.
-        all_system_source (Optional['EntropyRandomizedAnalysis'], optional):
-            The source of the all system. Defaults to None.
-        use_cython (bool, optional): Use cython to calculate purity cell. Defaults to True.
-
-    Returns:
-        dict[str, float]: A dictionary contains purity, entropy,
-            a list of each overlap, puritySD, degree, actual measure range, bitstring range.
-    """
-
-    if isinstance(pbar, tqdm.tqdm):
-        pbar.set_description_str(f"Calculate overlap with {len(counts)} counts.")
-
-    (
-        echo_cell_dict,
-        bitstring_range,
-        measure_range,
-        _msg_of_process,
-        _take_time,
-    ) = _overlap_echo_core(
-        shots=shots,
-        counts=counts,
-        degree=degree,
-        measure=measure,
-        workers_num=workers_num,
-        use_cython=use_cython,
-    )
-    echo_cell_list = list(echo_cell_dict.values())
-
-    echo = np.mean(echo_cell_list, dtype=np.float64)
-    purity_sd = np.std(echo_cell_list, dtype=np.float64)
-
-    quantity = {
-        "echo": echo,
-        "echoCells": echo_cell_dict,
-        "echoSD": purity_sd,
-        "degree": degree,
-        "measureActually": measure_range,
-        "bitStringRange": bitstring_range,
-        "countsNum": len(counts),
-    }
-
-    return quantity
-
-
-def _circuit_method_core(
+def circuit_method_core(
     idx: int,
     target_circuit: QuantumCircuit,
     exp_name: str,
@@ -343,6 +41,19 @@ def _circuit_method_core(
     unitary_sub_list: dict[int, Operator],
     measure: tuple[int, int],
 ) -> QuantumCircuit:
+    """Build the circuit for the experiment.
+
+    Args:
+        idx (int): Index of the randomized unitary.
+        target_circuit (QuantumCircuit): Target circuit.
+        exp_name (str): Experiment name.
+        unitary_loc (tuple[int, int]): Unitary operator location.
+        unitary_sublist (dict[int, Operator]): Unitary operator list.
+        measure (tuple[int, int]): Measure range.
+
+    Returns:
+        QuantumCircuit: The circuit for the experiment.
+    """
     num_qubits = target_circuit.num_qubits
 
     q_func1 = QuantumRegister(num_qubits, "q1")
@@ -365,8 +76,8 @@ def _circuit_method_core(
 class EchoRandomizedAnalysis(AnalysisPrototype):
     """The analysis of loschmidt echo."""
 
-    __name__ = "qurrentRandomized.Analysis"
-    shortName = "qurrent_haar.report"
+    __name__ = "qurrechRandomized.Analysis"
+    shortName = "qurrech_haar.report"
 
     class AnalysisInput(NamedTuple):
         """To set the analysis."""
@@ -391,6 +102,8 @@ class EchoRandomizedAnalysis(AnalysisPrototype):
         """The qubit range of the measurement actually used."""
         countsNum: Optional[int] = None
         """The number of counts of the experiment."""
+        takingTime: Optional[float] = None
+        """The taking time of the selected system."""
 
         def __repr__(self):
             return f"AnalysisContent(echo={self.echo}, and others)"
@@ -531,9 +244,9 @@ class EchoRandomizedExperiment(ExperimentPrototype):
         counts: list[dict[str, int]] = None,
         degree: Union[tuple[int, int], int] = None,
         measure: tuple[int, int] = None,
+        backend: ExistingProcessBackendLabel = DEFAULT_PROCESS_BACKEND,
         workers_num: Optional[int] = None,
         pbar: Optional[tqdm.tqdm] = None,
-        use_cython: bool = True,
     ) -> dict[str, float]:
         """Calculate entangled entropy with more information combined.
 
@@ -558,17 +271,17 @@ class EchoRandomizedExperiment(ExperimentPrototype):
                 a list of each overlap in all system, puritySD of all system,
                 degree, actual measure range, actual measure range in all system, bitstring range.
         """
-        if any(i is None for i in [shots, counts, degree]):
-            raise ValueError("shots, counts, degree must be specified, but get None.")
+        if shots is None or counts is None:
+            raise ValueError("shots and counts should be specified.")
 
-        return overlap_echo(
+        return randomized_overlap_echo(
             shots=shots,
             counts=counts,
             degree=degree,
             measure=measure,
+            backend=backend,
             workers_num=workers_num,
             pbar=pbar,
-            use_cython=use_cython,
         )
 
 
@@ -696,38 +409,24 @@ class EchoRandomizedListen(QurryV5Prototype):
         circuit = self.waves[commons.wave_key]
         circuit2 = self.waves[args.wave_key_2]
 
+        if isinstance(_pbar, tqdm.tqdm):
+            _pbar.set_description_str(
+                f"Preparing {args.times} random unitary with {args.workers_num} workers."
+            )
+
         unitary_dict = {
             i: {j: random_unitary(2) for j in range(*args.unitary_loc)}
             for i in range(args.times)
         }
 
-        if isinstance(commons.serial, int):
-            ...
-        else:
-            print(f"| Build circuit: {commons.wave_key}.", end="\r")
-        # for i in range(args.times):
-        #     qFunc1 = QuantumRegister(num_qubits, 'q1')
-        #     cMeas1 = ClassicalRegister(
-        #         args.measure[1]-args.measure[0], 'c1')
-        #     qcExp1 = QuantumCircuit(qFunc1, cMeas1)
-        #     qcExp1.name = f"{args.exp_name}-{i}"
-
-        #     qcExp1.append(self.waves.call(
-        #         wave=commons.wave_key,
-        #     ), [qFunc1[i] for i in range(num_qubits)])
-
-        #     qcExp1.barrier()
-        #     for j in range(*args.unitary_loc):
-        #         qcExp1.append(unitaryList[i][j], [j])
-
-        #     for j in range(*args.measure):
-        #         qcExp1.measure(qFunc1[j], cMeas1[j-args.measure[0]])
-
-        #     qcList.append(qcExp1)
+        if isinstance(_pbar, tqdm.tqdm):
+            _pbar.set_description_str(
+                f"Building {args.times} circuits with {args.workers_num} workers."
+            )
 
         pool = ProcessManager(args.workers_num)
         qc_list = pool.starmap(
-            _circuit_method_core,
+            circuit_method_core,
             [
                 (
                     i,
@@ -751,22 +450,39 @@ class EchoRandomizedListen(QurryV5Prototype):
                 for i in range(args.times)
             ],
         )
-        if isinstance(commons.serial, int):
-            ...
-        else:
-            print(f"| Build circuit: {commons.wave_key} done.", end="\r")
+        if isinstance(_pbar, tqdm.tqdm):
+            _pbar.set_description_str(
+                f"Writing 'unitaryOP' with {args.workers_num} workers."
+            )
+        unitary_operator_list = pool.starmap(
+            local_random_unitary_operators,
+            [(args.unitary_loc, unitary_dict[i]) for i in range(args.times)],
+        )
+        current_exp.beforewards.side_product["unitaryOP"] = dict(
+            enumerate(unitary_operator_list)
+        )
 
-        current_exp.beforewards.side_product["unitaryOP"] = {
-            k: {i: np.array(v[i]).tolist() for i in range(*args.unitary_loc)}
-            for k, v in unitary_dict.items()
-        }
-        current_exp.beforewards.side_product["randomized"] = {
-            i: {
-                j: qubit_operator_to_pauli_coeff(unitary_dict[i][j])
-                for j in range(*args.unitary_loc)
-            }
-            for i in range(args.times)
-        }
+        # currentExp.beforewards.side_product['unitaryOP'] = {
+        #     k: {i: np.array(v[i]).tolist() for i in range(*args.unitary_loc)}
+        #     for k, v in unitaryList.items()}
+
+        if isinstance(_pbar, tqdm.tqdm):
+            _pbar.set_description_str(
+                f"Writing 'randomized' with {args.workers_num} workers."
+            )
+        randomized_list = pool.starmap(
+            local_random_unitary_pauli_coeff,
+            [(args.unitary_loc, unitary_operator_list[i]) for i in range(args.times)],
+        )
+        current_exp.beforewards.side_product["randomized"] = dict(
+            enumerate(randomized_list)
+        )
+
+        # currentExp.beforewards.side_product['randomized'] = {i: {
+        #     j: qubitOpToPauliCoeff(
+        #         unitaryList[i][j])
+        #     for j in range(*args.unitary_loc)
+        # } for i in range(args.times)}
 
         return qc_list
 
@@ -778,7 +494,6 @@ class EchoRandomizedListen(QurryV5Prototype):
         measure: Union[int, tuple[int, int], None] = None,
         unitary_loc: Union[int, tuple[int, int], None] = None,
         exp_name: str = "exps",
-        *args,
         save_location: Optional[Union[Path, str]] = None,
         mode: str = "w+",
         indent: int = 2,

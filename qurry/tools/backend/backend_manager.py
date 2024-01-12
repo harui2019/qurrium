@@ -198,12 +198,12 @@ class BackendWrapper:
         self._update_callsign()
 
     @property
-    def avavilable_backends(self) -> list[str]:
+    def available_backends(self) -> list[str]:
         """The available backends."""
         return list(self.backend.keys())
 
     @property
-    def avavilable_backends_callsign(self) -> list[str]:
+    def available_backends_callsign(self) -> list[str]:
         """The available backends callsign."""
         return list(self.backend_callsign.keys())
 

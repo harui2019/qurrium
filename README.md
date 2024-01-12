@@ -23,34 +23,43 @@ and [National Center for Theoretical Sciences, Physics Division](https://phys.nc
 
 ## Environment
 
-![Available Python Version](https://img.shields.io/badge/Python-3.9_|_3.10_|_3.11-blue?logo=python&logoColor=white)
+![Available Python Version](https://img.shields.io/badge/Python-3.9_|_3.10_|_3.11_|_3.12-blue?logo=python&logoColor=white)
+
 ![Available System](https://img.shields.io/badge/Ubuntu-18.04+-purple?logo=Ubuntu&logoColor=white) ![Available System](https://img.shields.io/badge/Ubuntu_on_Windows_WSL-18.04+-purple?logo=Ubuntu&logoColor=white)
 
- <!-- ![Available System](https://img.shields.io/badge/Windows-10_|_11-purple?logo=Windows&logoColor=white) -->
+![Available System](https://img.shields.io/badge/Windows-10_|_11-purple?logo=Windows&logoColor=white) ![Available System](https://img.shields.io/badge/MacOS-11+-purple?logo=Apple&logoColor=white)
 
-- **Recommended `Python 3.9.7+` installed by Anaconda**
+- **Ubuntu 18.04+ LTS (All ManyLinux 2014 compatible distro)**
+  - on `x86_64` **(recommended)**
+  - on `x86_64` Windows 10/11 WSL2 **(recommended)**
+  - on `aarch64`
+  - We strongly recommend to use Linux based system, due to the paralell calculation function only works on Unix-like currently and the GPU acceleration of `Qiskit`, `qiskit-aer-gpu` only works with Nvidia CUDA on Linux.
+- **Windows 10/11**
+  - on `x86_64`
+- **MacOS 11+**
+  - on **`arm64 (Apple Silicon, M1 chips)`** **(recommended)**
+  - on **`x86_64 (Intel chips)`**
 
-  - on
-
-    - **Ubuntu 18.04+ LTS** on `x86_64` **(recommended)**
-    - **Ubuntu 18.04+ LTS on Windows 10/11 WSL2** on `x86_64` **(recommended)**
-      - We strongly recommend to use Linux based system, due to the paralell calculation function only works on Unix-like currently and the GPU acceleration of `Qiskit`, `qiskit-aer-gpu` only works with Nvidia CUDA on Linux.
-    - ~~**Windows 10/11** on `x86_64`~~
-      - currently with issues on `multiprocessing` module on Windows.
-    - **MacOS 12+** on **`arm64 (Apple Silicon, M1 chips)`**
-    - **MacOS 12+** on **`x86_64 (Intel chips)`**
-      - Maybe some unknown python issues exist.
-
-  - with required modules:
-
-    - `qiskit`
-
-  - with optional modules:
-    - `qiskit-aer-gpu`: when use Linux
+- with required modules:
+  - `qiskit`, `qiskit-aer`, `tqdm`, `requests`
+- with optional modules:
+  - `qiskit-aer-gpu`: when use Linux
+  - `qiskit-ibm-provider`: when use IBM Quantum
+  - `qiskit-ibmq-provider`: when use IBM Quantum, the deprecated version of `qiskit-ibm-provider`
 
 ---
 
 ## Install
+
+### By PyPI
+
+Not available now, but coming soon
+
+### By TestPyPI
+
+```bash
+pip install -i https://test.pypi.org/simple/ qurry==0.6.(specific version)
+```
 
 ### Maually by Git
 
@@ -77,16 +86,6 @@ pytest
 ```
 
 After you finish the installation and want to comfirm the installation.
-
-### By PyPI
-
-Not available now, but coming soon
-
-### By TestPyPI
-
-```bash
-pip install -i https://test.pypi.org/simple/ qurry==0.6.(specific version)
-```
 
 ---
 
