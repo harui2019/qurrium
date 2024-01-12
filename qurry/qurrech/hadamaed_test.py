@@ -1,10 +1,18 @@
+"""
+================================================================
+Wave Function Overlap - Hadamard Test
+(:mod:`qurry.qurrech.hadamard_test`)
+================================================================
+
+"""
+
+
+from typing import Union, Optional, NamedTuple, Hashable, Iterable, Type, Any
+from pathlib import Path
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 
-import numpy as np
-from pathlib import Path
-from typing import Union, Optional, NamedTuple, Hashable, Iterable, Type, Any
-
 from ..process.utils import qubit_selector
+from ..process.hadamard_test import hadamard_overlap_echo as overlap_echo
 from ..qurrium import (
     QurryV5Prototype,
     ExperimentPrototype,
@@ -12,36 +20,10 @@ from ..qurrium import (
 )
 
 
-def overlap_echo(
-    shots: int,
-    counts: list[dict[str, int]],
-) -> dict[str, float]:
-    echo = -100
-    onlyCount = counts[0]
-    sample_shots = sum(onlyCount.values())
-    assert (
-        sample_shots == shots
-    ), f"shots {shots} does not match sample_shots {sample_shots}"
-
-    isZeroInclude = "0" in onlyCount
-    isOneInclude = "1" in onlyCount
-    if isZeroInclude and isOneInclude:
-        echo = (onlyCount["0"] - onlyCount["1"]) / shots
-    elif isZeroInclude:
-        echo = onlyCount["0"] / shots
-    elif isOneInclude:
-        echo = onlyCount["1"] / shots
-    else:
-        echo = np.Nan
-        raise Warning("Expected '0' and '1', but there is no such keys")
-
-    quantity = {
-        "echo": echo,
-    }
-    return quantity
-
 
 class EntropyHadamardAnalysis(AnalysisPrototype):
+    """The analysis for calculating entangled entropy with more information combined."""
+    
     __name__ = "qurrechHadamard.Analysis"
     shortName = "qurrech_hadamard.report"
 
@@ -317,7 +299,6 @@ class EchoHadamardTest(QurryV5Prototype):
         wave2: Union[QuantumCircuit, any, None] = None,
         degree: Union[int, tuple[int, int], None] = None,
         exp_name: str = "exps",
-        *args,
         save_location: Optional[Union[Path, str]] = None,
         mode: str = "w+",
         indent: int = 2,
