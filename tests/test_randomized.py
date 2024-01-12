@@ -12,29 +12,15 @@ import numpy as np
 
 from qurry.capsule import quickRead
 from qurry.exceptions import QurryRustUnavailableWarning
-
-# pylint: disable=import-error, no-name-in-module
-# from qurry.boorust.randomized import (  # type: ignore
-#     ensemble_cell_rust,
-#     entangled_entropy_core_rust,
-# )
-
-# from qurry.boost.randomized import ensembleCell as ensemble_cell_cy
-# from qurry.qurrent.RandomizedMeasure import (
-#     _entangled_entropy_core as entangled_entropy_core,
-# )
-# from qurry.qurrium.utils.randomized import ensemble_cell as ensemble_cell_py
-
-# pylint: enable=import-error, no-name-in-module
-
-from qurry.qurrium.utils.randomized import (
+from qurry.process.randomized_measure.entangled_entropy import entangled_entropy_core
+from qurry.process.utils.randomized import (
     RUST_AVAILABLE as rust_available_randomized,
     ensemble_cell as ensemble_cell_py,
     ensemble_cell_cy,
 )
 
 if rust_available_randomized:
-    from qurry.qurrium.utils.randomized import ensemble_cell_rust
+    from qurry.process.utils.randomized import ensemble_cell_rust
 else:
 
     def ensemble_cell_rust(*args, **kwargs):
@@ -45,8 +31,6 @@ else:
         )
         return ensemble_cell_py(*args, **kwargs)
 
-
-from qurry.qurrent.postprocess import entangled_entropy_core
 
 test_setup_ensemble = [
     ("1010101010101010", 100, "0101010101010101", 100, 12, 100),
@@ -100,9 +84,6 @@ def test_entangled_entropy_core(
 ):
     """Test the entangled_entropy_core function."""
 
-    # rust = entangled_entropy_core_rust(*test_items)
-    # cy = entangled_entropy_core(*test_items)
-    # py = entangled_entropy_core(*test_items, use_cython=False)
     rust = entangled_entropy_core(*test_items, backend="Rust")
     cy = entangled_entropy_core(*test_items, backend="Cython")
     py = entangled_entropy_core(*test_items, backend="Python")
