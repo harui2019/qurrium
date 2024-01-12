@@ -1,49 +1,40 @@
 """
 ================================================================
-Renyi Entropy Postprocessing
-(:mod:`qurry.qurrent.postprocess`)
+Postprocessing - Renyi Entropy - Randomized Measure - 
+Entangled Entropy
+(:mod:`qurry.process.randomized_measure.entangled_entropy`)
 ================================================================
 
 """
+
 import time
 import warnings
-from typing import Union, Optional, Literal, overload
+from typing import Union, Optional, Literal, TypedDict
 import numpy as np
 import tqdm
 
-from ..exceptions import (
-    QurryCythonImportError,
+from .purity_cell import (
+    purity_cell_py,
+    purity_cell_cy,
+    purity_cell_rust,
+    CYTHON_AVAILABLE,
+    FAILED_PYX_IMPORT,
+)
+from .error_mitigation import depolarizing_error_mitgation
+from ..utils import (
+    cycling_slice as cycling_slice_py,
+    qubit_selector,
+)
+from ...exceptions import (
     QurryCythonUnavailableWarning,
     QurryRustImportError,
     QurryRustUnavailableWarning,
 )
-from ..qurrium import qubit_selector
-from ..qurrium.utils.randomized import (
-    ensemble_cell as ensemble_cell_py,
-    cycling_slice as cycling_slice_py,
-)
-from ..tools import (
+from ...tools import (
     ProcessManager,
     workers_distribution,
 )
 
-try:
-    from ..boost.randomized import purityCellCore  # type: ignore
-
-    CYTHON_AVAILABLE = True
-    FAILED_PYX_IMPORT = None
-except ImportError as err:
-    FAILED_PYX_IMPORT = err
-    CYTHON_AVAILABLE = False
-    # pylint: disable=invalid-name, unused-argument
-
-    def purityCellCore(*args, **kwargs):
-        """Dummy function for purityCellCore."""
-        raise QurryCythonImportError(
-            "Cython is not available, using python to calculate purity cell."
-        ) from FAILED_PYX_IMPORT
-
-    # pylint: enable=invalid-name, unused-argument
 
 try:
     # Proven import point for rust modules
@@ -54,7 +45,6 @@ try:
 
     from ..boorust import randomized  # type: ignore
 
-    purity_cell_rust_source = randomized.purity_cell_rust
     entangled_entropy_core_rust_source = randomized.entangled_entropy_core_rust
 
     RUST_AVAILABLE = True
@@ -62,12 +52,6 @@ try:
 except ImportError as err:
     RUST_AVAILABLE = False
     FAILED_RUST_IMPORT = err
-
-    def purity_cell_rust_source(*args, **kwargs):
-        """Dummy function for purity_cell_rust."""
-        raise QurryRustImportError(
-            "Rust is not available, using python to calculate purity cell."
-        ) from FAILED_RUST_IMPORT
 
     def entangled_entropy_core_rust_source(*args, **kwargs):
         """Dummy function for entangled_entropy_core_rust."""
@@ -87,183 +71,7 @@ DEFAULT_PROCESS_BACKEND: ExistingProcessBackendLabel = (
 )
 
 
-# Hadamard test
-def hadamard_entangled_entropy(
-    shots: int,
-    counts: list[dict[str, int]],
-) -> dict[str, float]:
-    """Calculate entangled entropy with more information combined.
-
-    - Which entropy:
-
-        The entropy we compute is the Second Order Rényi Entropy.
-
-    Args:
-        shots (int): Shots of the experiment on quantum machine.
-        counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
-
-    Raises:
-        Warning: Expected '0' and '1', but there is no such keys
-
-    Returns:
-        dict[str, float]: Quantity of the experiment.
-    """
-
-    purity = -100
-    entropy = -100
-    only_counts = counts[0]
-    sample_shots = sum(only_counts.values())
-    assert (
-        sample_shots == shots
-    ), f"shots {shots} does not match sample_shots {sample_shots}"
-
-    is_zero_include = "0" in only_counts
-    is_one_include = "1" in only_counts
-    if is_zero_include and is_one_include:
-        purity = (only_counts["0"] - only_counts["1"]) / shots
-    elif is_zero_include:
-        purity = only_counts["0"] / shots
-    elif is_one_include:
-        purity = only_counts["1"] / shots
-    else:
-        purity = np.Nan
-        raise ValueError("Expected '0' and '1', but there is no such keys")
-
-    entropy = -np.log2(purity)
-    quantity = {
-        "purity": purity,
-        "entropy": entropy,
-    }
-    return quantity
-
-
-# Randomized measure
-def purity_cell_py(
-    idx: int,
-    single_counts: dict[str, int],
-    bitstring_range: tuple[int, int],
-    subsystem_size: int,
-) -> tuple[int, float]:
-    """Calculate the purity cell, one of overlap, of a subsystem by Python.
-
-    Args:
-        idx (int): Index of the cell (counts).
-        single_counts (dict[str, int]): Counts measured by the single quantum circuit.
-        bitstring_range (tuple[int, int]): The range of the subsystem.
-        subsystem_size (int): Subsystem size included.
-
-    Returns:
-        tuple[int, float]: Index, one of overlap purity.
-    """
-
-    shots = sum(single_counts.values())
-
-    _dummy_string = "".join(str(ds) for ds in range(subsystem_size))
-    if _dummy_string[bitstring_range[0] : bitstring_range[1]] == cycling_slice_py(
-        _dummy_string, bitstring_range[0], bitstring_range[1], 1
-    ):
-        single_counts_under_degree = dict.fromkeys(
-            [k[bitstring_range[0] : bitstring_range[1]] for k in single_counts], 0
-        )
-        for bitstring in list(single_counts):
-            single_counts_under_degree[
-                bitstring[bitstring_range[0] : bitstring_range[1]]
-            ] += single_counts[bitstring]
-
-    else:
-        single_counts_under_degree = dict.fromkeys(
-            [
-                cycling_slice_py(k, bitstring_range[0], bitstring_range[1], 1)
-                for k in single_counts
-            ],
-            0,
-        )
-        for bitstring in list(single_counts):
-            single_counts_under_degree[
-                cycling_slice_py(bitstring, bitstring_range[0], bitstring_range[1], 1)
-            ] += single_counts[bitstring]
-
-    _purity_cell = np.float64(0)
-    for s_ai, s_ai_meas in single_counts_under_degree.items():
-        for s_aj, s_aj_meas in single_counts_under_degree.items():
-            _purity_cell += ensemble_cell_py(
-                s_ai, s_ai_meas, s_aj, s_aj_meas, subsystem_size, shots
-            )
-
-    return idx, _purity_cell
-
-
-def purity_cell_cy(
-    idx: int,
-    single_counts: dict[str, int],
-    bitstring_range: tuple[int, int],
-    subsystem_size: int,
-) -> tuple[int, float]:
-    """Calculate the purity cell, one of overlap, of a subsystem by Cython.
-
-    Args:
-        idx (int): Index of the cell (counts).
-        single_counts (dict[str, int]): Counts measured by the single quantum circuit.
-        bitstring_range (tuple[int, int]): The range of the subsystem.
-        subsystem_size (int): Subsystem size included.
-
-    Returns:
-        tuple[int, float]: Index, one of overlap purity.
-    """
-
-    return idx, purityCellCore(dict(single_counts), bitstring_range, subsystem_size)
-
-
-def purity_cell_rust(
-    idx: int,
-    single_counts: dict[str, int],
-    bitstring_range: tuple[int, int],
-    subsystem_size: int,
-) -> tuple[int, float]:
-    """Calculate the purity cell, one of overlap, of a subsystem by Rust.
-
-    Args:
-        idx (int): Index of the cell (counts).
-        single_counts (dict[str, int]): Counts measured by the single quantum circuit.
-        bitstring_range (tuple[int, int]): The range of the subsystem.
-        subsystem_size (int): Subsystem size included.
-
-    Returns:
-        tuple[int, float]: Index, one of overlap purity.
-    """
-
-    return purity_cell_rust_source(idx, single_counts, bitstring_range, subsystem_size)
-
-
-def purity_cell(
-    idx: int,
-    single_counts: dict[str, int],
-    bitstring_range: tuple[int, int],
-    subsystem_size: int,
-    backend: ExistingProcessBackendLabel = DEFAULT_PROCESS_BACKEND,
-) -> tuple[int, float]:
-    """Calculate the purity cell, one of overlap, of a subsystem.
-
-    Args:
-        idx (int): Index of the cell (counts).
-        single_counts (dict[str, int]): Counts measured by the single quantum circuit.
-        bitstring_range (tuple[int, int]): The range of the subsystem.
-        subsystem_size (int): Subsystem size included.
-        backend (ExistingProcessBackendLabel, optional):
-            Backend for the process. Defaults to DEFAULT_PROCESS_BACKEND.
-
-    Returns:
-        tuple[int, float]: Index, one of overlap purity.
-    """
-
-    if backend == "Cython":
-        return purity_cell_cy(idx, single_counts, bitstring_range, subsystem_size)
-    if backend == "Rust":
-        return purity_cell_rust(idx, single_counts, bitstring_range, subsystem_size)
-    return purity_cell_py(idx, single_counts, bitstring_range, subsystem_size)
-
-
-def entangled_entropy_core_pycy(
+def entangled_entropy_core_pycyrust(
     shots: int,
     counts: list[dict[str, int]],
     degree: Optional[Union[tuple[int, int], int]],
@@ -271,7 +79,7 @@ def entangled_entropy_core_pycy(
     multiprocess_pool_size: Optional[int] = None,
     backend: ExistingProcessBackendLabel = "Cython",
 ) -> tuple[dict[int, float], tuple[int, int], tuple[int, int], str, float]:
-    """The core function of entangled entropy by Cython or Python.
+    """The core function of entangled entropy by Cython, Python, or Rust for just purity cell part.
 
     Args:
         shots (int): Shots of the experiment on quantum machine.
@@ -404,7 +212,7 @@ def entangled_entropy_core_pycy(
     return purity_cell_dict, bitstring_range, measure, msg, taken
 
 
-def entangled_entropy_core_rust(
+def entangled_entropy_core_allrust(
     shots: int,
     counts: list[dict[str, int]],
     degree: Optional[Union[tuple[int, int], int]],
@@ -469,7 +277,7 @@ def entangled_entropy_core(
 
     if backend == "Rust":
         if RUST_AVAILABLE:
-            return entangled_entropy_core_rust(shots, counts, degree, measure)
+            return entangled_entropy_core_allrust(shots, counts, degree, measure)
         backend = "Cython" if CYTHON_AVAILABLE else "Python"
         warnings.warn(
             f"Rust is not available, using {backend} to calculate purity cell."
@@ -477,7 +285,7 @@ def entangled_entropy_core(
             QurryRustUnavailableWarning,
         )
 
-    return entangled_entropy_core_pycy(
+    return entangled_entropy_core_pycyrust(
         shots, counts, degree, measure, multiprocess_pool_size, backend
     )
 
@@ -582,105 +390,233 @@ def randomized_entangled_entropy(
     return quantity
 
 
-# Randomized measure error mitigation
-@overload
-def solve_p(meas_series: np.ndarray, n_a: int) -> tuple[np.ndarray, np.ndarray]:
-    ...
+class ExistingAllSystemSource(TypedDict):
+    purityCellsAllSys: dict[int, float]
+    bitStringRange: tuple[int, int]
+    measureActually: tuple[int, int]
+    source: str
 
 
-@overload
-def solve_p(meas_series: float, n_a: int) -> tuple[float, float]:
-    ...
+def randomized_entangled_entropy_mitigated(
+    shots: int,
+    counts: list[dict[str, int]],
+    degree: Optional[Union[tuple[int, int], int]],
+    measure: Optional[tuple[int, int]] = None,
+    backend: ExistingProcessBackendLabel = DEFAULT_PROCESS_BACKEND,
+    workers_num: Optional[int] = None,
+    existed_all_system: Optional[ExistingAllSystemSource] = None,
+    pbar: Optional[tqdm.tqdm] = None,
+) -> dict[str, float]:
+    """Calculate entangled entropy.
 
+    - Which entropy:
 
-def solve_p(meas_series, n_a):
-    """Solve the equation of p from all system size and subsystem size.
+        The entropy we compute is the Second Order Rényi Entropy.
+
+    - Reference:
+        - Used in:
+            Statistical correlations between locally randomized measurements:
+            A toolbox for probing entanglement in many-body quantum states -
+            A. Elben, B. Vermersch, C. F. Roos, and P. Zoller,
+            [PhysRevA.99.052323](https://doi.org/10.1103/PhysRevA.99.052323)
+
+        - `bibtex`:
+
+    ```bibtex
+        @article{PhysRevA.99.052323,
+            title = {Statistical correlations between locally randomized measurements:
+            A toolbox for probing entanglement in many-body quantum states},
+            author = {Elben, A. and Vermersch, B. and Roos, C. F. and Zoller, P.},
+            journal = {Phys. Rev. A},
+            volume = {99},
+            issue = {5},
+            pages = {052323},
+            numpages = {12},
+            year = {2019},
+            month = {May},
+            publisher = {American Physical Society},
+            doi = {10.1103/PhysRevA.99.052323},
+            url = {https://link.aps.org/doi/10.1103/PhysRevA.99.052323}
+        }
+        ```
 
     Args:
-        meas_series (Union[np.ndarray, float]): Measured series.
-        n_a (int): Subsystem size.
+        shots (int): Shots of the experiment on quantum machine.
+        counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
+        degree (Optional[Union[tuple[int, int], int]]): Degree of the subsystem.
+        measure (Optional[tuple[int, int]], optional):
+            Measuring range on quantum circuits. Defaults to None.
+        backend (ExistingProcessBackendLabel, optional):
+            Backend for the process. Defaults to DEFAULT_PROCESS_BACKEND.
+        workers_num (Optional[int], optional):
+            Number of multi-processing workers, it will be ignored if backend is Rust.
+            if sets to 1, then disable to using multi-processing;
+            if not specified, then use the number of all cpu counts by `os.cpu_count()`.
+            Defaults to None.
+        existed_all_system (Optional[ExistingAllSystemSource], optional):
+            Existing all system source. Defaults to None.
+        pbar (Optional[tqdm.tqdm], optional): Progress bar. Defaults to None.
 
     Returns:
-        Union[tuple[np.ndarray, np.ndarray], tuple[float, float]]:
-            Two solutions of p.
+        dict[str, float]: A dictionary contains
+            purity, entropy, a list of each overlap, puritySD,
+            purity of all system, entropy of all system,
+            a list of each overlap in all system, puritySD of all system,
+            degree, actual measure range, actual measure range in all system, bitstring range.
     """
-    b = np.float64(1) / 2 ** (n_a - 1) - 2
-    a = np.float64(1) + 1 / 2**n_a - 1 / 2 ** (n_a - 1)
-    c = 1 - meas_series
-    ppser = (-b + np.sqrt(b**2 - 4 * a * c)) / 2 / a
-    pnser = (-b - np.sqrt(b**2 - 4 * a * c)) / 2 / a
+    null_counts = [i for i, c in enumerate(counts) if len(c) == 0]
+    if len(null_counts) > 0:
+        return {
+            # target system
+            "purity": np.NaN,
+            "entropy": np.NaN,
+            "purityCells": {},
+            "puritySD": np.NaN,
+            "entropySD": np.NaN,
+            "bitStringRange": (),
+            # all system
+            "allSystemSource": "Null counts exist, no measure.",
+            "purityAllSys": np.NaN,
+            "entropyAllSys": np.NaN,
+            "purityCellsAllSys": {},
+            "puritySDAllSys": np.NaN,
+            "entropySDAllSys": np.NaN,
+            "bitsStringRangeAllSys": (),
+            # mitigated
+            "errorRate": np.NaN,
+            "mitigatedPurity": np.NaN,
+            "mitigatedEntropy": np.NaN,
+            # info
+            "degree": degree,
+            "num_qubits": np.NaN,
+            "measure": ("The following is the index of null counts.", null_counts),
+            "measureActually": (),
+            "measureActuallyAllSys": (),
+            "countsNum": len(counts),
+            "takingTime": 0,
+            "takingTimeAllSys": 0,
+        }
 
-    return ppser, pnser
+    if isinstance(pbar, tqdm.tqdm):
+        pbar.set_description_str(f"Calculate specific degree {degree} by {backend}.")
+    (
+        purity_cell_dict,
+        bitstring_range,
+        measure_range,
+        msg,
+        taken,
+    ) = entangled_entropy_core(
+        shots=shots,
+        counts=counts,
+        degree=degree,
+        measure=measure,
+        backend=backend,
+        multiprocess_pool_size=workers_num,
+    )
+    purity_cell_list = list(purity_cell_dict.values())
 
+    if existed_all_system is None:
+        if isinstance(pbar, tqdm.tqdm):
+            pbar.set_description_str(f"Calculate all system by {backend}.")
+        (
+            purity_cell_dict_allsys,
+            bitstring_range_allsys,
+            measure_range_allsys,
+            _msg_allsys,
+            taken_allsys,
+        ) = entangled_entropy_core(
+            shots=shots,
+            counts=counts,
+            degree=None,
+            measure=measure,
+            backend=backend,
+            multiprocess_pool_size=workers_num,
+        )
+        purity_cell_list_allsys = list(purity_cell_dict_allsys.values())
+        source = "independent"
+    else:
+        for k, msg in [
+            ("purityCellsAllSys", "purityCellsAllSys is not in existed_all_system."),
+            ("bitStringRange", "bitStringRange is not in existed_all_system."),
+            ("measureActually", "measureActually is not in existed_all_system."),
+            ("source", "source is not in existed_all_system."),
+        ]:
+            assert k in existed_all_system, msg
 
-@overload
-def mitigation_equation(
-    pser: np.ndarray, meas_series: np.ndarray, n_a: int
-) -> np.ndarray:
-    ...
+        source = existed_all_system["source"]
+        if isinstance(pbar, tqdm.tqdm):
+            pbar.set_description_str(f"Using existing all system from '{source}'")
+        purity_cell_dict_allsys = existed_all_system["purityCellsAllSys"]
+        purity_cell_list_allsys = list(purity_cell_dict_allsys.values())
+        bitstring_range_allsys = existed_all_system["bitStringRange"]
+        measure_range_allsys = existed_all_system["measureActually"]
+        _msg_allsys = f"Use all system from {source}."
+        taken_allsys = 0
 
+    if isinstance(pbar, tqdm.tqdm):
+        pbar.set_description_str(
+            f"Preparing error mitigation of {bitstring_range} on {measure}"
+        )
 
-@overload
-def mitigation_equation(pser: float, meas_series: float, n_a: int) -> float:
-    ...
+    purity: float = np.mean(purity_cell_list, dtype=np.float64)
+    purity_allsys: float = np.mean(purity_cell_list_allsys, dtype=np.float64)
+    purity_sd = np.std(purity_cell_list, dtype=np.float64)
+    purity_sd_allsys = np.std(purity_cell_list_allsys, dtype=np.float64)
 
+    entropy = -np.log2(purity, dtype=np.float64)
+    entropy_sd = purity_sd / np.log(2) / purity
+    entropy_allsys = -np.log2(purity_allsys, dtype=np.float64)
+    entropy_sd_allsys = purity_sd_allsys / np.log(2) / purity_allsys
 
-def mitigation_equation(pser, meas_series, n_a):
-    """Calculate the mitigation equation.
+    if measure is None:
+        measure_info = ("not specified, use all qubits", measure_range)
+    else:
+        measure_info = ("measure range:", measure)
 
-    Args:
-        pser (Union[np.ndarray, float]): Solution of p.
-        meas_series (Union[np.ndarray, float]): Measured series.
-        n_a (int): Subsystem size.
+    num_qubits = len(list(counts[0].keys())[0])
+    if isinstance(degree, tuple):
+        subsystem = max(degree) - min(degree)
+    else:
+        subsystem = degree
 
-    Returns:
-        Union[np.ndarray, float]: Mitigated series.
-    """
-    psq = np.square(pser, dtype=np.float64)
-    return (meas_series - psq / 2**n_a - (pser - psq) / 2 ** (n_a - 1)) / np.square(
-        1 - pser, dtype=np.float64
+    error_mitgation_info = depolarizing_error_mitgation(
+        meas_system=purity,
+        all_system=purity_allsys,
+        n_a=subsystem,
+        system_size=num_qubits,
     )
 
+    if isinstance(pbar, tqdm.tqdm):
+        pbar.set_description_str(msg[2:-1] + " with mitigation.")
 
-@overload
-def depolarizing_error_mitgation(
-    meas_system: float,
-    all_system: float,
-    n_a: int,
-    system_size: int,
-) -> dict[str, float]:
-    ...
-
-
-@overload
-def depolarizing_error_mitgation(
-    meas_system: np.ndarray,
-    all_system: np.ndarray,
-    n_a: int,
-    system_size: int,
-) -> dict[str, np.ndarray]:
-    ...
-
-
-def depolarizing_error_mitgation(meas_system, all_system, n_a, system_size):
-    """Depolarizing error mitigation.
-
-    Args:
-        meas_system (Union[float, np.ndarray]): Value of the measured subsystem.
-        all_system (Union[float, np.ndarray]): Value of the whole system.
-        n_a (int): The size of the subsystem.
-        system_size (int): The size of the system.
-
-    Returns:
-        Union[dict[str, float], dict[str, np.ndarray]]:
-            Error rate, mitigated purity, mitigated entropy.
-    """
-
-    _, pn = solve_p(all_system, system_size)
-    mitiga = mitigation_equation(pn, meas_system, n_a)
-
-    return {
-        "errorRate": pn,
-        "mitigatedPurity": mitiga,
-        "mitigatedEntropy": -np.log2(mitiga, dtype=np.float64),
+    quantity = {
+        # target system
+        "purity": purity,
+        "entropy": entropy,
+        "purityCells": purity_cell_dict,
+        "puritySD": purity_sd,
+        "entropySD": entropy_sd,
+        "bitStringRange": bitstring_range,
+        # all system
+        "allSystemSource": source,  # 'independent' or 'header of analysis'
+        "purityAllSys": purity_allsys,
+        "entropyAllSys": entropy_allsys,
+        "purityCellsAllSys": purity_cell_dict_allsys,
+        "puritySDAllSys": purity_sd_allsys,
+        "entropySDAllSys": entropy_sd_allsys,
+        "bitsStringRangeAllSys": bitstring_range_allsys,
+        # mitigated
+        "errorRate": error_mitgation_info["errorRate"],
+        "mitigatedPurity": error_mitgation_info["mitigatedPurity"],
+        "mitigatedEntropy": error_mitgation_info["mitigatedEntropy"],
+        # info
+        "degree": degree,
+        "num_qubits": num_qubits,
+        "measure": measure_info,
+        "measureActually": measure_range,
+        "measureActuallyAllSys": measure_range_allsys,
+        "countsNum": len(counts),
+        "takingTime": taken,
+        "takingTimeAllSys": taken_allsys,
     }
+    return quantity

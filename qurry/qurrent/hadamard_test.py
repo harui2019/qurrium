@@ -15,9 +15,9 @@ from ..qurrium import (
     QurryV5Prototype,
     ExperimentPrototype,
     AnalysisPrototype,
-    qubit_selector,
 )
-from .postprocess import hadamard_entangled_entropy
+from ..process.utils import qubit_selector
+from ..process.hadamard_test import hadamard_entangled_entropy
 
 
 class EntropyHadamardAnalysis(AnalysisPrototype):

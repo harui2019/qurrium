@@ -18,19 +18,19 @@ from ..qurrium import (
     ExperimentPrototype,
     AnalysisPrototype,
 )
-from ..qurrium.utils.randomized import (
+from ..process.utils import qubit_selector
+from ..process.utils.randomized import (
     random_unitary,
     local_random_unitary_operators,
     local_random_unitary_pauli_coeff,
 )
-from ..qurrium.utils.construct import qubit_selector
-from ..tools import qurry_progressbar, ProcessManager, DEFAULT_POOL_SIZE
-from .postprocess import (
+from ..process.randomized_measure.entangled_entropy import (
+    entangled_entropy_core,
     ExistingProcessBackendLabel,
     DEFAULT_PROCESS_BACKEND,
-    depolarizing_error_mitgation,
-    entangled_entropy_core,
 )
+from ..process.randomized_measure.error_mitigation import depolarizing_error_mitgation
+from ..tools import qurry_progressbar, ProcessManager, DEFAULT_POOL_SIZE
 
 
 class EntropyAnalysisContent(NamedTuple):

@@ -4,11 +4,11 @@ import numpy as np
 from pathlib import Path
 from typing import Union, Optional, NamedTuple, Hashable, Iterable, Type, Any
 
+from ..process.utils import qubit_selector
 from ..qurrium import (
     QurryV5Prototype,
     ExperimentPrototype,
     AnalysisPrototype,
-    qubit_selector,
 )
 
 
