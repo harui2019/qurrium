@@ -4,8 +4,8 @@ on:
   push:
     tags:
       - "*"
-    tags-ignore:
-      - "*dev*"
+    branches:
+      - main
 
 jobs:
   build_wheels:
