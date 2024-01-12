@@ -4,9 +4,10 @@ Construct (:mod:`qurry.process.utils.construct`)
 ================================================================
 
 """
+import warnings
 from typing import Union, Literal
 
-from ...exceptions import QurryRustImportError
+from ...exceptions import QurryRustImportError, QurryRustUnavailableWarning
 
 try:
     # from ...boorust.randomized import (  # type: ignore
@@ -16,7 +17,7 @@ try:
     # from qurry.boorust.construct import (
     #     cycling_slice_rust as cycling_slice_rust_source,  # type: ignore
     # )
-    from ...boorust import construct  # type: ignore
+    from ....boorust import construct  # type: ignore
 
     qubit_selector_rust_source = construct.qubit_selector_rust  # type: ignore
 
@@ -39,31 +40,6 @@ BackendAvailabilities: dict[ExistingProcessBackendLabel, Union[bool, ImportError
     "Rust": RUST_AVAILABLE if RUST_AVAILABLE else FAILED_RUST_IMPORT,
     "Python": True,
 }
-
-
-def qubit_selector_rust(
-    num_qubits: int,
-    degree: Union[int, tuple[int, int], None] = None,
-) -> tuple[int, int]:
-    """Determint the qubits to be used.
-
-    Args:
-        num_qubits (int): Number of qubits.
-        degree (Union[int, tuple[int, int], None], optional):
-            Degree of freedom or specific subsystem range.
-            Defaults to None then will use number of qubits as degree.
-
-    Raises:
-        ValueError: The specific degree of subsystem qubits
-            beyond number of qubits which the wave function has.
-        ValueError: The number of qubits of subsystem A is not a natural number.
-        ValueError: Invalid input for subsystem range defined by only two integers.
-        ValueError: Degree of freedom is not given.
-
-    Returns:
-        tuple[int]: The range of qubits to be used.
-    """
-    return qubit_selector_rust_source(num_qubits, degree)
 
 
 def qubit_selector(
@@ -127,3 +103,35 @@ def qubit_selector(
         )
 
     return item_range
+
+
+def qubit_selector_rust(
+    num_qubits: int,
+    degree: Union[int, tuple[int, int], None] = None,
+) -> tuple[int, int]:
+    """Determint the qubits to be used.
+
+    Args:
+        num_qubits (int): Number of qubits.
+        degree (Union[int, tuple[int, int], None], optional):
+            Degree of freedom or specific subsystem range.
+            Defaults to None then will use number of qubits as degree.
+
+    Raises:
+        ValueError: The specific degree of subsystem qubits
+            beyond number of qubits which the wave function has.
+        ValueError: The number of qubits of subsystem A is not a natural number.
+        ValueError: Invalid input for subsystem range defined by only two integers.
+        ValueError: Degree of freedom is not given.
+
+    Returns:
+        tuple[int]: The range of qubits to be used.
+    """
+    if RUST_AVAILABLE:
+        return qubit_selector_rust_source(num_qubits, degree)
+    warnings.warn(
+        "Rust is not available, using python to calculate qubit selector."
+        + f" More infomation about this error: {FAILED_RUST_IMPORT}",
+        category=QurryRustUnavailableWarning,
+    )
+    return qubit_selector(num_qubits, degree)
