@@ -19,7 +19,7 @@ from ...exceptions import (
 
 
 try:
-    from ..boost.randomized import echoCellCore  # type: ignore
+    from ...boost.randomized import echoCellCore  # type: ignore
 
     CYTHON_AVAILABLE = True
     FAILED_PYX_IMPORT = None
