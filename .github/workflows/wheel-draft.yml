@@ -2,6 +2,8 @@
 name: Wheel Builds
 on:
   push:
+    branches:
+      - pre-release
     tags:
       - "*.[0-9]+.[0-9]+.dev[0-9]+"
 
