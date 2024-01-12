@@ -1,6 +1,6 @@
 """
 ================================================================
-Postprocessing - Renyi Entropy - Randomized Measure - Purity Cell
+Postprocessing - Randomized Measure - Purity Cell
 (:mod:`qurry.process.randomized_measure.purity_cell`)
 ================================================================
 
@@ -49,7 +49,6 @@ try:
     from ...boorust import randomized  # type: ignore
 
     purity_cell_rust_source = randomized.purity_cell_rust
-    entangled_entropy_core_rust_source = randomized.entangled_entropy_core_rust
 
     RUST_AVAILABLE = True
     FAILED_RUST_IMPORT = None

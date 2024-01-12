@@ -1,7 +1,7 @@
 """
 ================================================================
-Postprocessing - Renyi Entropy - Randomized Measure
-(:mod:`qurry.process.randomized_measure`)
+Postprocessing - Randomized Measure
+(:mod:`qurry.process.entropy_randomized_measure`)
 ================================================================
 
 """

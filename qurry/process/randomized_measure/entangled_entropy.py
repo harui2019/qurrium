@@ -1,7 +1,6 @@
 """
 ================================================================
-Postprocessing - Renyi Entropy - Randomized Measure - 
-Entangled Entropy
+Postprocessing - Randomized Measure - Entangled Entropy
 (:mod:`qurry.process.randomized_measure.entangled_entropy`)
 ================================================================
 
@@ -391,6 +390,7 @@ def randomized_entangled_entropy(
 
 
 class ExistingAllSystemSource(TypedDict):
+    """Existing all system source."""
     purityCellsAllSys: dict[int, float]
     bitStringRange: tuple[int, int]
     measureActually: tuple[int, int]
