@@ -17,7 +17,7 @@ try:
     # from qurry.boorust.construct import (
     #     cycling_slice_rust as cycling_slice_rust_source,  # type: ignore
     # )
-    from ....boorust import construct  # type: ignore
+    from ...boorust import construct  # type: ignore
 
     qubit_selector_rust_source = construct.qubit_selector_rust  # type: ignore
 

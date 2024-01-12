@@ -42,7 +42,7 @@ try:
     #     entangled_entropy_core_rust as entangled_entropy_core_rust_source,  # type: ignore
     # )
 
-    from ..boorust import randomized  # type: ignore
+    from ...boorust import randomized  # type: ignore
 
     entangled_entropy_core_rust_source = randomized.entangled_entropy_core_rust
 
