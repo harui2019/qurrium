@@ -1,7 +1,7 @@
 """
 ===========================================================
 Second Renyi Entropy - Randomized Measurement 
-(:mod:`qurry.qurrent.RandomizedMeasure`)
+(:mod:`qurry.qurrent.randomized_measure`)
 ===========================================================
 
 """
@@ -18,12 +18,12 @@ from ..qurrium import (
     ExperimentPrototype,
     AnalysisPrototype,
 )
-from ..process.utils import qubit_selector
-from ..process.utils.randomized import (
-    random_unitary,
+from ..qurrium.utils.randomized import (
     local_random_unitary_operators,
     local_random_unitary_pauli_coeff,
+    random_unitary,
 )
+from ..process.utils import qubit_selector
 from ..process.randomized_measure.entangled_entropy import (
     entangled_entropy_core,
     ExistingProcessBackendLabel,
@@ -741,7 +741,7 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
         # unitaryList = pool.starmap(
         #     local_random_unitary, [(args.unitary_loc, None) for _ in range(args.times)])
 
-        unitary_list = {
+        unitary_dict = {
             i: {j: random_unitary(2) for j in range(*args.unitary_loc)}
             for i in range(args.times)
         }
@@ -758,7 +758,7 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
                     circuit,
                     args.exp_name,
                     args.unitary_loc,
-                    unitary_list[i],
+                    unitary_dict[i],
                     args.measure,
                 )
                 for i in range(args.times)
@@ -771,7 +771,7 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
             )
         unitary_operator_list = pool.starmap(
             local_random_unitary_operators,
-            [(args.unitary_loc, unitary_list[i]) for i in range(args.times)],
+            [(args.unitary_loc, unitary_dict[i]) for i in range(args.times)],
         )
         current_exp.beforewards.side_product["unitaryOP"] = dict(
             enumerate(unitary_operator_list)
@@ -789,9 +789,9 @@ class EntropyRandomizedMeasure(QurryV5Prototype):
             local_random_unitary_pauli_coeff,
             [(args.unitary_loc, unitary_operator_list[i]) for i in range(args.times)],
         )
-        current_exp.beforewards.side_product["randomized"] = {
-            i: v for i, v in enumerate(randomized_list)
-        }
+        current_exp.beforewards.side_product["randomized"] = dict(
+            enumerate(randomized_list)
+        )
 
         # currentExp.beforewards.side_product['randomized'] = {i: {
         #     j: qubitOpToPauliCoeff(

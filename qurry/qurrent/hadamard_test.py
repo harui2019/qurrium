@@ -1,7 +1,7 @@
 """
 ================================================================
 Second Renyi Entropy - Hadamard Test
-(:mod:`qurry.qurrent.Hadamard`)
+(:mod:`qurry.qurrent.hadamard_test`)
 ================================================================
 
 """
