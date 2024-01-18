@@ -49,6 +49,18 @@ def decomposer_and_drawer(
     return decomposer(qc, reps).draw("text")
 
 
+def qasm_drawer(qc: QuantumCircuit) -> str:
+    """Draw the circuits in qasm format. This function is used for multiprocessing.
+
+    Args:
+        qc (QuantumCircuit): The circuit wanted to be drawn.
+
+    Returns:
+        str: The drawing of circuit in qasm format.
+    """
+    return qc.qasm()
+
+
 def get_counts_and_exceptions(
     result: Optional[Result],
     num: Optional[int] = None,

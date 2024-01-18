@@ -15,7 +15,7 @@ import tqdm
 from qiskit import execute, transpile, QuantumCircuit
 from qiskit.providers import Backend, JobV1 as Job
 
-from ..tools import qurry_progressbar
+from ..tools import qurry_progressbar, ProcessManager
 from ..capsule.mori import TagList
 from ..tools.backend import GeneralAerSimulator
 from ..tools.datetime import current_time, DatetimeDict
@@ -30,7 +30,7 @@ from .container import WaveContainer, ExperimentContainer
 from .multimanager import MultiManager
 from .runner import BackendChoiceLiteral, ExtraBackendAccessor
 
-from .utils import get_counts_and_exceptions
+from .utils import get_counts_and_exceptions, qasm_drawer
 from .utils.inputfixer import outfields_check, outfields_hint
 from ..exceptions import QurryResetAccomplished, QurryResetSecurityActivated
 
@@ -382,6 +382,8 @@ class QurryV5Prototype(ABC):
         assert self.exps[id_now].commons.exp_id == id_now
         current_exp = self.exps[id_now]
 
+        pool = ProcessManager()
+
         if len(current_exp.beforewards.circuit) > 0:
             return id_now
 
@@ -398,19 +400,13 @@ class QurryV5Prototype(ABC):
         else:
             cirqs = self.method(id_now)
 
-        # draw original
-        # if isinstance(_pbar, tqdm.tqdm):
-        #     _pbar.set_description_str(f"Circuit drawing by {workers_num} workers...")
-        # fig_originals: list[str] = pool.starmap(
-        #     decomposer_and_drawer, [(_w, 0) for _w in cirqs]
-        # )
-        # for wd in fig_originals:
-        #     current_exp.beforewards.fig_original.append(wd)
-
         # qasm
         if isinstance(_pbar, tqdm.tqdm):
             _pbar.set_description_str("Exporting OpenQASM string...")
-        for _w in cirqs:
+        # for _w in cirqs:
+        #     current_exp.beforewards.circuit_qasm.append(_w.qasm())
+        tmp_qasm = pool.starmap(qasm_drawer, [(i,) for i in cirqs])
+        for _w in tmp_qasm:
             current_exp.beforewards.circuit_qasm.append(_w.qasm())
 
         # transpile
@@ -425,6 +421,7 @@ class QurryV5Prototype(ABC):
             _pbar.set_description_str("Circuit loading...")
         for _w in transpiled_circs:
             current_exp.beforewards.circuit.append(_w)
+
         # commons
         date = current_time()
         current_exp.commons.datetimes["build"] = date
@@ -917,6 +914,7 @@ class QurryV5Prototype(ABC):
         tags: Optional[list[str]] = None,
         save_location: Union[Path, str] = Path("./"),
         filetype: TagList._availableFileType = "json",
+        compress: bool = False,
     ) -> Hashable:
         """Running multiple jobs on local backend and output the analysis.
 
@@ -943,6 +941,8 @@ class QurryV5Prototype(ABC):
                 Defaults to Path('./').
             filetype (TagList._availableFileType, optional):
                 The file type of export data. Defaults to 'json' (recommend).
+            compress (bool, optional):
+                Whether to compress the export file.
             defaultMultiAnalysis (list[dict[str, Any]], optional):
                 The default configurations of multiple analysis,
                 if it's given, then will run automatically after the experiment results are ready.
@@ -1002,7 +1002,7 @@ class QurryV5Prototype(ABC):
                 current_id
             ].afterwards.counts
         current_multimanager.multicommons.datetimes.add_serial("output")
-        bewritten = self.multiWrite(besummonned)
+        bewritten = self.multiWrite(besummonned, compress=compress)
         assert bewritten == besummonned
 
         return current_multimanager.multicommons.summoner_id
@@ -1090,8 +1090,8 @@ class QurryV5Prototype(ABC):
         specific_analysis_args: Optional[
             dict[Hashable, Union[dict[str, Any], bool]]
         ] = None,
-        skip_compress: bool = False,
-        _write: bool = True,
+        compress: bool = False,
+        write: bool = True,
         **analysis_args: Any,
     ) -> Hashable:
         """Run the analysis for multiple experiments.
@@ -1130,11 +1130,11 @@ class QurryV5Prototype(ABC):
         )
         print(f'| "{report_name}" has been completed.')
 
-        if _write:
+        if write:
             self.multiWrite(
                 summoner_id=summoner_id,
                 only_quantity=True,
-                compress=not skip_compress,
+                compress=compress,
             )
 
         return current_multimanager.multicommons.summoner_id
@@ -1143,7 +1143,7 @@ class QurryV5Prototype(ABC):
         self,
         summoner_id: Hashable,
         save_location: Optional[Union[Path, str]] = None,
-        compress: bool = True,
+        compress: bool = False,
         compress_overwrite: bool = False,
         remain_only_compressed: bool = False,
         only_quantity: bool = False,

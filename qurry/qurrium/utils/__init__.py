@@ -6,6 +6,7 @@ Utility functions for qurry
 """
 
 from .construct import (
+    qasm_drawer,
     decomposer,
     get_counts_and_exceptions,
     decomposer_and_drawer,
