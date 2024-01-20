@@ -192,6 +192,7 @@ class Export(NamedTuple):
                 ```
         """
 
+
         export_set = {}
         # args ...............  # arguments, commonparams, outfields, files
         export_set["args"] = {
@@ -209,6 +210,19 @@ class Export(NamedTuple):
         export_set["legacy"] = {
             "files": self.files,
             "legacy": self.legacy,
+        }
+        # tales ..............  # tales
+        for tk, tv in self.tales.items():
+            if isinstance(tv, (dict, list, tuple)):
+                export_set[f"tales.{tk}"] = tv
+            else:
+                export_set[f"tales.{tk}"] = [tv]
+            if f"tales.{tk}" not in self.files:
+                warnings.warn(f"tales.{tk} is not in export_names, it's not exported.")
+        # reports ............  # reports
+        export_set["reports"] = {
+            "files": self.files,
+            "reports": self.reports,
         }
         # reports.tales ......  # tales_reports
         for tk, tv in self.tales_reports.items():
@@ -230,7 +244,7 @@ class Export(NamedTuple):
             if not os.path.exists(folder / k):
                 os.mkdir(folder / k)
 
-        for filekey, content in list(export_set.items()):
+        for filekey, content in export_set.items():
             quickJSON(
                 content=content,
                 filename=str(Path(self.commons["save_location"]) / self.files[filekey]),
