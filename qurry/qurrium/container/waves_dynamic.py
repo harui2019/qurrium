@@ -1,15 +1,33 @@
+"""
+================================================================
+Dynamic Wave Container - A experimental feature of Qurry
+(:mod:`qurry.qurrium.container.waves_dynamic`)
+================================================================
+"""
+
+from typing import Literal, Union, Optional, Hashable, MutableMapping, Type
+import warnings
+
 from qiskit import QuantumCircuit
 from qiskit.quantum_info import Operator
 from qiskit.circuit import Gate, Instruction
-
-import warnings
-from typing import Literal, Union, Optional, Hashable, MutableMapping, Type, TypeVar
 
 
 def wave_container_maker(
     typename: str = "WaveContainer",
     base_type: Type[MutableMapping[Hashable, QuantumCircuit]] = dict,
 ) -> Type[MutableMapping]:
+    """A customized dictionary for storing waves.
+
+    Args:
+        typename (str, optional): The name of the new type. Defaults to "WaveContainer".
+        base_type (Type[MutableMapping[Hashable, QuantumCircuit]], optional):
+            The base type of the new type. Defaults to dict.
+
+    Returns:
+        Type[MutableMapping]: The new type of wave container.
+    """
+
     if not isinstance(typename, str):
         raise TypeError("`typename` should be a string.")
 
@@ -20,15 +38,6 @@ def wave_container_maker(
         raise TypeError(
             "`base_type` should be a dict-like structure or a MutableMapping basically."
         )
-
-    @property
-    def lastWave(self) -> Optional[QuantumCircuit]:
-        """The last wave function be called or used..
-        Replace the property :prop:`waveNow`. in :cls:`QurryV4`"""
-        if self.lastWaveKey == None:
-            return None
-        else:
-            return self[self.lastWaveKey]
 
     def constructor(self, *args, **kwargs):
         super(base_type, self).__init__(*args, **kwargs)
@@ -49,7 +58,7 @@ def wave_container_maker(
     def get_wave(
         self: MutableMapping[Hashable, QuantumCircuit],
         wave: Union[list[Hashable], Hashable, None] = None,
-        runBy: Optional[
+        run_by: Optional[
             Literal["gate", "operator", "instruction", "copy", "call"]
         ] = None,
     ) -> Union[
@@ -61,9 +70,8 @@ def wave_container_maker(
         Args:
             wave (Optional[Hashable], optional):
                 The key of wave in 'fict' `.waves`.
-                If `wave==None`, then chooses `.lastWave` automatically added by last calling of `.addWave`.
                 Defaults to None.
-            runBy (Optional[str], optional):
+            run_by (Optional[str], optional):
                 Export as `Gate`, `Operator`, `Instruction` or a copy when input is `None`.
                 Defaults to `None`.
 
@@ -77,21 +85,20 @@ def wave_container_maker(
         if wave == None:
             wave = self.lastWave
         elif isinstance(wave, list):
-            return [self.get_wave(w, runBy) for w in wave]
+            return [self.get_wave(w, run_by) for w in wave]
 
         if wave not in self:
             raise KeyError(f"Wave {wave} not found in {self}")
 
-        if runBy == "operator":
+        if run_by == "operator":
             return Operator(self[wave])
-        elif runBy == "gate":
+        elif run_by == "gate":
             return self[wave].to_gate()
-        elif runBy == "instruction":
+        elif run_by == "instruction":
             return self[wave].to_instruction()
-        elif runBy == "copy":
+        elif run_by == "copy":
             return self[wave].copy()
-        elif runBy == "call":
-            self.lastWaveKey = wave
+        elif run_by == "call":
             return self[wave]
         else:
             return self[wave].to_gate()
@@ -105,7 +112,6 @@ def wave_container_maker(
         Args:
             wave (Optional[Hashable], optional):
                 The key of wave in 'fict' `.waves`.
-                If `wave==None`, then chooses `.lastWave` automatically added by last calling of `.addWave`.
                 Defaults to None.
 
         Returns:
@@ -113,7 +119,7 @@ def wave_container_maker(
         """
         return self.get_wave(
             wave=wave,
-            runBy="call",
+            run_by="call",
         )
 
     def __call__(
@@ -131,7 +137,6 @@ def wave_container_maker(
         Args:
             wave (Optional[Hashable], optional):
                 The key of wave in 'fict' `.waves`.
-                If `wave==None`, then chooses `.lastWave` automatically added by last calling of `.addWave`.
                 Defaults to None.
 
         Returns:
@@ -139,7 +144,7 @@ def wave_container_maker(
         """
         return self.get_wave(
             wave=wave,
-            runBy="operator",
+            run_by="operator",
         )
 
     def gate(
@@ -151,7 +156,6 @@ def wave_container_maker(
         Args:
             wave (Optional[Hashable], optional):
                 The key of wave in 'fict' `.waves`.
-                If `wave==None`, then chooses `.lastWave` automatically added by last calling of `.addWave`.
                 Defaults to None.
 
         Returns:
@@ -159,7 +163,7 @@ def wave_container_maker(
         """
         return self.get_wave(
             wave=wave,
-            runBy="gate",
+            run_by="gate",
         )
 
     def copy_circuit(
@@ -171,7 +175,6 @@ def wave_container_maker(
         Args:
             wave (Optional[Hashable], optional):
                 The key of wave in 'fict' `.waves`.
-                If `wave==None`, then chooses `.lastWave` automatically added by last calling of `.addWave`.
                 Defaults to None.
 
         Returns:
@@ -179,7 +182,7 @@ def wave_container_maker(
         """
         return self.get_wave(
             wave=wave,
-            runBy="copy",
+            run_by="copy",
         )
 
     def instruction(
@@ -191,7 +194,6 @@ def wave_container_maker(
         Args:
             wave (Optional[Hashable], optional):
                 The key of wave in 'fict' `.waves`.
-                If `wave==None`, then chooses `.lastWave` automatically added by last calling of `.addWave`.
                 Defaults to None.
 
         Returns:
@@ -199,7 +201,7 @@ def wave_container_maker(
         """
         return self.get_wave(
             wave=wave,
-            runBy="instruction",
+            run_by="instruction",
         )
 
     def has(
@@ -217,14 +219,16 @@ def wave_container_maker(
         return wavename in self
 
     def __repr__(self: MutableMapping[Hashable, QuantumCircuit]):
-        inner_lines = "\n".join("    %s: ..." % k for k in self.keys())
+        inner_lines = "\n".join(f"    {k}: ..." for k in self.keys())
         inner_lines2 = "{\n%s\n}" % inner_lines
-        return f"<{typename}={inner_lines2} with {len(self)} waves load, a customized dictionary>"
+        return (
+            f"<{self.__name__}={inner_lines2} with {len(self)} "
+            + "waves load, a customized dictionary>"
+        )
 
     class_namespace = {
         "__init__": constructor,
         "__call__": __call__,
-        "lastWave": lastWave,
         "add": add,
         "remove": remove,
         "get_wave": get_wave,
@@ -243,7 +247,11 @@ def wave_container_maker(
 
 
 DyanmicWaveContainerByDict = wave_container_maker("WaveContainer", dict)
-"""A Qurry standard wave function container should be something dict-like structure, basically a typing.MutableMapping."""
+"""
+A Qurry standard wave function container 
+should be something dict-like structure, 
+basically a typing.MutableMapping.
+"""
 
 
 def _add(
@@ -256,7 +264,8 @@ def _add(
 
     Args:
         waveCircuit (QuantumCircuit): The wave functions or circuits want to measure.
-        key (Optional[Hashable], optional): Given a specific key to add to the wave function or circuit,
+        key (Optional[Hashable], optional):
+            Given a specific key to add to the wave function or circuit,
             if `key == None`, then generate a number as key.
             Defaults to `None`.
         replace (Literal[True, False, &#39;duplicate&#39;], optional):
@@ -279,7 +288,7 @@ def _add(
 
     elif isinstance(key, Hashable):
         if key in _wave_container:
-            if replace == True:
+            if replace is True:
                 pass
             elif replace == "duplicate":
                 if isinstance(key, tuple):
