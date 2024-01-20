@@ -23,8 +23,7 @@ from .container import (
     After,
 )
 from ..container import ExperimentContainer, QuantityContainer
-from ..experiment import ExperimentPrototype
-from ..utils.iocontrol import naming
+from ..utils.iocontrol import naming, RJUST_LEN
 from ...tools.datetime import current_time, DatetimeDict
 from ...declare.multimanager import multicommonConfig
 from ...tools import qurry_progressbar, DEFAULT_POOL_SIZE
@@ -49,7 +48,7 @@ class MultiManager:
         self,
         *args,
         security: bool = False,
-        muteWarning: bool = False,
+        mute_warning: bool = False,
     ) -> None:
         """Reset the measurement and release memory for overwrite.
 
@@ -68,7 +67,7 @@ class MultiManager:
                 retrievedResult=TagList(), allCounts={}
             )
             gc.collect()
-            if not muteWarning:
+            if not mute_warning:
                 warnings.warn("Afterwards reset accomplished.", QurryResetAccomplished)
         else:
             warnings.warn(
@@ -77,8 +76,6 @@ class MultiManager:
                 QurryResetSecurityActivated,
             )
 
-    _rjustLen = 3
-    """The length of the string to be right-justified for serial number when duplicated."""
     _unexports: list[str] = ["retrievedResult"]
     """The content would not be exported."""
     _syncPrevent = ["allCounts", "retrievedResult"]
@@ -572,14 +569,32 @@ class MultiManager:
             workers_num = DEFAULT_POOL_SIZE
 
         if wave_container is not None:
+            all_qurryinfo_loc = self.multicommons.export_location / "qurryinfo.json"
+            all_qurryinfo = {}
             for id_exec in qurry_progressbar(
                 self.beforewards.exps_config,
                 desc="Exporting...",
             ):
-                wave_container[id_exec].write(
+                qurryinfo_exp_id, qurryinfo_files = wave_container[id_exec].write(
                     save_location=self.multicommons.save_location,
                     mute=True,
+                    _qurryinfo_hold_access=self.multicommons.summoner_id,
                 )
+                assert id_exec == qurryinfo_exp_id, (
+                    f"{id_exec} is not equal to {qurryinfo_exp_id}"
+                    + " which is not supported."
+                )
+                all_qurryinfo[id_exec] = qurryinfo_files
+
+            quickJSON(
+                content=all_qurryinfo,
+                filename=all_qurryinfo_loc,
+                mode="w+",
+                jsonable=True,
+                indent=indent,
+                encoding=encoding,
+                mute=True,
+            )
 
         return multiconfig
 
@@ -661,7 +676,7 @@ class MultiManager:
             analysis_name
             if no_serialize
             else f"{analysis_name}."
-            + f"{idx_tagmap_quantities+1}".rjust(self._rjustLen, "0")
+            + f"{idx_tagmap_quantities+1}".rjust(RJUST_LEN, "0")
         )
         self.quantity_container[name] = TagList()
 

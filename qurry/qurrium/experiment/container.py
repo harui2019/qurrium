@@ -6,7 +6,7 @@ The experiment container
 
 """
 import json
-from typing import Union, Optional, NamedTuple, Hashable, Any
+from typing import Union, Optional, NamedTuple, Hashable, TypedDict, Any
 from pathlib import Path
 
 from qiskit import QuantumCircuit
@@ -17,6 +17,9 @@ from ...tools import backendName
 from ...tools.datetime import DatetimeDict
 from ...capsule import jsonablize
 
+REQUIRED_FOLDER = ["args", "advent", "legacy", "tales", "reports"]
+"""The required folder for exporting experiment."""
+
 
 class Arguments(NamedTuple):
     """Construct the experiment's parameters for specific options,
@@ -24,6 +27,27 @@ class Arguments(NamedTuple):
 
     exp_name: str
     """Name of experiment."""
+
+
+class CommonparamsDict(TypedDict):
+    """The export dictionary of :cls:`Commonparams`."""
+
+    exp_name: str
+    exp_id: str
+    wave_key: Hashable
+    shots: int
+    backend: Union[Backend, str]
+    run_args: dict
+    transpile_args: dict
+    tags: tuple
+    default_analysis: list[dict[str, Any]]
+    save_location: Union[Path, str]
+    filename: str
+    files: dict[str, Path]
+    serial: Optional[int]
+    summoner_id: Optional[str]
+    summoner_name: Optional[str]
+    datetimes: DatetimeDict
 
 
 class Commonparams(NamedTuple):
@@ -152,7 +176,7 @@ class Commonparams(NamedTuple):
         }
 
     @staticmethod
-    def default_value():
+    def default_value() -> CommonparamsDict:
         """The default value of each field."""
         return {
             "exp_name": None,
@@ -217,7 +241,7 @@ class Commonparams(NamedTuple):
             data_args["outfields"],
         )
 
-    def export(self: NamedTuple) -> dict[str, Any]:
+    def export(self: NamedTuple) -> CommonparamsDict:
         """Export the experiment's common parameters.
 
         Returns:
