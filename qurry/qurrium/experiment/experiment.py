@@ -892,6 +892,22 @@ class ExperimentPrototype(ExperimentPrototypeABC):
         return exp_instance
 
     @classmethod
+    def _read_core_wrapper(
+        cls,
+        args: tuple[str, dict[str, str], Union[Path, str], str],
+    ) -> "ExperimentPrototype":
+        """Wrapper of :func:`_read_core` for multiprocessing.
+
+        Args:
+            args (tuple[str, dict[str, str], Union[Path, str], str]):
+                exp_id, file_index, save_location, encoding.
+
+        Returns:
+            QurryExperiment: The experiment to be read.
+        """
+        return cls._read_core(*args)
+
+    @classmethod
     def read(
         cls,
         name_or_id: Union[Path, str],
@@ -951,12 +967,12 @@ class ExperimentPrototype(ExperimentPrototypeABC):
         pool = ProcessManager(workers_num)
 
         quene = pool.process_map(
-            cls._read_core,
+            cls._read_core_wrapper,
             [
                 (exp_id, fileIndex, save_location, encoding)
                 for exp_id, fileIndex in qurryinfo.items()
             ],
-            desc=f"| {len(qurryinfo)} experiments found, loading by {workers_num} workers.",
+            desc=f"{len(qurryinfo)} experiments found, loading by {workers_num} workers.",
         )
 
         return quene
