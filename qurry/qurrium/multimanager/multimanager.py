@@ -14,19 +14,17 @@ from pathlib import Path
 from typing import Literal, Union, Optional, Hashable, Any
 from uuid import uuid4, UUID
 
-# from tqdm.contrib.concurrent import process_map
-
-
 from .container import (
     MultiCommonparams,
     Before,
     After,
 )
+from ..experiment.export import Export
 from ..container import ExperimentContainer, QuantityContainer
 from ..utils.iocontrol import naming, RJUST_LEN
 from ...tools.datetime import current_time, DatetimeDict
 from ...declare.multimanager import multicommonConfig
-from ...tools import qurry_progressbar, DEFAULT_POOL_SIZE
+from ...tools import qurry_progressbar, ProcessManager
 from ...capsule import quickJSON
 from ...capsule.mori import TagList, GitSyncControl
 from ...exceptions import (
@@ -35,6 +33,56 @@ from ...exceptions import (
     QurryResetAccomplished,
     QurryResetSecurityActivated,
 )
+
+
+def multiprocess_writer(
+    id_exec: Hashable,
+    exps_export: Export,
+    mode: str = "w+",
+    indent: int = 2,
+    encoding: str = "utf-8",
+    jsonable: bool = False,
+    mute: bool = True,
+) -> tuple[Hashable, dict[str, str]]:
+    """Multiprocess writer for experiment.
+
+    Args:
+        id_exec (Hashable): ID of experiment.
+        exps_export (Export): The export of experiment.
+        _qurryinfo_hold_access (Hashable): The ID of multimanager.
+        save_location (Union[Path, str]): Location of saving experiment.
+        mute (bool, optional): Mute the message. Defaults to True.
+
+    Returns:
+        tuple[Hashable, dict[str, str]]: The ID of experiment and the files of experiment.
+    """
+
+    qurryinfo_exp_id, qurryinfo_files = exps_export.write(
+        mode=mode,
+        indent=indent,
+        encoding=encoding,
+        jsonable=jsonable,
+        mute=mute,
+    )
+    assert id_exec == qurryinfo_exp_id, (
+        f"{id_exec} is not equal to {qurryinfo_exp_id}" + " which is not supported."
+    )
+    return qurryinfo_exp_id, qurryinfo_files
+
+
+def multiprocess_writer_wrapper(
+    args: tuple[Hashable, Export, str, int, str, bool, bool],
+) -> tuple[Hashable, dict[str, str]]:
+    """Multiprocess writer for experiment.
+
+    Args:
+        args (tuple[Hashable, Export, str, int, str, bool, bool]):
+            The arguments of multiprocess writer.
+
+    Returns:
+        tuple[Hashable, dict[str, str]]: The ID of experiment and the files of experiment.
+    """
+    return multiprocess_writer(*args)
 
 
 class MultiManager:
@@ -565,26 +613,35 @@ class MultiManager:
 
         self.gitignore.export(self.multicommons.export_location)
 
-        if workers_num is None:
-            workers_num = DEFAULT_POOL_SIZE
-
         if wave_container is not None:
+            pool = ProcessManager(workers_num)
             all_qurryinfo_loc = self.multicommons.export_location / "qurryinfo.json"
-            all_qurryinfo = {}
+            exps_export_dict: dict[str, Export] = {}
             for id_exec in qurry_progressbar(
                 self.beforewards.exps_config,
                 desc="Exporting...",
             ):
-                qurryinfo_exp_id, qurryinfo_files = wave_container[id_exec].write(
+                exps_export_dict[id_exec] = wave_container[id_exec].export(
                     save_location=self.multicommons.save_location,
-                    mute=True,
-                    _qurryinfo_hold_access=self.multicommons.summoner_id,
                 )
-                assert id_exec == qurryinfo_exp_id, (
-                    f"{id_exec} is not equal to {qurryinfo_exp_id}"
-                    + " which is not supported."
-                )
-                all_qurryinfo[id_exec] = qurryinfo_files
+
+            all_qurryinfo_items = pool.process_map(
+                multiprocess_writer_wrapper,
+                [
+                    (
+                        id_exec,
+                        exps_export,
+                        "w+",
+                        indent,
+                        encoding,
+                        True,
+                        True,
+                    )
+                    for id_exec, exps_export in exps_export_dict.items()
+                ],
+                desc="Writing...",
+            )
+            all_qurryinfo = dict(all_qurryinfo_items)
 
             quickJSON(
                 content=all_qurryinfo,
