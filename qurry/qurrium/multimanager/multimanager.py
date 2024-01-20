@@ -14,20 +14,17 @@ from pathlib import Path
 from typing import Literal, Union, Optional, Hashable, Any
 from uuid import uuid4, UUID
 
-# from tqdm.contrib.concurrent import process_map
-
-
 from .container import (
     MultiCommonparams,
     Before,
     After,
 )
+from ..experiment.export import Export
 from ..container import ExperimentContainer, QuantityContainer
-from ..experiment import ExperimentPrototype
-from ..utils.iocontrol import naming
+from ..utils.iocontrol import naming, RJUST_LEN
 from ...tools.datetime import current_time, DatetimeDict
 from ...declare.multimanager import multicommonConfig
-from ...tools import qurry_progressbar, DEFAULT_POOL_SIZE
+from ...tools import qurry_progressbar, ProcessManager
 from ...capsule import quickJSON
 from ...capsule.mori import TagList, GitSyncControl
 from ...exceptions import (
@@ -36,6 +33,56 @@ from ...exceptions import (
     QurryResetAccomplished,
     QurryResetSecurityActivated,
 )
+
+
+def multiprocess_writer(
+    id_exec: Hashable,
+    exps_export: Export,
+    mode: str = "w+",
+    indent: int = 2,
+    encoding: str = "utf-8",
+    jsonable: bool = False,
+    mute: bool = True,
+) -> tuple[Hashable, dict[str, str]]:
+    """Multiprocess writer for experiment.
+
+    Args:
+        id_exec (Hashable): ID of experiment.
+        exps_export (Export): The export of experiment.
+        _qurryinfo_hold_access (Hashable): The ID of multimanager.
+        save_location (Union[Path, str]): Location of saving experiment.
+        mute (bool, optional): Mute the message. Defaults to True.
+
+    Returns:
+        tuple[Hashable, dict[str, str]]: The ID of experiment and the files of experiment.
+    """
+
+    qurryinfo_exp_id, qurryinfo_files = exps_export.write(
+        mode=mode,
+        indent=indent,
+        encoding=encoding,
+        jsonable=jsonable,
+        mute=mute,
+    )
+    assert id_exec == qurryinfo_exp_id, (
+        f"{id_exec} is not equal to {qurryinfo_exp_id}" + " which is not supported."
+    )
+    return qurryinfo_exp_id, qurryinfo_files
+
+
+def multiprocess_writer_wrapper(
+    args: tuple[Hashable, Export, str, int, str, bool, bool],
+) -> tuple[Hashable, dict[str, str]]:
+    """Multiprocess writer for experiment.
+
+    Args:
+        args (tuple[Hashable, Export, str, int, str, bool, bool]):
+            The arguments of multiprocess writer.
+
+    Returns:
+        tuple[Hashable, dict[str, str]]: The ID of experiment and the files of experiment.
+    """
+    return multiprocess_writer(*args)
 
 
 class MultiManager:
@@ -49,7 +96,7 @@ class MultiManager:
         self,
         *args,
         security: bool = False,
-        muteWarning: bool = False,
+        mute_warning: bool = False,
     ) -> None:
         """Reset the measurement and release memory for overwrite.
 
@@ -68,7 +115,7 @@ class MultiManager:
                 retrievedResult=TagList(), allCounts={}
             )
             gc.collect()
-            if not muteWarning:
+            if not mute_warning:
                 warnings.warn("Afterwards reset accomplished.", QurryResetAccomplished)
         else:
             warnings.warn(
@@ -77,8 +124,6 @@ class MultiManager:
                 QurryResetSecurityActivated,
             )
 
-    _rjustLen = 3
-    """The length of the string to be right-justified for serial number when duplicated."""
     _unexports: list[str] = ["retrievedResult"]
     """The content would not be exported."""
     _syncPrevent = ["allCounts", "retrievedResult"]
@@ -568,18 +613,45 @@ class MultiManager:
 
         self.gitignore.export(self.multicommons.export_location)
 
-        if workers_num is None:
-            workers_num = DEFAULT_POOL_SIZE
-
         if wave_container is not None:
+            pool = ProcessManager(workers_num)
+            all_qurryinfo_loc = self.multicommons.export_location / "qurryinfo.json"
+            exps_export_dict: dict[str, Export] = {}
             for id_exec in qurry_progressbar(
                 self.beforewards.exps_config,
                 desc="Exporting...",
             ):
-                wave_container[id_exec].write(
+                exps_export_dict[id_exec] = wave_container[id_exec].export(
                     save_location=self.multicommons.save_location,
-                    mute=True,
                 )
+
+            all_qurryinfo_items = pool.process_map(
+                multiprocess_writer_wrapper,
+                [
+                    (
+                        id_exec,
+                        exps_export,
+                        "w+",
+                        indent,
+                        encoding,
+                        True,
+                        True,
+                    )
+                    for id_exec, exps_export in exps_export_dict.items()
+                ],
+                desc="Writing...",
+            )
+            all_qurryinfo = dict(all_qurryinfo_items)
+
+            quickJSON(
+                content=all_qurryinfo,
+                filename=all_qurryinfo_loc,
+                mode="w+",
+                jsonable=True,
+                indent=indent,
+                encoding=encoding,
+                mute=True,
+            )
 
         return multiconfig
 
@@ -661,7 +733,7 @@ class MultiManager:
             analysis_name
             if no_serialize
             else f"{analysis_name}."
-            + f"{idx_tagmap_quantities+1}".rjust(self._rjustLen, "0")
+            + f"{idx_tagmap_quantities+1}".rjust(RJUST_LEN, "0")
         )
         self.quantity_container[name] = TagList()
 

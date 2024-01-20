@@ -5,7 +5,15 @@ Export data structure for qurry.expertiment.ExperimentPrototype
 ================================================================
 
 """
+import os
 from typing import Optional, NamedTuple, Any
+from pathlib import Path
+import warnings
+import gc
+import tqdm
+
+from .container import CommonparamsDict, REQUIRED_FOLDER
+from ...capsule import quickJSON
 
 
 class Export(NamedTuple):
@@ -92,7 +100,7 @@ class Export(NamedTuple):
 
     args: dict[str, Any] = {}
     """Construct the experiment's parameters, which will be packed into `.args.json`."""
-    commons: dict[str, Any] = {}
+    commons: CommonparamsDict = {}
     """Construct the experiment's common parameters, which will be packed into `.args.json`."""
     outfields: dict[str, Any] = {}
     """Recording the data of other unused arguments, which will be packed into `.args.json`."""
@@ -115,3 +123,138 @@ class Export(NamedTuple):
     """Recording the data of 'side_product' in 'reports' for API, 
     which will be packed into `.*.reprts.json`. 
     ~Tales of braves circulate~"""
+
+    def write(
+        self,
+        mode: str = "w+",
+        indent: int = 2,
+        encoding: str = "utf-8",
+        jsonable: bool = False,
+        mute: bool = False,
+        _pbar: Optional[tqdm.tqdm] = None,
+    ) -> tuple[str, dict[str, str]]:
+        """Export the experiment data, if there is a previous export, then will overwrite.
+
+        - example of filename:
+
+        ```python
+        files = {
+            'folder': './blabla_experiment/',
+            'qurrtinfo': './blabla_experiment/qurrtinfo',
+
+            'args': './blabla_experiment/args/blabla_experiment.id={exp_id}.args.json',
+            'advent': './blabla_experiment/advent/blabla_experiment.id={exp_id}.advent.json',
+            'legacy': './blabla_experiment/legacy/blabla_experiment.id={exp_id}.legacy.json',
+            'tales.dummyx1': './blabla_experiment/tales/blabla_experiment.id={exp_id}.dummyx1.json',
+            'tales.dummyx2': './blabla_experiment/tales/blabla_experiment.id={exp_id}.dummyx2.json',
+            ...
+            'tales.dummyxn': './blabla_experiment/tales/blabla_experiment.id={exp_id}.dummyxn.json',
+            'reports': ./blabla_experiment/reports/blabla_experiment.id={exp_id}.reports.json,
+            'reports.tales.dummyz1':
+                './blabla_experiment/tales/blabla_experiment.id={exp_id}.dummyz1.reports.json',
+            'reports.tales.dummyz2':
+                './blabla_experiment/tales/blabla_experiment.id={exp_id}.dummyz2.reports.json',
+            ...
+            'reports.tales.dummyzm':
+                './blabla_experiment/tales/blabla_experiment.id={exp_id}.dummyzm.reports.json',
+        }
+        ```
+
+        Args:
+            save_location (Optional[Union[Path, str]], optional):
+                Where to save the export content as `json` file.
+                If `save_location == None`, then use the value in `self.commons` to be exported,
+                if it's None too, then raise error.
+                Defaults to `None`.
+
+            mode (str):
+                Mode for :func:`open` function, for :func:`mori.quickJSON`. Defaults to 'w+'.
+            indent (int, optional):
+                Indent length for json, for :func:`mori.quickJSON`. Defaults to 2.
+            encoding (str, optional):
+                Encoding method, for :func:`mori.quickJSON`. Defaults to 'utf-8'.
+            jsonable (bool, optional):
+                Whether to transpile all object to jsonable via :func:`mori.jsonablize`,
+                for :func:`mori.quickJSON`. Defaults to False.
+            mute (bool, optional):
+                Whether to mute the output, for :func:`mori.quickJSON`. Defaults to False.
+
+        Returns:
+            tuple[str, dict[str, str]]:
+                The first element is the id of experiment,
+                the second element is the file location.
+                They can combine as `qurryinfo` like:
+                ```python
+                key, value = export.write()
+                qurryinfo = {
+                    key: value,
+                }
+                ```
+        """
+
+
+        export_set = {}
+        # args ...............  # arguments, commonparams, outfields, files
+        export_set["args"] = {
+            "arguments": self.args,
+            "commonparams": self.commons,
+            "outfields": self.outfields,
+            "files": self.files,
+        }
+        # advent .............  # adventures
+        export_set["advent"] = {
+            "files": self.files,
+            "adventures": self.adventures,
+        }
+        # legacy .............  # legacy
+        export_set["legacy"] = {
+            "files": self.files,
+            "legacy": self.legacy,
+        }
+        # tales ..............  # tales
+        for tk, tv in self.tales.items():
+            if isinstance(tv, (dict, list, tuple)):
+                export_set[f"tales.{tk}"] = tv
+            else:
+                export_set[f"tales.{tk}"] = [tv]
+            if f"tales.{tk}" not in self.files:
+                warnings.warn(f"tales.{tk} is not in export_names, it's not exported.")
+        # reports ............  # reports
+        export_set["reports"] = {
+            "files": self.files,
+            "reports": self.reports,
+        }
+        # reports.tales ......  # tales_reports
+        for tk, tv in self.tales_reports.items():
+            if isinstance(tv, (dict, list, tuple)):
+                export_set[f"reports.tales.{tk}"] = tv
+            else:
+                export_set[f"reports.tales.{tk}"] = [tv]
+            if f"reports.tales.{tk}" not in self.files:
+                warnings.warn(
+                    f"reports.tales.{tk} is not in export_names, it's not exported."
+                )
+        # Exportation
+        if _pbar is not None:
+            _pbar.set_description_str("Exporting...")
+        folder = Path(self.commons["save_location"]) / Path(self.files["folder"])
+        if not os.path.exists(folder):
+            os.mkdir(folder)
+        for k in REQUIRED_FOLDER:
+            if not os.path.exists(folder / k):
+                os.mkdir(folder / k)
+
+        for filekey, content in export_set.items():
+            quickJSON(
+                content=content,
+                filename=str(Path(self.commons["save_location"]) / self.files[filekey]),
+                mode=mode,
+                indent=indent,
+                encoding=encoding,
+                jsonable=jsonable,
+                mute=mute,
+            )
+
+        del export_set
+        gc.collect()
+        return self.exp_id, self.files

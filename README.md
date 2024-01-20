@@ -25,7 +25,7 @@ and [National Center for Theoretical Sciences, Physics Division](https://phys.nc
 
 ![Available Python Version](https://img.shields.io/badge/Python-3.9_|_3.10_|_3.11_|_3.12-blue?logo=python&logoColor=white)
 
-![Available System](https://img.shields.io/badge/Ubuntu-18.04+-purple?logo=Ubuntu&logoColor=white) ![Available System](https://img.shields.io/badge/Ubuntu_on_Windows_WSL-18.04+-purple?logo=Ubuntu&logoColor=white)
+![Available System](https://img.shields.io/badge/Ubuntu-18.04+-purple?logo=Ubuntu&logoColor=white) ![Available System](https://img.shields.io/badge/Ubuntu_on_WSL-18.04+-purple?logo=Ubuntu&logoColor=white)
 
 ![Available System](https://img.shields.io/badge/Windows-10_|_11-purple?logo=Windows&logoColor=white) ![Available System](https://img.shields.io/badge/MacOS-11+-purple?logo=Apple&logoColor=white)
 
@@ -33,12 +33,12 @@ and [National Center for Theoretical Sciences, Physics Division](https://phys.nc
   - on `x86_64` **(recommended)**
   - on `x86_64` Windows 10/11 WSL2 **(recommended)**
   - on `aarch64`
-  - We strongly recommend to use Linux based system, due to the paralell calculation function only works on Unix-like currently and the GPU acceleration of `Qiskit`, `qiskit-aer-gpu` only works with Nvidia CUDA on Linux.
+  - We strongly recommend to use Linux based system, due to Python multiprocessing may exist some unknown issue on Windows and the GPU acceleration of `Qiskit`, `qiskit-aer-gpu` only works with Nvidia CUDA on Linux.
 - **Windows 10/11**
   - on `x86_64`
 - **MacOS 11+**
-  - on **`arm64 (Apple Silicon, M1 chips)`** **(recommended)**
-  - on **`x86_64 (Intel chips)`**
+  - on `aarch64 (Apple Silicon, M1/M2/M3 chips)` **(recommended)**
+  - on `x86_64 (Intel chips)`
 
 - with required modules:
   - `qiskit`, `qiskit-aer`, `tqdm`, `requests`

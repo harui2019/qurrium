@@ -266,7 +266,7 @@ class IBMQRunner(Runner):
 
         if overwrite:
             print("| Overwrite the previous retrieve.")
-        self.current_multimanager.reset_afterwards(security=True, muteWarning=True)
+        self.current_multimanager.reset_afterwards(security=True, mute_warning=True)
         assert (
             len(self.current_multimanager.afterwards.allCounts) == 0
         ), "All counts should be null."

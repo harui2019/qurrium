@@ -28,6 +28,7 @@ from ...exceptions import (
     QurrySummonerInfoIncompletion,
     QurryInvalidArgument,
 )
+from ..utils.iocontrol import RJUST_LEN
 from ..analysis import AnalysisPrototype, QurryAnalysis
 from .container import (
     Arguments as ExperimentArgs,
@@ -509,15 +510,10 @@ class ExperimentPrototype(ExperimentPrototypeABC):
 
         return info
 
-    # Export
-
-    _rjust_len = 3
-    """The length of the string to be right-justified for serial number 
-    when :prop:`exp_name` is duplicated."""
-    _required_folder = ["args", "advent", "legacy", "tales", "reports"]
-    """Folder for saving exported files."""
-
-    def export(self) -> Export:
+    def export(
+        self,
+        save_location: Optional[Union[Path, str]] = None,
+    ) -> Export:
         """Export the data of experiment.
 
         For the `.write` function actually exports 4 different files
@@ -616,6 +612,24 @@ class ExperimentPrototype(ExperimentPrototypeABC):
             Export: A namedtuple containing the data of experiment
                 which can be more easily to export as json file.
         """
+        if isinstance(save_location, Path):
+            ...
+        elif isinstance(save_location, str):
+            save_location = Path(save_location)
+        elif save_location is None:
+            save_location = Path(self.commons.save_location)
+            if self.commons.save_location is None:
+                raise ValueError(
+                    "save_location is None, please provide a valid save_location"
+                )
+        else:
+            raise TypeError(
+                f"save_location must be Path or str, not {type(save_location)}"
+            )
+
+        if self.commons.save_location != save_location:
+            self.commons = self.commons._replace(save_location=save_location)
+
         adventures, tales = self.beforewards.export(unexports=self._unexports)
         legacy = self.afterwards.export(unexports=self._unexports)
         reports, tales_reports = self.reports.export()
@@ -639,19 +653,19 @@ class ExperimentPrototype(ExperimentPrototypeABC):
             repeat_times = 1
             tmp = (
                 folder
-                + f"./{self.beforewards.exp_name}.{str(repeat_times).rjust(self._rjust_len, '0')}/"
+                + f"./{self.beforewards.exp_name}.{str(repeat_times).rjust(RJUST_LEN, '0')}/"
             )
             while os.path.exists(tmp):
                 repeat_times += 1
                 tmp = (
                     folder
                     + f"./{self.beforewards.exp_name}."
-                    + f"{str(repeat_times).rjust(self._rjust_len, '0')}/"
+                    + f"{str(repeat_times).rjust(RJUST_LEN, '0')}/"
                 )
             folder = tmp
             filename += (
                 f"{self.beforewards.exp_name}."
-                + f"{str(repeat_times).rjust(self._rjust_len, '0')}.id={self.commons.exp_id}"
+                + f"{str(repeat_times).rjust(RJUST_LEN, '0')}.id={self.commons.exp_id}"
             )
 
         self.commons = self.commons._replace(filename=filename)
@@ -669,12 +683,16 @@ class ExperimentPrototype(ExperimentPrototypeABC):
             files[f"reports.tales.{k}"] = folder + f"tales/{filename}.{k}.reports.json"
 
         return Export(
-            exp_id=self.commons.exp_id,
-            exp_name=self.beforewards.exp_name,
-            serial=self.commons.serial,
-            summoner_id=self.commons.summoner_id,
-            summoner_name=self.commons.summoner_name,
-            filename=filename,
+            exp_id=str(self.commons.exp_id),
+            exp_name=str(self.beforewards.exp_name),
+            serial=(None if self.commons.serial is None else int(self.commons.serial)),
+            summoner_id=(
+                None if self.commons.summoner_id else str(self.commons.summoner_id)
+            ),
+            summoner_name=(
+                None if self.commons.summoner_name else str(self.commons.summoner_name)
+            ),
+            filename=str(filename),
             files={k: str(Path(v)) for k, v in files.items()},
             args=jsonablize(self.args._asdict()),
             commons=self.commons.export(),
@@ -693,7 +711,6 @@ class ExperimentPrototype(ExperimentPrototypeABC):
         indent: int = 2,
         encoding: str = "utf-8",
         jsonable: bool = False,
-        # zip: bool = False,
         mute: bool = False,
         _pbar: Optional[tqdm.tqdm] = None,
         _qurryinfo_hold_access: Optional[str] = None,
@@ -749,108 +766,53 @@ class ExperimentPrototype(ExperimentPrototypeABC):
                 Defaults to None.
 
         Returns:
-            dict[any]: the export content.
+            tuple[str, dict[str, str]]: The id of the experiment and the files location.
         """
         if _pbar is not None:
             _pbar.set_description_str("Preparing to export...")
 
-        if isinstance(save_location, Path):
+        # experiment write
+        export_material = self.export(
+            save_location=save_location,
+        )
+        exp_id, files = export_material.write(
+            mode=mode,
+            indent=indent,
+            encoding=encoding,
+            jsonable=jsonable,
+            mute=mute,
+            _pbar=_pbar,
+        )
+        assert "qurryinfo" in files, "qurryinfo location is not in files."
+        # qurryinfo write
+        real_save_location = Path(self.commons.save_location)
+        if (
+            _qurryinfo_hold_access == self.commons.summoner_id
+            and self.commons.summoner_id is not None
+        ):
             ...
-        elif isinstance(save_location, str):
-            save_location = Path(save_location)
-        elif save_location is None:
-            save_location = Path(self.commons.save_location)
-            if self.commons.save_location is None:
-                raise ValueError(
-                    "save_location is None, please provide a valid save_location"
-                )
-        else:
-            raise TypeError(
-                f"save_location must be Path or str, not {type(save_location)}"
-            )
-
-        if self.commons.save_location != save_location:
-            self.commons = self.commons._replace(save_location=save_location)
-
-        export_material = self.export()
-        for k, v in export_material.files.items():
-            self.commons.files[k] = v
-
-        export_set = {}
-        # qurryinfo ..........  # file location, dedicated hash
-        qurryinfo = {
-            export_material.exp_id: export_material.files,
-        }
-        # args ...............  # arguments, commonparams, outfields, files
-        export_set["args"] = {
-            "arguments": export_material.args,
-            "commonparams": export_material.commons,
-            "outfields": export_material.outfields,
-            "files": export_material.files,
-        }
-        # advent .............  # adventures
-        export_set["advent"] = {
-            "files": export_material.files,
-            "adventures": export_material.adventures,
-        }
-        # legacy .............  # legacy
-        export_set["legacy"] = {
-            "files": export_material.files,
-            "legacy": export_material.legacy,
-        }
-        # tales ..............  # tales
-        for tk, tv in export_material.tales.items():
-            if isinstance(tv, (dict, list, tuple)):
-                export_set[f"tales.{tk}"] = tv
-            else:
-                export_set[f"tales.{tk}"] = [tv]
-            if f"tales.{tk}" not in export_material.files:
-                warnings.warn(f"tales.{tk} is not in export_names, it's not exported.")
-        # reports ............  # reports
-        export_set["reports"] = {
-            "files": export_material.files,
-            "reports": export_material.reports,
-        }
-        # reports.tales ......  # tales_reports
-        for tk, tv in export_material.tales_reports.items():
-            if isinstance(tv, (dict, list, tuple)):
-                export_set[f"reports.tales.{tk}"] = tv
-            else:
-                export_set[f"reports.tales.{tk}"] = [tv]
-            if f"reports.tales.{tk}" not in export_material.files:
-                warnings.warn(
-                    f"reports.tales.{tk} is not in export_names, it's not exported."
-                )
-        # Exportation
-        if _pbar is not None:
-            _pbar.set_description_str("Exporting...")
-        folder = save_location / Path(export_material.files["folder"])
-        if not os.path.exists(folder):
-            os.mkdir(folder)
-        for k in self._required_folder:
-            if not os.path.exists(folder / k):
-                os.mkdir(folder / k)
-
-        for filekey, content in list(export_set.items()) + [("qurryinfo", qurryinfo)]:
-            # Exportation of qurryinfo
-            if filekey == "qurryinfo":
-                if (
-                    _qurryinfo_hold_access == self.commons.summoner_id
-                    and self.commons.summoner_id is not None
-                ):
-                    ...
-                elif os.path.exists(save_location / export_material.files["qurryinfo"]):
-                    with open(
-                        save_location / export_material.files["qurryinfo"],
-                        "r",
-                        encoding="utf-8",
-                    ) as f:
-                        qurryinfo_found: dict[str, dict[str, str]] = json.load(f)
-                        content = {**qurryinfo_found, **content}
+        elif os.path.exists(real_save_location / export_material.files["qurryinfo"]):
+            with open(
+                real_save_location / export_material.files["qurryinfo"],
+                "r",
+                encoding="utf-8",
+            ) as f:
+                qurryinfo_found: dict[str, dict[str, str]] = json.load(f)
+                content = {**qurryinfo_found, **{exp_id: files}}
 
             quickJSON(
                 content=content,
-                filename=str(save_location / export_material.files[filekey]),
+                filename=str(real_save_location / files["qurryinfo"]),
+                mode=mode,
+                indent=indent,
+                encoding=encoding,
+                jsonable=jsonable,
+                mute=mute,
+            )
+        else:
+            quickJSON(
+                content={exp_id: files},
+                filename=str(real_save_location / files["qurryinfo"]),
                 mode=mode,
                 indent=indent,
                 encoding=encoding,
@@ -858,12 +820,10 @@ class ExperimentPrototype(ExperimentPrototypeABC):
                 mute=mute,
             )
 
-        all_files_location = export_material.files.copy()
-        del export_set
         del export_material
         gc.collect()
 
-        return self.commons.exp_id, all_files_location
+        return exp_id, files
 
     @classmethod
     def _read_core(
@@ -911,7 +871,7 @@ class ExperimentPrototype(ExperimentPrototypeABC):
             save_location=save_location,
             encoding=encoding,
         )
-        instance = cls(
+        exp_instance = cls(
             **export_material_set["commonparams"],
             **export_material_set["arguments"],
             **export_material_set["outfields"],
@@ -929,7 +889,23 @@ class ExperimentPrototype(ExperimentPrototypeABC):
                 )
             ),
         )
-        return instance
+        return exp_instance
+
+    @classmethod
+    def _read_core_wrapper(
+        cls,
+        args: tuple[str, dict[str, str], Union[Path, str], str],
+    ) -> "ExperimentPrototype":
+        """Wrapper of :func:`_read_core` for multiprocessing.
+
+        Args:
+            args (tuple[str, dict[str, str], Union[Path, str], str]):
+                exp_id, file_index, save_location, encoding.
+
+        Returns:
+            QurryExperiment: The experiment to be read.
+        """
+        return cls._read_core(*args)
 
     @classmethod
     def read(
@@ -990,15 +966,13 @@ class ExperimentPrototype(ExperimentPrototypeABC):
             workers_num = DEFAULT_POOL_SIZE
         pool = ProcessManager(workers_num)
 
-        print(
-            f"| {len(qurryinfo)} experiments found, loading by {workers_num} workers."
-        )
-        quene = pool.starmap(
-            cls._read_core,
+        quene = pool.process_map(
+            cls._read_core_wrapper,
             [
                 (exp_id, fileIndex, save_location, encoding)
                 for exp_id, fileIndex in qurryinfo.items()
             ],
+            desc=f"{len(qurryinfo)} experiments found, loading by {workers_num} workers.",
         )
 
         return quene
