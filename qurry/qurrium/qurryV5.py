@@ -406,8 +406,8 @@ class QurryV5Prototype(ABC):
         # for _w in cirqs:
         #     current_exp.beforewards.circuit_qasm.append(_w.qasm())
         tmp_qasm = pool.starmap(qasm_drawer, [(i,) for i in cirqs])
-        for _w in tmp_qasm:
-            current_exp.beforewards.circuit_qasm.append(_w.qasm())
+        for qasm_str in tmp_qasm:
+            current_exp.beforewards.circuit_qasm.append(qasm_str)
 
         # transpile
         if isinstance(_pbar, tqdm.tqdm):
