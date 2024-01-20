@@ -10,6 +10,8 @@ from typing import Union, NamedTuple
 
 STAND_COMPRESS_FORMAT = "tar.xz"
 FULL_SUFFIX_OF_COMPRESS_FORMAT = f"qurry.{STAND_COMPRESS_FORMAT}"
+RJUST_LEN = 3
+"""The length of the string to be right-justified for serial number."""
 
 
 class IOComplex(NamedTuple):
@@ -28,7 +30,7 @@ def naming(
     save_location: Union[Path, str] = Path("./"),
     short_name: str = "qurry",
     without_serial: bool = False,
-    rjust_len: int = 3,
+    rjust_len: int = RJUST_LEN,
     index_rename: int = 1,
 ) -> IOComplex:
     """The process of naming.
