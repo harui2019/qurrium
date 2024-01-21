@@ -888,28 +888,15 @@ class QurryV5Prototype(ABC):
             initial_config_list_progress.set_description_str(
                 "Loading data to multimanager..."
             )
-            current_multimanager.beforewards.exps_config[current_id] = config
-            current_multimanager.beforewards.circuits_num[current_id] = len(
-                self.exps[current_id].beforewards.circuit
+            current_multimanager.register(
+                current_id=current_id,
+                config=config,
+                exps_instance=self.exps[current_id],
             )
-            files = self.exps[current_id].write(
-                save_location=current_multimanager.multicommons.save_location, mute=True
-            )
-
-            current_multimanager.beforewards.job_taglist[
-                self.exps[current_id].commons.tags
-            ].append(current_id)
-            current_multimanager.beforewards.files_taglist[
-                self.exps[current_id].commons.tags
-            ].append(files)
-            current_multimanager.beforewards.index_taglist[
-                self.exps[current_id].commons.tags
-            ].append(self.exps[current_id].commons.serial)
-            initial_config_list_progress.set_description_str(
-                "Loading data to multimanager done"
-            )
-
-        current_multimanager.write()
+        initial_config_list_progress.set_description_str("MultiManager writing...")
+        current_multimanager.write(
+            exps_container=self.exps,
+        )
 
         assert len(current_multimanager.beforewards.pending_pool) == 0
         assert len(current_multimanager.beforewards.circuits_map) == 0
@@ -1185,7 +1172,7 @@ class QurryV5Prototype(ABC):
 
         current_multimanager.write(
             save_location=save_location,
-            wave_container=self.exps,
+            exps_container=self.exps,
             _only_quantity=only_quantity,
         )
 

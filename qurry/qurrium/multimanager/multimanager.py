@@ -20,10 +20,9 @@ from .container import (
     After,
 )
 from .process import (
-    multiprocess_exporter_wrapper,
-    multiprocess_writer_wrapper,
     multiprocess_exporter_and_writer_wrapper,
 )
+from ..experiment import ExperimentPrototype
 from ..container import ExperimentContainer, QuantityContainer
 from ..utils.iocontrol import naming, RJUST_LEN
 from ...tools.datetime import current_time, DatetimeDict
@@ -400,6 +399,33 @@ class MultiManager:
                         if path.exists():
                             path.unlink()
 
+    def register(
+        self,
+        current_id: str,
+        config: dict[str, Any],
+        exps_instance: ExperimentPrototype,
+    ):
+        """Register the experiment to multimanager.
+
+        Args:
+            current_id (str): ID of experiment.
+            config (dict[str, Any]): The config of experiment.
+            exps_instance (ExperimentPrototype): The instance of experiment.
+        """
+
+        assert exps_instance.commons.exp_id == current_id, (
+            f"ID is not consistent, exp_id: {exps_instance.commons.exp_id} and "
+            + f"current_id: {current_id}."
+        )
+        self.beforewards.exps_config[current_id] = config
+        self.beforewards.circuits_num[current_id] = len(
+            exps_instance.beforewards.circuit
+        )
+        self.beforewards.job_taglist[exps_instance.commons.tags].append(current_id)
+        self.beforewards.index_taglist[exps_instance.commons.tags].append(
+            exps_instance.commons.serial
+        )
+
     def update_save_location(
         self,
         save_location: Union[Path, str],
@@ -454,7 +480,7 @@ class MultiManager:
     def write(
         self,
         save_location: Optional[Union[Path, str]] = None,
-        wave_container: Optional[ExperimentContainer] = None,
+        exps_container: Optional[ExperimentContainer] = None,
         indent: int = 2,
         encoding: str = "utf-8",
         workers_num: Optional[int] = None,
@@ -497,7 +523,12 @@ class MultiManager:
         }
 
         export_progress = qurry_progressbar(
-            self.Before._fields + self.After._fields,
+            [
+                fname
+                for fname in self.Before._fields
+                if fname != "files_taglist" or exps_container is None
+            ]
+            + list(self.After._fields),
             desc="exporting",
             bar_format="qurry-barless",
         )
@@ -567,7 +598,7 @@ class MultiManager:
 
         self.gitignore.export(self.multicommons.export_location)
 
-        if wave_container is not None:
+        if exps_container is not None:
             pool = ProcessManager(workers_num)
             all_qurryinfo_loc = self.multicommons.export_location / "qurryinfo.json"
 
@@ -614,7 +645,7 @@ class MultiManager:
                 [
                     (
                         id_exec,
-                        wave_container[id_exec],
+                        exps_container[id_exec],
                         self.multicommons.save_location,
                         "w+",
                         indent,
@@ -626,6 +657,23 @@ class MultiManager:
                 ],
                 desc="Exporting and writring...",
             )
+            for id_exec, files in all_qurryinfo_items:
+                self.beforewards.files_taglist[
+                    exps_container[id_exec].commons.tags
+                ].append(files)
+            self.beforewards.files_taglist.export(
+                save_location=self.multicommons.export_location,
+                tagListName=f"{exporting_name['files_taglist']}",
+                filetype=self.multicommons.filetype,
+                openArgs={
+                    "mode": "w+",
+                    "encoding": encoding,
+                },
+                jsonDumpArgs={
+                    "indent": indent,
+                },
+            )
+
             all_qurryinfo = dict(all_qurryinfo_items)
 
             quickJSON(
