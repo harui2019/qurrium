@@ -58,7 +58,9 @@ Not available now, but coming soon
 ### By TestPyPI
 
 ```bash
-pip install -i https://test.pypi.org/simple/ qurry==0.6.(specific version)
+pip install qiskit qiskit-aer tqdm requests 
+# the installation from testPyPI can' t find these dependencies
+pip install -i https://test.pypi.org/simple/ qurry
 ```
 
 ### Maually by Git
