@@ -4,9 +4,9 @@ Multiprocess component for multimanager
 (:mod:`qurry.qurry.qurrium.multimanager.process`)
 ================================================================
 """
-
 from pathlib import Path
 from typing import Union, Hashable
+import gc
 
 from ..experiment import ExperimentPrototype
 from ..experiment.export import Export
@@ -60,9 +60,11 @@ def multiprocess_writer(
     Args:
         id_exec (Hashable): ID of experiment.
         exps_export (Export): The export of experiment.
-        _qurryinfo_hold_access (Hashable): The ID of multimanager.
-        save_location (Union[Path, str]): Location of saving experiment.
-        mute (bool, optional): Mute the message. Defaults to True.
+        mode (str, optional): The mode of writing. Defaults to "w+".
+        indent (int, optional): The indent of writing. Defaults to 2.
+        encoding (str, optional): The encoding of writing. Defaults to "utf-8".
+        jsonable (bool, optional): The jsonable of writing. Defaults to False.
+        mute (bool, optional): The mute of writing. Defaults to True.
 
     Returns:
         tuple[Hashable, dict[str, str]]: The ID of experiment and the files of experiment.
@@ -94,3 +96,61 @@ def multiprocess_writer_wrapper(
         tuple[Hashable, dict[str, str]]: The ID of experiment and the files of experiment.
     """
     return multiprocess_writer(*args)
+
+
+def multiprocess_exporter_and_writer(
+    id_exec: Hashable,
+    exps: ExperimentPrototype,
+    save_location: Union[Path, str],
+    mode: str = "w+",
+    indent: int = 2,
+    encoding: str = "utf-8",
+    jsonable: bool = False,
+    mute: bool = True,
+) -> tuple[Hashable, dict[str, str]]:
+    """Multiprocess exporter and writer for experiment.
+
+    Args:
+        id_exec (Hashable): ID of experiment.
+        exps (ExperimentPrototype): The experiment.
+        save_location (Union[Path, str]): Location of saving experiment.
+        mode (str, optional): The mode of writing. Defaults to "w+".
+        indent (int, optional): The indent of writing. Defaults to 2.
+        encoding (str, optional): The encoding of writing. Defaults to "utf-8".
+        jsonable (bool, optional): The jsonable of writing. Defaults to False.
+        mute (bool, optional): The mute of writing. Defaults to True.
+
+    Returns:
+        tuple[Hashable, dict[str, str]]: The ID of experiment and the files of experiment.
+    """
+    exps_export = exps.export(save_location=save_location)
+    qurryinfo_exp_id, qurryinfo_files = exps_export.write(
+        mode=mode,
+        indent=indent,
+        encoding=encoding,
+        jsonable=jsonable,
+        mute=mute,
+    )
+    assert id_exec == qurryinfo_exp_id, (
+        f"{id_exec} is not equal to {qurryinfo_exp_id}" + " which is not supported."
+    )
+    del exps_export
+    gc.collect()
+    return qurryinfo_exp_id, qurryinfo_files
+
+
+def multiprocess_exporter_and_writer_wrapper(
+    args: tuple[
+        Hashable, ExperimentPrototype, Union[Path, str], str, int, str, bool, bool
+    ],
+) -> tuple[Hashable, dict[str, str]]:
+    """Multiprocess exporter and writer for experiment.
+
+    Args:
+        args (tuple[Hashable, ExperimentPrototype, Union[Path, str], str, int, str, bool, bool]):
+            The arguments of multiprocess exporter and writer.
+
+    Returns:
+        tuple[Hashable, dict[str, str]]: The ID of experiment and the files of experiment.
+    """
+    return multiprocess_exporter_and_writer(*args)

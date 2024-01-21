@@ -22,6 +22,7 @@ from .container import (
 from .process import (
     multiprocess_exporter_wrapper,
     multiprocess_writer_wrapper,
+    multiprocess_exporter_and_writer_wrapper,
 )
 from ..container import ExperimentContainer, QuantityContainer
 from ..utils.iocontrol import naming, RJUST_LEN
@@ -570,43 +571,60 @@ class MultiManager:
             pool = ProcessManager(workers_num)
             all_qurryinfo_loc = self.multicommons.export_location / "qurryinfo.json"
 
-            exps_export_items = pool.process_map(
-                multiprocess_exporter_wrapper,
+            # exps_export_items = pool.process_map(
+            #     multiprocess_exporter_wrapper,
+            #     [
+            #         (
+            #             id_exec,
+            #             wave_container[id_exec],
+            #             self.multicommons.save_location,
+            #         )
+            #         for id_exec in self.beforewards.exps_config
+            #     ],
+            #     desc="Exporting...",
+            # )
+            # # exps_export_dict: dict[str, Export] = {}
+            # # for id_exec in qurry_progressbar(
+            # #     self.beforewards.exps_config,
+            # #     desc="Exporting...",
+            # # ):
+            # #     exps_export_dict[id_exec] = wave_container[id_exec].export(
+            # #         save_location=self.multicommons.save_location,
+            # #     )
+
+            # all_qurryinfo_items = pool.process_map(
+            #     multiprocess_writer_wrapper,
+            #     [
+            #         (
+            #             id_exec,
+            #             exps_export,
+            #             "w+",
+            #             indent,
+            #             encoding,
+            #             True,
+            #             True,
+            #         )
+            #         for id_exec, exps_export in exps_export_items
+            #         # for id_exec, exps_export in exps_export_dict.items()
+            #     ],
+            #     desc="Writing...",
+            # )
+            all_qurryinfo_items = pool.process_map(
+                multiprocess_exporter_and_writer_wrapper,
                 [
                     (
                         id_exec,
                         wave_container[id_exec],
                         self.multicommons.save_location,
-                    )
-                    for id_exec in self.beforewards.exps_config
-                ],
-                desc="Exporting...",
-            )
-            # exps_export_dict: dict[str, Export] = {}
-            # for id_exec in qurry_progressbar(
-            #     self.beforewards.exps_config,
-            #     desc="Exporting...",
-            # ):
-            #     exps_export_dict[id_exec] = wave_container[id_exec].export(
-            #         save_location=self.multicommons.save_location,
-            #     )
-
-            all_qurryinfo_items = pool.process_map(
-                multiprocess_writer_wrapper,
-                [
-                    (
-                        id_exec,
-                        exps_export,
                         "w+",
                         indent,
                         encoding,
                         True,
                         True,
                     )
-                    for id_exec, exps_export in exps_export_items
-                    # for id_exec, exps_export in exps_export_dict.items()
+                    for id_exec in self.beforewards.exps_config
                 ],
-                desc="Writing...",
+                desc="Exporting and writring...",
             )
             all_qurryinfo = dict(all_qurryinfo_items)
 
@@ -620,6 +638,7 @@ class MultiManager:
                 mute=True,
             )
 
+        gc.collect()
         return multiconfig
 
     def compress(
