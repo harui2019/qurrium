@@ -424,6 +424,8 @@ class QurryV5Prototype(ABC):
 
         # commons
         date = current_time()
+        if isinstance(_pbar, tqdm.tqdm):
+            _pbar.set_description_str(f"Building Completed, denoted date: {date}...")
         current_exp.commons.datetimes["build"] = date
 
         if not skip_export:
@@ -446,6 +448,7 @@ class QurryV5Prototype(ABC):
         self,
         *args,
         save_location: Optional[Union[Path, str]] = None,
+        _pbar: Optional[tqdm.tqdm] = None,
         **other_kwargs: Any,
     ) -> str:
         """Export the result after running the job.
@@ -478,11 +481,13 @@ class QurryV5Prototype(ABC):
             )
 
         # preparing
-        id_now = self.build(save_location=save_location, **other_kwargs)
+        id_now = self.build(save_location=save_location, _pbar=_pbar, **other_kwargs)
         assert id_now in self.exps, f"ID {id_now} not found."
         assert self.exps[id_now].commons.exp_id == id_now
         current_exp = self.exps[id_now]
 
+        if isinstance(_pbar, tqdm.tqdm):
+            _pbar.set_description_str("Executing...")
         execution: Job = execute(
             current_exp.beforewards.circuit,
             **current_exp.commons.run_args,
@@ -492,6 +497,8 @@ class QurryV5Prototype(ABC):
         # commons
         date = current_time()
         current_exp.commons.datetimes["run"] = date
+        if isinstance(_pbar, tqdm.tqdm):
+            _pbar.set_description_str(f"Running Completed, denoted date: {date}...")
         # beforewards
         current_exp["job_id"] = execution.job_id()
         # afterwards
@@ -878,6 +885,9 @@ class QurryV5Prototype(ABC):
                 skip_export=True,  # export later for it's not efficient for one by one
                 _pbar=initial_config_list_progress,
             )
+            initial_config_list_progress.set_description_str(
+                "Loading data to multimanager..."
+            )
             current_multimanager.beforewards.exps_config[current_id] = config
             current_multimanager.beforewards.circuits_num[current_id] = len(
                 self.exps[current_id].beforewards.circuit
@@ -895,6 +905,9 @@ class QurryV5Prototype(ABC):
             current_multimanager.beforewards.index_taglist[
                 self.exps[current_id].commons.tags
             ].append(self.exps[current_id].commons.serial)
+            initial_config_list_progress.set_description_str(
+                "Loading data to multimanager done"
+            )
 
         current_multimanager.write()
 
