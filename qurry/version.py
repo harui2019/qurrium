@@ -5,7 +5,7 @@ Qurry Version (:mod:`qurry.version`)
 
 """
 version_main = (0, 6, 12)
-version_dev = ("dev", 3)
+version_dev = ("dev", 4)
 IS_DEV = True
 
 
