@@ -19,7 +19,10 @@ from .container import (
     Before,
     After,
 )
-from ..experiment.export import Export
+from .process import (
+    multiprocess_exporter_wrapper,
+    multiprocess_writer_wrapper,
+)
 from ..container import ExperimentContainer, QuantityContainer
 from ..utils.iocontrol import naming, RJUST_LEN
 from ...tools.datetime import current_time, DatetimeDict
@@ -33,56 +36,6 @@ from ...exceptions import (
     QurryResetAccomplished,
     QurryResetSecurityActivated,
 )
-
-
-def multiprocess_writer(
-    id_exec: Hashable,
-    exps_export: Export,
-    mode: str = "w+",
-    indent: int = 2,
-    encoding: str = "utf-8",
-    jsonable: bool = False,
-    mute: bool = True,
-) -> tuple[Hashable, dict[str, str]]:
-    """Multiprocess writer for experiment.
-
-    Args:
-        id_exec (Hashable): ID of experiment.
-        exps_export (Export): The export of experiment.
-        _qurryinfo_hold_access (Hashable): The ID of multimanager.
-        save_location (Union[Path, str]): Location of saving experiment.
-        mute (bool, optional): Mute the message. Defaults to True.
-
-    Returns:
-        tuple[Hashable, dict[str, str]]: The ID of experiment and the files of experiment.
-    """
-
-    qurryinfo_exp_id, qurryinfo_files = exps_export.write(
-        mode=mode,
-        indent=indent,
-        encoding=encoding,
-        jsonable=jsonable,
-        mute=mute,
-    )
-    assert id_exec == qurryinfo_exp_id, (
-        f"{id_exec} is not equal to {qurryinfo_exp_id}" + " which is not supported."
-    )
-    return qurryinfo_exp_id, qurryinfo_files
-
-
-def multiprocess_writer_wrapper(
-    args: tuple[Hashable, Export, str, int, str, bool, bool],
-) -> tuple[Hashable, dict[str, str]]:
-    """Multiprocess writer for experiment.
-
-    Args:
-        args (tuple[Hashable, Export, str, int, str, bool, bool]):
-            The arguments of multiprocess writer.
-
-    Returns:
-        tuple[Hashable, dict[str, str]]: The ID of experiment and the files of experiment.
-    """
-    return multiprocess_writer(*args)
 
 
 class MultiManager:
@@ -616,14 +569,27 @@ class MultiManager:
         if wave_container is not None:
             pool = ProcessManager(workers_num)
             all_qurryinfo_loc = self.multicommons.export_location / "qurryinfo.json"
-            exps_export_dict: dict[str, Export] = {}
-            for id_exec in qurry_progressbar(
-                self.beforewards.exps_config,
+
+            exps_export_items = pool.process_map(
+                multiprocess_exporter_wrapper,
+                [
+                    (
+                        id_exec,
+                        wave_container[id_exec],
+                        self.multicommons.save_location,
+                    )
+                    for id_exec in self.beforewards.exps_config
+                ],
                 desc="Exporting...",
-            ):
-                exps_export_dict[id_exec] = wave_container[id_exec].export(
-                    save_location=self.multicommons.save_location,
-                )
+            )
+            # exps_export_dict: dict[str, Export] = {}
+            # for id_exec in qurry_progressbar(
+            #     self.beforewards.exps_config,
+            #     desc="Exporting...",
+            # ):
+            #     exps_export_dict[id_exec] = wave_container[id_exec].export(
+            #         save_location=self.multicommons.save_location,
+            #     )
 
             all_qurryinfo_items = pool.process_map(
                 multiprocess_writer_wrapper,
@@ -637,7 +603,8 @@ class MultiManager:
                         True,
                         True,
                     )
-                    for id_exec, exps_export in exps_export_dict.items()
+                    for id_exec, exps_export in exps_export_items
+                    # for id_exec, exps_export in exps_export_dict.items()
                 ],
                 desc="Writing...",
             )
