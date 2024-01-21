@@ -210,10 +210,10 @@ def outfields_hint(
             + ", but still kept in experiment record.",
             QurryUnrecongnizedArguments,
         )
-    print("| Maybe you want to use these arguments: ")
-    for k, v in outfields_maybe.items():
-        print(f"| - '{k}' maybe {v}")
-    if len(outfields_unknown) > 0:
-        print("| The following are not recognized as arguments:", outfields_unknown)
+        print("| Maybe you want to use these arguments: ")
+        for k, v in outfields_maybe.items():
+            print(f"| - '{k}' maybe {v}")
+        if len(outfields_unknown) > 0:
+            print("| The following are not recognized as arguments:", outfields_unknown)
 
     return None
