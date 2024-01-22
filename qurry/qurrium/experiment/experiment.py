@@ -905,6 +905,9 @@ class ExperimentPrototype(ExperimentPrototypeABC):
         Returns:
             QurryExperiment: The experiment to be read.
         """
+        assert isinstance(args[1], dict), (
+            "file_index should be dict, " + f"but we get {type(args[1])}, {args[1]}."
+        )
         return cls._read_core(*args)
 
     @classmethod
@@ -969,8 +972,8 @@ class ExperimentPrototype(ExperimentPrototypeABC):
         quene = pool.process_map(
             cls._read_core_wrapper,
             [
-                (exp_id, fileIndex, save_location, encoding)
-                for exp_id, fileIndex in qurryinfo.items()
+                (exp_id, file_index, save_location, encoding)
+                for exp_id, file_index in qurryinfo.items()
             ],
             desc=f"{len(qurryinfo)} experiments found, loading by {workers_num} workers.",
         )

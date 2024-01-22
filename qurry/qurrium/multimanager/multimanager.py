@@ -623,7 +623,7 @@ class MultiManager:
             )
             all_qurryinfo = {}
             for id_exec in exps_export_progress:
-                all_qurryinfo[id_exec] = multiprocess_exporter_and_writer(
+                tmp_id, tmp_qurryinfo = multiprocess_exporter_and_writer(
                     id_exec=id_exec,
                     exps=exps_container[id_exec],
                     save_location=self.multicommons.save_location,
@@ -634,6 +634,8 @@ class MultiManager:
                     mute=True,
                     _pbar=None,
                 )
+                assert id_exec == tmp_id, "ID is not consistent."
+                all_qurryinfo[id_exec] = tmp_qurryinfo
 
             # for id_exec, files in all_qurryinfo_items:
             for id_exec, files in all_qurryinfo.items():
