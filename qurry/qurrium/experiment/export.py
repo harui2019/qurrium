@@ -13,6 +13,7 @@ import gc
 import tqdm
 
 from .container import CommonparamsDict, REQUIRED_FOLDER
+from ...tools import ProcessManager
 from ...capsule import quickJSON
 
 
@@ -131,6 +132,7 @@ class Export(NamedTuple):
         encoding: str = "utf-8",
         jsonable: bool = False,
         mute: bool = False,
+        multiprocess: bool = False,
         _pbar: Optional[tqdm.tqdm] = None,
     ) -> tuple[str, dict[str, str]]:
         """Export the experiment data, if there is a previous export, then will overwrite.
@@ -178,6 +180,9 @@ class Export(NamedTuple):
                 for :func:`mori.quickJSON`. Defaults to False.
             mute (bool, optional):
                 Whether to mute the output, for :func:`mori.quickJSON`. Defaults to False.
+            multiprocess (bool, optional):
+                Whether to use multiprocess to export, Defaults to False.
+                It's dangerous to use multiprocess to export. It may cause memory leak.
 
         Returns:
             tuple[str, dict[str, str]]:
@@ -191,7 +196,6 @@ class Export(NamedTuple):
                 }
                 ```
         """
-
 
         export_set = {}
         # args ...............  # arguments, commonparams, outfields, files
@@ -236,7 +240,11 @@ class Export(NamedTuple):
                 )
         # Exportation
         if _pbar is not None:
-            _pbar.set_description_str("Exporting...")
+            _pbar.set_description_str(
+                "Exporting "
+                + (f"{self.summoner_name}/" if self.summoner_name else "")
+                + f"{self.exp_name}..."
+            )
         folder = Path(self.commons["save_location"]) / Path(self.files["folder"])
         if not os.path.exists(folder):
             os.mkdir(folder)
@@ -244,16 +252,36 @@ class Export(NamedTuple):
             if not os.path.exists(folder / k):
                 os.mkdir(folder / k)
 
-        for filekey, content in export_set.items():
-            quickJSON(
-                content=content,
-                filename=str(Path(self.commons["save_location"]) / self.files[filekey]),
-                mode=mode,
-                indent=indent,
-                encoding=encoding,
-                jsonable=jsonable,
-                mute=mute,
+        if multiprocess:
+            pool = ProcessManager()
+            pool.starmap(
+                quickJSON,
+                [
+                    (
+                        content,
+                        str(Path(self.commons["save_location"]) / self.files[filekey]),
+                        mode,
+                        indent,
+                        encoding,
+                        jsonable,
+                        mute,
+                    )
+                    for filekey, content in export_set.items()
+                ],
             )
+        else:
+            for filekey, content in export_set.items():
+                quickJSON(
+                    content=content,
+                    filename=str(
+                        Path(self.commons["save_location"]) / self.files[filekey]
+                    ),
+                    mode=mode,
+                    indent=indent,
+                    encoding=encoding,
+                    jsonable=jsonable,
+                    mute=mute,
+                )
 
         del export_set
         gc.collect()

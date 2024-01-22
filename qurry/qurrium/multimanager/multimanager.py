@@ -19,15 +19,13 @@ from .container import (
     Before,
     After,
 )
-from .process import (
-    multiprocess_exporter_and_writer_wrapper,
-)
+from .process import soloprocess_exporter_and_writer
 from ..experiment import ExperimentPrototype
 from ..container import ExperimentContainer, QuantityContainer
 from ..utils.iocontrol import naming, RJUST_LEN
 from ...tools.datetime import current_time, DatetimeDict
 from ...declare.multimanager import multicommonConfig
-from ...tools import qurry_progressbar, ProcessManager
+from ...tools import qurry_progressbar
 from ...capsule import quickJSON
 from ...capsule.mori import TagList, GitSyncControl
 from ...exceptions import (
@@ -483,7 +481,6 @@ class MultiManager:
         exps_container: Optional[ExperimentContainer] = None,
         indent: int = 2,
         encoding: str = "utf-8",
-        workers_num: Optional[int] = None,
         _only_quantity: bool = False,
     ) -> dict[str, Any]:
         """Export the multi-experiment.
@@ -599,65 +596,47 @@ class MultiManager:
         self.gitignore.export(self.multicommons.export_location)
 
         if exps_container is not None:
-            pool = ProcessManager(workers_num)
+            # pool = ProcessManager(6)
             all_qurryinfo_loc = self.multicommons.export_location / "qurryinfo.json"
 
-            # exps_export_items = pool.process_map(
-            #     multiprocess_exporter_wrapper,
-            #     [
-            #         (
-            #             id_exec,
-            #             wave_container[id_exec],
-            #             self.multicommons.save_location,
-            #         )
-            #         for id_exec in self.beforewards.exps_config
-            #     ],
-            #     desc="Exporting...",
-            # )
-            # # exps_export_dict: dict[str, Export] = {}
-            # # for id_exec in qurry_progressbar(
-            # #     self.beforewards.exps_config,
-            # #     desc="Exporting...",
-            # # ):
-            # #     exps_export_dict[id_exec] = wave_container[id_exec].export(
-            # #         save_location=self.multicommons.save_location,
-            # #     )
-
             # all_qurryinfo_items = pool.process_map(
-            #     multiprocess_writer_wrapper,
+            #     multiprocess_exporter_and_writer_wrapper,
             #     [
             #         (
             #             id_exec,
-            #             exps_export,
+            #             exps_container[id_exec],
+            #             self.multicommons.save_location,
             #             "w+",
             #             indent,
             #             encoding,
             #             True,
             #             True,
             #         )
-            #         for id_exec, exps_export in exps_export_items
-            #         # for id_exec, exps_export in exps_export_dict.items()
+            #         for id_exec in self.beforewards.exps_config
             #     ],
-            #     desc="Writing...",
+            #     desc="Exporting and writring...",
             # )
-            all_qurryinfo_items = pool.process_map(
-                multiprocess_exporter_and_writer_wrapper,
-                [
-                    (
-                        id_exec,
-                        exps_container[id_exec],
-                        self.multicommons.save_location,
-                        "w+",
-                        indent,
-                        encoding,
-                        True,
-                        True,
-                    )
-                    for id_exec in self.beforewards.exps_config
-                ],
+            exps_export_progress = qurry_progressbar(
+                self.beforewards.exps_config,
                 desc="Exporting and writring...",
+                bar_format="qurry-barless",
             )
-            for id_exec, files in all_qurryinfo_items:
+            all_qurryinfo = {}
+            for id_exec in exps_export_progress:
+                all_qurryinfo[id_exec] = soloprocess_exporter_and_writer(
+                    id_exec=id_exec,
+                    exps=exps_container[id_exec],
+                    save_location=self.multicommons.save_location,
+                    mode="w+",
+                    indent=indent,
+                    encoding=encoding,
+                    jsonable=True,
+                    mute=True,
+                    _pbar=None,
+                )
+
+            # for id_exec, files in all_qurryinfo_items:
+            for id_exec, files in all_qurryinfo.items():
                 self.beforewards.files_taglist[
                     exps_container[id_exec].commons.tags
                 ].append(files)
@@ -674,7 +653,7 @@ class MultiManager:
                 },
             )
 
-            all_qurryinfo = dict(all_qurryinfo_items)
+            # all_qurryinfo = dict(all_qurryinfo_items)
 
             quickJSON(
                 content=all_qurryinfo,

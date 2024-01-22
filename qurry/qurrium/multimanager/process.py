@@ -5,14 +5,15 @@ Multiprocess component for multimanager
 ================================================================
 """
 from pathlib import Path
-from typing import Union, Hashable
+from typing import Union, Hashable, Optional
 import gc
+import tqdm
 
 from ..experiment import ExperimentPrototype
 from ..experiment.export import Export
 
 
-def multiprocess_exporter(
+def exporter(
     id_exec: Hashable,
     exps: ExperimentPrototype,
     save_location: Union[Path, str],
@@ -32,7 +33,7 @@ def multiprocess_exporter(
     return id_exec, exps_export
 
 
-def multiprocess_exporter_wrapper(
+def exporter_wrapper(
     args: tuple[Hashable, ExperimentPrototype, Union[Path, str]],
 ) -> tuple[Hashable, Export]:
     """Multiprocess exporter for experiment.
@@ -43,10 +44,10 @@ def multiprocess_exporter_wrapper(
     Returns:
         tuple[Hashable, Export]: The ID of experiment and the export of experiment.
     """
-    return multiprocess_exporter(*args)
+    return exporter(*args)
 
 
-def multiprocess_writer(
+def writer(
     id_exec: Hashable,
     exps_export: Export,
     mode: str = "w+",
@@ -83,7 +84,7 @@ def multiprocess_writer(
     return qurryinfo_exp_id, qurryinfo_files
 
 
-def multiprocess_writer_wrapper(
+def writer_wrapper(
     args: tuple[Hashable, Export, str, int, str, bool, bool],
 ) -> tuple[Hashable, dict[str, str]]:
     """Multiprocess writer for experiment.
@@ -95,10 +96,10 @@ def multiprocess_writer_wrapper(
     Returns:
         tuple[Hashable, dict[str, str]]: The ID of experiment and the files of experiment.
     """
-    return multiprocess_writer(*args)
+    return writer(*args)
 
 
-def multiprocess_exporter_and_writer(
+def soloprocess_exporter_and_writer(
     id_exec: Hashable,
     exps: ExperimentPrototype,
     save_location: Union[Path, str],
@@ -107,6 +108,7 @@ def multiprocess_exporter_and_writer(
     encoding: str = "utf-8",
     jsonable: bool = False,
     mute: bool = True,
+    _pbar: Optional[tqdm.tqdm] = None,
 ) -> tuple[Hashable, dict[str, str]]:
     """Multiprocess exporter and writer for experiment.
 
@@ -119,6 +121,7 @@ def multiprocess_exporter_and_writer(
         encoding (str, optional): The encoding of writing. Defaults to "utf-8".
         jsonable (bool, optional): The jsonable of writing. Defaults to False.
         mute (bool, optional): The mute of writing. Defaults to True.
+        _pbar (Optional[tqdm.tqdm], optional): The progress bar. Defaults to None.
 
     Returns:
         tuple[Hashable, dict[str, str]]: The ID of experiment and the files of experiment.
@@ -130,6 +133,8 @@ def multiprocess_exporter_and_writer(
         encoding=encoding,
         jsonable=jsonable,
         mute=mute,
+        multiprocess=True,
+        _pbar=_pbar,
     )
     assert id_exec == qurryinfo_exp_id, (
         f"{id_exec} is not equal to {qurryinfo_exp_id}" + " which is not supported."
@@ -138,19 +143,3 @@ def multiprocess_exporter_and_writer(
     gc.collect()
     return qurryinfo_exp_id, qurryinfo_files
 
-
-def multiprocess_exporter_and_writer_wrapper(
-    args: tuple[
-        Hashable, ExperimentPrototype, Union[Path, str], str, int, str, bool, bool
-    ],
-) -> tuple[Hashable, dict[str, str]]:
-    """Multiprocess exporter and writer for experiment.
-
-    Args:
-        args (tuple[Hashable, ExperimentPrototype, Union[Path, str], str, int, str, bool, bool]):
-            The arguments of multiprocess exporter and writer.
-
-    Returns:
-        tuple[Hashable, dict[str, str]]: The ID of experiment and the files of experiment.
-    """
-    return multiprocess_exporter_and_writer(*args)
