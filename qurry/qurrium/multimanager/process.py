@@ -99,7 +99,7 @@ def writer_wrapper(
     return writer(*args)
 
 
-def soloprocess_exporter_and_writer(
+def multiprocess_exporter_and_writer(
     id_exec: Hashable,
     exps: ExperimentPrototype,
     save_location: Union[Path, str],

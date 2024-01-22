@@ -19,7 +19,7 @@ from .container import (
     Before,
     After,
 )
-from .process import soloprocess_exporter_and_writer
+from .process import multiprocess_exporter_and_writer
 from ..experiment import ExperimentPrototype
 from ..container import ExperimentContainer, QuantityContainer
 from ..utils.iocontrol import naming, RJUST_LEN
@@ -623,7 +623,7 @@ class MultiManager:
             )
             all_qurryinfo = {}
             for id_exec in exps_export_progress:
-                all_qurryinfo[id_exec] = soloprocess_exporter_and_writer(
+                all_qurryinfo[id_exec] = multiprocess_exporter_and_writer(
                     id_exec=id_exec,
                     exps=exps_container[id_exec],
                     save_location=self.multicommons.save_location,
