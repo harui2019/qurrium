@@ -4,15 +4,16 @@ Multiprocess component for multimanager
 (:mod:`qurry.qurry.qurrium.multimanager.process`)
 ================================================================
 """
-
 from pathlib import Path
-from typing import Union, Hashable
+from typing import Union, Hashable, Optional
+import gc
+import tqdm
 
 from ..experiment import ExperimentPrototype
 from ..experiment.export import Export
 
 
-def multiprocess_exporter(
+def exporter(
     id_exec: Hashable,
     exps: ExperimentPrototype,
     save_location: Union[Path, str],
@@ -32,7 +33,7 @@ def multiprocess_exporter(
     return id_exec, exps_export
 
 
-def multiprocess_exporter_wrapper(
+def exporter_wrapper(
     args: tuple[Hashable, ExperimentPrototype, Union[Path, str]],
 ) -> tuple[Hashable, Export]:
     """Multiprocess exporter for experiment.
@@ -43,10 +44,10 @@ def multiprocess_exporter_wrapper(
     Returns:
         tuple[Hashable, Export]: The ID of experiment and the export of experiment.
     """
-    return multiprocess_exporter(*args)
+    return exporter(*args)
 
 
-def multiprocess_writer(
+def writer(
     id_exec: Hashable,
     exps_export: Export,
     mode: str = "w+",
@@ -60,9 +61,11 @@ def multiprocess_writer(
     Args:
         id_exec (Hashable): ID of experiment.
         exps_export (Export): The export of experiment.
-        _qurryinfo_hold_access (Hashable): The ID of multimanager.
-        save_location (Union[Path, str]): Location of saving experiment.
-        mute (bool, optional): Mute the message. Defaults to True.
+        mode (str, optional): The mode of writing. Defaults to "w+".
+        indent (int, optional): The indent of writing. Defaults to 2.
+        encoding (str, optional): The encoding of writing. Defaults to "utf-8".
+        jsonable (bool, optional): The jsonable of writing. Defaults to False.
+        mute (bool, optional): The mute of writing. Defaults to True.
 
     Returns:
         tuple[Hashable, dict[str, str]]: The ID of experiment and the files of experiment.
@@ -81,7 +84,7 @@ def multiprocess_writer(
     return qurryinfo_exp_id, qurryinfo_files
 
 
-def multiprocess_writer_wrapper(
+def writer_wrapper(
     args: tuple[Hashable, Export, str, int, str, bool, bool],
 ) -> tuple[Hashable, dict[str, str]]:
     """Multiprocess writer for experiment.
@@ -93,4 +96,50 @@ def multiprocess_writer_wrapper(
     Returns:
         tuple[Hashable, dict[str, str]]: The ID of experiment and the files of experiment.
     """
-    return multiprocess_writer(*args)
+    return writer(*args)
+
+
+def multiprocess_exporter_and_writer(
+    id_exec: Hashable,
+    exps: ExperimentPrototype,
+    save_location: Union[Path, str],
+    mode: str = "w+",
+    indent: int = 2,
+    encoding: str = "utf-8",
+    jsonable: bool = False,
+    mute: bool = True,
+    _pbar: Optional[tqdm.tqdm] = None,
+) -> tuple[Hashable, dict[str, str]]:
+    """Multiprocess exporter and writer for experiment.
+
+    Args:
+        id_exec (Hashable): ID of experiment.
+        exps (ExperimentPrototype): The experiment.
+        save_location (Union[Path, str]): Location of saving experiment.
+        mode (str, optional): The mode of writing. Defaults to "w+".
+        indent (int, optional): The indent of writing. Defaults to 2.
+        encoding (str, optional): The encoding of writing. Defaults to "utf-8".
+        jsonable (bool, optional): The jsonable of writing. Defaults to False.
+        mute (bool, optional): The mute of writing. Defaults to True.
+        _pbar (Optional[tqdm.tqdm], optional): The progress bar. Defaults to None.
+
+    Returns:
+        tuple[Hashable, dict[str, str]]: The ID of experiment and the files of experiment.
+    """
+    exps_export = exps.export(save_location=save_location)
+    qurryinfo_exp_id, qurryinfo_files = exps_export.write(
+        mode=mode,
+        indent=indent,
+        encoding=encoding,
+        jsonable=jsonable,
+        mute=mute,
+        multiprocess=True,
+        _pbar=_pbar,
+    )
+    assert id_exec == qurryinfo_exp_id, (
+        f"{id_exec} is not equal to {qurryinfo_exp_id}" + " which is not supported."
+    )
+    del exps_export
+    gc.collect()
+    return qurryinfo_exp_id, qurryinfo_files
+
