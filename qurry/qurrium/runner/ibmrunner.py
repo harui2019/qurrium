@@ -98,7 +98,7 @@ def pk_from_list_to_tuple(pk: Union[str, list[str]]) -> Union[tuple[str, ...], s
 class IBMRunner(Runner):
     """Pending and Retrieve Jobs from IBM backend."""
 
-    backend: IBMBackend
+    backend: Optional[IBMBackend]
     """The backend been used."""
     reports: dict[str, dict[str, str]]
 
@@ -134,17 +134,33 @@ class IBMRunner(Runner):
         self,
         pending_strategy: Literal["onetime", "each", "tags"] = "onetime",
         backend: Optional[IBMBackend] = None,
-    ) -> list[tuple[str, str]]:
+    ) -> list[tuple[Optional[str], str]]:
+        """Pending jobs to remote backend.
+
+        Args:
+            pending_strategy (Literal["onetime", "each", "tags"], optional):
+
+                - "onetime": Pending all circuits in one job.
+                - "each": Pending each circuit in one job.
+                - "tags": Pending each circuit in one job with tags.
+
+                Defaults to "onetime".
+            backend (Optional[IBMBackend], optional): The backend will be used to pending. Defaults to None.
+
+        Returns:
+            list[tuple[Optional[str], str]]: The list of job_id and pending tags.
+        """
+
         if self.backend is None:
             if backend is None:
                 raise ValueError(
                     "At least one of backend and provider should be given."
                 )
             print(
-                f"| Given backend and provider as {backend.name} and {backend.provider()}."
+                f"| Given backend and provider as {backend.name} and {backend.provider}."
             )
             self.backend = backend
-            self.provider = backend.provider()
+            self.provider = backend.provider
         else:
             print(
                 "| Using backend and provider as "
@@ -196,6 +212,7 @@ class IBMRunner(Runner):
         )
 
         for pk, pcirc_idxs in pendingpool_progressbar:
+            assert isinstance(pk, str), f"pk should be str, not {type(pk)}."
             if len(pcirc_idxs) == 0:
                 self.current_multimanager.beforewards.job_id.append((None, pk))
                 warnings.warn(f"| Pending pool '{pk}' is empty.")
@@ -249,9 +266,18 @@ class IBMRunner(Runner):
     def retrieve(
         self,
         overwrite: bool = False,
-    ) -> list[tuple[str, str]]:
+    ) -> list[tuple[Optional[str], str]]:
+        """Retrieve jobs from remote backend.
+
+        Args:
+            overwrite (bool, optional): Overwrite the previous retrieve. Defaults to False.
+
+        Returns:
+            list[tuple[Optional[str], str]]: The list of job_id and pending tags.
+        """
+
         pending_map: dict[Hashable, Union[IBMCircuitJob, "IBMQJob"]] = {}
-        couts_tmp_container: dict[str, dict[str, int]] = {}
+        couts_tmp_container: dict[int, dict[str, int]] = {}
 
         already_retrieved: list[str] = [
             datetime_tag
@@ -292,8 +318,14 @@ class IBMRunner(Runner):
             bar_format="| {n_fmt}/{total_fmt} - retrieve: {desc} - {elapsed} < {remaining}",
             # leave=False,
         )
+        if self.provider is None:
+            raise ValueError("provider should not be None.")
+        assert isinstance(self.provider, IBMProvider), (
+            "provider should be IBMProvider, not "
+            + f"{type(self.provider)}: {self.provider}."
+        )
 
-        retrieve_principal: Union["IBMQBackend", IBMProvider] = None
+        retrieve_principal: Union["IBMQBackend", IBMProvider]
         if QISKIT_IBMQ_PROVIDER and isinstance(self.backend, IBMQBackend):
             retrieve_principal = self.backend
         else:
@@ -311,7 +343,9 @@ class IBMRunner(Runner):
                 retrieve_progressbar.set_description_str(
                     f"{pending_tags}/{pending_id}", refresh=True
                 )
-                pending_map[pending_tags] = retrieve_principal.retrieve_job(job_id=pending_id)
+                pending_map[pending_tags] = retrieve_principal.retrieve_job(
+                    job_id=pending_id
+                )
             except IBMError as e:
                 retrieve_progressbar.set_description_str(
                     f"{pending_tags}/{pending_id} - Error: {e}", refresh=True
@@ -332,6 +366,7 @@ class IBMRunner(Runner):
         )
 
         for pk, pcircs in pendingpool_progressbar:
+            assert isinstance(pk, str), f"pk should be str, not {type(pk)}."
             pending_tags = pk_from_list_to_tuple(pk)
             if len(pcircs) == 0:
                 warnings.warn(f"Pending pool '{pending_tags}' is empty.")
@@ -339,7 +374,8 @@ class IBMRunner(Runner):
 
             if pending_map[pending_tags] is not None:
                 pendingpool_progressbar.set_description_str(
-                    f"{pending_tags}/{pending_map[pending_tags].job_id()}/{pending_map[pending_tags].tags()}",
+                    f"{pending_tags}/{pending_map[pending_tags].job_id()}"
+                    + f"/{pending_map[pending_tags].tags()}",
                     refresh=True,
                 )
                 self.reports[pending_map[pending_tags].job_id()] = {
@@ -363,7 +399,8 @@ class IBMRunner(Runner):
                     result=None, result_idx_list=[rk - pcircs[0] for rk in pcircs]
                 )
                 pendingpool_progressbar.set_description_str(
-                    f"{pending_tags} failed - No available tags - {len(counts)}", refresh=True
+                    f"{pending_tags} failed - No available tags - {len(counts)}",
+                    refresh=True,
                 )
             assert len(counts) == len(pcircs), (
                 f"Length of counts {len(counts)} not equal to length of "
