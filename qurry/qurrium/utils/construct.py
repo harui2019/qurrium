@@ -32,23 +32,6 @@ def decomposer(
     return qc.decompose(reps=reps)
 
 
-def decomposer_and_drawer(
-    qc: QuantumCircuit,
-    reps: int = 2,
-) -> str:
-    """Decompose the circuit with giving times and draw it.
-
-    Args:
-        qc (QuantumCircuit): The circuit wanted to be decomposed.
-        reps (int, optional): Decide the times of decomposing the circuit.
-            Draw quantum circuit with composed circuit. Defaults to 2.
-
-    Returns:
-        str: The drawing of decomposed circuit.
-    """
-    return decomposer(qc, reps).draw("text")
-
-
 def qasm_drawer(qc: QuantumCircuit) -> str:
     """Draw the circuits in qasm format. This function is used for multiprocessing.
 
@@ -58,7 +41,9 @@ def qasm_drawer(qc: QuantumCircuit) -> str:
     Returns:
         str: The drawing of circuit in qasm format.
     """
-    return qc.qasm()
+    txt = qc.qasm()
+    assert isinstance(txt, str), "The drawing of circuit does not export."
+    return txt
 
 
 def get_counts_and_exceptions(
@@ -81,25 +66,27 @@ def get_counts_and_exceptions(
     """
     counts: list[dict[str, int]] = []
     exceptions: dict[str, Exception] = {}
-    if num is None and result_idx_list is None:
-        idx_list = []
-    elif result_idx_list is None:
-        idx_list = list(range(num))
-    elif num is None:
-        idx_list = result_idx_list
+    if num is None:
+        if result_idx_list is None:
+            idx_list = []
+        else:
+            idx_list = result_idx_list
     else:
-        warnings.warn(
-            (
-                "The number of result is not equal to the length of "
-                + "'result_idx_list', use length of 'result_idx_list'."
+        if result_idx_list is None:
+            idx_list = list(range(num))
+        else:
+            warnings.warn(
+                (
+                    "The number of result is not equal to the length of "
+                    + "'result_idx_list', use length of 'result_idx_list'."
+                )
+                if num != len(result_idx_list)
+                else (
+                    "The 'num' is not None, but 'result_idx_list' is not None, "
+                    + "use 'result_idx_list'."
+                )
             )
-            if num != len(result_idx_list)
-            else (
-                "The 'num' is not None, but 'result_idx_list' is not None, "
-                + "use 'result_idx_list'."
-            )
-        )
-        idx_list = result_idx_list
+            idx_list = result_idx_list
 
     if result is None:
         exceptions["None"] = QurryCountLost("Result is None")
@@ -123,6 +110,7 @@ def get_counts_and_exceptions(
     for i in idx_list:
         try:
             all_meas = result.get_counts(i)
+            assert isinstance(all_meas, dict), "The counts is not a dict."
         except QiskitError as err_2:
             exceptions[f"{result.job_id}.{i}"] = err_2
             print(
