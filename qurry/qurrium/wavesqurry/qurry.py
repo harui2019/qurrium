@@ -13,9 +13,7 @@ import tqdm
 from qiskit import QuantumCircuit
 
 from .experiment import WavesQurryExperiment
-from ..qurrium import (
-    QurryPrototype,
-)
+from ..qurrium import QurryPrototype
 from ..container import ExperimentContainer
 
 

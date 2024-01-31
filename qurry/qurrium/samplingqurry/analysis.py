@@ -22,13 +22,17 @@ class QurryAnalysis(AnalysisPrototype):
         ultimate_question: str
         """ULtImAte QueStIoN."""
 
+    input: AnalysisInput
+
     class AnalysisContent(NamedTuple):
-        """To set the analysis."""
+        """Analysis content."""
 
         utlmatic_answer: int
         """~The Answer to the Ultimate Question of Life, The Universe, and Everything.~"""
         dummy: int
         """Just a dummy field."""
+
+    content: AnalysisContent
 
     @property
     def default_side_product_fields(self) -> Iterable[str]:
