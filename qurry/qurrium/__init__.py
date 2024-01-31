@@ -4,9 +4,9 @@ Qurrium (:mod:`qurry.qurry.qurrium`)
 ================================================================
 
 """
-from .qurryV5 import QurryV5, QurryV5Prototype
-from .experiment import QurryExperiment, ExperimentPrototype
-from .analysis import QurryAnalysis, AnalysisPrototype
+from .qurrium import QurryPrototype
+from .experiment import ExperimentPrototype, ArgumentsPrototype
+from .analysis import AnalysisPrototype
 from .wavesqurry import WavesExecuter, WavesQurryExperiment, WavesQurryAnalysis
 
 from .utils import decomposer
