@@ -6,7 +6,7 @@ WaveContainer
 
 """
 
-from typing import Literal, Union, Optional, Hashable, MutableMapping
+from typing import Literal, Union, Optional, Hashable, overload
 from qiskit import QuantumCircuit
 from qiskit.quantum_info import Operator
 from qiskit.circuit import Gate, Instruction
@@ -24,7 +24,7 @@ class WaveContainer(dict[Hashable, QuantumCircuit]):
         super().__init__(*args, **kwargs)
 
     def add(
-        self: MutableMapping[Hashable, QuantumCircuit],
+        self,
         wave: QuantumCircuit,
         key: Optional[Hashable] = None,
         replace: Literal[True, False, "duplicate"] = False,
@@ -44,10 +44,7 @@ class WaveContainer(dict[Hashable, QuantumCircuit]):
         """
         return _add(_wave_container=self, wave=wave, key=key, replace=replace)
 
-    def remove(
-        self: MutableMapping[Hashable, QuantumCircuit],
-        key: Hashable,
-    ) -> None:
+    def remove(self, key: Hashable) -> None:
         """Remove wave from container.
 
         Args:
@@ -55,16 +52,47 @@ class WaveContainer(dict[Hashable, QuantumCircuit]):
         """
         _remove(self, key)
 
+    @overload
+    def get_wave(self, wave: list[Hashable], run_by: Literal["gate"]) -> list[Gate]:
+        ...
+
+    @overload
     def get_wave(
-        self: MutableMapping[Hashable, QuantumCircuit],
-        wave: Union[list[Hashable], Hashable, None] = None,
-        run_by: Optional[
-            Literal["gate", "operator", "instruction", "copy", "call"]
-        ] = None,
-    ) -> Union[
-        list[Union[Gate, Operator, Instruction, QuantumCircuit]],
-        Union[Gate, Operator, Instruction, QuantumCircuit],
-    ]:
+        self, wave: list[Hashable], run_by: Literal["operator"]
+    ) -> list[Operator]:
+        ...
+
+    @overload
+    def get_wave(
+        self, wave: list[Hashable], run_by: Literal["instruction"]
+    ) -> list[Instruction]:
+        ...
+
+    @overload
+    def get_wave(
+        self, wave: list[Hashable], run_by: Optional[Literal["copy", "call"]]
+    ) -> list[QuantumCircuit]:
+        ...
+
+    @overload
+    def get_wave(self, wave: Hashable, run_by: Literal["gate"]) -> Gate:
+        ...
+
+    @overload
+    def get_wave(self, wave: Hashable, run_by: Literal["operator"]) -> Operator:
+        ...
+
+    @overload
+    def get_wave(self, wave: Hashable, run_by: Literal["instruction"]) -> Instruction:
+        ...
+
+    @overload
+    def get_wave(
+        self, wave: Hashable, run_by: Optional[Literal["copy", "call"]]
+    ) -> QuantumCircuit:
+        ...
+
+    def get_wave(self, wave=None, run_by=None):
         """Parse wave Circuit into `Instruction` as `Gate` or `Operator` on `QuantumCircuit`.
 
         Args:
@@ -105,23 +133,26 @@ class WaveContainer(dict[Hashable, QuantumCircuit]):
             return self[wave].copy()
         if run_by == "call":
             return self[wave]
-
         return self[wave].to_gate()
 
-    def call(
-        self: MutableMapping[Hashable, QuantumCircuit],
-        wave: Union[list[Hashable], Hashable, None] = None,
-    ) -> Union[list[QuantumCircuit], QuantumCircuit]:
+    @overload
+    def call(self, wave: list[Hashable]) -> list[QuantumCircuit]:
+        ...
+
+    @overload
+    def call(self, wave: Hashable) -> QuantumCircuit:
+        ...
+
+    def call(self, wave):
         """Export wave function as `QuantumCircuit`.
 
         Args:
-            wave (Optional[Hashable], optional):
-                The key of wave in 'fict' `.waves`.
-
-                Defaults to None.
+            wave (Union[list[Hashable], Hashable]):
+                The key of wave in 'dict' `.waves`.
 
         Returns:
-            QuantumCircuit: The circuit of wave function.
+            Union[list[QuantumCircuit], QuantumCircuit]:
+                The circuit of wave function.
         """
         return self.get_wave(
             wave=wave,
@@ -129,43 +160,38 @@ class WaveContainer(dict[Hashable, QuantumCircuit]):
         )
 
     def __call__(
-        self: MutableMapping[Hashable, QuantumCircuit],
-        wave: Union[list[Hashable], Hashable, None] = None,
+        self, wave: Union[list[Hashable], Hashable]
     ) -> Union[list[QuantumCircuit], QuantumCircuit]:
         return self.call(wave=wave)
 
     def operator(
-        self: MutableMapping[Hashable, QuantumCircuit],
-        wave: Union[list[Hashable], Hashable, None] = None,
+        self, wave: Union[list[Hashable], Hashable]
     ) -> Union[list[Operator], Operator]:
         """Export wave function as `Operator`.
 
         Args:
-            wave (Optional[Hashable], optional):
-                The key of wave in 'fict' `.waves`.
-                Defaults to None.
+            wave (Union[list[Hashable], Hashable]):
+                The key of wave in 'dict' `.waves`.
 
         Returns:
-            Operator: The operator of wave function.
+            Union[list[Operator], Operator]:
+                The operator of wave function.
         """
         return self.get_wave(
             wave=wave,
             run_by="operator",
         )
 
-    def gate(
-        self: MutableMapping[Hashable, QuantumCircuit],
-        wave: Union[list[Hashable], Hashable, None] = None,
-    ) -> Union[list[Gate], Gate]:
-        """Export wave function as `Operator`.
+    def gate(self, wave: Union[list[Hashable], Hashable]) -> Union[list[Gate], Gate]:
+        """Export wave function as `Gate`.
 
         Args:
-            wave (Optional[Hashable], optional):
-                The key of wave in 'fict' `.waves`.
-                Defaults to None.
+            wave (Union[list[Hashable], Hashable]):
+                The key of wave in 'dict' `.waves`.
 
         Returns:
-            Operator: The operator of wave function.
+            Union[list[Gate], Gate]:
+                The gate of wave function.
         """
         return self.get_wave(
             wave=wave,
@@ -173,18 +199,17 @@ class WaveContainer(dict[Hashable, QuantumCircuit]):
         )
 
     def copy_circuit(
-        self: MutableMapping[Hashable, QuantumCircuit],
-        wave: Union[list[Hashable], Hashable, None] = None,
-    ) -> Union[list[Gate], Gate]:
-        """Export wave function as `Operator`.
+        self, wave: Union[list[Hashable], Hashable]
+    ) -> Union[list[QuantumCircuit], QuantumCircuit]:
+        """Export a copy of wave function as `QuantumCircuit`.
 
         Args:
-            wave (Optional[Hashable], optional):
-                The key of wave in 'fict' `.waves`.
-                Defaults to None.
+            wave (Union[list[Hashable], Hashable]):
+                The key of wave in 'dict' `.waves`.
 
         Returns:
-            Operator: The operator of wave function.
+            Union[list[QuantumCircuit], QuantumCircuit]:
+                The copy circuit of wave function.
         """
         return self.get_wave(
             wave=wave,
@@ -192,28 +217,24 @@ class WaveContainer(dict[Hashable, QuantumCircuit]):
         )
 
     def instruction(
-        self: MutableMapping[Hashable, QuantumCircuit],
-        wave: Union[list[Hashable], Hashable, None] = None,
-    ) -> Union[list[Gate], Gate]:
-        """Export wave function as `Operator`.
+        self, wave: Union[list[Hashable], Hashable]
+    ) -> Union[list[Instruction], Instruction]:
+        """Export wave function as `Instruction`.
 
         Args:
-            wave (Optional[Hashable], optional):
-                The key of wave in 'fict' `.waves`.
-                Defaults to None.
+            wave (Union[list[Hashable], Hashable]):
+                The key of wave in 'dict' `.waves`.
 
         Returns:
-            Operator: The operator of wave function.
+            Union[list[Instruction], Instruction]:
+                The instruction of wave function.
         """
         return self.get_wave(
             wave=wave,
             run_by="instruction",
         )
 
-    def has(
-        self: MutableMapping[Hashable, QuantumCircuit],
-        wavename: Hashable,
-    ) -> bool:
+    def has(self, wavename: Hashable) -> bool:
         """Is there a wave with specific name.
 
         Args:

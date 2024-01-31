@@ -4,19 +4,19 @@ The container for quantities of analysis for :cls:`MultiManager`.
 (:mod:`qurry.qurrium.container.multiquantity`)
 ================================================================
 """
-from typing import Union, Optional, Literal
+from typing import Union, Optional, Literal, Hashable
 from pathlib import Path
 
 from ...tools import qurry_progressbar
 from ...capsule.mori import TagList
 
 
-class QuantityContainer(dict[str, TagList[dict[str, float]]]):
+class QuantityContainer(dict[str, TagList[Hashable, dict[str, float]]]):
     """The container for quantities of analysis for :cls:`MultiManager`."""
 
     __name__ = "QuantityContainer"
 
-    def remove(self, name: str) -> TagList[dict[str, float]]:
+    def remove(self, name: str) -> TagList[Hashable, dict[str, float]]:
         """Removes the analysis.
 
         Args:
@@ -43,7 +43,7 @@ class QuantityContainer(dict[str, TagList[dict[str, float]]]):
         """
         self[key] = TagList.read(
             save_location=save_location,
-            tagListName=taglist_name,
+            taglist_name=taglist_name,
             name=name,
         )
 
@@ -82,14 +82,14 @@ class QuantityContainer(dict[str, TagList[dict[str, float]]]):
             quantity_progress.set_description_str(f"exporting quantity: {k}")
             filename = v.export(
                 save_location=save_location,
-                tagListName="quantity",
+                taglist_name="quantity",
                 name=f"{k}",
                 filetype=filetype,
-                openArgs={
+                open_args={
                     "mode": "w+",
                     "encoding": encoding,
                 },
-                jsonDumpArgs={
+                json_dump_args={
                     "indent": indent,
                 },
             )
