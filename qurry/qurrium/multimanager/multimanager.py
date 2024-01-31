@@ -29,10 +29,10 @@ from ...tools import qurry_progressbar
 from ...capsule import quickJSON
 from ...capsule.mori import TagList, GitSyncControl
 from ...exceptions import (
-    QurryInvalidArgument,
     QurryProtectContent,
     QurryResetAccomplished,
     QurryResetSecurityActivated,
+    QurryHashIDInvalid,
 )
 
 
@@ -157,13 +157,12 @@ class MultiManager:
     def __init__(
         self,
         *args,
-        summoner_id: Hashable,
+        summoner_id: Optional[str],
         summoner_name: str,
         save_location: Union[Path, str] = Path("./"),
         is_read: bool = False,
         encoding: str = "utf-8",
         read_from_tarfile: bool = False,
-        filetype: TagList._availableFileType = "json",
         version: Literal["v4", "v5"] = "v5",
         **kwargs,
     ) -> None:
@@ -199,7 +198,7 @@ class MultiManager:
             summoner_id = None
             warnings.warn(
                 f"summoner_id is not a valid UUID, it will be generated automatically.\n{e}",
-                category=QurryInvalidArgument,
+                category=QurryHashIDInvalid,
             )
         finally:
             if summoner_id is None:
@@ -315,7 +314,6 @@ class MultiManager:
                 "summoner_name": self.naming_complex.expsName,
                 "save_location": self.naming_complex.save_location,
                 "export_location": self.naming_complex.export_location,
-                "filetype": filetype,
             }
             self.beforewards = self.Before(
                 exps_config={},
@@ -328,7 +326,7 @@ class MultiManager:
                 index_taglist=TagList(),
             )
             self.afterwards = self.After(
-                retrievedResult={},
+                retrievedResult=TagList(),
                 allCounts={},
             )
             self.quantity_container = QuantityContainer()
@@ -420,6 +418,11 @@ class MultiManager:
             exps_instance.beforewards.circuit
         )
         self.beforewards.job_taglist[exps_instance.commons.tags].append(current_id)
+        assert isinstance(exps_instance.commons.serial, int), (
+            f"Serial is not int, exp_id: {exps_instance.commons.exp_id} and "
+            + f"serial: {exps_instance.commons.serial}."
+            + "It should be int."
+        )
         self.beforewards.index_taglist[exps_instance.commons.tags].append(
             exps_instance.commons.serial
         )
@@ -541,13 +544,13 @@ class MultiManager:
                 tmp: TagList = self[k]
                 filename = tmp.export(
                     save_location=self.multicommons.export_location,
-                    tagListName=f"{exporting_name[k]}",
+                    taglist_name=f"{exporting_name[k]}",
                     filetype=self.multicommons.filetype,
-                    openArgs={
+                    open_args={
                         "mode": "w+",
                         "encoding": encoding,
                     },
-                    jsonDumpArgs={
+                    json_dump_args={
                         "indent": indent,
                     },
                 )
@@ -644,13 +647,13 @@ class MultiManager:
                 ].append(files)
             self.beforewards.files_taglist.export(
                 save_location=self.multicommons.export_location,
-                tagListName=f"{exporting_name['files_taglist']}",
+                taglist_name=f"{exporting_name['files_taglist']}",
                 filetype=self.multicommons.filetype,
-                openArgs={
+                open_args={
                     "mode": "w+",
                     "encoding": encoding,
                 },
-                jsonDumpArgs={
+                json_dump_args={
                     "indent": indent,
                 },
             )
@@ -762,8 +765,9 @@ class MultiManager:
             tqdm_handleable = wave_continer[k].tqdm_handleable
 
             if k in specific_analysis_args:
-                if isinstance(specific_analysis_args[k], bool):
-                    if specific_analysis_args[k] is False:
+                v_args = specific_analysis_args[k]
+                if isinstance(v_args, bool):
+                    if v_args is False:
                         all_counts_progress.set_description_str(
                             f"Skipped {k} in {self.summoner_id}."
                         )
@@ -774,7 +778,7 @@ class MultiManager:
                     )
                 else:
                     report = wave_continer[k].analyze(
-                        **specific_analysis_args[k],
+                        **v_args,
                         **({"pbar": all_counts_progress} if tqdm_handleable else {}),
                     )
             else:
