@@ -26,7 +26,7 @@ from ...exceptions import (
     # QurryRustUnavailableWarning,
 )
 from ...tools import (
-    ProcessManager,
+    ParallelManager,
     workers_distribution,
 )
 
@@ -48,7 +48,9 @@ from ...tools import (
 #         ) from FAILED_RUST_IMPORT
 
 ExistingProcessBackendLabel = Literal["Cython", "Rust", "Python"]
-BackendAvailabilities: dict[ExistingProcessBackendLabel, Union[bool, ImportError]] = {
+BackendAvailabilities: dict[
+    ExistingProcessBackendLabel, Union[bool, ImportError, None]
+] = {
     "Cython": CYTHON_AVAILABLE if CYTHON_AVAILABLE else FAILED_PYX_IMPORT,
     # "Rust": RUST_AVAILABLE if RUST_AVAILABLE else FAILED_RUST_IMPORT,
     "Python": True,
@@ -65,10 +67,16 @@ def overlap_echo_core_pycyrust(
     shots: int,
     counts: list[dict[str, int]],
     degree: Union[tuple[int, int], int],
-    measure: tuple[int, int] = None,
+    measure: Optional[tuple[int, int]] = None,
     multiprocess_pool_size: Optional[int] = None,
     backend: ExistingProcessBackendLabel = DEFAULT_PROCESS_BACKEND,
-) -> tuple[dict[int, float], tuple[int, int], tuple[int, int], str, float]:
+) -> tuple[
+    Union[dict[int, float], dict[int, np.float64]],
+    tuple[int, int],
+    tuple[int, int],
+    str,
+    float,
+]:
     """The core function of entangled entropy.
 
     Args:
@@ -90,7 +98,13 @@ def overlap_echo_core_pycyrust(
         ValueError: Measure range does not contain subsystem.
 
     Returns:
-        tuple[dict[int, float], tuple[int, int], tuple[int, int], str, float]:
+        tuple[
+            Union[dict[int, float], dict[int, np.float64]],
+            tuple[int, int],
+            tuple[int, int],
+            str,
+            float
+        ]:
             Purity of each cell, Partition range, Measuring range, Message, Time to calculate.
     """
 
@@ -185,7 +199,7 @@ def overlap_echo_core_pycyrust(
     else:
         msg += f", {launch_worker} workers, {times} overlaps."
 
-        pool = ProcessManager(launch_worker)
+        pool = ParallelManager(launch_worker)
         echo_cell_items = pool.starmap(
             cell_calculation,
             [
@@ -195,8 +209,10 @@ def overlap_echo_core_pycyrust(
         )
         take_time = round(time.time() - begin_time, 3)
 
-    purity_cell_dict = dict(echo_cell_items)
-    return purity_cell_dict, bitstring_range, measure, msg, take_time
+    echo_cell_dict: Union[dict[int, float], dict[int, np.float64]] = dict(
+        echo_cell_items
+    )  # type: ignore
+    return echo_cell_dict, bitstring_range, measure, msg, take_time
 
 
 # def overlap_echo_allrust(
@@ -211,7 +227,8 @@ def overlap_echo_core_pycyrust(
 #         shots (int): Shots of the experiment on quantum machine.
 #         counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
 #         degree (Union[tuple[int, int], int]): Degree of the subsystem.
-#         measure (tuple[int, int], optional): Measuring range on quantum circuits. Defaults to None.
+#         measure (tuple[int, int], optional):
+#             Measuring range on quantum circuits. Defaults to None.
 #         backend (ExistingProcessBackendLabel, optional):
 #             The backend of the process, 'Cython', 'Rust' or 'Python'.
 #             Defaults to DEFAULT_PROCESS_BACKEND.
@@ -232,10 +249,16 @@ def overlap_echo_core(
     shots: int,
     counts: list[dict[str, int]],
     degree: Union[tuple[int, int], int],
-    measure: tuple[int, int] = None,
+    measure: Optional[tuple[int, int]] = None,
     multiprocess_pool_size: Optional[int] = None,
     backend: ExistingProcessBackendLabel = DEFAULT_PROCESS_BACKEND,
-) -> tuple[dict[int, float], tuple[int, int], tuple[int, int], str, float]:
+) -> tuple[
+    Union[dict[int, float], dict[int, np.float64]],
+    tuple[int, int],
+    tuple[int, int],
+    str,
+    float,
+]:
     """The core function of entangled entropy.
 
     Args:
@@ -257,12 +280,18 @@ def overlap_echo_core(
         ValueError: Measure range does not contain subsystem.
 
     Returns:
-        tuple[dict[int, float], tuple[int, int], tuple[int, int], str, float]:
+        tuple[
+            Union[dict[int, float], dict[int, np.float64]],
+            tuple[int, int],
+            tuple[int, int],
+            str,
+            float,
+        ]:
             Purity of each cell, Partition range, Measuring range, Message, Time to calculate.
     """
 
     if isinstance(measure, list):
-        measure = tuple(measure)
+        measure = tuple(measure)  # type: ignore
 
     # if backend == "Rust":
     #     if RUST_AVAILABLE:
@@ -283,7 +312,7 @@ def randomized_overlap_echo(
     shots: int,
     counts: list[dict[str, int]],
     degree: Union[tuple[int, int], int],
-    measure: tuple[int, int] = None,
+    measure: Optional[tuple[int, int]] = None,
     backend: ExistingProcessBackendLabel = DEFAULT_PROCESS_BACKEND,
     workers_num: Optional[int] = None,
     pbar: Optional[tqdm.tqdm] = None,
@@ -354,7 +383,9 @@ def randomized_overlap_echo(
         backend=backend,
         multiprocess_pool_size=workers_num,
     )
-    echo_cell_list = list(echo_cell_dict.values())
+    echo_cell_list: Union[list[float], list[np.float64]] = list(
+        echo_cell_dict.values()
+    )  # type: ignore
 
     echo = np.mean(echo_cell_list, dtype=np.float64)
     purity_sd = np.std(echo_cell_list, dtype=np.float64)

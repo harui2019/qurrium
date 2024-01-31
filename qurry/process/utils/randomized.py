@@ -5,8 +5,9 @@ Randomized Measure Kit for Qurry
 ================================================================
 
 """
+
 import warnings
-from typing import Callable, Iterable, Union, Optional, Literal
+from typing import Callable, Union, Optional, Literal, overload
 import numpy as np
 
 from ...exceptions import (
@@ -57,8 +58,8 @@ except ImportError as err:
 
 try:
     from ...boost.randomized import (
-        ensembleCell,
-        cycling_slice as cycling_slice_cy_source,
+        ensembleCell,  # type: ignore
+        cycling_slice as cycling_slice_cy_source,  # type: ignore
     )
 
     CYTHON_AVAILABLE = True
@@ -82,7 +83,9 @@ except ImportError as err:
 
 
 ExistingProcessBackendLabel = Literal["Cython", "Rust", "Python"]
-BackendAvailabilities: dict[ExistingProcessBackendLabel, Union[bool, ImportError]] = {
+BackendAvailabilities: dict[
+    ExistingProcessBackendLabel, Union[bool, ImportError, None]
+] = {
     "Cython": CYTHON_AVAILABLE if CYTHON_AVAILABLE else FAILED_PYX_IMPORT,
     "Rust": RUST_AVAILABLE if RUST_AVAILABLE else FAILED_RUST_IMPORT,
     "Python": True,
@@ -109,10 +112,15 @@ def make_two_bit_str(num: int, bits: Optional[list[str]] = None) -> list[str]:
     Returns:
         list[str]: The list of bit strings.
     """
+    bits = [""] if bits is None else bits
+
     return (
-        (lambda bits: [*["0" + item for item in bits], *["1" + item for item in bits]])(
-            make_two_bit_str(num - 1, [""] if bits is None else [""])
-        )
+        (
+            lambda bits_inner: [
+                *["0" + item for item in bits_inner],
+                *["1" + item for item in bits_inner],
+            ]
+        )(make_two_bit_str(num - 1, bits))
         if num > 0
         else bits
     )
@@ -206,7 +214,7 @@ def ensemble_cell(
 
     """
     diff = sum(s1 != s2 for s1, s2 in zip(s_i, s_j))  # hamming_distance(sAi, sAj)
-    tmp: np.float64 = (
+    tmp = (
         np.float_power(2, a_num, dtype=np.float64)
         * np.float_power(-2, -diff, dtype=np.float64)
         * (np.float64(s_i_meas) / shots)
@@ -284,11 +292,23 @@ def ensemble_cell_rust(
     return ensemble_cell(s_i, s_i_meas, s_j, s_j_meas, a_num, shots)
 
 
-def cycling_slice(target: Iterable, start: int, end: int, step: int = 1) -> Iterable:
+@overload
+def cycling_slice(target: list, start: int, end: int, step: int = 1) -> list: ...
+
+
+@overload
+def cycling_slice(target: str, start: int, end: int, step: int = 1) -> str: ...
+
+
+@overload
+def cycling_slice(target: tuple, start: int, end: int, step: int = 1) -> tuple: ...
+
+
+def cycling_slice(target, start, end, step=1):
     """Slice a iterable object with cycling.
 
     Args:
-        target (Iterable): The target object.
+        target (_ListT): The target object.
         start (int): Index of start.
         end (int): Index of end.
         step (int, optional): Step of slice. Defaults to 1.
@@ -319,7 +339,7 @@ def cycling_slice(target: Iterable, start: int, end: int, step: int = 1) -> Iter
     return new_string[::step]
 
 
-def cycling_slice_cy(target: Iterable, start: int, end: int, step: int = 1) -> Iterable:
+def cycling_slice_cy(target: str, start: int, end: int, step: int = 1) -> str:
     """Slice a iterable object with cycling.
 
     Args:
@@ -344,13 +364,11 @@ def cycling_slice_cy(target: Iterable, start: int, end: int, step: int = 1) -> I
     return cycling_slice(target, start, end, step)
 
 
-def cycling_slice_rust(
-    target: Iterable, start: int, end: int, step: int = 1
-) -> Iterable:
+def cycling_slice_rust(target: str, start: int, end: int, step: int = 1) -> str:
     """Slice a iterable object with cycling.
 
     Args:
-        target (Iterable): The target object.
+        target (str): The target object.
         start (int): Index of start.
         end (int): Index of end.
         step (int, optional): Step of slice. Defaults to 1.
@@ -359,7 +377,7 @@ def cycling_slice_rust(
         IndexError: Slice out of range.
 
     Returns:
-        Iterable: The sliced object.
+        str: The sliced object.
     """
     if RUST_AVAILABLE:
         return cycling_slice_rust_source(target, start, end, step)

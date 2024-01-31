@@ -46,7 +46,7 @@ def hadamard_entangled_entropy(
     elif is_one_include:
         purity = only_counts["1"] / shots
     else:
-        purity = np.Nan
+        purity = np.nan
         raise ValueError("Expected '0' and '1', but there is no such keys")
 
     entropy = -np.log2(purity)
@@ -94,7 +94,7 @@ def hadamard_overlap_echo(
     elif is_one_include:
         echo = only_count["1"] / shots
     else:
-        echo = np.Nan
+        echo = np.nan
         raise ValueError("Expected '0' and '1', but there is no such keys")
 
     quantity = {
