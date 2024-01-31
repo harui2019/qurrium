@@ -95,8 +95,8 @@ class ParallelManager:
 
     def starmap(
         self,
-        func: Callable[[Iterable[T_tgt]], T_map],
-        args_list: Iterable[Iterable[T_tgt]],
+        func: Callable[..., T_map],
+        args_list: Iterable,
     ) -> list[T_map]:
         """Multiprocessing starmap.
 
