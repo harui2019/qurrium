@@ -13,7 +13,7 @@ import gc
 import tqdm
 
 from .container import CommonparamsDict, REQUIRED_FOLDER
-from ...tools import ProcessManager
+from ...tools import ParallelManager
 from ...capsule import quickJSON
 
 
@@ -253,7 +253,7 @@ class Export(NamedTuple):
                 os.mkdir(folder / k)
 
         if multiprocess:
-            pool = ProcessManager()
+            pool = ParallelManager()
             pool.starmap(
                 quickJSON,
                 [
