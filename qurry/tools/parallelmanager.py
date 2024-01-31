@@ -5,7 +5,7 @@ ProcessManager (:mod:`qurry.tools.processmanager`)
 
 """
 import warnings
-from typing import Optional, Iterable, Callable, TypeVar
+from typing import Optional, Iterable, Callable, TypeVar, Any
 from multiprocessing import Pool, cpu_count
 from tqdm.contrib.concurrent import process_map
 
@@ -114,10 +114,31 @@ class ParallelManager:
         with Pool(processes=self.workers_num, **self.pool_kwargs) as pool:
             return pool.starmap(func, args_list)
 
+    def map(
+        self,
+        func: Callable[[T_tgt], T_map],
+        arg_list: Iterable[T_tgt],
+    ) -> list[T_map]:
+        """Multiprocessing starmap.
+
+        Args:
+            func (Callable[[Iterable[T_tgt]], T_map]): Function to be mapped.
+            arg_list (Iterable[Iterable[T_tgt]]): Arguments to be mapped.
+
+        Returns:
+            list[T_map]: Results.
+        """
+
+        if self.workers_num == 1:
+            return list(map(func, arg_list))
+
+        with Pool(processes=self.workers_num, **self.pool_kwargs) as pool:
+            return pool.map(func, arg_list)
+
     def process_map(
         self,
-        func: Callable[[Iterable[T_tgt]], T_map],
-        args_list: Iterable[Iterable[T_tgt]],
+        func: Callable[..., T_map],
+        args_list: Iterable[Iterable[Any]],
         bar_format: str = "qurry-full",
         bar_ascii: str = "4squares",
         **kwargs,
@@ -141,7 +162,7 @@ class ParallelManager:
 
         return process_map(
             func,
-            args_list,
+            *zip(*args_list),
             **kwargs,
             ascii=actual_ascii,
             bar_format=actual_bar_format,
