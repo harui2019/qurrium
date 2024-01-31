@@ -8,9 +8,11 @@ Runner for running on Different Backends (IBM, IBMQ, ThirdParty, etc.)
 from .runner import Runner, ThirdPartyRunner
 from .accesor import (
     BACKEND_AVAILABLE,
-    BackendChoice,
     BackendChoiceLiteral,
+    BackendChoice,
     ExtraBackendAccessor,
+    PendingStrategyLiteral,
+    PendingStrategy,
 )
 
 if BACKEND_AVAILABLE["IBMQ"]:

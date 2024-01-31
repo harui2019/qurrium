@@ -6,7 +6,7 @@ Runner for IBM backend
 
 """
 import warnings
-from typing import Literal, Hashable, Union, Optional, Iterable
+from typing import Hashable, Union, Optional, Iterable
 from qiskit import QuantumCircuit
 
 from ...exceptions import QurryExtraPackageRequired
@@ -53,6 +53,7 @@ except ImportError:
 
 
 from .runner import Runner, retrieve_times_namer
+from .accesor import PendingStrategyLiteral
 from ..multimanager import MultiManager
 from ..container import ExperimentContainer
 from ..utils import get_counts_and_exceptions
@@ -132,7 +133,7 @@ class IBMRunner(Runner):
 
     def pending(
         self,
-        pending_strategy: Literal["onetime", "each", "tags"] = "onetime",
+        pending_strategy: PendingStrategyLiteral = "tags",
         backend: Optional[IBMBackend] = None,
     ) -> list[tuple[Optional[str], str]]:
         """Pending jobs to remote backend.

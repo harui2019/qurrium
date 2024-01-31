@@ -25,6 +25,7 @@ except ImportError as exception:
     ) from exception
 
 from .runner import Runner, retrieve_times_namer
+from .accesor import PendingStrategyLiteral
 from ..multimanager import MultiManager
 from ..container import ExperimentContainer
 from ..utils import get_counts_and_exceptions
@@ -93,7 +94,7 @@ class IBMQRunner(Runner):
 
     def pending(
         self,
-        pending_strategy: Literal["default", "onetime", "each", "tags"] = "default",
+        pending_strategy: PendingStrategyLiteral = "tags",
         backend: Optional[IBMQBackend] = None,
     ) -> list[tuple[Optional[str], str]]:
         """Pending jobs to remote backend.

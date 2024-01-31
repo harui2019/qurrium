@@ -23,6 +23,8 @@ BackendChoice: list[BackendChoiceLiteral] = [
     # "AWS_Bracket",
     # "Azure_Q"
 ]
+PendingStrategyLiteral = Literal["onetime", "each", "tags"]
+PendingStrategy: list[PendingStrategyLiteral] = ["onetime", "each", "tags"]
 
 
 def acessibility() -> dict[BackendChoiceLiteral, bool]:
@@ -169,7 +171,7 @@ class ExtraBackendAccessor:
 
     def pending(
         self,
-        pending_strategy: Literal["onetime", "each", "tags"] = "tags",
+        pending_strategy: PendingStrategyLiteral = "tags",
     ) -> tuple[str, list[tuple[Optional[str], str]]]:
         """Pending jobs to remote backend."""
 
