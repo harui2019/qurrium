@@ -1,7 +1,7 @@
 """
 ===========================================================
 Qurry - A Qiskit Macro
-(:mod:`qurry.qurry.qurrium.qurryV5`)
+(:mod:`qurry.qurry.qurrium.qurrium`)
 
 Refactoring from :mod:`qurry.qurrium.qurryV5`.
 ===========================================================

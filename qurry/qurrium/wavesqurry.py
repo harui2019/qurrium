@@ -5,17 +5,20 @@ Waves Qurry (:mod:`qurry.qurrium.wavesqurry`)
 
 It is only for pendings and retrieve to remote backend.
 """
-from typing import Union, Optional, NamedTuple, Hashable, Iterable, Type, Any
+
+from typing import Union, Optional, NamedTuple, Hashable, Iterable, Any
 from pathlib import Path
 import tqdm
 
 from qiskit import QuantumCircuit
 
 from ..qurrium import (
-    QurryV5Prototype,
+    QurryPrototype,
     ExperimentPrototype,
     AnalysisPrototype,
+    ArgumentsPrototype,
 )
+from ..qurrium.container import ExperimentContainer
 from ..exceptions import QurryExperimentCountsNotCompleted
 
 
@@ -49,17 +52,17 @@ class WavesQurryExperiment(ExperimentPrototype):
 
     __name__ = "WavesQurryExperiment"
 
-    class Arguments(NamedTuple):
+    class Arguments(ArgumentsPrototype):
         """Construct the experiment's parameters for specific options,
         which is overwritable by the inherition class."""
 
-        exp_name: str = "exps"
-        waves: Iterable[Hashable] = []
+        waves: list[Hashable] = []
 
-    @classmethod
-    @property
-    def analysis_container(cls) -> Type[WavesQurryAnalysis]:
-        return WavesQurryAnalysis
+    args: Arguments
+
+    @staticmethod
+    def analysis_container(*args, **kwargs) -> WavesQurryAnalysis:
+        return WavesQurryAnalysis(*args, **kwargs)
 
     @classmethod
     def quantities(
@@ -67,7 +70,7 @@ class WavesQurryExperiment(ExperimentPrototype):
         shots: Optional[int] = None,
         counts: Optional[list[dict[str, int]]] = None,
         ultimate_question: str = "",
-    ) -> dict[str, float]:
+    ) -> dict[str, Union[float, int]]:
         """Computing specific squantity.
         Where should be overwritten by each construction of new measurement.
 
@@ -81,7 +84,7 @@ class WavesQurryExperiment(ExperimentPrototype):
             )
         print("| ultimate_question:", ultimate_question)
         dummy = -100
-        utlmatic_answer = (42,)
+        utlmatic_answer = 42
         return {
             "dummy": dummy,
             "utlmatic_answer": utlmatic_answer,
@@ -116,20 +119,21 @@ class WavesQurryExperiment(ExperimentPrototype):
         return analysis
 
 
-class WavesExecuter(QurryV5Prototype):
+class WavesExecuter(QurryPrototype):
     """The pending and retrieve executer for waves."""
 
-    @classmethod
-    @property
-    def experiment(cls) -> Type[WavesQurryExperiment]:
+    @staticmethod
+    def experiment(*args, **kwargs) -> WavesQurryExperiment:
         """The container class responding to this QurryV5 class."""
-        return WavesQurryExperiment
+        return WavesQurryExperiment(*args, **kwargs)
+
+    exps: ExperimentContainer[WavesQurryExperiment]
 
     def params_control(
         self,
         wave_key: Hashable = None,
         exp_name: str = "exps",
-        waves: Optional[Iterable[Hashable]] = None,
+        waves: Optional[list[Hashable]] = None,
         **other_kwargs: Any,
     ) -> tuple[
         WavesQurryExperiment.Arguments,
