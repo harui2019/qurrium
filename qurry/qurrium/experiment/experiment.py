@@ -46,8 +46,11 @@ class ExperimentPrototype(ABC):
     __name__ = "ExperimentPrototype"
     """Name of the QurryExperiment which could be overwritten."""
 
-    Arguments = ArgumentsPrototype
-    """Arguments of experiment."""
+    @abstractmethod
+    class Arguments(ArgumentsPrototype):
+        """Construct the experiment's parameters for specific options,
+        which is overwritable by the inherition class."""
+
     Commonparams = ExperimentCommonparams
     """Common parameters of experiment."""
     Before = ExperimentBefore
