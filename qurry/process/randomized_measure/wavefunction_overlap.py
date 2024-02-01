@@ -66,7 +66,7 @@ DEFAULT_PROCESS_BACKEND: ExistingProcessBackendLabel = (
 def overlap_echo_core_pycyrust(
     shots: int,
     counts: list[dict[str, int]],
-    degree: Union[tuple[int, int], int],
+    degree: Optional[Union[tuple[int, int], int]] = None,
     measure: Optional[tuple[int, int]] = None,
     multiprocess_pool_size: Optional[int] = None,
     backend: ExistingProcessBackendLabel = DEFAULT_PROCESS_BACKEND,
@@ -248,7 +248,7 @@ def overlap_echo_core_pycyrust(
 def overlap_echo_core(
     shots: int,
     counts: list[dict[str, int]],
-    degree: Union[tuple[int, int], int],
+    degree: Optional[Union[tuple[int, int], int]],
     measure: Optional[tuple[int, int]] = None,
     multiprocess_pool_size: Optional[int] = None,
     backend: ExistingProcessBackendLabel = DEFAULT_PROCESS_BACKEND,
@@ -311,7 +311,7 @@ def overlap_echo_core(
 def randomized_overlap_echo(
     shots: int,
     counts: list[dict[str, int]],
-    degree: Union[tuple[int, int], int],
+    degree: Optional[Union[tuple[int, int], int]] = None,
     measure: Optional[tuple[int, int]] = None,
     backend: ExistingProcessBackendLabel = DEFAULT_PROCESS_BACKEND,
     workers_num: Optional[int] = None,
