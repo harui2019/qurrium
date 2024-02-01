@@ -7,7 +7,7 @@ Qurrech - Wave Function Overlap
 """
 from typing import Literal, Union, overload
 
-from .hadamaed_test import EchoHadamardTest
+from .hadamard_test import EchoHadamardTest
 from .randomized_measure import EchoRandomizedListen
 
 
