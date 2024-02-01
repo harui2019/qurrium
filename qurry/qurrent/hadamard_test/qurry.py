@@ -1,153 +1,24 @@
 """
 ================================================================
 Second Renyi Entropy - Hadamard Test
-(:mod:`qurry.qurrent.hadamard_test`)
+(:mod:`qurry.qurrent.hadamard_test.qurry`)
 ================================================================
 
 """
+
 from pathlib import Path
-from typing import Union, Optional, NamedTuple, Hashable, Iterable, Type, Any
+from typing import Union, Optional, Hashable, Any
 import tqdm
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 
-from ..qurrium import (
-    QurryV5Prototype,
-    ExperimentPrototype,
-    AnalysisPrototype,
-)
-from ..process.utils import qubit_selector
-from ..process.hadamard_test import hadamard_entangled_entropy
+from .experiment import EntropyHadamardExperiment
+from ...qurrium.qurrium import QurryPrototype
+from ...qurrium.container import ExperimentContainer
+from ...process.utils import qubit_selector
 
 
-class EntropyHadamardAnalysis(AnalysisPrototype):
-    """The instance for the analysis of :cls:`EntropyHadamardExperiment`."""
-
-    __name__ = "qurrentHadamard.Analysis"
-    shortName = "qurrent_hadamard.report"
-
-    class AnalysisInput(NamedTuple):
-        """To set the analysis."""
-
-    class AnalysisContent(NamedTuple):
-        """The content of the analysis."""
-
-        purity: float
-        """The purity of the system."""
-        entropy: float
-        """The entanglement entropy of the system."""
-
-        def __repr__(self):
-            return f"AnalysisContent(purity={self.purity}, entropy={self.entropy}, and others)"
-
-    @property
-    def default_side_product_fields(self) -> Iterable[str]:
-        """The fields that will be stored as side product."""
-        return []
-
-    @classmethod
-    def quantities(
-        cls,
-        shots: int,
-        counts: list[dict[str, int]],
-    ) -> dict[str, float]:
-        """Calculate entangled entropy with more information combined.
-
-        Args:
-            shots (int): Shots of the experiment on quantum machine.
-            counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
-
-        Returns:
-            dict[str, float]: A dictionary contains
-                purity, entropy.
-        """
-
-        result = hadamard_entangled_entropy(
-            shots=shots,
-            counts=counts,
-        )
-        return result
-
-
-class EntropyHadamardExperiment(ExperimentPrototype):
-    """Hadamard test for entanglement entropy."""
-
-    __name__ = "qurrentHadamard.Experiment"
-    shortName = "qurrent_hadamard.exp"
-
-    class Arguments(NamedTuple):
-        """Arguments for the experiment."""
-
-        exp_name: str = "exps"
-        degree: tuple[int, int] = None
-
-    @classmethod
-    @property
-    def analysis_container(cls) -> Type[EntropyHadamardAnalysis]:
-        """The container class responding to this QurryV5 class."""
-        return EntropyHadamardAnalysis
-
-    def analyze(self) -> AnalysisPrototype:
-        """Calculate entangled entropy with more information combined.
-
-        Args:
-            degree (Union[tuple[int, int], int]): Degree of the subsystem.
-            workers_num (Optional[int], optional):
-                Number of multi-processing workers,
-                if sets to 1, then disable to using multi-processing;
-                if not specified, the use 3/4 of cpu counts by `round(cpu_count*3/4)`.
-                Defaults to None.
-
-        Returns:
-            dict[str, float]: A dictionary contains
-                purity, entropy.
-        """
-
-        shots = self.commons.shots
-        counts = self.afterwards.counts
-
-        qs = self.quantities(
-            shots=shots,
-            counts=counts,
-        )
-
-        serial = len(self.reports)
-        analysis = self.analysis_container(
-            serial=serial,
-            shots=shots,
-            **qs,
-        )
-
-        self.reports[serial] = analysis
-        return analysis
-
-    @classmethod
-    def quantities(
-        cls,
-        shots: int = None,
-        counts: list[dict[str, int]] = None,
-    ) -> dict[str, float]:
-        """Calculate entangled entropy with more information combined.
-
-        Args:
-            shots (int): Shots of the experiment on quantum machine.
-            counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
-
-        Returns:
-            dict[str, float]: A dictionary contains
-                purity, entropy.
-        """
-
-        if shots is None or counts is None:
-            raise ValueError("shots and counts should be specified.")
-
-        return hadamard_entangled_entropy(
-            shots=shots,
-            counts=counts,
-        )
-
-
-class EntropyHadamardTest(QurryV5Prototype):
+class EntropyHadamardTest(QurryPrototype):
     """Hadamard test for entanglement entropy.
 
     - Which entropy:
@@ -159,17 +30,18 @@ class EntropyHadamardTest(QurryV5Prototype):
     __name__ = "qurrentHadamard"
     shortName = "qurrent_hadamard"
 
-    @classmethod
-    @property
-    def experiment(cls) -> Type[EntropyHadamardExperiment]:
+    @staticmethod
+    def experiment(*args, **kwargs) -> EntropyHadamardExperiment:
         """The container class responding to this QurryV5 class."""
-        return EntropyHadamardExperiment
+        return EntropyHadamardExperiment(*args, **kwargs)
+
+    exps: ExperimentContainer[EntropyHadamardExperiment]
 
     def params_control(
         self,
         wave_key: Hashable = None,
         exp_name: str = "exps",
-        degree: Union[tuple[int, int], int] = None,
+        degree: Optional[Union[tuple[int, int], int]] = None,
         **other_kwargs: any,
     ) -> tuple[
         EntropyHadamardExperiment.Arguments,
@@ -242,18 +114,16 @@ class EntropyHadamardTest(QurryV5Prototype):
         c_meas1 = ClassicalRegister(1, "c1")
         qc_exp1 = QuantumCircuit(q_ancilla, q_func1, q_func2, c_meas1)
 
-        qc_exp1.append(
-            self.waves.call(
-                wave=commons.wave_key,
-            ),
+        qc_exp1.compose(
+            self.waves.call(wave=commons.wave_key),
             [q_func1[i] for i in range(num_qubits)],
+            inplace=True,
         )
 
-        qc_exp1.append(
-            self.waves.call(
-                wave=commons.wave_key,
-            ),
+        qc_exp1.compose(
+            self.waves.call(wave=commons.wave_key),
             [q_func2[i] for i in range(num_qubits)],
+            inplace=True,
         )
 
         qc_exp1.barrier()
