@@ -65,12 +65,11 @@ class ExperimentPrototype(ABC):
         - `fig_original` is deprecated since v0.6.10.
     """
     tqdm_handleable = False
-    """Whether the method :meth:`
-    e` can handle the processing bar from :module:`tqdm`."""
+    """Whether the method :meth:`execute` can handle the processing bar from :module:`tqdm`."""
 
     # Analysis Property
     @classmethod
-    def filter(cls, *args, **kwargs) -> tuple[Arguments, Commonparams, dict[str, Any]]:
+    def filter(cls, *args, **kwargs) -> tuple[Any, Commonparams, dict[str, Any]]:
         """Filter the arguments of experiment.
 
         Raises:
