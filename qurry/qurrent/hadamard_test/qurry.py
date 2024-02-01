@@ -7,7 +7,7 @@ Second Renyi Entropy - Hadamard Test
 """
 
 from pathlib import Path
-from typing import Union, Optional, Hashable, Any
+from typing import Union, Optional, Hashable, Any, Type
 import tqdm
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
@@ -30,10 +30,10 @@ class EntropyHadamardTest(QurryPrototype):
     __name__ = "qurrentHadamard"
     shortName = "qurrent_hadamard"
 
-    @staticmethod
-    def experiment(*args, **kwargs) -> EntropyHadamardExperiment:
+    @property
+    def experiment(self) -> Type[EntropyHadamardExperiment]:
         """The container class responding to this QurryV5 class."""
-        return EntropyHadamardExperiment(*args, **kwargs)
+        return EntropyHadamardExperiment
 
     exps: ExperimentContainer[EntropyHadamardExperiment]
 

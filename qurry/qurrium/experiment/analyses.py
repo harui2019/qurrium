@@ -20,7 +20,7 @@ class AnalysesContainer(dict[Hashable, AnalysisPrototype]):
 
     def export(
         self,
-    ) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, dict[str, Any]]]]:
+    ) -> tuple[dict[Hashable, dict[str, Any]], dict[str, dict[Hashable, dict[str, Any]]]]:
         """Export the analysis container.
 
         Returns:
@@ -29,9 +29,9 @@ class AnalysesContainer(dict[Hashable, AnalysisPrototype]):
             dictionary of tales_reports formats.
         """
         # reports
-        reports: dict[str, dict[str, Any]] = {}  # reports formats.
+        reports: dict[Hashable, dict[str, Any]] = {}  # reports formats.
         # tales_reports formats.
-        tales_reports: dict[str, dict[str, dict[str, Any]]] = {}
+        tales_reports: dict[str, dict[Hashable, dict[str, Any]]] = {}
         for k, al in self.items():
             report_main, report_tales = al.export()
             reports[k] = report_main

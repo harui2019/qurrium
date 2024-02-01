@@ -6,4 +6,3 @@ Qurry Experiment
 
 """
 from .experiment import ExperimentPrototype
-from .container import ArgumentsPrototype

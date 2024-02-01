@@ -6,11 +6,19 @@ Wave Function Overlap - Hadamard Test Experiment
 
 """
 
-from typing import Optional, Hashable
+from typing import Optional, Hashable, NamedTuple
 
 from .analysis import EchoHadamardAnalysis
-from ...qurrium.experiment import ExperimentPrototype, ArgumentsPrototype
+from ...qurrium.experiment import ExperimentPrototype
 from ...process.hadamard_test import hadamard_overlap_echo as overlap_echo
+
+
+class EchoHadamardArguments(NamedTuple):
+    """Arguments for the experiment."""
+
+    exp_name: str = "exps"
+    wave_key_2: Hashable = None
+    degree: Optional[tuple[int, int]] = None
 
 
 class EchoHadamardExperiment(ExperimentPrototype):
@@ -19,14 +27,8 @@ class EchoHadamardExperiment(ExperimentPrototype):
     __name__ = "qurrechHadamard.Experiment"
     shortName = "qurrech_hadamard.exp"
 
-    class Arguments(ArgumentsPrototype):
-        """Arguments for the experiment."""
-
-        exp_name: str = "exps"
-        wave_key_2: Hashable = None
-        degree: Optional[tuple[int, int]] = None
-
-    args: Arguments
+    Arguments = EchoHadamardArguments
+    args: EchoHadamardArguments
 
     @staticmethod
     def analysis_container(*args, **kwargs) -> EchoHadamardAnalysis:

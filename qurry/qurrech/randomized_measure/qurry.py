@@ -7,7 +7,7 @@ Wave Function Overlap - Randomized Measurement
 """
 
 from pathlib import Path
-from typing import Union, Optional, Hashable, Any
+from typing import Union, Optional, Hashable, Any, Type
 import tqdm
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
@@ -76,10 +76,10 @@ class EchoRandomizedListen(QurryPrototype):
     tqdm_handleable = True
     """The handleable of tqdm."""
 
-    @staticmethod
-    def experiment(*args, **kwargs) -> EchoRandomizedExperiment:
+    @property
+    def experiment(self) -> Type[EchoRandomizedExperiment]:
         """The container class responding to this QurryV5 class."""
-        return EchoRandomizedExperiment(*args, **kwargs)
+        return EchoRandomizedExperiment
 
     exps: ExperimentContainer[EchoRandomizedExperiment]
 

@@ -7,7 +7,7 @@ Second Renyi Entropy - Randomized Measurement
 """
 
 from pathlib import Path
-from typing import Union, Optional, Hashable, Any
+from typing import Union, Optional, Hashable, Any, Type
 import tqdm
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
@@ -106,10 +106,10 @@ class EntropyRandomizedMeasure(QurryPrototype):
     __name__ = "qurrentRandomized"
     shortName = "qurrent_haar"
 
-    @staticmethod
-    def experiment(*args, **kwargs) -> EntropyRandomizedExperiment:
+    @property
+    def experiment(self) -> Type[EntropyRandomizedExperiment]:
         """The container class responding to this QurryV5 class."""
-        return EntropyRandomizedExperiment(*args, **kwargs)
+        return EntropyRandomizedExperiment
 
     exps: ExperimentContainer[EntropyRandomizedExperiment]
 

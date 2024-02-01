@@ -11,7 +11,7 @@ import gc
 import inspect
 import warnings
 from abc import abstractmethod, ABC
-from typing import Literal, Union, Optional, Hashable, Any, overload, TypeVar
+from typing import Literal, Union, Optional, Hashable, Any, overload, TypeVar, Type
 from pathlib import Path
 import tqdm
 
@@ -29,7 +29,11 @@ from ..declare.default import (
 )
 from .experiment import ExperimentPrototype
 from .container import WaveContainer, ExperimentContainer
-from .multimanager import MultiManager, PendingTargetProviderLiteral, PendingStrategyLiteral
+from .multimanager import (
+    MultiManager,
+    PendingTargetProviderLiteral,
+    PendingStrategyLiteral,
+)
 from .runner import ExtraBackendAccessor
 
 
@@ -96,9 +100,9 @@ class QurryPrototype(ABC):
         """
         return self.waves.has(wavename)
 
-    @staticmethod
+    @property
     @abstractmethod
-    def experiment(*args, **kwargs) -> ExperimentPrototype:
+    def experiment(self) -> Type[ExperimentPrototype]:
         """The instance of experiment."""
         raise NotImplementedError("The experiment is not defined.")
 
@@ -132,7 +136,7 @@ class QurryPrototype(ABC):
     def _params_control_core(
         self,
         wave: Union[QuantumCircuit, Hashable],
-        exp_id: str,
+        exp_id: Optional[str] = None,
         shots: int = 1024,
         backend: Backend = GeneralAerSimulator(),
         # provider: Optional[AccountProvider] = None,
@@ -211,7 +215,7 @@ class QurryPrototype(ABC):
         Returns:
             Hashable: The ID of the experiment.
         """
-        if exp_id in self.exps:
+        if exp_id in self.exps and exp_id is not None:
             return exp_id
 
         if run_args is None:
@@ -260,7 +264,7 @@ class QurryPrototype(ABC):
         )
 
         outfield_maybe, outfields_unknown = outfields_check(
-            outfields, arguments.fields() + commonparams._fields
+            outfields, arguments._fields + commonparams._fields
         )
         outfields_hint(outfield_maybe, outfields_unknown, mute_outfields_warning)
 

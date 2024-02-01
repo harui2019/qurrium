@@ -6,7 +6,7 @@ Sampling Qurry (:mod:`qurry.qurrium.samplingqurry.qurry`)
 It is only for pendings and retrieve to remote backend.
 """
 
-from typing import Union, Optional, Hashable, Any
+from typing import Union, Optional, Hashable, Any, Type
 from pathlib import Path
 import warnings
 import tqdm
@@ -21,10 +21,10 @@ from ..qurrium import QurryPrototype
 class QurryV5(QurryPrototype):
     """A QurryV5 instance is a container of experiments."""
 
-    @staticmethod
-    def experiment(*args, **kwargs) -> QurryExperiment:
+    @property
+    def experiment(self) -> Type[QurryExperiment]:
         """The container class responding to this QurryV5 class."""
-        return QurryExperiment(*args, **kwargs)
+        return QurryExperiment
 
     exps: ExperimentContainer[QurryExperiment]
 

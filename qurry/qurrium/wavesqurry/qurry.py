@@ -6,7 +6,7 @@ Waves Qurry (:mod:`qurry.qurrium.wavesqurry`)
 It is only for pendings and retrieve to remote backend.
 """
 
-from typing import Union, Optional, Hashable, Iterable, Any
+from typing import Union, Optional, Hashable, Iterable, Any, Type
 from pathlib import Path
 import tqdm
 
@@ -20,10 +20,10 @@ from ..container import ExperimentContainer
 class WavesExecuter(QurryPrototype):
     """The pending and retrieve executer for waves."""
 
-    @staticmethod
-    def experiment(*args, **kwargs) -> WavesQurryExperiment:
+    @property
+    def experiment(self) -> Type[WavesQurryExperiment]:
         """The container class responding to this QurryV5 class."""
-        return WavesQurryExperiment(*args, **kwargs)
+        return WavesQurryExperiment
 
     exps: ExperimentContainer[WavesQurryExperiment]
 

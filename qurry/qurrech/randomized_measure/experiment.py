@@ -6,17 +6,28 @@ Wave Function Overlap - Randomized Measurement Experiment
 
 """
 
-from typing import Union, Optional, Hashable
+from typing import Union, Optional, Hashable, NamedTuple
 import tqdm
 
 from .analysis import EchoRandomizedAnalysis
-from ...qurrium.experiment import ExperimentPrototype, ArgumentsPrototype
+from ...qurrium.experiment import ExperimentPrototype
 from ...process.randomized_measure.wavefunction_overlap import (
     randomized_overlap_echo,
     ExistingProcessBackendLabel,
     DEFAULT_PROCESS_BACKEND,
 )
 from ...tools import qurry_progressbar, DEFAULT_POOL_SIZE
+
+
+class EchoRandomizedArguments(NamedTuple):
+    """Arguments for the experiment."""
+
+    exp_name: str = "exps"
+    wave_key_2: Optional[Hashable] = None
+    times: int = 100
+    measure: Optional[tuple[int, int]] = None
+    unitary_loc: Optional[tuple[int, int]] = None
+    workers_num: int = DEFAULT_POOL_SIZE
 
 
 class EchoRandomizedExperiment(ExperimentPrototype):
@@ -53,17 +64,8 @@ class EchoRandomizedExperiment(ExperimentPrototype):
     __name__ = "qurrechRandomized.Experiment"
     shortName = "qurrech_haar.exp"
 
-    class Arguments(ArgumentsPrototype):
-        """Arguments for the experiment."""
-
-        exp_name: str = "exps"
-        wave_key_2: Optional[Hashable] = None
-        times: int = 100
-        measure: Optional[tuple[int, int]] = None
-        unitary_loc: Optional[tuple[int, int]] = None
-        workers_num: int = DEFAULT_POOL_SIZE
-
-    args: Arguments
+    Arguments = EchoRandomizedArguments
+    args: EchoRandomizedArguments
 
     @staticmethod
     def analysis_container(*args, **kwargs) -> EchoRandomizedAnalysis:

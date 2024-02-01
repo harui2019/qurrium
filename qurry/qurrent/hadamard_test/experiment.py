@@ -6,11 +6,18 @@ Second Renyi Entropy - Hadamard Test Experiment
 
 """
 
-from typing import Optional
+from typing import Optional, NamedTuple
 
 from .analysis import EntropyHadamardAnalysis
-from ...qurrium.experiment import ExperimentPrototype, ArgumentsPrototype
+from ...qurrium.experiment import ExperimentPrototype
 from ...process.hadamard_test import hadamard_entangled_entropy
+
+
+class EntropyHadamardArguments(NamedTuple):
+    """Arguments for the experiment."""
+
+    exp_name: str = "exps"
+    degree: Optional[tuple[int, int]] = None
 
 
 class EntropyHadamardExperiment(ExperimentPrototype):
@@ -19,13 +26,8 @@ class EntropyHadamardExperiment(ExperimentPrototype):
     __name__ = "qurrentHadamard.Experiment"
     shortName = "qurrent_hadamard.exp"
 
-    class Arguments(ArgumentsPrototype):
-        """Arguments for the experiment."""
-
-        exp_name: str = "exps"
-        degree: Optional[tuple[int, int]] = None
-
-    args: Arguments
+    Arguments = EntropyHadamardArguments
+    args: EntropyHadamardArguments
 
     @staticmethod
     def analysis_container(*args, **kwargs) -> EntropyHadamardAnalysis:

@@ -6,14 +6,18 @@ Waves Qurry (:mod:`qurry.qurrium.wavesqurry`)
 It is only for pendings and retrieve to remote backend.
 """
 
-from typing import Union, Optional, Hashable
+from typing import Union, Optional, Hashable, NamedTuple
 
 from .analysis import WavesQurryAnalysis
-from ..experiment import (
-    ExperimentPrototype,
-    ArgumentsPrototype,
-)
+from ..experiment import ExperimentPrototype
 from ...exceptions import QurryExperimentCountsNotCompleted
+
+
+class WavesQurryArguments(NamedTuple):
+    """Construct the experiment's parameters for specific options,
+    which is overwritable by the inherition class."""
+
+    waves: list[Hashable] = []
 
 
 class WavesQurryExperiment(ExperimentPrototype):
@@ -21,13 +25,8 @@ class WavesQurryExperiment(ExperimentPrototype):
 
     __name__ = "WavesQurryExperiment"
 
-    class Arguments(ArgumentsPrototype):
-        """Construct the experiment's parameters for specific options,
-        which is overwritable by the inherition class."""
-
-        waves: list[Hashable] = []
-
-    args: Arguments
+    Arguments = WavesQurryArguments
+    args: WavesQurryArguments
 
     @staticmethod
     def analysis_container(*args, **kwargs) -> WavesQurryAnalysis:

@@ -6,12 +6,12 @@ Second Renyi Entropy - Randomized Measurement
 
 """
 
-from typing import Union, Optional
+from typing import Union, Optional, NamedTuple
 import numpy as np
 import tqdm
 
 from .analysis import EntropyRandomizedAnalysis
-from ...qurrium.experiment import ExperimentPrototype, ArgumentsPrototype
+from ...qurrium.experiment import ExperimentPrototype
 from ...process.randomized_measure.entangled_entropy import (
     entangled_entropy_core,
     ExistingProcessBackendLabel,
@@ -249,6 +249,16 @@ def randomized_entangled_entropy_complex(
     return quantity
 
 
+class EntropyRandomizedArguments(NamedTuple):
+    """Arguments for the experiment."""
+
+    exp_name: str = "exps"
+    times: int = 100
+    measure: Optional[tuple[int, int]] = None
+    unitary_loc: Optional[tuple[int, int]] = None
+    workers_num: int = DEFAULT_POOL_SIZE
+
+
 class EntropyRandomizedExperiment(ExperimentPrototype):
     """The instance for the experiment of :cls:`EntropyRandomizedMeasure`."""
 
@@ -258,16 +268,8 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
     tqdm_handleable = True
     """The handleable of tqdm."""
 
-    class Arguments(ArgumentsPrototype):
-        """Arguments for the experiment."""
-
-        exp_name: str = "exps"
-        times: int = 100
-        measure: Optional[tuple[int, int]] = None
-        unitary_loc: Optional[tuple[int, int]] = None
-        workers_num: int = DEFAULT_POOL_SIZE
-
-    args: Arguments
+    Arguments = EntropyRandomizedArguments
+    args: EntropyRandomizedArguments
 
     @staticmethod
     def analysis_container(*args, **kwargs) -> EntropyRandomizedAnalysis:

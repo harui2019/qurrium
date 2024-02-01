@@ -46,10 +46,9 @@ class ExperimentPrototype(ABC):
     __name__ = "ExperimentPrototype"
     """Name of the QurryExperiment which could be overwritten."""
 
-    @abstractmethod
-    class Arguments(ArgumentsPrototype):
-        """Construct the experiment's parameters for specific options,
-        which is overwritable by the inherition class."""
+    Arguments = ArgumentsPrototype
+    """Arguments of experiment."""
+    args: ArgumentsPrototype
 
     Commonparams = ExperimentCommonparams
     """Common parameters of experiment."""
@@ -88,12 +87,17 @@ class ExperimentPrototype(ABC):
         commonsinput = {}
         outfields = {}
         for k, v in kwargs.items():
-            if k in cls.Arguments.fields():
+            if k in cls.Arguments._fields:
                 infields[k] = v
             elif k in cls.Commonparams._fields:
                 commonsinput[k] = v
             else:
                 outfields[k] = v
+
+        if cls.Arguments is ArgumentsPrototype:
+            raise NotImplementedError(
+                f"{cls.__name__}.Arguments should be overwritten."
+            )
 
         return cls.Arguments(**infields), cls.Commonparams(**commonsinput), outfields
 
@@ -140,13 +144,11 @@ class ExperimentPrototype(ABC):
             else:
                 ...
 
-        for i in ["AnalysisInput", "AnalysisContent"]:
-            if not hasattr(self.analysis_container, i):
-                raise QurryInvalidInherition(
-                    f"{self.__name__}._analysis_container() "
-                    + f"should be inherited from {AnalysisPrototype.__name__}."
-                )
-        duplicate_fields = set(self.Arguments.fields()) & set(self.Commonparams._fields)
+        if self.Arguments is ArgumentsPrototype:
+            raise NotImplementedError(
+                f"{self.__name__}.Arguments should be overwritten."
+            )
+        duplicate_fields = set(self.Arguments._fields) & set(self.Commonparams._fields)
         if len(duplicate_fields) > 0:
             raise QurryInvalidInherition(
                 f"{self.__name__}.arguments and {self.__name__}.commonparams "
@@ -157,7 +159,7 @@ class ExperimentPrototype(ABC):
         commons = {}
         outfields = {}
         for k, v in kwargs.items():
-            if k in self.Arguments.fields():
+            if k in self.Arguments._fields:
                 params[k] = v
             elif k in self.Commonparams._fields:
                 commons[k] = v

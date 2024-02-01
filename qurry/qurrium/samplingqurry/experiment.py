@@ -6,11 +6,19 @@ Sampling Qurry Experiment (:mod:`qurry.qurrium.samplingqurry.experiment`)
 It is only for pendings and retrieve to remote backend.
 """
 
-from typing import Optional
+from typing import Optional, NamedTuple
 
 from .analysis import QurryAnalysis
-from ..experiment import ExperimentPrototype, ArgumentsPrototype
+from ..experiment import ExperimentPrototype
 from ...exceptions import QurryExperimentCountsNotCompleted
+
+
+class QurryArguments(NamedTuple):
+    """Construct the experiment's parameters for specific options,
+    which is overwritable by the inherition class.
+    """
+
+    sampling: int = 1
 
 
 class QurryExperiment(ExperimentPrototype):
@@ -18,14 +26,8 @@ class QurryExperiment(ExperimentPrototype):
 
     __name__ = "QurryExperiment"
 
-    class Arguments(ArgumentsPrototype):
-        """Construct the experiment's parameters for specific options,
-        which is overwritable by the inherition class.
-        """
-
-        sampling: int = 1
-
-    args: Arguments
+    Arguments = QurryArguments
+    args: QurryArguments
 
     @staticmethod
     def analysis_container(*args, **kwargs) -> QurryAnalysis:

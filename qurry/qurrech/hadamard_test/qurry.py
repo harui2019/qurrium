@@ -7,7 +7,7 @@ Wave Function Overlap - Hadamard Test
 """
 
 from pathlib import Path
-from typing import Union, Optional, Hashable, Any
+from typing import Union, Optional, Hashable, Any, Type
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 
@@ -23,10 +23,10 @@ class EchoHadamardTest(QurryPrototype):
     __name__ = "qurrentHadamard"
     shortName = "qurrech_hadamard"
 
-    @staticmethod
-    def experiment(*args, **kwargs) -> EchoHadamardExperiment:
+    @property
+    def experiment(self) -> Type[EchoHadamardExperiment]:
         """The container class responding to this QurryV5 class."""
-        return EchoHadamardExperiment(*args, **kwargs)
+        return EchoHadamardExperiment
 
     exps: ExperimentContainer[EchoHadamardExperiment]
 

@@ -7,8 +7,6 @@ The experiment container
 """
 import json
 from typing import Union, Optional, NamedTuple, Hashable, TypedDict, Any
-from dataclasses import dataclass
-from abc import ABC
 from pathlib import Path
 
 from qiskit import QuantumCircuit
@@ -23,21 +21,12 @@ REQUIRED_FOLDER = ["args", "advent", "legacy", "tales", "reports"]
 """The required folder for exporting experiment."""
 
 
-@dataclass(frozen=True)
-class ArgumentsPrototype(ABC):
+class ArgumentsPrototype(NamedTuple):
     """Construct the experiment's parameters for specific options,
     which is overwritable by the inherition class."""
 
     exp_name: str
     """Name of experiment."""
-
-    def _asdict(self):
-        return self.__dict__
-
-    @classmethod
-    def fields(cls):
-        """The field name"""
-        return tuple(cls.__annotations__.keys())
 
 
 class CommonparamsDict(TypedDict):
