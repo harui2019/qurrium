@@ -16,7 +16,7 @@ from ...exceptions import QurryExperimentCountsNotCompleted
 class WavesQurryArguments(NamedTuple):
     """Construct the experiment's parameters for specific options,
     which is overwritable by the inherition class."""
-
+    exp_name: str = "exps"
     waves: list[Hashable] = []
 
 

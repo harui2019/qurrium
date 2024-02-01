@@ -17,7 +17,7 @@ class QurryArguments(NamedTuple):
     """Construct the experiment's parameters for specific options,
     which is overwritable by the inherition class.
     """
-
+    exp_name: str = "exps"
     sampling: int = 1
 
 
