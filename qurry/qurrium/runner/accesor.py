@@ -4,36 +4,31 @@ Extra backend accessor (:mod:`qurry.qurrium.runner.accesor`)
 ================================================================
 
 """
-from typing import Literal, Union, Optional
+
+from typing import Union, Optional
 from qiskit.providers import Backend
 
 from .runner import DummyRunner
-from ..multimanager import MultiManager
+from ..multimanager import (
+    MultiManager,
+    PendingTargetProviderLiteral,
+    PENDING_TARGET_PROVIDER,
+    PendingStrategyLiteral,
+)
 from ..container import ExperimentContainer
 from ...capsule.hoshi import Hoshi
 from ...exceptions import QurryExtraPackageRequired, QurryInvalidArgument
 
-BackendChoiceLiteral = Literal[
-    "local", "IBMQ", "IBM", "Qulacs", "AWS_Bracket", "Azure_Q"
-]
-BackendChoice: list[BackendChoiceLiteral] = [
-    "IBMQ",
-    "IBM",
-    # "Qulacs",
-    # "AWS_Bracket",
-    # "Azure_Q"
-]
-PendingStrategyLiteral = Literal["onetime", "each", "tags"]
-PendingStrategy: list[PendingStrategyLiteral] = ["onetime", "each", "tags"]
 
-
-def acessibility() -> dict[BackendChoiceLiteral, bool]:
+def acessibility() -> dict[PendingTargetProviderLiteral, bool]:
     """Return the acessibility of extra backend.
 
     Returns:
         dict[str, bool]: The acessibility of extra backend.
     """
-    result: dict[BackendChoiceLiteral, bool] = dict.fromkeys(BackendChoice, False)
+    result: dict[PendingTargetProviderLiteral, bool] = dict.fromkeys(
+        PENDING_TARGET_PROVIDER, False
+    )
 
     # pylint: disable=import-outside-toplevel, unused-import
     try:
@@ -60,7 +55,7 @@ def acessibility() -> dict[BackendChoiceLiteral, bool]:
     return result
 
 
-BACKEND_AVAILABLE: dict[BackendChoiceLiteral, bool] = acessibility()
+BACKEND_AVAILABLE: dict[PendingTargetProviderLiteral, bool] = acessibility()
 """Acessibility of extra backend.
 
 If you want to use extra backend, you should install the extra package first.
@@ -99,7 +94,7 @@ class ExtraBackendAccessor:
     jobs_info: Hoshi
     """The information of pending jobs or retrieving jobs."""
 
-    backend_type: BackendChoiceLiteral
+    backend_type: PendingTargetProviderLiteral
     """The backend type been used."""
 
     def __init__(
@@ -107,7 +102,7 @@ class ExtraBackendAccessor:
         multimanager: MultiManager,
         experiment_container: ExperimentContainer,
         backend: Backend,
-        backend_type: Union[BackendChoiceLiteral, str],
+        backend_type: Union[PendingTargetProviderLiteral, str],
     ):
         # pylint: disable=import-outside-toplevel
         if backend_type == "IBMQ":

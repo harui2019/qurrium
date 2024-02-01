@@ -53,8 +53,7 @@ except ImportError:
 
 
 from .runner import Runner, retrieve_times_namer
-from .accesor import PendingStrategyLiteral
-from ..multimanager import MultiManager
+from ..multimanager import MultiManager, PendingStrategyLiteral
 from ..container import ExperimentContainer
 from ..utils import get_counts_and_exceptions
 from ...tools import qurry_progressbar, current_time

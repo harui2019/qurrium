@@ -29,8 +29,8 @@ from ..declare.default import (
 )
 from .experiment import ExperimentPrototype
 from .container import WaveContainer, ExperimentContainer
-from .multimanager import MultiManager
-from .runner import BackendChoiceLiteral, ExtraBackendAccessor, PendingStrategyLiteral
+from .multimanager import MultiManager, PendingTargetProviderLiteral, PendingStrategyLiteral
+from .runner import ExtraBackendAccessor
 
 
 from .utils import get_counts_and_exceptions, qasm_drawer
@@ -678,7 +678,7 @@ class QurryPrototype(ABC):
         backend: Backend = GeneralAerSimulator(),
         tags: Optional[list[str]] = None,
         save_location: Union[Path, str] = Path("./"),
-        jobstype: BackendChoiceLiteral = "local",
+        jobstype: PendingTargetProviderLiteral = "local",
         pending_strategy: PendingStrategyLiteral = "tags",
         manager_run_args: Optional[dict[str, Any]] = None,
         is_retrieve: bool = False,
@@ -813,7 +813,7 @@ class QurryPrototype(ABC):
         tags: Optional[list[str]] = None,
         manager_run_args: Optional[dict[str, Any]] = None,
         save_location: Union[Path, str] = Path("./"),
-        jobstype: Union[Literal["local"], BackendChoiceLiteral] = "local",
+        jobstype: Union[Literal["local"], PendingTargetProviderLiteral] = "local",
         pending_strategy: PendingStrategyLiteral = "tags",
     ) -> str:
         """Buling the experiment's parameters for running multiple jobs.
@@ -1003,7 +1003,7 @@ class QurryPrototype(ABC):
         tags: Optional[list[str]] = None,
         manager_run_args: Optional[dict[str, Any]] = None,
         save_location: Union[Path, str] = Path("./"),
-        jobstype: BackendChoiceLiteral = "IBM",
+        jobstype: PendingTargetProviderLiteral = "IBM",
         pending_strategy: PendingStrategyLiteral = "tags",
     ) -> str:
         """Pending the multiple jobs on IBMQ backend or other remote backend.

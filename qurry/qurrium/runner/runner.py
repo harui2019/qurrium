@@ -4,6 +4,7 @@ Runner for pending and retrieve jobs from remote backend.
 (:mod:`qurry.qurrium.runner.runner`)
 ================================================================
 """
+
 import warnings
 from abc import abstractmethod, ABC
 from typing import Optional, Literal

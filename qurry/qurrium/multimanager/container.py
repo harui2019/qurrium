@@ -4,6 +4,7 @@ Container (qurry.qurry.qurrium.multimanager.container)
 ================================================================
 
 """
+
 from pathlib import Path
 from typing import Literal, Union, Optional, NamedTuple, Hashable, Any
 import json
@@ -11,10 +12,26 @@ import json
 from qiskit.result import Result
 from qiskit.providers import Backend
 
-from ..runner import BackendChoiceLiteral, PendingStrategyLiteral
 from ...tools.datetime import DatetimeDict
 from ...capsule import quickRead
 from ...capsule.mori import TagList
+
+PendingStrategyLiteral = Literal["onetime", "each", "tags"]
+"""Type of pending strategy."""
+PENDING_STRATEGY: list[PendingStrategyLiteral] = ["onetime", "each", "tags"]
+"""List of pending strategy."""
+PendingTargetProviderLiteral = Literal[
+    "local", "IBMQ", "IBM", "Qulacs", "AWS_Bracket", "Azure_Q"
+]
+"""Type of backend provider."""
+PENDING_TARGET_PROVIDER: list[PendingTargetProviderLiteral] = [
+    "IBMQ",
+    "IBM",
+    # "Qulacs",
+    # "AWS_Bracket",
+    # "Azure_Q"
+]
+"""List of backend provider."""
 
 
 class MultiCommonparams(NamedTuple):
@@ -39,7 +56,7 @@ class MultiCommonparams(NamedTuple):
     export_location is the final result decided by experiment."""
     files: dict[str, Union[str, dict[str, str]]]
 
-    jobstype: BackendChoiceLiteral
+    jobstype: PendingTargetProviderLiteral
     """Type of jobs to run multiple experiments.
     - jobstype: "local", "IBMQ", "IBM", "AWS_Bracket", "Azure_Q"
     """
