@@ -6,7 +6,7 @@ Input Fixer
 """
 
 import warnings
-from typing import Iterable, Any
+from typing import Any, Sequence
 
 from ...exceptions import QurryWarning, QurryUnrecongnizedArguments
 
@@ -29,8 +29,8 @@ except ImportError:
 
 
 def damerau_levenshtein_distance_py(
-    seq1: Iterable[str],
-    seq2: Iterable[str],
+    seq1: Sequence[str],
+    seq2: Sequence[str],
 ) -> int:
     """Calculate the Damerau-Levenshtein distance between sequences.
 
@@ -115,8 +115,8 @@ def damerau_levenshtein_distance_py(
 
 
 def damerau_levenshtein_distance(
-    seq1: Iterable[str],
-    seq2: Iterable[str],
+    seq1: Sequence[str],
+    seq2: Sequence[str],
 ) -> int:
     """Calculate the Damerau-Levenshtein distance between sequences.
     This distance is the number of additions, deletions, substitutions,
@@ -151,7 +151,7 @@ def damerau_levenshtein_distance(
 
 def outfields_check(
     outfields: dict[str, Any],
-    infields: Iterable[str],
+    infields: Sequence[str],
     simialrity_threshold: int = 2,
 ) -> tuple[dict[str, list[str]], list[str]]:
     """Check if the outfields are in the infields but just typing wrong
@@ -207,13 +207,12 @@ def outfields_hint(
     if not mute_outfields_warning:
         warnings.warn(
             "| The following keys are not recognized as arguments for main process of experiment "
-            + ", but still kept in experiment record.",
+            + ", but still kept in experiment record."
+            + " Similar: ["
+            + ", ".join([f"'{k}' maybe '{v}'" for k, v in outfields_maybe.items()])
+            + "]. Unknown: ["
+            + ", ".join([f"'{k}'" for k in outfields_unknown])
+            + "].",
             QurryUnrecongnizedArguments,
         )
-        print("| Maybe you want to use these arguments: ")
-        for k, v in outfields_maybe.items():
-            print(f"| - '{k}' maybe {v}")
-        if len(outfields_unknown) > 0:
-            print("| The following are not recognized as arguments:", outfields_unknown)
-
     return None
