@@ -16,6 +16,8 @@ from typing import Union, Optional, Hashable, Any
 from pathlib import Path
 import tqdm
 
+from qiskit.providers import Backend
+
 from ...tools import ParallelManager, DEFAULT_POOL_SIZE
 from ...tools.datetime import current_time, DatetimeDict
 from ...capsule import jsonablize, quickJSON
@@ -273,6 +275,17 @@ class ExperimentPrototype(ABC):
                 + "the counts will not be reset, it can only be activated by multimanager.",
                 category=QurryResetSecurityActivated,
             )
+
+    def replace_backend(self, backend: Backend) -> None:
+        """Replace the backend of the experiment.
+        
+        Args:
+            backend (Backend): The new backend.
+        """
+        if isinstance(backend, Backend):
+            self.commons = self.commons._replace(backend=backend)
+        else:
+            raise ValueError("backend must be a valid Backend object.")
 
     def unlock_afterward(self, mute_auto_lock: bool = False):
         """Unlock the :cls:`afterward` content to be overwritten.

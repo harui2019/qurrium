@@ -135,10 +135,11 @@ class QurryPrototype(ABC):
 
     def _params_control_core(
         self,
+        *,
         wave: Union[QuantumCircuit, Hashable],
-        exp_id: Optional[str] = None,
+        exp_id: Optional[str],
         shots: int = 1024,
-        backend: Backend = GeneralAerSimulator(),
+        backend: Optional[Backend] = None,
         # provider: Optional[AccountProvider] = None,
         run_args: Optional[dict[str, Any]] = None,
         transpile_args: Optional[dict[str, Any]] = None,
@@ -215,15 +216,14 @@ class QurryPrototype(ABC):
         Returns:
             Hashable: The ID of the experiment.
         """
-        if exp_id in self.exps and exp_id is not None:
-            return exp_id
-
         if run_args is None:
             run_args = {}
         if transpile_args is None:
             transpile_args = {}
         if default_analysis is None:
             default_analysis = []
+        if backend is None:
+            backend = GeneralAerSimulator()
 
         # wave
         if isinstance(wave, QuantumCircuit):
@@ -343,6 +343,8 @@ class QurryPrototype(ABC):
     def build(
         self,
         *,
+        exp_id: Optional[str] = None,
+        backend: Optional[Backend] = None,
         save_location: Optional[Union[Path, str]] = None,
         mode: str = "w+",
         indent: int = 2,
@@ -356,6 +358,13 @@ class QurryPrototype(ABC):
         ## The first finishing point.
 
         Args:
+            exp_id (str):
+                If input is `None`, then create an new experiment.
+                If input is a existed experiment ID, then use it.
+                Otherwise, use the experiment with given specific ID.
+                Defaults to None.
+            backend (Backend, optional):
+                The quantum backend. Defaults to AerSimulator().
             save_location (Optional[Union[Path, str]], optional):
                 The location to save the experiment. If None, will not save.
                 Defaults to None.
@@ -377,59 +386,94 @@ class QurryPrototype(ABC):
 
         # preparing
         if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str("Parameter loading...")
+            _pbar.set_description_str("| Parameter loading...")
 
-        id_now = self._params_control_core(**other_kwargs, _pbar=_pbar)
-        assert id_now in self.exps, f"ID {id_now} not found."
+        if exp_id in self.exps and exp_id is not None:
+            id_now = exp_id
+        else:
+            id_now = self._params_control_core(
+                **other_kwargs, exp_id=exp_id, backend=backend, _pbar=_pbar
+            )
         assert self.exps[id_now].commons.exp_id == id_now
-        current_exp = self.exps[id_now]
-        assert isinstance(current_exp.commons.backend, Backend)
-
-        pool = ParallelManager()
-
-        if len(current_exp.beforewards.circuit) > 0:
+        if len(self.exps[id_now].beforewards.circuit) > 0:
             return id_now
 
-        # circuit
-        if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str("Circuit creating...")
+        current_exp = self.exps[id_now]
+        if not isinstance(current_exp.commons.backend, Backend):
+            if isinstance(backend, Backend):
+                if isinstance(_pbar, tqdm.tqdm):
+                    _pbar.set_description_str("| Backend replacing...")
+                current_exp.replace_backend(backend)
+            else:
+                raise ValueError(
+                    "No vaild backend to run, exisited backend: "
+                    + f"{current_exp.commons.backend} as type "
+                    + f"{type(current_exp.commons.backend)}, "
+                    + f"given backend: {backend} as type {type(backend)}."
+                )
 
-        how_the_method_get_args = inspect.signature(self.method).parameters
-        if "_pbar" in how_the_method_get_args:
-            if how_the_method_get_args["_pbar"].annotation == Optional[tqdm.tqdm]:
-                cirqs = self.method(id_now, _pbar=_pbar)
+        assert isinstance(current_exp.commons.backend, Backend), (
+            f"Invalid backend: {current_exp.commons.backend} as "
+            + f"type {type(current_exp.commons.backend)}."
+        )
+
+        is_revive = False
+        # circuit
+        if (
+            len(current_exp.beforewards.circuit_qasm) > 0
+            and "build" in current_exp.commons.datetimes
+        ):
+            is_revive = True
+            if isinstance(_pbar, tqdm.tqdm):
+                _pbar.set_description_str("| Circuit reviving from existed qasm...")
+            current_exp.beforewards.revive_circuit(True)
+
+        else:
+            if isinstance(_pbar, tqdm.tqdm):
+                _pbar.set_description_str("| Circuit creating...")
+            how_the_method_get_args = inspect.signature(self.method).parameters
+            if "_pbar" in how_the_method_get_args:
+                if how_the_method_get_args["_pbar"].annotation == Optional[tqdm.tqdm]:
+                    cirqs = self.method(id_now, _pbar=_pbar)
+                else:
+                    cirqs = self.method(id_now)
             else:
                 cirqs = self.method(id_now)
-        else:
-            cirqs = self.method(id_now)
 
-        # qasm
-        if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str("Exporting OpenQASM string...")
-        # for _w in cirqs:
-        #     current_exp.beforewards.circuit_qasm.append(_w.qasm())
-        tmp_qasm = pool.map(qasm_drawer, cirqs)
-        for qasm_str in tmp_qasm:
-            current_exp.beforewards.circuit_qasm.append(qasm_str)
+            pool = ParallelManager()
+            # qasm
+            if isinstance(_pbar, tqdm.tqdm):
+                _pbar.set_description_str("| Exporting OpenQASM string...")
+            tmp_qasm = pool.map(qasm_drawer, cirqs)
+            for qasm_str in tmp_qasm:
+                current_exp.beforewards.circuit_qasm.append(qasm_str)
 
         # transpile
         if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str("Circuit transpiling...")
+            _pbar.set_description_str("| Circuit transpiling...")
         transpiled_circs: list[QuantumCircuit] = transpile(
             cirqs,
             backend=current_exp.commons.backend,
             **current_exp.commons.transpile_args,
         )
         if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str("Circuit loading...")
+            _pbar.set_description_str("| Circuit loading...")
         for _w in transpiled_circs:
             current_exp.beforewards.circuit.append(_w)
 
         # commons
-        date = current_time()
-        if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str(f"| Building Completed, denoted date: {date}...")
-        current_exp.commons.datetimes["build"] = date
+        if is_revive:
+            datenote, date = current_exp.commons.datetimes.add_serial("revive")
+            if isinstance(_pbar, tqdm.tqdm):
+                _pbar.set_description_str(
+                    f"| Reviving Completed, denoted '{datenote}' date: {date}..."
+                )
+        else:
+            datenote, date = current_exp.commons.datetimes.add_only("build")
+            if isinstance(_pbar, tqdm.tqdm):
+                _pbar.set_description_str(
+                    f"| Building Completed, denoted '{datenote}' date: {date}..."
+                )
 
         if not skip_export:
             if isinstance(_pbar, tqdm.tqdm):
@@ -448,7 +492,7 @@ class QurryPrototype(ABC):
 
     def run(
         self,
-        *args,
+        *,
         save_location: Optional[Union[Path, str]] = None,
         _pbar: Optional[tqdm.tqdm] = None,
         **other_kwargs: Any,
@@ -474,15 +518,8 @@ class QurryPrototype(ABC):
         Returns:
             Hashable: The ID of the experiment.
         """
-
-        if len(args) > 0:
-            raise ValueError(
-                f"{self.__name__} can't be initialized with positional arguments."
-            )
-
         # preparing
         id_now = self.build(save_location=save_location, _pbar=_pbar, **other_kwargs)
-        assert id_now in self.exps, f"ID {id_now} not found."
         assert self.exps[id_now].commons.exp_id == id_now
         current_exp = self.exps[id_now]
 
