@@ -103,13 +103,7 @@ class ExperimentPrototype(ABC):
         return cls.Arguments(**infields), cls.Commonparams(**commonsinput), outfields
 
     # analysis
-    @staticmethod
-    @abstractmethod
-    def analysis_container(*args, **kwargs) -> AnalysisPrototype:
-        """The container of analysis,
-        it should be overwritten by each construction of new measurement.
-        """
-        raise NotImplementedError("analysis_container should be overwritten.")
+    analysis_container = AnalysisPrototype
 
     def __init__(
         self,

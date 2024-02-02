@@ -67,10 +67,8 @@ class EchoRandomizedExperiment(ExperimentPrototype):
     Arguments = EchoRandomizedArguments
     args: EchoRandomizedArguments
 
-    @staticmethod
-    def analysis_container(*args, **kwargs) -> EchoRandomizedAnalysis:
-        """The container class responding to this QurryV5 class."""
-        return EchoRandomizedAnalysis(*args, **kwargs)
+    analysis_container = EchoRandomizedAnalysis
+    """The container class responding to this QurryV5 class."""
 
     def analyze(
         self,
@@ -137,7 +135,7 @@ class EchoRandomizedExperiment(ExperimentPrototype):
             serial=serial,
             shots=shots,
             unitary_loc=unitary_loc,
-            **qs,
+            **qs,  # type: ignore
         )
 
         self.reports[serial] = analysis

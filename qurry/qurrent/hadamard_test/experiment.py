@@ -29,10 +29,8 @@ class EntropyHadamardExperiment(ExperimentPrototype):
     Arguments = EntropyHadamardArguments
     args: EntropyHadamardArguments
 
-    @staticmethod
-    def analysis_container(*args, **kwargs) -> EntropyHadamardAnalysis:
-        """The container class responding to this QurryV5 class."""
-        return EntropyHadamardAnalysis(*args, **kwargs)
+    analysis_container = EntropyHadamardAnalysis
+    """The container class responding to this QurryV5 class."""
 
     def analyze(self) -> EntropyHadamardAnalysis:
         """Calculate entangled entropy with more information combined.
@@ -62,7 +60,7 @@ class EntropyHadamardExperiment(ExperimentPrototype):
         analysis = self.analysis_container(
             serial=serial,
             shots=shots,
-            **qs,
+            **qs,  # type: ignore
         )
 
         self.reports[serial] = analysis

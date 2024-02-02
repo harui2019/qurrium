@@ -271,10 +271,8 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
     Arguments = EntropyRandomizedArguments
     args: EntropyRandomizedArguments
 
-    @staticmethod
-    def analysis_container(*args, **kwargs) -> EntropyRandomizedAnalysis:
-        """The container class responding to this QurryV5 class."""
-        return EntropyRandomizedAnalysis(*args, **kwargs)
+    analysis_container = EntropyRandomizedAnalysis
+    """The container class responding to this QurryV5 class."""
 
     def analyze(
         self,

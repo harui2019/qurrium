@@ -17,6 +17,7 @@ class QurryArguments(NamedTuple):
     """Construct the experiment's parameters for specific options,
     which is overwritable by the inherition class.
     """
+
     exp_name: str = "exps"
     sampling: int = 1
 
@@ -29,9 +30,7 @@ class QurryExperiment(ExperimentPrototype):
     Arguments = QurryArguments
     args: QurryArguments
 
-    @staticmethod
-    def analysis_container(*args, **kwargs) -> QurryAnalysis:
-        return QurryAnalysis(*args, **kwargs)
+    analysis_container = QurryAnalysis
 
     @classmethod
     def quantities(
@@ -79,7 +78,7 @@ class QurryExperiment(ExperimentPrototype):
         analysis = self.analysis_container(
             ultimate_question=ultimate_question,
             serial=serial,
-            **qs,
+            **qs,  # type: ignore
         )
 
         self.reports[serial] = analysis

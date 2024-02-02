@@ -16,6 +16,7 @@ from ...exceptions import QurryExperimentCountsNotCompleted
 class WavesQurryArguments(NamedTuple):
     """Construct the experiment's parameters for specific options,
     which is overwritable by the inherition class."""
+
     exp_name: str = "exps"
     waves: list[Hashable] = []
 
@@ -28,9 +29,7 @@ class WavesQurryExperiment(ExperimentPrototype):
     Arguments = WavesQurryArguments
     args: WavesQurryArguments
 
-    @staticmethod
-    def analysis_container(*args, **kwargs) -> WavesQurryAnalysis:
-        return WavesQurryAnalysis(*args, **kwargs)
+    analysis_container = WavesQurryAnalysis
 
     @classmethod
     def quantities(
@@ -80,7 +79,7 @@ class WavesQurryExperiment(ExperimentPrototype):
         analysis = self.analysis_container(
             ultimate_question=ultimate_question,
             serial=serial,
-            **qs,
+            **qs,  # type: ignore
         )
 
         self.reports[serial] = analysis
