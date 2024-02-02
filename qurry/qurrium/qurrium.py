@@ -229,7 +229,9 @@ class QurryPrototype(ABC):
         if isinstance(wave, QuantumCircuit):
             wave_key = self.add(wave)
         elif isinstance(wave, Hashable):
-            if not self.has(wave):
+            if "waves" in other_kwargs:
+                ...
+            elif not self.has(wave):
                 raise KeyError(f"Wave '{wave}' not found in '.waves'")
             wave_key = wave
         else:

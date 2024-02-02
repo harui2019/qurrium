@@ -66,7 +66,7 @@ class WavesExecuter(QurryPrototype):
                 raise ValueError(f"| The wave '{w}' is not in `.waves`.")
 
         if len(waves) > 0:
-            wave_key = None
+            wave_key = waves[-1]
         else:
             raise ValueError(
                 "| This is Qurry required multiple waves gvien in `waves` to be measured."
