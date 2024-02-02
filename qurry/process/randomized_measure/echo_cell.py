@@ -55,7 +55,7 @@ except ImportError as err:
 
 
 ExistingProcessBackendLabel = Literal["Cython", "Rust", "Python"]
-BackendAvailabilities: dict[ExistingProcessBackendLabel, Union[bool, ImportError]] = {
+BackendAvailabilities: dict[ExistingProcessBackendLabel, Union[bool, ImportError, None]] = {
     "Cython": CYTHON_AVAILABLE if CYTHON_AVAILABLE else FAILED_PYX_IMPORT,
     # "Rust": RUST_AVAILABLE if RUST_AVAILABLE else FAILED_RUST_IMPORT,
     "Python": True,
@@ -121,7 +121,7 @@ def echo_cell_py(
     second_counts: dict[str, int],
     bitstring_range: tuple[int, int],
     subsystem_size: int,
-) -> tuple[int, float]:
+) -> tuple[int, np.float64]:
     """Calculate the echo cell, one of overlap, of a subsystem by Python.
 
     Args:
@@ -172,7 +172,7 @@ def echo_cell(
     bitstring_range: tuple[int, int],
     subsystem_size: int,
     backend: ExistingProcessBackendLabel = DEFAULT_PROCESS_BACKEND,
-) -> tuple[int, float]:
+) -> tuple[int, Union[float, np.float64]]:
     """Calculate the echo cell, one of overlap, of a subsystem.
 
     Args:

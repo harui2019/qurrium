@@ -5,33 +5,35 @@ The experiment prototype which is the basic class of all experiments.
 ================================================================
 
 """
+
 import gc
 import os
 import json
 import warnings
-from abc import abstractmethod, abstractproperty, ABC
+from abc import abstractmethod, ABC
 from uuid import uuid4, UUID
-from typing import Union, Optional, NamedTuple, Hashable, Type, Any
+from typing import Union, Optional, Hashable, Any
 from pathlib import Path
 import tqdm
 
-from ...tools import ProcessManager, DEFAULT_POOL_SIZE
+from qiskit.providers import Backend
+
+from ...tools import ParallelManager, DEFAULT_POOL_SIZE
 from ...tools.datetime import current_time, DatetimeDict
 from ...capsule import jsonablize, quickJSON
 from ...capsule.hoshi import Hoshi
 from ...exceptions import (
     QurryInvalidInherition,
-    QurryExperimentCountsNotCompleted,
     QurryResetSecurityActivated,
     QurryResetAccomplished,
     QurryProtectContent,
     QurrySummonerInfoIncompletion,
-    QurryInvalidArgument,
+    QurryHashIDInvalid,
 )
 from ..utils.iocontrol import RJUST_LEN
-from ..analysis import AnalysisPrototype, QurryAnalysis
+from ..analysis import AnalysisPrototype
 from .container import (
-    Arguments as ExperimentArgs,
+    ArgumentsPrototype,
     Commonparams as ExperimentCommonparams,
     Before as ExperimentBefore,
     After as ExperimentAfter,
@@ -40,44 +42,36 @@ from .analyses import AnalysesContainer
 from .export import Export
 
 
-class ExperimentPrototypeABC(ABC):
-    """The experiment prototype which is the basic class of all experiments."""
-
-    @abstractmethod
-    class Arguments(NamedTuple):
-        """Construct the experiment's parameters for specific options,
-        which is overwritable by the inherition class."""
-
-        exp_name: str
-
-
-class ExperimentPrototype(ExperimentPrototypeABC):
+class ExperimentPrototype(ABC):
     """The instance of experiment."""
 
     __name__ = "ExperimentPrototype"
     """Name of the QurryExperiment which could be overwritten."""
 
-    # Experiment Property
-    Arguments = ExperimentArgs
-    Commonparams = ExperimentCommonparams
-    Before = ExperimentBefore
-    After = ExperimentAfter
+    Arguments = ArgumentsPrototype
+    """Arguments of experiment."""
+    args: ArgumentsPrototype
 
-    _unexports = ["side_product", "result"]
-    """Unexports properties.
-    """
+    Commonparams = ExperimentCommonparams
+    """Common parameters of experiment."""
+    Before = ExperimentBefore
+    """Before experiment."""
+    After = ExperimentAfter
+    """After experiment."""
+
+    _unexports = ["side_product", "result", "circuits"]
+    """Unexports properties."""
     _deprecated = ["figTranspiled", "fig_original"]
     """Deprecated properties.
         - `figTranspiled` is deprecated since v0.6.0.
         - `fig_original` is deprecated since v0.6.10.
     """
     tqdm_handleable = False
-    """Whether the method :meth:`
-    e` can handle the processing bar from :module:`tqdm`."""
+    """Whether the method :meth:`execute` can handle the processing bar from :module:`tqdm`."""
 
     # Analysis Property
     @classmethod
-    def filter(cls, *args, **kwargs) -> tuple[Arguments, Commonparams, dict[str, Any]]:
+    def filter(cls, *args, **kwargs) -> tuple[Any, Commonparams, dict[str, Any]]:
         """Filter the arguments of experiment.
 
         Raises:
@@ -101,19 +95,19 @@ class ExperimentPrototype(ExperimentPrototypeABC):
             else:
                 outfields[k] = v
 
+        if cls.Arguments is ArgumentsPrototype:
+            raise NotImplementedError(
+                f"{cls.__name__}.Arguments should be overwritten."
+            )
+
         return cls.Arguments(**infields), cls.Commonparams(**commonsinput), outfields
 
     # analysis
-    @classmethod
-    @abstractproperty
-    def analysis_container(cls) -> Type[AnalysisPrototype]:
-        """The container of analysis,
-        it should be overwritten by each construction of new measurement.
-        """
+    analysis_container = AnalysisPrototype
 
     def __init__(
         self,
-        exp_id: str,
+        exp_id: Optional[str],
         wave_key: Hashable,
         *args,
         serial: Optional[int] = None,
@@ -137,7 +131,7 @@ class ExperimentPrototype(ExperimentPrototypeABC):
             exp_id = None
             warnings.warn(
                 f"exp_id is not a valid UUID, it will be generated automatically.\n{e}",
-                category=QurryInvalidArgument,
+                category=QurryHashIDInvalid,
             )
         finally:
             if exp_id is None:
@@ -145,15 +139,9 @@ class ExperimentPrototype(ExperimentPrototypeABC):
             else:
                 ...
 
-        for i in ["AnalysisInput", "AnalysisContent"]:
-            if not hasattr(self.analysis_container, i):
-                raise QurryInvalidInherition(
-                    f"{self.__name__}._analysis_container() "
-                    + f"should be inherited from {AnalysisPrototype.__name__}."
-                )
-        if "exp_name" not in self.Arguments._fields:
-            raise QurryInvalidInherition(
-                f"{self.__name__}.arguments should have 'exp_name'."
+        if self.Arguments is ArgumentsPrototype:
+            raise NotImplementedError(
+                f"{self.__name__}.Arguments should be overwritten."
             )
         duplicate_fields = set(self.Arguments._fields) & set(self.Commonparams._fields)
         if len(duplicate_fields) > 0:
@@ -203,7 +191,7 @@ class ExperimentPrototype(ExperimentPrototypeABC):
             if isinstance(commons["tags"], list):
                 commons["tags"] = tuple(commons["tags"])
 
-        self.args: self.Arguments = self.Arguments(**params)
+        self.args = self.Arguments(**params)
         self.commons = self.Commonparams(
             exp_id=exp_id,
             serial=serial,
@@ -281,6 +269,17 @@ class ExperimentPrototype(ExperimentPrototypeABC):
                 + "the counts will not be reset, it can only be activated by multimanager.",
                 category=QurryResetSecurityActivated,
             )
+
+    def replace_backend(self, backend: Backend) -> None:
+        """Replace the backend of the experiment.
+        
+        Args:
+            backend (Backend): The new backend.
+        """
+        if isinstance(backend, Backend):
+            self.commons = self.commons._replace(backend=backend)
+        else:
+            raise ValueError("backend must be a valid Backend object.")
 
     def unlock_afterward(self, mute_auto_lock: bool = False):
         """Unlock the :cls:`afterward` content to be overwritten.
@@ -396,7 +395,7 @@ class ExperimentPrototype(ExperimentPrototypeABC):
     # pylint: disable=invalid-name
 
     @property
-    def exp_id(self) -> property:
+    def exp_id(self) -> str:
         """ID of experiment."""
         return self.commons.exp_id
 
@@ -711,7 +710,6 @@ class ExperimentPrototype(ExperimentPrototypeABC):
         indent: int = 2,
         encoding: str = "utf-8",
         jsonable: bool = False,
-        mute: bool = False,
         _pbar: Optional[tqdm.tqdm] = None,
         _qurryinfo_hold_access: Optional[str] = None,
     ) -> tuple[str, dict[str, str]]:
@@ -780,7 +778,6 @@ class ExperimentPrototype(ExperimentPrototypeABC):
             indent=indent,
             encoding=encoding,
             jsonable=jsonable,
-            mute=mute,
             _pbar=_pbar,
         )
         assert "qurryinfo" in files, "qurryinfo location is not in files."
@@ -807,7 +804,7 @@ class ExperimentPrototype(ExperimentPrototypeABC):
                 indent=indent,
                 encoding=encoding,
                 jsonable=jsonable,
-                mute=mute,
+                mute=True,
             )
         else:
             quickJSON(
@@ -817,7 +814,7 @@ class ExperimentPrototype(ExperimentPrototypeABC):
                 indent=indent,
                 encoding=encoding,
                 jsonable=jsonable,
-                mute=mute,
+                mute=True,
             )
 
         del export_material
@@ -865,7 +862,7 @@ class ExperimentPrototype(ExperimentPrototypeABC):
             export_material_set["arguments"],
             export_material_set["commonparams"],
             export_material_set["outfields"],
-        ) = cls.Commonparams.read_as_dict(
+        ) = cls.Commonparams.read_with_arguments(
             exp_id=exp_id,
             file_index=file_index,
             save_location=save_location,
@@ -967,10 +964,10 @@ class ExperimentPrototype(ExperimentPrototypeABC):
 
         if workers_num is None:
             workers_num = DEFAULT_POOL_SIZE
-        pool = ProcessManager(workers_num)
+        pool = ParallelManager(workers_num)
 
         quene = pool.process_map(
-            cls._read_core_wrapper,
+            cls._read_core,
             [
                 (exp_id, file_index, save_location, encoding)
                 for exp_id, file_index in qurryinfo.items()
@@ -979,81 +976,3 @@ class ExperimentPrototype(ExperimentPrototypeABC):
         )
 
         return quene
-
-
-class QurryExperiment(ExperimentPrototype):
-    """Experiment instance for QurryV5."""
-
-    __name__ = "QurryExperiment"
-
-    class Arguments(NamedTuple):
-        """Construct the experiment's parameters for specific options,
-        which is overwritable by the inherition class.
-        """
-
-        exp_name: str = "exps"
-        sampling: int = 1
-
-    @classmethod
-    @property
-    def analysis_container(cls) -> Type[QurryAnalysis]:
-        return QurryAnalysis
-
-    @classmethod
-    def quantities(
-        cls,
-        shots: int = None,
-        counts: list[dict[str, int]] = None,
-        ultimate_question: str = "",
-    ) -> dict[str, float]:
-        """Computing specific squantity.
-        Where should be overwritten by each construction of new measurement.
-
-        Returns:
-            dict[str, float]: Counts, purity, entropy of experiment.
-        """
-
-        if shots is None or counts is None:
-            print(
-                "| shots or counts is None, "
-                + "but it doesn't matter with ultimate question over all."
-            )
-        print("| ultimate_question:", ultimate_question)
-        dummy = -100
-        utlmatic_answer = (42,)
-        return {
-            "dummy": dummy,
-            "utlmatic_answer": utlmatic_answer,
-        }
-
-    def analyze(
-        self,
-        ultimate_question: str = "",
-        shots: Optional[int] = None,
-    ):
-        """Analysis of the experiment.
-        Where should be overwritten by each construction of new measurement.
-        """
-
-        if shots is None:
-            shots = self.commons.shots
-        if len(self.afterwards.counts) < 1:
-            raise QurryExperimentCountsNotCompleted(
-                "The counts of the experiment is not completed. So there is no data to analyze."
-            )
-
-        qs = self.quantities(
-            shots=shots,
-            counts=self.afterwards.counts,
-            ultimate_question=ultimate_question,
-        )
-
-        serial = len(self.reports)
-        analysis = self.analysis_container(
-            ultimate_question=ultimate_question,
-            serial=serial,
-            **qs,
-        )
-
-        self.reports[serial] = analysis
-        return analysis

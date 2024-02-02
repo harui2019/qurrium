@@ -5,12 +5,12 @@ ExperimentContainer
 ================================================================
 
 """
-from typing import Union, Optional, Hashable, MutableMapping
+from typing import Union, Optional, Hashable, TypeVar
 
-from ..experiment import ExperimentPrototype
+ExperimentInstance = TypeVar("ExperimentInstance")
 
 
-class ExperimentContainer(dict[Hashable, ExperimentPrototype]):
+class ExperimentContainer(dict[Hashable, ExperimentInstance]):
     """A customized dictionary for storing `ExperimentPrototype` objects."""
 
     __name__ = "ExperimentContainer"
@@ -19,9 +19,9 @@ class ExperimentContainer(dict[Hashable, ExperimentPrototype]):
         super().__init__(*args, **kwargs)
 
     def call(
-        self: MutableMapping[Hashable, ExperimentPrototype],
+        self,
         exp_id: Optional[Hashable] = None,
-    ) -> ExperimentPrototype:
+    ) -> ExperimentInstance:
         """Call an experiment by its id.
 
         Args:
@@ -36,9 +36,9 @@ class ExperimentContainer(dict[Hashable, ExperimentPrototype]):
         raise KeyError(f'Experiment id: "{exp_id}" not found in {self}')
 
     def __call__(
-        self: MutableMapping[Hashable, ExperimentPrototype],
-        exp_id: Union[list[Hashable], Hashable, None] = None,
-    ) -> ExperimentPrototype:
+        self,
+        exp_id: Union[Hashable, None] = None,
+    ) -> ExperimentInstance:
         return self.call(exp_id=exp_id)
 
     def __repr__(self):

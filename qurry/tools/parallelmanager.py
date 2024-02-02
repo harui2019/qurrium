@@ -63,17 +63,11 @@ def workers_distribution(
 
 # pylint: disable=invalid-name
 T_map = TypeVar("T_map")
+T_tgt = TypeVar("T_tgt")
 # pylint: enable=invalid-name
 
 
-def _caller_wrapper(func: Callable[[Any], T_map]) -> T_map:
-    def _caller_inner(iterable: Iterable[Any]):
-        return func(*iterable)
-
-    return _caller_inner
-
-
-class ProcessManager:
+class ParallelManager:
     """Process manager for multiprocessing."""
 
     def __init__(
@@ -101,31 +95,50 @@ class ProcessManager:
 
     def starmap(
         self,
-        func: Callable[[Iterable[Any]], T_map],
-        args: Iterable[Iterable[Any]],
-        **kwargs,
+        func: Callable[..., T_map],
+        args_list: Iterable,
     ) -> list[T_map]:
         """Multiprocessing starmap.
 
         Args:
-            func (Callable[[Iterable[Any]], T_map]): Function to be mapped.
-            args (Iterable[Iterable[Any]]): Arguments to be mapped.
-            **kwargs: Other arguments.
+            func (Callable[[Iterable[T_tgt]], T_map]): Function to be mapped.
+            args_list (Iterable[Iterable[T_tgt]]): Arguments to be mapped.
 
         Returns:
             list[T_map]: Results.
         """
 
         if self.workers_num == 1:
-            return list(map(_caller_wrapper(func), args, **kwargs))
+            return list(map(func, *zip(*args_list)))
 
         with Pool(processes=self.workers_num, **self.pool_kwargs) as pool:
-            return pool.starmap(func, args, **kwargs)
+            return pool.starmap(func, args_list)
+
+    def map(
+        self,
+        func: Callable[[T_tgt], T_map],
+        arg_list: Iterable[T_tgt],
+    ) -> list[T_map]:
+        """Multiprocessing starmap.
+
+        Args:
+            func (Callable[[Iterable[T_tgt]], T_map]): Function to be mapped.
+            arg_list (Iterable[Iterable[T_tgt]]): Arguments to be mapped.
+
+        Returns:
+            list[T_map]: Results.
+        """
+
+        if self.workers_num == 1:
+            return list(map(func, arg_list))
+
+        with Pool(processes=self.workers_num, **self.pool_kwargs) as pool:
+            return pool.map(func, arg_list)
 
     def process_map(
         self,
-        func: Callable[[Any], T_map],
-        args: Iterable[Any],
+        func: Callable[..., T_map],
+        args_list: Iterable[Iterable[Any]],
         bar_format: str = "qurry-full",
         bar_ascii: str = "4squares",
         **kwargs,
@@ -149,7 +162,7 @@ class ProcessManager:
 
         return process_map(
             func,
-            args,
+            *zip(*args_list),
             **kwargs,
             ascii=actual_ascii,
             bar_format=actual_bar_format,

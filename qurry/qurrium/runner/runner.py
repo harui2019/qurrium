@@ -4,6 +4,7 @@ Runner for pending and retrieve jobs from remote backend.
 (:mod:`qurry.qurrium.runner.runner`)
 ================================================================
 """
+
 import warnings
 from abc import abstractmethod, ABC
 from typing import Optional, Literal
@@ -21,7 +22,7 @@ class Runner(ABC):
     """The current :cls:`Multimanager` been used."""
     backend: Optional[Backend]
     """The backend been used."""
-    provider: Provider
+    provider: Optional[Provider]
     """The provider used for this backend."""
     experiment_container: ExperimentContainer
     """The experimental container from Qurry instance."""
@@ -38,7 +39,7 @@ class Runner(ABC):
         """Pending jobs to remote backend."""
 
     @abstractmethod
-    def retrieve(self):
+    def retrieve(self, overwrite: bool = False):
         """Retrieve jobs from remote backend."""
 
 
@@ -56,25 +57,28 @@ class DummyRunner(Runner):
         )
         self.current_multimanager = manager
         self.backend = backend
-        self.provider = backend.provider()
+        self.provider = None
 
         self.reports = {}
 
     def pending(
         self,
         pending_strategy: Literal["default", "onetime", "each", "tags"],
-        backend: Backend,
+        backend: Optional[Backend] = None,
     ):
         warnings.warn(
             "You are using a dummy runner, which does not support any jobs.",
             QurryDummyRunnerWarning,
         )
+        return []
 
-    def retrieve(self):
+    def retrieve(self, overwrite: bool = False):
+        print("Dummy runner does not support retrieve.", overwrite)
         warnings.warn(
             "You are using a dummy runner, which does not support any jobs.",
             QurryDummyRunnerWarning,
         )
+        return []
 
 
 # Using for Third-Party Backend

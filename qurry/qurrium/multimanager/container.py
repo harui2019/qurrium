@@ -4,8 +4,9 @@ Container (qurry.qurry.qurrium.multimanager.container)
 ================================================================
 
 """
+
 from pathlib import Path
-from typing import Literal, Union, Optional, NamedTuple, Hashable, Any, Iterable
+from typing import Literal, Union, Optional, NamedTuple, Hashable, Any
 import json
 
 from qiskit.result import Result
@@ -14,6 +15,23 @@ from qiskit.providers import Backend
 from ...tools.datetime import DatetimeDict
 from ...capsule import quickRead
 from ...capsule.mori import TagList
+
+PendingStrategyLiteral = Literal["onetime", "each", "tags"]
+"""Type of pending strategy."""
+PENDING_STRATEGY: list[PendingStrategyLiteral] = ["onetime", "each", "tags"]
+"""List of pending strategy."""
+PendingTargetProviderLiteral = Literal[
+    "local", "IBMQ", "IBM", "Qulacs", "AWS_Bracket", "Azure_Q"
+]
+"""Type of backend provider."""
+PENDING_TARGET_PROVIDER: list[PendingTargetProviderLiteral] = [
+    "IBMQ",
+    "IBM",
+    # "Qulacs",
+    # "AWS_Bracket",
+    # "Azure_Q"
+]
+"""List of backend provider."""
 
 
 class MultiCommonparams(NamedTuple):
@@ -38,17 +56,19 @@ class MultiCommonparams(NamedTuple):
     export_location is the final result decided by experiment."""
     files: dict[str, Union[str, dict[str, str]]]
 
-    jobstype: str
-    """Type of jobs to run multiple experiments and its pending strategy.
-    
+    jobstype: PendingTargetProviderLiteral
+    """Type of jobs to run multiple experiments.
     - jobstype: "local", "IBMQ", "IBM", "AWS_Bracket", "Azure_Q"
+    """
+    pending_strategy: PendingStrategyLiteral
+    """Type of pending strategy.
     - pendingStrategy: "default", "onetime", "each", "tags"
     """
 
     manager_run_args: dict[str, any]
     """Other arguments will be passed to `IBMQJobManager()`"""
 
-    filetype: TagList._availableFileType
+    filetype: Literal["json"]
 
     # header
     datetimes: DatetimeDict
@@ -78,6 +98,7 @@ class MultiCommonparams(NamedTuple):
             "export_location": "",
             "files": {},
             "jobstype": "local",
+            "pending_strategy": "tags",
             "manager_run_args": {},
             "filetype": "json",
             "datetimes": {},
@@ -114,22 +135,22 @@ class Before(NamedTuple):
     circuits_num: dict[str, int]
     """The map with tags of index of experiments, which multiple experiments shared."""
 
-    pending_pool: TagList[int]
+    pending_pool: TagList[str, int]
     """The pool of pending jobs, which multiple experiments shared, 
     it works only when executing experiments is remote.
     """
-    circuits_map: TagList[str]
+    circuits_map: TagList[Hashable, int]
     """The map of circuits of each experiments in the index of pending, 
     which multiple experiments shared.
     """
-    job_id: list[Iterable[Union[str, tuple, Hashable, None]]]
+    job_id: list[tuple[Optional[str], str]]
     """The list of job_id in pending, which multiple experiments shared, 
     it works only when executing experiments is remote.
     """
 
-    job_taglist: TagList[str]
-    files_taglist: TagList[str]
-    index_taglist: TagList[Union[str, int]]
+    job_taglist: TagList[Hashable, str]
+    files_taglist: TagList[Hashable, str]
+    index_taglist: TagList[Hashable, Union[str, int]]
 
     @staticmethod
     def exporting_name():
@@ -155,48 +176,56 @@ class Before(NamedTuple):
         if file_location is None:
             file_location = {}
 
+        if version == "v7":
+            real_file_location = {
+                "exps_config": "exps.config.json",
+                "circuits_num": "circuitsNum.json",
+                "jobID": "jobID.json",
+            }
+        else:
+            assert isinstance(
+                file_location["exps_config"], Path
+            ), "ExpsConfig must be Path"
+            assert isinstance(
+                file_location["circuits_num"], Path
+            ), "circuitsNum must be Path"
+            assert isinstance(file_location["job_id"], Path), "job_id must be Path"
+            real_file_location = {
+                "exps_config": Path(file_location["exps_config"]).name,
+                "circuits_num": Path(file_location["circuits_num"]).name,
+                "jobID": Path(file_location["job_id"]).name,
+            }
+
         return cls(
             exps_config=quickRead(
-                filename=(
-                    "exps.config.json"
-                    if version == "v7"
-                    else Path(file_location["configDict"]).name
-                ),
+                filename=(real_file_location["exps_config"]),
                 save_location=export_location,
             ),
             circuits_num=quickRead(
-                filename=(
-                    "circuitsNum.json"
-                    if version == "v7"
-                    else Path(file_location["circuits_num"]).name
-                ),
+                filename=(real_file_location["circuits_num"]),
                 save_location=export_location,
             ),
             circuits_map=TagList.read(
-                save_location=export_location, tagListName="circuitsMap"
+                save_location=export_location, taglist_name="circuitsMap"
             ),
             pending_pool=TagList.read(
-                save_location=export_location, tagListName="pendingPools"
+                save_location=export_location, taglist_name="pendingPools"
             ),
             job_id=quickRead(
-                filename=(
-                    "jobID.json"
-                    if version == "v7"
-                    else Path(file_location["job_id"]).name
-                ),
+                filename=(real_file_location["jobID"]),
                 save_location=export_location,
             ),
             job_taglist=TagList.read(
                 save_location=export_location,
-                tagListName="job.tagList" if version == "v7" else "tagMapExpsID",
+                taglist_name="job.tagList" if version == "v7" else "tagMapExpsID",
             ),
             files_taglist=TagList.read(
                 save_location=export_location,
-                tagListName="files.tagList" if version == "v7" else "tagMapFiles",
+                taglist_name="files.tagList" if version == "v7" else "tagMapFiles",
             ),
             index_taglist=TagList.read(
                 save_location=export_location,
-                tagListName="index.tagList" if version == "v7" else "tagMapIndex",
+                taglist_name="index.tagList" if version == "v7" else "tagMapIndex",
             ),
         )
 
@@ -204,7 +233,7 @@ class Before(NamedTuple):
 class After(NamedTuple):
     """`dataStateDepending` and `dataNeccessary` in V4 format."""
 
-    retrievedResult: TagList[Result]
+    retrievedResult: TagList[Hashable, Result]
     """The list of retrieved results, which multiple experiments shared."""
     allCounts: dict[Hashable, list[dict[str, int]]]
     """The dict of all counts of each experiments."""
@@ -226,14 +255,17 @@ class After(NamedTuple):
     ):
         if file_location is None:
             file_location = {}
+        if version == "v7":
+            real_file_location = "allCounts.json"
+        else:
+            raw = file_location["allCounts"]
+            assert isinstance(raw, Path), "allCounts must be Path"
+            real_file_location = Path(raw).name
+        tmp: dict[Hashable, list[dict[str, int]]] = quickRead(
+            filename=(real_file_location),
+            save_location=export_location,
+        )
         return cls(
-            retrievedResult={},
-            allCounts=quickRead(
-                filename=(
-                    "allCounts.json"
-                    if version == "v7"
-                    else Path(file_location["allCounts"]).name
-                ),
-                save_location=export_location,
-            ),
+            retrievedResult=TagList(),
+            allCounts=tmp,
         )

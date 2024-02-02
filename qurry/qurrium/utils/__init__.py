@@ -5,16 +5,8 @@ Utility functions for qurry
 ================================================================
 """
 
-from .construct import (
-    qasm_drawer,
-    decomposer,
-    get_counts_and_exceptions,
-    decomposer_and_drawer,
-)
-from .inputfixer import (
-    damerau_levenshtein_distance,
-    outfields_check,
-)
+from .construct import qasm_drawer, decomposer, get_counts_and_exceptions
+from .inputfixer import damerau_levenshtein_distance, outfields_check
 from .iocontrol import (
     naming,
     IOComplex,

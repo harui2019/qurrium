@@ -46,8 +46,10 @@ class QurryCythonImportError(QurryError, ImportError):
 class QurryRustImportError(QurryError, ImportError):
     """Rust import error."""
 
+
 class QurryCountLost(QurryError):
     """Count lost error."""
+
 
 # General Warning
 class QurryWarning(Warning):
@@ -110,3 +112,7 @@ class QurryRustUnavailableWarning(QurryWarning):
 
 class QurryDummyRunnerWarning(QurryWarning):
     """Dummy runner warning."""
+
+
+class QurryHashIDInvalid(QurryWarning):
+    """Hash ID invalid warning."""

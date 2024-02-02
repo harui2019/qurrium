@@ -1,36 +1,28 @@
 """
 ===========================================================
-Loschmidt Echo - Randomized Measure
+Wave Function Overlap - Randomized Measurement 
+(:mod:`qurry.qurrech.randomized_measure.qurry`)
 ===========================================================
 
 """
+
 from pathlib import Path
-from typing import Union, Optional, NamedTuple, Hashable, Iterable, Type, Any
+from typing import Union, Optional, Hashable, Any, Type
 import tqdm
+
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.quantum_info import Operator
 
-from ..qurrium import (
-    QurryV5Prototype,
-    ExperimentPrototype,
-    AnalysisPrototype,
-)
-from ..qurrium.utils.randomized import (
+from .experiment import EchoRandomizedExperiment
+from ...qurrium.qurrium import QurryPrototype
+from ...qurrium.container import ExperimentContainer
+from ...qurrium.utils.randomized import (
     local_random_unitary_operators,
     local_random_unitary_pauli_coeff,
     random_unitary,
 )
-from ..process.utils import qubit_selector
-from ..process.randomized_measure.wavefunction_overlap import (
-    randomized_overlap_echo,
-    ExistingProcessBackendLabel,
-    DEFAULT_PROCESS_BACKEND,
-)
-from ..tools import (
-    qurry_progressbar,
-    ProcessManager,
-    DEFAULT_POOL_SIZE,
-)
+from ...process.utils import qubit_selector
+from ...tools import ParallelManager
 
 
 def circuit_method_core(
@@ -61,11 +53,13 @@ def circuit_method_core(
     qc_exp1 = QuantumCircuit(q_func1, c_meas1)
     qc_exp1.name = f"{exp_name}-{idx}"
 
-    qc_exp1.append(target_circuit, [q_func1[i] for i in range(num_qubits)])
+    qc_exp1.compose(
+        target_circuit, [q_func1[i] for i in range(num_qubits)], inplace=True
+    )
 
     qc_exp1.barrier()
     for j in range(*unitary_loc):
-        qc_exp1.append(unitary_sub_list[j], [j])
+        qc_exp1.append(unitary_sub_list[j].to_instruction(), [j])
 
     for j in range(*measure):
         qc_exp1.measure(q_func1[j], c_meas1[j - measure[0]])
@@ -73,219 +67,7 @@ def circuit_method_core(
     return qc_exp1
 
 
-class EchoRandomizedAnalysis(AnalysisPrototype):
-    """The analysis of loschmidt echo."""
-
-    __name__ = "qurrechRandomized.Analysis"
-    shortName = "qurrech_haar.report"
-
-    class AnalysisInput(NamedTuple):
-        """To set the analysis."""
-
-        degree: tuple[int, int]
-        shots: int
-        unitary_loc: tuple[int, int] = None
-
-    class AnalysisContent(NamedTuple):
-        """The content of the analysis."""
-
-        echo: float
-        """The purity of the system."""
-        echoSD: float
-        """The standard deviation of the purity of the system."""
-        echoCells: dict[int, float]
-        """The echo of each cell of the system."""
-        bitStringRange: tuple[int, int]
-        """The qubit range of the subsystem."""
-
-        measureActually: Optional[tuple[int, int]] = None
-        """The qubit range of the measurement actually used."""
-        countsNum: Optional[int] = None
-        """The number of counts of the experiment."""
-        takingTime: Optional[float] = None
-        """The taking time of the selected system."""
-
-        def __repr__(self):
-            return f"AnalysisContent(echo={self.echo}, and others)"
-
-    @property
-    def default_side_product_fields(self) -> Iterable[str]:
-        """The fields that will be stored as side product."""
-        return [
-            "echoCells",
-        ]
-
-
-class EchoRandomizedExperiment(ExperimentPrototype):
-    """Randomized measure experiment.
-
-    - Reference:
-        - Used in:
-            Simple mitigation of global depolarizing errors in quantum simulations -
-            Vovrosh, Joseph and Khosla, Kiran E. and Greenaway, Sean and Self,
-            Christopher and Kim, M. S. and Knolle, Johannes,
-            [PhysRevE.104.035309](https://link.aps.org/doi/10.1103/PhysRevE.104.035309)
-
-        - `bibtex`:
-
-    ```bibtex
-        @article{PhysRevE.104.035309,
-            title = {Simple mitigation of global depolarizing errors in quantum simulations},
-            author = {Vovrosh, Joseph and Khosla, Kiran E. and Greenaway, Sean and Self,
-            Christopher and Kim, M. S. and Knolle, Johannes},
-            journal = {Phys. Rev. E},
-            volume = {104},
-            issue = {3},
-            pages = {035309},
-            numpages = {8},
-            year = {2021},
-            month = {Sep},
-            publisher = {American Physical Society},
-            doi = {10.1103/PhysRevE.104.035309},
-            url = {https://link.aps.org/doi/10.1103/PhysRevE.104.035309}
-        }
-    ```
-    """
-
-    __name__ = "qurrechRandomized.Experiment"
-    shortName = "qurrech_haar.exp"
-
-    class Arguments(NamedTuple):
-        """Arguments for the experiment."""
-
-        exp_name: str = "exps"
-        wave_key_2: Hashable = None
-        times: int = 100
-        measure: tuple[int, int] = None
-        unitary_loc: tuple[int, int] = None
-        workers_num: int = DEFAULT_POOL_SIZE
-
-    @classmethod
-    @property
-    def analysis_container(cls) -> Type[EchoRandomizedAnalysis]:
-        """The container class responding to this QurryV5 class."""
-        return EchoRandomizedAnalysis
-
-    def analyze(
-        self,
-        degree: Optional[Union[tuple[int, int], int]] = None,
-        workers_num: Optional[int] = None,
-        pbar: Optional[tqdm.tqdm] = None,
-    ) -> EchoRandomizedAnalysis:
-        """Calculate entangled entropy with more information combined.
-
-        Args:
-            degree (Union[tuple[int, int], int]): Degree of the subsystem.
-            workers_num (Optional[int], optional):
-                Number of multi-processing workers,
-                if sets to 1, then disable to using multi-processing;
-                if not specified, then use the number of all cpu counts - 2 by `cpu_count() - 2`.
-                Defaults to None.
-
-        Returns:
-            dict[str, float]: A dictionary contains
-                purity, entropy, a list of each overlap, puritySD,
-                purity of all system, entropy of all system,
-                a list of each overlap in all system, puritySD of all system,
-                degree, actual measure range, actual measure range in all system, bitstring range.
-        """
-
-        if degree is None:
-            raise ValueError("degree must be specified, but get None.")
-
-        self.args: EchoRandomizedExperiment.Arguments
-        shots = self.commons.shots
-        measure = self.args.measure
-        unitary_loc = self.args.unitary_loc
-        counts = self.afterwards.counts
-
-        if isinstance(pbar, tqdm.tqdm):
-            qs = self.quantities(
-                shots=shots,
-                counts=counts,
-                degree=degree,
-                measure=measure,
-                workers_num=workers_num,
-                pbar=pbar,
-            )
-
-        else:
-            pbar_selfhost = qurry_progressbar(
-                range(1),
-                bar_format="simple",
-            )
-
-            with pbar_selfhost as pb_self:
-                qs = self.quantities(
-                    shots=shots,
-                    counts=counts,
-                    degree=degree,
-                    measure=measure,
-                    workers_num=workers_num,
-                    pbar=pb_self,
-                )
-                pb_self.update()
-
-        serial = len(self.reports)
-        analysis = self.analysis_container(
-            serial=serial,
-            shots=shots,
-            unitary_loc=unitary_loc,
-            **qs,
-        )
-
-        self.reports[serial] = analysis
-        return analysis
-
-    @classmethod
-    def quantities(
-        cls,
-        shots: int = None,
-        counts: list[dict[str, int]] = None,
-        degree: Union[tuple[int, int], int] = None,
-        measure: tuple[int, int] = None,
-        backend: ExistingProcessBackendLabel = DEFAULT_PROCESS_BACKEND,
-        workers_num: Optional[int] = None,
-        pbar: Optional[tqdm.tqdm] = None,
-    ) -> dict[str, float]:
-        """Calculate entangled entropy with more information combined.
-
-        Args:
-            shots (int): Shots of the experiment on quantum machine.
-            counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
-            degree (Union[tuple[int, int], int]): Degree of the subsystem.
-            measure (tuple[int, int], optional):
-                Measuring range on quantum circuits. Defaults to None.
-            workers_num (Optional[int], optional):
-                Number of multi-processing workers,
-                if sets to 1, then disable to using multi-processing;
-                if not specified, then use the number of all cpu counts - 2 by `cpu_count() - 2`.
-                Defaults to None.
-            pbar (Optional[tqdm.tqdm], optional): Progress bar. Defaults to None.
-            use_cython (bool, optional): Use cython to calculate purity cell. Defaults to True.
-
-        Returns:
-            dict[str, float]: A dictionary contains
-                purity, entropy, a list of each overlap, puritySD,
-                purity of all system, entropy of all system,
-                a list of each overlap in all system, puritySD of all system,
-                degree, actual measure range, actual measure range in all system, bitstring range.
-        """
-        if shots is None or counts is None:
-            raise ValueError("shots and counts should be specified.")
-
-        return randomized_overlap_echo(
-            shots=shots,
-            counts=counts,
-            degree=degree,
-            measure=measure,
-            backend=backend,
-            workers_num=workers_num,
-            pbar=pbar,
-        )
-
-
-class EchoRandomizedListen(QurryV5Prototype):
+class EchoRandomizedListen(QurryPrototype):
     """Randomized measure experiment."""
 
     __name__ = "qurrechRandomized"
@@ -294,11 +76,12 @@ class EchoRandomizedListen(QurryV5Prototype):
     tqdm_handleable = True
     """The handleable of tqdm."""
 
-    @classmethod
     @property
-    def experiment(cls) -> Type[EchoRandomizedExperiment]:
+    def experiment(self) -> Type[EchoRandomizedExperiment]:
         """The container class responding to this QurryV5 class."""
         return EchoRandomizedExperiment
+
+    exps: ExperimentContainer[EchoRandomizedExperiment]
 
     def params_control(
         self,
@@ -306,8 +89,8 @@ class EchoRandomizedListen(QurryV5Prototype):
         wave_key_2: Union[Hashable, QuantumCircuit] = None,
         exp_name: str = "exps",
         times: int = 100,
-        measure: tuple[int, int] = None,
-        unitary_loc: tuple[int, int] = None,
+        measure: Union[tuple[int, int], int, None] = None,
+        unitary_loc: Union[tuple[int, int], int, None] = None,
         **other_kwargs: any,
     ) -> tuple[
         EchoRandomizedExperiment.Arguments,
@@ -424,7 +207,7 @@ class EchoRandomizedListen(QurryV5Prototype):
                 f"Building {args.times} circuits with {args.workers_num} workers."
             )
 
-        pool = ProcessManager(args.workers_num)
+        pool = ParallelManager(args.workers_num)
         qc_list = pool.starmap(
             circuit_method_core,
             [

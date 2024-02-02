@@ -5,7 +5,7 @@ Test the qurry.qurrent module EntropyMeasure class.
 
 """
 import pytest
-
+import numpy as np
 from qurry.qurrent import EntropyMeasure
 from qurry.tools.backend import GeneralAerSimulator
 from qurry.capsule import mori, hoshi
@@ -48,6 +48,7 @@ def test_quantity_01(tgt):
     expDemo01.exps[exp_id].analyze()
     quantity = expDemo01.exps[exp_id].reports[0].content._asdict()
     assert all(["entropy" in quantity, "purity" in quantity])
+    assert np.abs(quantity["purity"] - 1.0) < 1e-0
 
 
 @pytest.mark.parametrize("tgt", wave_adds_02)

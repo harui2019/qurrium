@@ -3,6 +3,7 @@
 Command tools (:mod:`qurry.tools.command`)
 ================================================================
 """
+
 import os
 import warnings
 from typing import Optional
@@ -23,7 +24,7 @@ def cmd_wrapper(cmd: str = "") -> None:
 
         # pylint: disable=import-outside-toplevel
 
-        get_ipython().system(cmd)
+        get_ipython().system(cmd)  # type: ignore
     except ImportError:
         os.system(cmd)
 
@@ -46,9 +47,11 @@ def pytorch_cuda_check() -> Optional[bool]:
             + " ".join(
                 (
                     torch.__version__,
-                    torch.cuda.get_device_properties(0)
-                    if torch.cuda.is_available()
-                    else "CPU",
+                    (
+                        torch.cuda.get_device_properties(0)
+                        if torch.cuda.is_available()
+                        else "CPU"
+                    ),
                 )
             )
         )

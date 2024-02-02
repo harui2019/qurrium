@@ -26,14 +26,15 @@ So we use optional import here. if Rust is not available,
 the functions used acceleration will run by Cython or Python instead of Rust.
 
 """
+
 import sys
 
-from .qurmagsq import MagnetSquare
+# from .qurmagsq import MagnetSquare
 from .qurrech import EchoListen
 from .qurrent import EntropyMeasure
 
 # from .qurstrop import StringOperator
-from .qurrium import QurryV5 as Qurry, WavesExecuter
+from .qurrium import WavesExecuter, SamplingExecuter
 
 # from .recipe import Qurecipe
 

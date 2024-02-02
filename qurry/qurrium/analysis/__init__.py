@@ -4,4 +4,4 @@ analysis (:mod:`qurry.qurrium.analysis`)
 ================================================================
 
 """
-from .analysis import AnalysisPrototype, QurryAnalysis
+from .analysis import AnalysisPrototype

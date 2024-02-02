@@ -99,7 +99,7 @@ def qurry_progressbar(
     actual_bar_format = result_setup["bar_format"]
     actual_ascii = result_setup["ascii"]
 
-    return real_tqdm(
+    return real_tqdm(  # type: ignore # for fake tqdm class
         iterable=iterable,
         *args,
         bar_format=actual_bar_format,

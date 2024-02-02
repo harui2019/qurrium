@@ -7,22 +7,15 @@ Entangled Entropy Error Mitigation
 
 """
 
-from typing import overload
+from typing import TypeVar, Union
 import numpy as np
 
+_InputT = TypeVar("_InputT", bound=Union[np.ndarray, float, np.float64])
 
 # Randomized measure error mitigation
-@overload
-def solve_p(meas_series: np.ndarray, n_a: int) -> tuple[np.ndarray, np.ndarray]:
-    ...
 
 
-@overload
-def solve_p(meas_series: float, n_a: int) -> tuple[float, float]:
-    ...
-
-
-def solve_p(meas_series, n_a):
+def solve_p(meas_series: _InputT, n_a: int) -> tuple[_InputT, _InputT]:
     """Solve the equation of p from all system size and subsystem size.
 
     Args:
@@ -42,19 +35,7 @@ def solve_p(meas_series, n_a):
     return ppser, pnser
 
 
-@overload
-def mitigation_equation(
-    pser: np.ndarray, meas_series: np.ndarray, n_a: int
-) -> np.ndarray:
-    ...
-
-
-@overload
-def mitigation_equation(pser: float, meas_series: float, n_a: int) -> float:
-    ...
-
-
-def mitigation_equation(pser, meas_series, n_a):
+def mitigation_equation(pser: _InputT, meas_series: _InputT, n_a: int) -> _InputT:
     """Calculate the mitigation equation.
 
     Args:
@@ -71,27 +52,9 @@ def mitigation_equation(pser, meas_series, n_a):
     )
 
 
-@overload
 def depolarizing_error_mitgation(
-    meas_system: float,
-    all_system: float,
-    n_a: int,
-    system_size: int,
-) -> dict[str, float]:
-    ...
-
-
-@overload
-def depolarizing_error_mitgation(
-    meas_system: np.ndarray,
-    all_system: np.ndarray,
-    n_a: int,
-    system_size: int,
-) -> dict[str, np.ndarray]:
-    ...
-
-
-def depolarizing_error_mitgation(meas_system, all_system, n_a, system_size):
+    meas_system: _InputT, all_system: _InputT, n_a: int, system_size: int
+) -> dict[str, _InputT]:
     """Depolarizing error mitigation.
 
     Args:
@@ -111,5 +74,5 @@ def depolarizing_error_mitgation(meas_system, all_system, n_a, system_size):
     return {
         "errorRate": pn,
         "mitigatedPurity": mitiga,
-        "mitigatedEntropy": -np.log2(mitiga, dtype=np.float64),
+        "mitigatedEntropy": -np.log2(mitiga, dtype=np.float64),  # type: ignore
     }

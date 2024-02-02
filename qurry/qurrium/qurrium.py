@@ -1,22 +1,24 @@
 """
 ===========================================================
 Qurry - A Qiskit Macro
-(:mod:`qurry.qurry.qurrium.qurryV5`)
+(:mod:`qurry.qurry.qurrium.qurrium`)
+
+Refactoring from :mod:`qurry.qurrium.qurryV5`.
 ===========================================================
 """
+
 import gc
 import inspect
 import warnings
-from abc import abstractmethod, abstractproperty, ABC
-from typing import Literal, Union, Optional, Hashable, Type, Any, overload
+from abc import abstractmethod, ABC
+from typing import Literal, Union, Optional, Hashable, Any, overload, TypeVar, Type
 from pathlib import Path
 import tqdm
 
 from qiskit import execute, transpile, QuantumCircuit
 from qiskit.providers import Backend, JobV1 as Job
 
-from ..tools import qurry_progressbar, ProcessManager
-from ..capsule.mori import TagList
+from ..tools import qurry_progressbar, ParallelManager
 from ..tools.backend import GeneralAerSimulator
 from ..tools.datetime import current_time, DatetimeDict
 from ..declare.default import (
@@ -25,33 +27,32 @@ from ..declare.default import (
     managerRunConfig,
     contain_checker,
 )
-from .experiment import ExperimentPrototype, QurryExperiment
+from .experiment import ExperimentPrototype
 from .container import WaveContainer, ExperimentContainer
-from .multimanager import MultiManager
-from .runner import BackendChoiceLiteral, ExtraBackendAccessor
+from .multimanager import (
+    MultiManager,
+    PendingTargetProviderLiteral,
+    PendingStrategyLiteral,
+)
+from .runner import ExtraBackendAccessor
+
 
 from .utils import get_counts_and_exceptions, qasm_drawer
 from .utils.inputfixer import outfields_check, outfields_hint
 from ..exceptions import QurryResetAccomplished, QurryResetSecurityActivated
 
-# Qurry V0.5.0 - a Qiskit Macro
+
+ExpsT = TypeVar("ExpsT", bound=ExperimentPrototype)
 
 
-class QurryV5Prototype(ABC):
-    """QurryV5
+class QurryPrototype(ABC):
+    """Qurry
     A qiskit Macro.
     ~Create countless adventure, legacy and tales.~
     """
 
-    __name__ = "QurryV5Prototype"
-    shortName = "qurry"
-
-    # container
-    @classmethod
-    @abstractproperty
-    def experiment(cls) -> Type[ExperimentPrototype]:
-        """The container class responding to this QurryV5 class."""
-        raise NotImplementedError
+    __name__ = "QurriumPrototype"
+    shortName = "qurrium"
 
     # Wave
     def add(
@@ -88,10 +89,7 @@ class QurryV5Prototype(ABC):
         """
         self.waves.remove(key)
 
-    def has(
-        self,
-        wavename: Hashable,
-    ) -> bool:
+    def has(self, wavename: Hashable) -> bool:
         """Is there a wave with specific name.
 
         Args:
@@ -102,13 +100,19 @@ class QurryV5Prototype(ABC):
         """
         return self.waves.has(wavename)
 
+    @property
+    @abstractmethod
+    def experiment(self) -> Type[ExperimentPrototype]:
+        """The instance of experiment."""
+        raise NotImplementedError("The experiment is not defined.")
+
     def __init__(
         self,
     ) -> None:
         self.waves: WaveContainer = WaveContainer()
         """The wave functions container."""
 
-        self.exps: ExperimentContainer = ExperimentContainer()
+        self.exps: ExperimentContainer[ExpsT] = ExperimentContainer()
         """The experiments container."""
 
         self.multimanagers: dict[str, MultiManager] = {}
@@ -131,10 +135,11 @@ class QurryV5Prototype(ABC):
 
     def _params_control_core(
         self,
-        wave: Union[QuantumCircuit, Hashable, None] = None,
-        exp_id: Optional[str] = None,
+        *,
+        wave: Union[QuantumCircuit, Hashable],
+        exp_id: Optional[str],
         shots: int = 1024,
-        backend: Backend = GeneralAerSimulator(),
+        backend: Optional[Backend] = None,
         # provider: Optional[AccountProvider] = None,
         run_args: Optional[dict[str, Any]] = None,
         transpile_args: Optional[dict[str, Any]] = None,
@@ -150,14 +155,14 @@ class QurryV5Prototype(ABC):
         """Control the experiment's general parameters.
 
         Args:
-            wave (Union[QuantumCircuit, Hashable, None], optional):
+            wave (Union[QuantumCircuit, Hashable]):
                 The index of the wave function in `self.waves` or add new one to calaculation,
                 then choose one of waves as the experiment material.
                 If input is `QuantumCircuit`, then add and use it.
                 If input is the key in `.waves`, then use it.
                 If input is `None` or something illegal, then use `.lastWave'.
                 Defaults to None.
-            exp_id (Optional[str], optional):
+            exp_id (str):
                 If input is `None`, then create an new experiment.
                 If input is a existed experiment ID, then use it.
                 Otherwise, use the experiment with given specific ID.
@@ -211,24 +216,20 @@ class QurryV5Prototype(ABC):
         Returns:
             Hashable: The ID of the experiment.
         """
-        if exp_id in self.exps:
-            return exp_id
-
         if run_args is None:
             run_args = {}
         if transpile_args is None:
             transpile_args = {}
         if default_analysis is None:
             default_analysis = []
-
-        if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str("Generating experiment... ")
+        if backend is None:
+            backend = GeneralAerSimulator()
 
         # wave
         if isinstance(wave, QuantumCircuit):
             wave_key = self.add(wave)
         elif isinstance(wave, Hashable):
-            if wave is None:
+            if "waves" in other_kwargs:
                 ...
             elif not self.has(wave):
                 raise KeyError(f"Wave '{wave}' not found in '.waves'")
@@ -238,13 +239,13 @@ class QurryV5Prototype(ABC):
                 f"'{wave}' is a '{type(wave)}' instead of 'QuantumCircuit' or 'Hashable'"
             )
 
-        ctrl_args: ExperimentPrototype.Arguments
-        commons: ExperimentPrototype.Commonparams
+        arguments: ExperimentPrototype.Arguments
+        commonparams: ExperimentPrototype.Commonparams
         outfields: dict[str, Any]
         # Given parameters and default parameters
         if isinstance(_pbar, tqdm.tqdm):
             _pbar.set_description_str("Prepaing parameters...")
-        ctrl_args, commons, outfields = self.params_control(
+        arguments, commonparams, outfields = self.params_control(
             wave_key=wave_key,
             exp_id=exp_id,
             shots=shots,
@@ -265,12 +266,12 @@ class QurryV5Prototype(ABC):
         )
 
         outfield_maybe, outfields_unknown = outfields_check(
-            outfields, ctrl_args._fields + commons._fields
+            outfields, arguments._fields + commonparams._fields
         )
         outfields_hint(outfield_maybe, outfields_unknown, mute_outfields_warning)
 
-        if len(commons.default_analysis) > 0:
-            for index, analyze_input in enumerate(commons.default_analysis):
+        if len(commonparams.default_analysis) > 0:
+            for index, analyze_input in enumerate(commonparams.default_analysis):
                 if not isinstance(analyze_input, dict):
                     raise TypeError(
                         "Each element of 'default_analysis' must be a dict, "
@@ -285,19 +286,20 @@ class QurryV5Prototype(ABC):
 
         # config check
         if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str("Checking parameters... ")
-        contain_checker(commons.transpile_args, transpileConfig)
-        contain_checker(commons.run_args, runConfig)
+            _pbar.set_description_str("| Checking parameters... ")
+        contain_checker(commonparams.transpile_args, transpileConfig)
+        contain_checker(commonparams.run_args, runConfig)
 
         if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str("Create experiment instance... ")
+            _pbar.set_description_str("| Create experiment instance... ")
         new_exps = self.experiment(
-            **ctrl_args._asdict(),
-            **commons._asdict(),
+            **arguments._asdict(),
+            **commonparams._asdict(),
             **outfields,
         )
 
         self.exps[new_exps.commons.exp_id] = new_exps
+        assert isinstance(self.exps[new_exps.commons.exp_id].commons.backend, Backend)
         assert len(self.exps[new_exps.commons.exp_id].beforewards.circuit) == 0
         assert len(self.exps[new_exps.commons.exp_id].beforewards.fig_original) == 0
         assert len(self.exps[new_exps.commons.exp_id].beforewards.circuit_qasm) == 0
@@ -307,16 +309,24 @@ class QurryV5Prototype(ABC):
         return new_exps.commons.exp_id
 
     # Circuit
-    @overload
     @abstractmethod
+    @overload
     def method(
         self,
         exp_id: str,
         _pbar: Optional[tqdm.tqdm] = None,
     ) -> list[QuantumCircuit]:
-        ...
+        """The method to construct circuit.
+        Where should be overwritten by each construction of new measurement.
+
+        Returns:
+            Union[QuantumCircuit, list[QuantumCircuit]]:
+                The quantum circuit of experiment.
+        """
+        raise NotImplementedError
 
     @abstractmethod
+    @overload
     def method(
         self,
         exp_id: str,
@@ -332,14 +342,15 @@ class QurryV5Prototype(ABC):
 
     def build(
         self,
-        *args,
+        *,
+        exp_id: Optional[str] = None,
+        backend: Optional[Backend] = None,
         save_location: Optional[Union[Path, str]] = None,
         mode: str = "w+",
         indent: int = 2,
         encoding: str = "utf-8",
         jsonablize: bool = False,
         skip_export: bool = False,
-        _export_mute: bool = True,
         _pbar: Optional[tqdm.tqdm] = None,
         **other_kwargs: Any,
     ) -> str:
@@ -347,6 +358,13 @@ class QurryV5Prototype(ABC):
         ## The first finishing point.
 
         Args:
+            exp_id (str):
+                If input is `None`, then create an new experiment.
+                If input is a existed experiment ID, then use it.
+                Otherwise, use the experiment with given specific ID.
+                Defaults to None.
+            backend (Backend, optional):
+                The quantum backend. Defaults to AerSimulator().
             save_location (Optional[Union[Path, str]], optional):
                 The location to save the experiment. If None, will not save.
                 Defaults to None.
@@ -358,8 +376,6 @@ class QurryV5Prototype(ABC):
                 The encoding of json file. Defaults to 'utf-8'.
             jsonablize (bool, optional):
                 Whether to jsonablize the experiment output. Defaults to False.
-            _export_mute (bool, optional):
-                Whether to mute the export hint. Defaults to True.
 
             other_kwargs:
                 all arguments will handle by `self.paramsControl()` and export as specific format.
@@ -368,69 +384,102 @@ class QurryV5Prototype(ABC):
             Hashable: The ID of the experiment.
         """
 
-        if len(args) > 0:
-            raise ValueError(
-                f"{self.__name__} can't be initialized with positional arguments."
-            )
-
         # preparing
         if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str("Parameter loading...")
+            _pbar.set_description_str("| Parameter loading...")
 
-        id_now = self._params_control_core(**other_kwargs, _pbar=_pbar)
-        assert id_now in self.exps, f"ID {id_now} not found."
+        if exp_id in self.exps and exp_id is not None:
+            id_now = exp_id
+        else:
+            id_now = self._params_control_core(
+                **other_kwargs, exp_id=exp_id, backend=backend, _pbar=_pbar
+            )
         assert self.exps[id_now].commons.exp_id == id_now
-        current_exp = self.exps[id_now]
-
-        pool = ProcessManager()
-
-        if len(current_exp.beforewards.circuit) > 0:
+        if len(self.exps[id_now].beforewards.circuit) > 0 and isinstance(
+            self.exps[id_now].beforewards.circuit[0], QuantumCircuit
+        ):
             return id_now
 
-        # circuit
-        if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str("Circuit creating...")
+        current_exp = self.exps[id_now]
+        if not isinstance(current_exp.commons.backend, Backend):
+            if isinstance(backend, Backend):
+                if isinstance(_pbar, tqdm.tqdm):
+                    _pbar.set_description_str("| Backend replacing...")
+                current_exp.replace_backend(backend)
+            else:
+                raise ValueError(
+                    "No vaild backend to run, exisited backend: "
+                    + f"{current_exp.commons.backend} as type "
+                    + f"{type(current_exp.commons.backend)}, "
+                    + f"given backend: {backend} as type {type(backend)}."
+                )
 
-        how_the_method_get_args = inspect.signature(self.method).parameters
-        if "_pbar" in how_the_method_get_args:
-            if how_the_method_get_args["_pbar"].annotation == Optional[tqdm.tqdm]:
-                cirqs = self.method(id_now, _pbar=_pbar)
+        assert isinstance(current_exp.commons.backend, Backend), (
+            f"Invalid backend: {current_exp.commons.backend} as "
+            + f"type {type(current_exp.commons.backend)}."
+        )
+
+        is_revive = False
+        # circuit
+        if (
+            len(current_exp.beforewards.circuit_qasm) > 0
+            and "build" in current_exp.commons.datetimes
+        ):
+            is_revive = True
+            if isinstance(_pbar, tqdm.tqdm):
+                _pbar.set_description_str("| Circuit reviving from existed qasm...")
+            cirqs = current_exp.beforewards.revive_circuit(True)
+
+        else:
+            if isinstance(_pbar, tqdm.tqdm):
+                _pbar.set_description_str("| Circuit creating...")
+            how_the_method_get_args = inspect.signature(self.method).parameters
+            if "_pbar" in how_the_method_get_args:
+                if how_the_method_get_args["_pbar"].annotation == Optional[tqdm.tqdm]:
+                    cirqs = self.method(id_now, _pbar=_pbar)
+                else:
+                    cirqs = self.method(id_now)
             else:
                 cirqs = self.method(id_now)
-        else:
-            cirqs = self.method(id_now)
 
-        # qasm
-        if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str("Exporting OpenQASM string...")
-        # for _w in cirqs:
-        #     current_exp.beforewards.circuit_qasm.append(_w.qasm())
-        tmp_qasm = pool.starmap(qasm_drawer, [(i,) for i in cirqs])
-        for qasm_str in tmp_qasm:
-            current_exp.beforewards.circuit_qasm.append(qasm_str)
+            pool = ParallelManager()
+            # qasm
+            if isinstance(_pbar, tqdm.tqdm):
+                _pbar.set_description_str("| Exporting OpenQASM string...")
+            tmp_qasm = pool.map(qasm_drawer, cirqs)
+            for qasm_str in tmp_qasm:
+                current_exp.beforewards.circuit_qasm.append(qasm_str)
 
         # transpile
         if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str("Circuit transpiling...")
+            _pbar.set_description_str("| Circuit transpiling...")
         transpiled_circs: list[QuantumCircuit] = transpile(
             cirqs,
             backend=current_exp.commons.backend,
             **current_exp.commons.transpile_args,
         )
         if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str("Circuit loading...")
+            _pbar.set_description_str("| Circuit loading...")
         for _w in transpiled_circs:
             current_exp.beforewards.circuit.append(_w)
 
         # commons
-        date = current_time()
-        if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str(f"Building Completed, denoted date: {date}...")
-        current_exp.commons.datetimes["build"] = date
+        if is_revive:
+            datenote, date = current_exp.commons.datetimes.add_serial("revive")
+            if isinstance(_pbar, tqdm.tqdm):
+                _pbar.set_description_str(
+                    f"| Reviving Completed, denoted '{datenote}' date: {date}..."
+                )
+        else:
+            datenote, date = current_exp.commons.datetimes.add_only("build")
+            if isinstance(_pbar, tqdm.tqdm):
+                _pbar.set_description_str(
+                    f"| Building Completed, denoted '{datenote}' date: {date}..."
+                )
 
         if not skip_export:
             if isinstance(_pbar, tqdm.tqdm):
-                _pbar.set_description_str("Setup data exporting...")
+                _pbar.set_description_str("| Setup data exporting...")
             # export may be slow, consider export at finish or something
             if isinstance(save_location, (Path, str)):
                 current_exp.write(
@@ -439,14 +488,13 @@ class QurryV5Prototype(ABC):
                     indent=indent,
                     encoding=encoding,
                     jsonable=jsonablize,
-                    mute=_export_mute,
                 )
 
         return id_now
 
     def run(
         self,
-        *args,
+        *,
         save_location: Optional[Union[Path, str]] = None,
         _pbar: Optional[tqdm.tqdm] = None,
         **other_kwargs: Any,
@@ -465,8 +513,6 @@ class QurryV5Prototype(ABC):
                 The encoding of json file. Defaults to 'utf-8'.
             jsonablize (bool, optional):
                 Whether to jsonablize the experiment output. Defaults to False.
-            _export_mute (bool, optional):
-                Whether to mute the export hint. Defaults to True.
 
             allArgs:
                 all arguments will handle by `self.paramsControl()` and export as specific format.
@@ -474,15 +520,8 @@ class QurryV5Prototype(ABC):
         Returns:
             Hashable: The ID of the experiment.
         """
-
-        if len(args) > 0:
-            raise ValueError(
-                f"{self.__name__} can't be initialized with positional arguments."
-            )
-
         # preparing
         id_now = self.build(save_location=save_location, _pbar=_pbar, **other_kwargs)
-        assert id_now in self.exps, f"ID {id_now} not found."
         assert self.exps[id_now].commons.exp_id == id_now
         current_exp = self.exps[id_now]
 
@@ -516,7 +555,6 @@ class QurryV5Prototype(ABC):
         indent: int = 2,
         encoding: str = "utf-8",
         jsonablize: bool = False,
-        _export_mute: bool = False,
         _pbar: Optional[tqdm.tqdm] = None,
         **other_kwargs: Any,
     ) -> str:
@@ -534,8 +572,6 @@ class QurryV5Prototype(ABC):
                 The encoding of json file. Defaults to 'utf-8'.
             jsonablize (bool, optional):
                 Whether to jsonablize the experiment output. Defaults to False.
-            _export_mute (bool, optional):
-                Whether to mute the export hint. Defaults to True.
 
             allArgs:
                 all arguments will handle by `self.paramsControl()` and export as specific format.
@@ -556,7 +592,6 @@ class QurryV5Prototype(ABC):
             indent=indent,
             encoding=encoding,
             jsonablize=jsonablize,
-            _export_mute=_export_mute,
             _pbar=_pbar,
             **other_kwargs,
         )
@@ -593,7 +628,6 @@ class QurryV5Prototype(ABC):
                 indent=indent,
                 encoding=encoding,
                 jsonable=jsonablize,
-                mute=_export_mute,
             )
 
         return id_now
@@ -606,7 +640,6 @@ class QurryV5Prototype(ABC):
         indent: int = 2,
         encoding: str = "utf-8",
         jsonablize: bool = False,
-        _export_mute: bool = False,
         _pbar: Optional[tqdm.tqdm] = None,
         **other_kwargs: Any,
     ):
@@ -636,8 +669,6 @@ class QurryV5Prototype(ABC):
                 The encoding of json file. Defaults to 'utf-8'.
             jsonablize (bool, optional):
                 Whether to jsonablize the experiment output. Defaults to False.
-            _export_mute (bool, optional):
-                Whether to mute the export hint. Defaults to True.
 
             other_kwargs (Any):
                 Other arguments.
@@ -657,7 +688,6 @@ class QurryV5Prototype(ABC):
             indent=indent,
             encoding=encoding,
             jsonablize=jsonablize,
-            _export_mute=_export_mute,
             _pbar=_pbar,
             **other_kwargs,
         )
@@ -670,9 +700,6 @@ class QurryV5Prototype(ABC):
 
         return id_now
 
-    _rjustLen: int = 3
-    """The length of the serial number of the experiment."""
-
     def _params_control_multi(
         self,
         config_list: list[dict[str, Any]],
@@ -682,9 +709,9 @@ class QurryV5Prototype(ABC):
         backend: Backend = GeneralAerSimulator(),
         tags: Optional[list[str]] = None,
         save_location: Union[Path, str] = Path("./"),
-        jobstype: BackendChoiceLiteral = "local",
+        jobstype: PendingTargetProviderLiteral = "local",
+        pending_strategy: PendingStrategyLiteral = "tags",
         manager_run_args: Optional[dict[str, Any]] = None,
-        filetype: TagList._availableFileType = "json",
         is_retrieve: bool = False,
         is_read: bool = False,
         read_version: Literal["v4", "v5"] = "v5",
@@ -781,8 +808,8 @@ class QurryV5Prototype(ABC):
                 save_location=save_location,
                 files={},
                 jobstype=jobstype,
+                pending_strategy=pending_strategy,
                 manager_run_args=manager_run_args,
-                filetype=filetype,
                 datetimes=DatetimeDict(),
             )
 
@@ -817,8 +844,8 @@ class QurryV5Prototype(ABC):
         tags: Optional[list[str]] = None,
         manager_run_args: Optional[dict[str, Any]] = None,
         save_location: Union[Path, str] = Path("./"),
-        jobstype: Union[Literal["local"], BackendChoiceLiteral] = "local",
-        filetype: TagList._availableFileType = "json",
+        jobstype: Union[Literal["local"], PendingTargetProviderLiteral] = "local",
+        pending_strategy: PendingStrategyLiteral = "tags",
     ) -> str:
         """Buling the experiment's parameters for running multiple jobs.
 
@@ -847,8 +874,6 @@ class QurryV5Prototype(ABC):
                 'local', 'IBMQ', 'AWS_Bracket', 'Azure_Q'
             ], optional):
                 What types of the backend will run on. Defaults to "local".
-            filetype (TagList._availableFileType, optional):
-                The file type of export data. Defaults to 'json' (recommend).
 
         Returns:
             Hashable: SummonerID (ID of multimanager).
@@ -863,16 +888,15 @@ class QurryV5Prototype(ABC):
             config_list=config_list,
             shots=shots,
             backend=backend,
-            # provider=provider,
             tags=tags,
             manager_run_args=manager_run_args,
             summoner_name=summoner_name,
             summoner_id=summoner_id,
             save_location=save_location,
             jobstype=jobstype,
+            pending_strategy=pending_strategy,
             is_retrieve=False,
             is_read=False,
-            filetype=filetype,
         )
         current_multimanager = self.multimanagers[besummonned]
         assert current_multimanager.summoner_id == besummonned
@@ -913,7 +937,6 @@ class QurryV5Prototype(ABC):
         backend: Backend = GeneralAerSimulator(),
         tags: Optional[list[str]] = None,
         save_location: Union[Path, str] = Path("./"),
-        filetype: TagList._availableFileType = "json",
         compress: bool = False,
     ) -> Hashable:
         """Running multiple jobs on local backend and output the analysis.
@@ -932,15 +955,10 @@ class QurryV5Prototype(ABC):
             backend (Backend, optional):
                 The quantum backend.
                 Defaults to AerSimulator().
-            # provider (Optional[AccountProvider], optional):
-            #     :cls:`AccountProvider` of current backend for running :cls:`IBMQJobManager`.
-            #     Defaults to `None`.
             save_location (Union[Path, str], optional):
                 Where to save the export content as `json` file.
                 If `save_location == None`, then cancelled the file to be exported.
                 Defaults to Path('./').
-            filetype (TagList._availableFileType, optional):
-                The file type of export data. Defaults to 'json' (recommend).
             compress (bool, optional):
                 Whether to compress the export file.
             defaultMultiAnalysis (list[dict[str, Any]], optional):
@@ -969,7 +987,6 @@ class QurryV5Prototype(ABC):
             summoner_id=summoner_id,
             save_location=save_location,
             jobstype="local",
-            filetype=filetype,
         )
         current_multimanager = self.multimanagers[besummonned]
         assert current_multimanager.summoner_id == besummonned
@@ -984,7 +1001,6 @@ class QurryV5Prototype(ABC):
             current_id = self.output(
                 exp_id=id_exec,
                 save_location=current_multimanager.multicommons.save_location,
-                _export_mute=True,
             )
 
             circ_serial_len = len(circ_serial)
@@ -1017,10 +1033,9 @@ class QurryV5Prototype(ABC):
         tags: Optional[list[str]] = None,
         manager_run_args: Optional[dict[str, Any]] = None,
         save_location: Union[Path, str] = Path("./"),
-        jobstype: BackendChoiceLiteral = "IBM",
-        filetype: TagList._availableFileType = "json",
-        pending_strategy: Literal["onetime", "each", "tags"] = "onetime",
-    ) -> Hashable:
+        jobstype: PendingTargetProviderLiteral = "IBM",
+        pending_strategy: PendingStrategyLiteral = "tags",
+    ) -> str:
         """Pending the multiple jobs on IBMQ backend or other remote backend.
 
         Args:
@@ -1044,13 +1059,11 @@ class QurryV5Prototype(ABC):
                 Where to save the export content as `json` file.
                 If `save_location == None`, then cancelled the file to be exported.
                 Defaults to Path('./').
-            filetype (TagList._availableFileType, optional):
-                The file type of export data. Defaults to 'json' (recommend).
             pendingStrategy (Literal['default', 'onetime', 'each', 'tags'], optional):
                 The strategy of pending for distributing experiments on jobs.
 
         Returns:
-            Hashable: SummonerID (ID of multimanager).
+            str: SummonerID (ID of multimanager).
         """
         besummonned = self.multiBuild(
             config_list=config_list,
@@ -1061,8 +1074,8 @@ class QurryV5Prototype(ABC):
             summoner_name=summoner_name,
             summoner_id=summoner_id,
             save_location=save_location,
-            jobstype=f"{jobstype}.{pending_strategy}",
-            filetype=filetype,
+            jobstype=jobstype,
+            pending_strategy=pending_strategy,
         )
         current_multimanager = self.multimanagers[besummonned]
         assert current_multimanager.summoner_id == besummonned
@@ -1093,7 +1106,7 @@ class QurryV5Prototype(ABC):
         compress: bool = False,
         write: bool = True,
         **analysis_args: Any,
-    ) -> Hashable:
+    ) -> str:
         """Run the analysis for multiple experiments.
 
         Args:
@@ -1111,7 +1124,7 @@ class QurryV5Prototype(ABC):
             ValueError: No counts in multimanagers, which experiments are not ready.
 
         Returns:
-            Hashable: SummonerID (ID of multimanager).
+            str: SummonerID (ID of multimanager).
         """
         if specific_analysis_args is None:
             specific_analysis_args = {}
@@ -1141,17 +1154,17 @@ class QurryV5Prototype(ABC):
 
     def multiWrite(
         self,
-        summoner_id: Hashable,
+        summoner_id: str,
         save_location: Optional[Union[Path, str]] = None,
         compress: bool = False,
         compress_overwrite: bool = False,
         remain_only_compressed: bool = False,
         only_quantity: bool = False,
-    ) -> Hashable:
+    ) -> str:
         """Write the multimanager to the file.
 
         Args:
-            summoner_id (Hashable): Name for multimanager.
+            summoner_id (str): Name for multimanager.
             save_location (Union[Path, str], optional):
                 Where to save the export content as `json` file.
                 If `save_location == None`, then cancelled the file to be exported.
@@ -1161,7 +1174,7 @@ class QurryV5Prototype(ABC):
             ValueError: summoner_id not in multimanagers.
 
         Returns:
-            Hashable: SummonerID (ID of multimanager).
+            str: SummonerID (ID of multimanager).
         """
 
         if not summoner_id in self.multimanagers:
@@ -1198,7 +1211,7 @@ class QurryV5Prototype(ABC):
         read_from_tarfile: bool = False,
         # defaultMultiAnalysis: list[dict[str, Any]] = []
         # analysisName: str = 'report',
-    ) -> Hashable:
+    ) -> str:
         """Read the multimanager from the file.
 
         Args:
@@ -1212,7 +1225,7 @@ class QurryV5Prototype(ABC):
                 Defaults to Path('./').
 
         Returns:
-            Hashable: SummonerID (ID of multimanager).
+            str: SummonerID (ID of multimanager).
         """
 
         print("| MultiRead running...")
@@ -1241,7 +1254,7 @@ class QurryV5Prototype(ABC):
         self,
         summoner_name: str = "exps",
         summoner_id: Optional[str] = None,
-        backend: Backend = None,
+        backend: Optional[Backend] = None,
         save_location: Union[Path, str] = Path("./"),
         refresh: bool = False,
         overwrite: bool = False,
@@ -1298,6 +1311,8 @@ class QurryV5Prototype(ABC):
         jobs_type, _pending_strategy = current_multimanager.multicommons.jobstype.split(
             "."
         )
+        if backend is None:
+            raise ValueError("backend is None.")
 
         self.accessor = ExtraBackendAccessor(
             multimanager=current_multimanager,
@@ -1308,9 +1323,8 @@ class QurryV5Prototype(ABC):
 
         if jobs_type == "IBMQ":
             self.accessor.retrieve(
-                provider=backend.provider(),
-                refresh=refresh,
                 overwrite=overwrite,
+                refresh=refresh,
             )
         elif jobs_type == "IBM":
             self.accessor.retrieve(
@@ -1364,145 +1378,3 @@ class QurryV5Prototype(ABC):
 
 
 # pylint: enable=invalid-name
-
-
-class QurryV5(QurryV5Prototype):
-    """A QurryV5 instance is a container of experiments."""
-
-    @classmethod
-    @property
-    def experiment(cls) -> Type[QurryExperiment]:
-        """The container class responding to this QurryV5 class."""
-        return QurryExperiment
-
-    def params_control(
-        self,
-        wave_key: Hashable = None,
-        exp_name: str = "exps",
-        sampling: int = 1,
-        **other_kwargs: Any,
-    ) -> tuple[QurryExperiment.Arguments, QurryExperiment.Commonparams, dict[str, Any]]:
-        """Handling all arguments and initializing a single experiment.
-
-        Args:
-            wave_key (Union[QuantumCircuit, int, None], optional):
-                The index of the wave function in `self.waves` or add new one to calaculation,
-                then choose one of waves as the experiment material.
-                If input is `QuantumCircuit`, then add and use it.
-                If input is the key in `.waves`, then use it.
-                If input is `None` or something illegal, then use `.lastWave'.
-                Defaults to None.
-            exp_name (str, optional):
-                Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
-                This name is also used for creating a folder to store the exports.
-                Defaults to `'exps'`.
-            other_kwargs (Any):
-                Other arguments.
-
-        Returns:
-            dict: The export will be processed in `.paramsControlCore`
-        """
-
-        if isinstance(sampling, int):
-            ...
-        else:
-            sampling = 1
-            warnings.warn(f"'{sampling}' is not an integer, use 1 as default")
-
-        return self.experiment.filter(
-            exp_name=exp_name,
-            wave_key=wave_key,
-            sampling=sampling,
-            **other_kwargs,
-        )
-
-    def method(
-        self,
-        exp_id: Hashable,
-        _pbar: Optional[tqdm.tqdm] = None,
-    ) -> list[QuantumCircuit]:
-        assert exp_id in self.exps
-        assert self.exps[exp_id].commons.exp_id == exp_id
-        current_exp = self.exps[exp_id]
-        args: QurryExperiment.Arguments = self.exps[exp_id].args
-        commons: QurryExperiment.Commonparams = self.exps[exp_id].commons
-        circuit = self.waves[commons.wave_key]
-
-        current_exp[
-            "exp_name"
-        ] = f"{args.exp_name}-{current_exp.commons.wave_key}-x{args.sampling}"
-        print(
-            f"| Directly call: {current_exp.commons.wave_key} with sampling {args.sampling} times."
-        )
-
-        return [circuit for i in range(args.sampling)]
-
-    def measure(
-        self,
-        wave: Union[QuantumCircuit, Any, None] = None,
-        exp_name: str = "exps",
-        sampling: int = 1,
-        save_location: Optional[Union[Path, str]] = None,
-        mode: str = "w+",
-        indent: int = 2,
-        encoding: str = "utf-8",
-        jsonablize: bool = False,
-        **other_kwargs: Any,
-    ):
-        """The main function to measure the wave function,
-        which is the :meth:`result` with dedicated arguments.
-
-        Args:
-            wave (Union[QuantumCircuit, int, None], optional):
-                The index of the wave function in `self.waves` or add new one to calaculation,
-                then choose one of waves as the experiment material.
-                If input is `QuantumCircuit`, then add and use it.
-                If input is the key in `.waves`, then use it.
-                If input is `None` or something illegal, then use `.lastWave'.
-                Defaults to None.
-            exp_name (str, optional):
-                Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
-                This name is also used for creating a folder to store the exports.
-                Defaults to `'exps'`.
-            sampling (int, optional):
-                The number of sampling. Defaults to 1.
-            save_location (Optional[Union[Path, str]], optional):
-                The location to save the experiment. If None, will not save.
-                Defaults to None.
-            mode (str, optional):
-                The mode to open the file. Defaults to 'w+'.
-            indent (int, optional):
-                The indent of json file. Defaults to 2.
-            encoding (str, optional):
-                The encoding of json file. Defaults to 'utf-8'.
-            jsonablize (bool, optional):
-                Whether to jsonablize the experiment output. Defaults to False.
-
-            other_kwargs (Any):
-                Other arguments in :meth:`result`.
-
-        Returns:
-            dict: The output.
-        """
-
-        id_now = self.result(
-            wave=wave,
-            exp_name=exp_name,
-            sampling=sampling,
-            save_location=None,
-            **other_kwargs,
-        )
-        assert id_now in self.exps, f"ID {id_now} not found."
-        assert self.exps[id_now].commons.exp_id == id_now
-        current_exp = self.exps[id_now]
-
-        if isinstance(save_location, (Path, str)):
-            current_exp.write(
-                save_location=save_location,
-                mode=mode,
-                indent=indent,
-                encoding=encoding,
-                jsonable=jsonablize,
-            )
-
-        return id_now

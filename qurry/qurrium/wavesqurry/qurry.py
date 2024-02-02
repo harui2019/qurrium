@@ -5,131 +5,33 @@ Waves Qurry (:mod:`qurry.qurrium.wavesqurry`)
 
 It is only for pendings and retrieve to remote backend.
 """
-from typing import Union, Optional, NamedTuple, Hashable, Iterable, Type, Any
+
+from typing import Union, Optional, Hashable, Iterable, Any, Type
 from pathlib import Path
 import tqdm
 
 from qiskit import QuantumCircuit
 
-from ..qurrium import (
-    QurryV5Prototype,
-    ExperimentPrototype,
-    AnalysisPrototype,
-)
-from ..exceptions import QurryExperimentCountsNotCompleted
+from .experiment import WavesQurryExperiment
+from ..qurrium import QurryPrototype
+from ..container import ExperimentContainer
 
 
-class WavesQurryAnalysis(AnalysisPrototype):
-    """The analysis of the experiment."""
-
-    __name__ = "WavesQurryAnalysis"
-
-    class AnalysisInput(NamedTuple):
-        """To set the analysis."""
-
-        ultimate_question: str
-        """ULtImAte QueStIoN."""
-
-    class AnalysisContent(NamedTuple):
-        """Analysis content."""
-
-        utlmatic_answer: int
-        """~The Answer to the Ultimate Question of Life, The Universe, and Everything.~"""
-        dummy: int
-        """Just a dummy field."""
-
-    @property
-    def default_side_product_fields(self) -> Iterable[str]:
-        """The fields that will be stored as side product."""
-        return ["dummy"]
-
-
-class WavesQurryExperiment(ExperimentPrototype):
-    """The instance of experiment."""
-
-    __name__ = "WavesQurryExperiment"
-
-    class Arguments(NamedTuple):
-        """Construct the experiment's parameters for specific options,
-        which is overwritable by the inherition class."""
-
-        exp_name: str = "exps"
-        waves: Iterable[Hashable] = []
-
-    @classmethod
-    @property
-    def analysis_container(cls) -> Type[WavesQurryAnalysis]:
-        return WavesQurryAnalysis
-
-    @classmethod
-    def quantities(
-        cls,
-        shots: Optional[int] = None,
-        counts: Optional[list[dict[str, int]]] = None,
-        ultimate_question: str = "",
-    ) -> dict[str, float]:
-        """Computing specific squantity.
-        Where should be overwritten by each construction of new measurement.
-
-        Returns:
-            dict[str, float]: Counts, purity, entropy of experiment.
-        """
-        if shots is None or counts is None:
-            print(
-                "| shots or counts is None, "
-                + "but it doesn't matter with ultimate question over all."
-            )
-        print("| ultimate_question:", ultimate_question)
-        dummy = -100
-        utlmatic_answer = (42,)
-        return {
-            "dummy": dummy,
-            "utlmatic_answer": utlmatic_answer,
-        }
-
-    def analyze(self, ultimate_question: str = "", shots: Optional[int] = None):
-        """Analysis of the experiment.
-        Where should be overwritten by each construction of new measurement.
-        """
-
-        if shots is None:
-            shots = self.commons.shots
-        if len(self.afterwards.counts) < 1:
-            raise QurryExperimentCountsNotCompleted(
-                "The counts of the experiment is not completed. So there is no data to analyze."
-            )
-
-        qs = self.quantities(
-            shots=shots,
-            counts=self.afterwards.counts,
-            ultimate_question=ultimate_question,
-        )
-
-        serial = len(self.reports)
-        analysis = self.analysis_container(
-            ultimate_question=ultimate_question,
-            serial=serial,
-            **qs,
-        )
-
-        self.reports[serial] = analysis
-        return analysis
-
-
-class WavesExecuter(QurryV5Prototype):
+class WavesExecuter(QurryPrototype):
     """The pending and retrieve executer for waves."""
 
-    @classmethod
     @property
-    def experiment(cls) -> Type[WavesQurryExperiment]:
+    def experiment(self) -> Type[WavesQurryExperiment]:
         """The container class responding to this QurryV5 class."""
         return WavesQurryExperiment
+
+    exps: ExperimentContainer[WavesQurryExperiment]
 
     def params_control(
         self,
         wave_key: Hashable = None,
         exp_name: str = "exps",
-        waves: Optional[Iterable[Hashable]] = None,
+        waves: Optional[list[Hashable]] = None,
         **other_kwargs: Any,
     ) -> tuple[
         WavesQurryExperiment.Arguments,
@@ -164,7 +66,7 @@ class WavesExecuter(QurryV5Prototype):
                 raise ValueError(f"| The wave '{w}' is not in `.waves`.")
 
         if len(waves) > 0:
-            wave_key = None
+            wave_key = waves[-1]
         else:
             raise ValueError(
                 "| This is Qurry required multiple waves gvien in `waves` to be measured."

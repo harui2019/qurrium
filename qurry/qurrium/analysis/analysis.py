@@ -101,10 +101,10 @@ class AnalysisPrototype:
 
     def __init__(
         self,
-        serial: int = None,
+        serial: int,
         summoner: Optional[tuple] = None,
         log: Optional[dict[str, Any]] = None,
-        side_product_fields: Iterable[str] = None,
+        side_product_fields: Optional[Iterable[str]] = None,
         **otherArgs,
     ):
         if log is None:
@@ -275,7 +275,7 @@ class AnalysisPrototype:
             if filekey == "reports":
                 with open(save_location / filename, "r", encoding=encoding) as f:
                     export_set["reports"] = json.load(f)
-                export_material_set["reports"]: dict[str, Any] = export_set["reports"][
+                export_material_set["reports"] = export_set["reports"][
                     "reports"
                 ]
 
@@ -283,7 +283,7 @@ class AnalysisPrototype:
                 with open(save_location / filename, "r", encoding=encoding) as f:
                     export_set[filekey] = json.load(f)
                 if "tales_report" not in export_material_set:
-                    export_material_set["tales_report"]: dict[str, dict[str, Any]] = {}
+                    export_material_set["tales_report"] = {}
                 export_material_set["tales_report"][filekeydiv[2]] = export_set[filekey]
 
         del export_set
@@ -310,28 +310,3 @@ class AnalysisPrototype:
             analysis_dict[k] = cls.load(v, sides[k])
 
         return analysis_dict
-
-
-class QurryAnalysis(AnalysisPrototype):
-    """Example of QurryAnalysis."""
-
-    __name__ = "QurryAnalysis"
-
-    class AnalysisInput(NamedTuple):
-        """To set the analysis."""
-
-        ultimate_question: str
-        """ULtImAte QueStIoN."""
-
-    class AnalysisContent(NamedTuple):
-        """To set the analysis."""
-
-        utlmatic_answer: int
-        """~The Answer to the Ultimate Question of Life, The Universe, and Everything.~"""
-        dummy: int
-        """Just a dummy field."""
-
-    @property
-    def default_side_product_fields(self) -> Iterable[str]:
-        """The fields that will be stored as side product."""
-        return ["dummy"]

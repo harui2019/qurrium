@@ -25,7 +25,7 @@ except ImportError as exception:
     ) from exception
 
 from .runner import Runner, retrieve_times_namer
-from ..multimanager import MultiManager
+from ..multimanager import MultiManager, PendingStrategyLiteral
 from ..container import ExperimentContainer
 from ..utils import get_counts_and_exceptions
 from ...tools import qurry_progressbar, current_time
@@ -93,9 +93,9 @@ class IBMQRunner(Runner):
 
     def pending(
         self,
-        pending_strategy: Literal["default", "onetime", "each", "tags"] = "default",
-        backend: IBMQBackend = None,
-    ) -> list[tuple[str, str]]:
+        pending_strategy: PendingStrategyLiteral = "tags",
+        backend: Optional[IBMQBackend] = None,
+    ) -> list[tuple[Optional[str], str]]:
         """Pending jobs to remote backend.
 
         Args:
@@ -184,6 +184,7 @@ class IBMQRunner(Runner):
         )
 
         for pk, pcirc_idxs in pendingpool_progressbar:
+            assert isinstance(pk, str)
             if len(pcirc_idxs) > 0:
                 if pk == "_onetime":
                     pending_name = (
@@ -211,7 +212,7 @@ class IBMQRunner(Runner):
                 pendingpool_progressbar.set_description_str(
                     f"{pk}/{pending_job.jobID}/{pending_job.name}"
                 )
-                self.current_multimanager.beforewards.jobID.append(
+                self.current_multimanager.beforewards.job_id.append(
                     (pending_job.jobID, pk)
                 )
                 self.reports[pending_job.jobID] = {
@@ -221,7 +222,7 @@ class IBMQRunner(Runner):
                 }
 
             else:
-                self.current_multimanager.beforewards.jobID.append((None, pk))
+                self.current_multimanager.beforewards.job_id.append((None, pk))
                 warnings.warn(f"| Pending pool '{pk}' is empty.")
 
         for id_exec in self.current_multimanager.beforewards.exps_config:
@@ -231,16 +232,15 @@ class IBMQRunner(Runner):
             "pendingCompleted"
         ] = current_time()
 
-        return self.current_multimanager.beforewards.jobID
+        return self.current_multimanager.beforewards.job_id
 
     def retrieve(
         self,
-        provider: AccountProvider = None,
-        refresh: bool = False,
         overwrite: bool = False,
-    ) -> list[tuple[str, str]]:
+        refresh: bool = False,
+    ) -> list[tuple[Optional[str], str]]:
         pending_map: dict[Hashable, QurryIBMQBackendIO] = {}
-        counts_tmp_container: dict[str, dict[str, int]] = {}
+        counts_tmp_container: dict[int, dict[str, int]] = {}
 
         already_retrieved: list[str] = [
             datetimeTag
@@ -262,7 +262,7 @@ class IBMQRunner(Runner):
             print("| Seems to there are some retrieves before.")
             print("| You can use `overwrite=True` to overwrite the previous retrieve.")
 
-            return self.current_multimanager.beforewards.jobID
+            return self.current_multimanager.beforewards.job_id
 
         if overwrite:
             print("| Overwrite the previous retrieve.")
@@ -275,7 +275,7 @@ class IBMQRunner(Runner):
         self.current_multimanager.multicommons.datetimes[retrieve_times_name] = current
 
         retrieve_progressbar = qurry_progressbar(
-            self.current_multimanager.beforewards.jobID,
+            self.current_multimanager.beforewards.job_id,
             bar_format=(
                 "| {n_fmt}/{total_fmt} - retrieve: {desc} - {elapsed} < {remaining}"
             ),
@@ -289,7 +289,7 @@ class IBMQRunner(Runner):
             pending_map[pk] = IBMQRetrieve(
                 ibmqjobmanager=self.job_manager,
                 jobID=pending_id,
-                provider=provider,
+                provider=self.provider,
                 refresh=refresh,
             )
 
@@ -372,7 +372,7 @@ class IBMQRunner(Runner):
                 current_id
             ] = self.experiment_container[current_id].afterwards.counts
 
-        return self.current_multimanager.beforewards.jobID
+        return self.current_multimanager.beforewards.job_id
 
 
 # pylint: disable=invalid-name

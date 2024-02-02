@@ -5,4 +5,4 @@ Qurry Experiment
 ================================================================
 
 """
-from .experiment import QurryExperiment, ExperimentPrototype
+from .experiment import ExperimentPrototype

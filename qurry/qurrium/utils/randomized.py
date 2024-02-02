@@ -5,6 +5,7 @@ Randomized Measure Kit for Qurry
 ================================================================
 
 """
+
 from typing import Union, Optional, Callable
 import numpy as np
 from qiskit.quantum_info import random_unitary, Operator
@@ -30,10 +31,15 @@ def make_two_bit_str(num: int, bits: Optional[list[str]] = None) -> list[str]:
     Returns:
         list[str]: The list of bit strings.
     """
+    bits = [""] if bits is None else bits
+
     return (
-        (lambda bits: [*["0" + item for item in bits], *["1" + item for item in bits]])(
-            make_two_bit_str(num - 1, [""] if bits is None else [""])
-        )
+        (
+            lambda bits_inner: [
+                *["0" + item for item in bits_inner],
+                *["1" + item for item in bits_inner],
+            ]
+        )(make_two_bit_str(num - 1, bits))
         if num > 0
         else bits
     )
@@ -74,7 +80,9 @@ def density_matrix_to_bloch(rho: np.array) -> list[float]:
     return [ax, ay, az]
 
 
-def qubit_operator_to_pauli_coeff(rho: np.ndarray) -> list[tuple[float]]:
+def qubit_operator_to_pauli_coeff(
+    rho: np.ndarray,
+) -> list[tuple[Union[float, np.float64], Union[float, np.float64]]]:
     """Convert a random unitary operator matrix to a Bloch vector.
 
     Args:
@@ -95,7 +103,7 @@ def qubit_operator_to_pauli_coeff(rho: np.ndarray) -> list[tuple[float]]:
 
 
 def local_random_unitary(
-    unitary_loc: tuple[int, int], seed: int = None
+    unitary_loc: tuple[int, int], seed: Optional[int] = None
 ) -> dict[int, Operator]:
     """Generate a random unitary operator for single qubit.
 
@@ -130,7 +138,7 @@ def local_random_unitary_operators(
 def local_random_unitary_pauli_coeff(
     unitary_loc: tuple[int, int],
     unitary_op_list: list[np.ndarray],
-) -> dict[int, list[tuple[float, float]]]:
+) -> dict[int, list[tuple[Union[float, np.float64], Union[float, np.float64]]]]:
     """Transform a list of unitary operators in :cls:`numpy.ndarray`
     a list of pauli coefficients.
 

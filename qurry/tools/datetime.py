@@ -4,6 +4,7 @@ Datetime Module for Qurry (:mod:`qurry.qurrium.utils.datetime`)
 ================================================================
 
 """
+
 from datetime import datetime
 
 
@@ -15,12 +16,27 @@ def current_time():
 class DatetimeDict(dict[str, str]):
     """A dictionary that records the time when a key is added."""
 
-    def add_only(self, eventname: str):
-        """Adds a key with the current time if the key does not exist."""
-        self[eventname] = current_time()
+    def add_only(self, eventname: str) -> tuple[str, str]:
+        """Adds a key with the current time no matter the key does not exist.
 
-    def add_serial(self, eventname: str):
-        """Adds a key with the current time and a serial number if the key exists."""
+        Args:
+            eventname (str): The name of the event.
+
+        Returns:
+            tuple[str, str]: The name of the event and the time.
+        """
+        self[eventname] = current_time()
+        return eventname, self[eventname]
+
+    def add_serial(self, eventname: str) -> tuple[str, str]:
+        """Adds a key with the current time and a serial number if the key exists.
+
+        Args:
+            eventname (str): The name of the event.
+
+        Returns:
+            tuple[str, str]: The name of the event and the time.
+        """
         repeat_times_plus_one = 1
         for d in self:
             if d.startswith(eventname):
@@ -29,3 +45,4 @@ class DatetimeDict(dict[str, str]):
             3, "0"
         )
         self[eventname_with_times] = current_time()
+        return eventname_with_times, self[eventname_with_times]

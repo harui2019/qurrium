@@ -5,6 +5,7 @@ The experiment container
 ================================================================
 
 """
+
 import json
 from typing import Union, Optional, NamedTuple, Hashable, TypedDict, Any
 from pathlib import Path
@@ -21,7 +22,7 @@ REQUIRED_FOLDER = ["args", "advent", "legacy", "tales", "reports"]
 """The required folder for exporting experiment."""
 
 
-class Arguments(NamedTuple):
+class ArgumentsPrototype(NamedTuple):
     """Construct the experiment's parameters for specific options,
     which is overwritable by the inherition class."""
 
@@ -32,17 +33,17 @@ class Arguments(NamedTuple):
 class CommonparamsDict(TypedDict):
     """The export dictionary of :cls:`Commonparams`."""
 
-    exp_name: str
-    exp_id: str
-    wave_key: Hashable
-    shots: int
-    backend: Union[Backend, str]
-    run_args: dict
-    transpile_args: dict
-    tags: tuple
+    exp_name: Optional[str]
+    exp_id: Optional[str]
+    wave_key: Optional[Hashable]
+    shots: Optional[int]
+    backend: Optional[Union[Backend, str]]
+    run_args: dict[str, Any]
+    transpile_args: dict[str, Any]
+    tags: Optional[tuple[str, ...]]
     default_analysis: list[dict[str, Any]]
-    save_location: Union[Path, str]
-    filename: str
+    save_location: Optional[Union[Path, str]]
+    filename: Optional[str]
     files: dict[str, Path]
     serial: Optional[int]
     summoner_id: Optional[str]
@@ -198,7 +199,7 @@ class Commonparams(NamedTuple):
         }
 
     @classmethod
-    def read_as_dict(
+    def read_with_arguments(
         cls,
         exp_id: str,
         file_index: dict[str, str],
@@ -241,14 +242,14 @@ class Commonparams(NamedTuple):
             data_args["outfields"],
         )
 
-    def export(self: NamedTuple) -> CommonparamsDict:
+    def export(self) -> CommonparamsDict:
         """Export the experiment's common parameters.
 
         Returns:
             dict[str, Any]: The experiment's common parameters.
         """
         # pylint: disable=no-member
-        commons: dict[str, Any] = jsonablize(self._asdict())
+        commons: CommonparamsDict = jsonablize(self._asdict())
         # pylint: enable=no-member
         commons["backend"] = (
             self.backend if isinstance(self.backend, str) else backendName(self.backend)
@@ -262,7 +263,7 @@ class Before(NamedTuple):
     """
 
     # Experiment Preparation
-    circuit: Union[list[QuantumCircuit], list[str]]
+    circuit: list[QuantumCircuit]
     """Circuits of experiment."""
     circuit_qasm: list[str]
     """OpenQASM of circuits."""
@@ -276,7 +277,7 @@ class Before(NamedTuple):
     """Name of experiment which is also showed on IBM Quantum Computing quene."""
 
     # side product
-    side_product: dict
+    side_product: dict[str, Any]
     """The data of experiment will be independently exported in the folder 'tales'."""
 
     @staticmethod
@@ -373,6 +374,22 @@ class Before(NamedTuple):
 
         return adventures, tales
 
+    def revive_circuit(self, replace_circuits: bool = False) -> list[QuantumCircuit]:
+        """Revive the circuit from the qasm, return the revived circuits.
+
+        Args:
+            replace_circuits (bool, optional): Whether to replace the circuits. Defaults to False.
+        """
+        revived_circuits = []
+        if len(self.circuit) != 0:
+            if replace_circuits:
+                self.circuit.clear()
+            else:
+                raise ValueError("The circuits is not empty.")
+        for qasm in self.circuit_qasm:
+            revived_circuits.append(QuantumCircuit.from_qasm_str(qasm))
+        return revived_circuits
+
 
 class After(NamedTuple):
     """The data of experiment will be independently exported in the folder 'legacy',
@@ -424,7 +441,7 @@ class After(NamedTuple):
 
     def export(
         self,
-        unexports: Optional[list[str]] = None,
+        unexports: list[str],
     ) -> dict[str, Any]:
         """Export the experiment's data after executing.
 

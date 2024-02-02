@@ -5,15 +5,16 @@ Export data structure for qurry.expertiment.ExperimentPrototype
 ================================================================
 
 """
+
 import os
-from typing import Optional, NamedTuple, Any
+from typing import Optional, NamedTuple, Any, Hashable, Union
 from pathlib import Path
 import warnings
 import gc
 import tqdm
 
 from .container import CommonparamsDict, REQUIRED_FOLDER
-from ...tools import ProcessManager
+from ...tools import ParallelManager
 from ...capsule import quickJSON
 
 
@@ -101,7 +102,7 @@ class Export(NamedTuple):
 
     args: dict[str, Any] = {}
     """Construct the experiment's parameters, which will be packed into `.args.json`."""
-    commons: CommonparamsDict = {}
+    commons: Union[dict[str, Any], CommonparamsDict] = {}
     """Construct the experiment's common parameters, which will be packed into `.args.json`."""
     outfields: dict[str, Any] = {}
     """Recording the data of other unused arguments, which will be packed into `.args.json`."""
@@ -117,10 +118,10 @@ class Export(NamedTuple):
     which will be packed into `.*.tales.json`. 
     ~Tales of braves circulate~"""
 
-    reports: dict[str, dict[str, Any]] = {}
+    reports: dict[Hashable, dict[str, Any]] = {}
     """Recording the data of 'reports', which will be packed into `.reports.json`. 
     ~The guild concludes the results.~"""
-    tales_reports: dict[str, dict[str, Any]] = {}
+    tales_reports: dict[str, dict[Hashable, dict[str, Any]]] = {}
     """Recording the data of 'side_product' in 'reports' for API, 
     which will be packed into `.*.reprts.json`. 
     ~Tales of braves circulate~"""
@@ -197,7 +198,15 @@ class Export(NamedTuple):
                 ```
         """
 
-        export_set: dict[str, dict[str, Any]] = {}
+        export_set: dict[
+            str,
+            Union[
+                dict[str, Any],
+                list[Any],
+                tuple[Any, ...],
+                dict[Hashable, dict[str, Any]],
+            ],
+        ] = {}
         # args ...............  # arguments, commonparams, outfields, files
         export_set["args"] = {
             "arguments": self.args,
@@ -245,7 +254,9 @@ class Export(NamedTuple):
                 + (f"{self.summoner_name}/" if self.summoner_name else "")
                 + f"{self.exp_name}..."
             )
-        folder = Path(self.commons["save_location"]) / Path(self.files["folder"])
+        folder = Path(self.commons["save_location"]) / Path(  # type: ignore
+            self.files["folder"]  # just ignore it.
+        )
         if not os.path.exists(folder):
             os.mkdir(folder)
         for k in REQUIRED_FOLDER:
@@ -253,13 +264,16 @@ class Export(NamedTuple):
                 os.mkdir(folder / k)
 
         if multiprocess:
-            pool = ProcessManager()
+            pool = ParallelManager()
             pool.starmap(
                 quickJSON,
                 [
                     (
                         content,
-                        str(Path(self.commons["save_location"]) / self.files[filekey]),
+                        str(
+                            Path(self.commons["save_location"])  # type: ignore
+                            / self.files[filekey]  # just ignore it.
+                        ),
                         mode,
                         indent,
                         encoding,
@@ -275,7 +289,8 @@ class Export(NamedTuple):
                 quickJSON(
                     content=content,
                     filename=str(
-                        Path(self.commons["save_location"]) / self.files[filekey]
+                        Path(self.commons["save_location"])  # type: ignore
+                        / self.files[filekey]  # just ignore it.
                     ),
                     mode=mode,
                     indent=indent,
