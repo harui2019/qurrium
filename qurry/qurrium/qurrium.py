@@ -395,7 +395,9 @@ class QurryPrototype(ABC):
                 **other_kwargs, exp_id=exp_id, backend=backend, _pbar=_pbar
             )
         assert self.exps[id_now].commons.exp_id == id_now
-        if len(self.exps[id_now].beforewards.circuit) > 0:
+        if len(self.exps[id_now].beforewards.circuit) > 0 and isinstance(
+            self.exps[id_now].beforewards.circuit[0], QuantumCircuit
+        ):
             return id_now
 
         current_exp = self.exps[id_now]
