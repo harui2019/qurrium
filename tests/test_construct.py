@@ -18,7 +18,7 @@ from qurry.process.utils.construct import (
 )
 
 
-test_setup_selector: tuple[int, Union[int, tuple[int, int]], str] = [
+test_setup_selector: list[tuple[int, Union[int, tuple[int, int]], str]] = [
     (8, 6, "Case: int"),
     (8, (2, 8), "Case: tuple[int, int]"),
     (8, 7, "Case: int"),
@@ -27,7 +27,7 @@ test_setup_selector: tuple[int, Union[int, tuple[int, int]], str] = [
     (8, (-5, -1), "Case: tuple[-int, -int]"),
     (8, (3, -2), "Case: tuple[int, -int]"),
 ]
-test_setup_cycling: tuple[Union[int, tuple[int, int]], str] = []
+test_setup_cycling: list[tuple[Union[int, tuple[int, int]], str]] = []
 
 
 @pytest.mark.parametrize("test_items", test_setup_selector)
