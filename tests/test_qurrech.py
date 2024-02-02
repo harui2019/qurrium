@@ -5,7 +5,7 @@ Test the qurry.qurrech module EchoListen class.
 
 """
 import pytest
-
+import numpy as np
 # from qiskit import BasicAer
 
 from qurry.qurrech import EchoListen
@@ -50,6 +50,7 @@ def test_quantity_01(tgt):
     expDemo01.exps[exp_id].analyze()
     quantity = expDemo01.exps[exp_id].reports[0].content._asdict()
     assert all(["echo" in quantity])
+    assert np.abs(quantity['echo'] - 1.0) < 1e-0
 
 
 @pytest.mark.parametrize("tgt", wave_adds_02)
