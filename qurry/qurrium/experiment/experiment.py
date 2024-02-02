@@ -703,7 +703,6 @@ class ExperimentPrototype(ABC):
         indent: int = 2,
         encoding: str = "utf-8",
         jsonable: bool = False,
-        mute: bool = False,
         _pbar: Optional[tqdm.tqdm] = None,
         _qurryinfo_hold_access: Optional[str] = None,
     ) -> tuple[str, dict[str, str]]:
@@ -772,7 +771,6 @@ class ExperimentPrototype(ABC):
             indent=indent,
             encoding=encoding,
             jsonable=jsonable,
-            mute=mute,
             _pbar=_pbar,
         )
         assert "qurryinfo" in files, "qurryinfo location is not in files."
@@ -799,7 +797,7 @@ class ExperimentPrototype(ABC):
                 indent=indent,
                 encoding=encoding,
                 jsonable=jsonable,
-                mute=mute,
+                mute=True,
             )
         else:
             quickJSON(
@@ -809,7 +807,7 @@ class ExperimentPrototype(ABC):
                 indent=indent,
                 encoding=encoding,
                 jsonable=jsonable,
-                mute=mute,
+                mute=True,
             )
 
         del export_material

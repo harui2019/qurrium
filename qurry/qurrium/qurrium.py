@@ -365,8 +365,6 @@ class QurryPrototype(ABC):
                 The encoding of json file. Defaults to 'utf-8'.
             jsonablize (bool, optional):
                 Whether to jsonablize the experiment output. Defaults to False.
-            _export_mute (bool, optional):
-                Whether to mute the export hint. Defaults to True.
 
             other_kwargs:
                 all arguments will handle by `self.paramsControl()` and export as specific format.
@@ -442,7 +440,6 @@ class QurryPrototype(ABC):
                     indent=indent,
                     encoding=encoding,
                     jsonable=jsonablize,
-                    mute=True,
                 )
 
         return id_now
@@ -468,8 +465,6 @@ class QurryPrototype(ABC):
                 The encoding of json file. Defaults to 'utf-8'.
             jsonablize (bool, optional):
                 Whether to jsonablize the experiment output. Defaults to False.
-            _export_mute (bool, optional):
-                Whether to mute the export hint. Defaults to True.
 
             allArgs:
                 all arguments will handle by `self.paramsControl()` and export as specific format.
@@ -519,7 +514,6 @@ class QurryPrototype(ABC):
         indent: int = 2,
         encoding: str = "utf-8",
         jsonablize: bool = False,
-        _export_mute: bool = False,
         _pbar: Optional[tqdm.tqdm] = None,
         **other_kwargs: Any,
     ) -> str:
@@ -537,8 +531,6 @@ class QurryPrototype(ABC):
                 The encoding of json file. Defaults to 'utf-8'.
             jsonablize (bool, optional):
                 Whether to jsonablize the experiment output. Defaults to False.
-            _export_mute (bool, optional):
-                Whether to mute the export hint. Defaults to True.
 
             allArgs:
                 all arguments will handle by `self.paramsControl()` and export as specific format.
@@ -559,7 +551,6 @@ class QurryPrototype(ABC):
             indent=indent,
             encoding=encoding,
             jsonablize=jsonablize,
-            _export_mute=_export_mute,
             _pbar=_pbar,
             **other_kwargs,
         )
@@ -596,7 +587,6 @@ class QurryPrototype(ABC):
                 indent=indent,
                 encoding=encoding,
                 jsonable=jsonablize,
-                mute=_export_mute,
             )
 
         return id_now
@@ -609,7 +599,6 @@ class QurryPrototype(ABC):
         indent: int = 2,
         encoding: str = "utf-8",
         jsonablize: bool = False,
-        _export_mute: bool = False,
         _pbar: Optional[tqdm.tqdm] = None,
         **other_kwargs: Any,
     ):
@@ -639,8 +628,6 @@ class QurryPrototype(ABC):
                 The encoding of json file. Defaults to 'utf-8'.
             jsonablize (bool, optional):
                 Whether to jsonablize the experiment output. Defaults to False.
-            _export_mute (bool, optional):
-                Whether to mute the export hint. Defaults to True.
 
             other_kwargs (Any):
                 Other arguments.
@@ -660,7 +647,6 @@ class QurryPrototype(ABC):
             indent=indent,
             encoding=encoding,
             jsonablize=jsonablize,
-            _export_mute=_export_mute,
             _pbar=_pbar,
             **other_kwargs,
         )
@@ -974,7 +960,6 @@ class QurryPrototype(ABC):
             current_id = self.output(
                 exp_id=id_exec,
                 save_location=current_multimanager.multicommons.save_location,
-                _export_mute=True,
             )
 
             circ_serial_len = len(circ_serial)

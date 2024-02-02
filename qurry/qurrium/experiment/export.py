@@ -255,8 +255,8 @@ class Export(NamedTuple):
                 + f"{self.exp_name}..."
             )
         folder = Path(self.commons["save_location"]) / Path(  # type: ignore
-            self.files["folder"]
-        )  # just ignore it.
+            self.files["folder"]  # just ignore it.
+        )
         if not os.path.exists(folder):
             os.mkdir(folder)
         for k in REQUIRED_FOLDER:
@@ -271,8 +271,9 @@ class Export(NamedTuple):
                     (
                         content,
                         str(
-                            Path(self.commons["save_location"]) / self.files[filekey]  # type: ignore
-                        ),  # just ignore it.
+                            Path(self.commons["save_location"])  # type: ignore
+                            / self.files[filekey]  # just ignore it.
+                        ),
                         mode,
                         indent,
                         encoding,
