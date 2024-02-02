@@ -428,7 +428,7 @@ class QurryPrototype(ABC):
             is_revive = True
             if isinstance(_pbar, tqdm.tqdm):
                 _pbar.set_description_str("| Circuit reviving from existed qasm...")
-            current_exp.beforewards.revive_circuit(True)
+            cirqs = current_exp.beforewards.revive_circuit(True)
 
         else:
             if isinstance(_pbar, tqdm.tqdm):

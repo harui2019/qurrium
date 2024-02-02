@@ -5,6 +5,7 @@ The experiment container
 ================================================================
 
 """
+
 import json
 from typing import Union, Optional, NamedTuple, Hashable, TypedDict, Any
 from pathlib import Path
@@ -373,15 +374,21 @@ class Before(NamedTuple):
 
         return adventures, tales
 
-    def revive_circuit(self, replace_circuits: bool = False):
-        """Revive the circuit from the qasm."""
+    def revive_circuit(self, replace_circuits: bool = False) -> list[QuantumCircuit]:
+        """Revive the circuit from the qasm, return the revived circuits.
+
+        Args:
+            replace_circuits (bool, optional): Whether to replace the circuits. Defaults to False.
+        """
+        revived_circuits = []
         if len(self.circuit) != 0:
             if replace_circuits:
                 self.circuit.clear()
             else:
                 raise ValueError("The circuits is not empty.")
         for qasm in self.circuit_qasm:
-            self.circuit.append(QuantumCircuit.from_qasm_str(qasm))
+            revived_circuits.append(QuantumCircuit.from_qasm_str(qasm))
+        return revived_circuits
 
 
 class After(NamedTuple):

@@ -41,7 +41,7 @@ def qasm_drawer(qc: QuantumCircuit) -> str:
     Returns:
         str: The drawing of circuit in qasm format.
     """
-    txt = qc.qasm()
+    txt = qc.qasm(encoding="utf-8")
     assert isinstance(txt, str), "The drawing of circuit does not export."
     return txt
 
