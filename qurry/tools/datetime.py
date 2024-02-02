@@ -18,8 +18,9 @@ class DatetimeDict(dict[str, str]):
     def add_only(self, eventname: str):
         """Adds a key with the current time if the key does not exist."""
         self[eventname] = current_time()
+        return self[eventname]
 
-    def add_serial(self, eventname: str):
+    def add_serial(self, eventname: str) -> str:
         """Adds a key with the current time and a serial number if the key exists."""
         repeat_times_plus_one = 1
         for d in self:
@@ -29,3 +30,4 @@ class DatetimeDict(dict[str, str]):
             3, "0"
         )
         self[eventname_with_times] = current_time()
+        return self[eventname_with_times]
