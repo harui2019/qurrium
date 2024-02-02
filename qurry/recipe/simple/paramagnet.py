@@ -206,7 +206,7 @@ class TopologicalParamagnet(TwoBody):
             raise AttributeError("The border_cond can't be changed.")
         if value not in ["open", "period"]:
             raise ValueError("The border_cond must be 'open' or 'period'.")
-        self._border_cond = value
+        self._border_cond: Literal["open", "period"] = value
 
     def __init__(
         self,

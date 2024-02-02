@@ -7,11 +7,17 @@ For qiskit-aer has been divided into two packages since qiskit some version,
 So it needs to be imported differently by trying to import qiskit-aer first,
 
 """
+
 from random import random
-from typing import Optional, Hashable, Union, Literal
+from typing import Optional, Union, Literal, TypedDict
 
 from qiskit.providers import Backend, Provider
-from qiskit.providers.fake_provider import FakeProviderForBackendV2
+from qiskit.providers.fake_provider import (
+    FakeProvider,
+    FakeProviderForBackendV2,
+    FakeBackend,
+    FakeBackendV2,
+)
 
 from .import_manage import (
     IBM_AVAILABLE,
@@ -28,6 +34,14 @@ from .import_manage import (
 )
 from ...exceptions import QurryPositionalArgumentNotSupported
 from ...capsule.hoshi import Hoshi
+
+
+class BackendDict(TypedDict):
+    """The dict of backend."""
+
+    real: dict[str, Union[Backend, GeneralAerBackend, FakeBackend, FakeBackendV2, None]]
+    aer: dict[str, Union[Backend, GeneralAerBackend, FakeBackend, FakeBackendV2]]
+    fake: dict[str, Union[FakeBackend, FakeBackendV2, None]]
 
 
 class BackendWrapper:
@@ -107,12 +121,15 @@ class BackendWrapper:
         fake_version: Union[Literal["v1", "v2"], None] = None,
     ) -> None:
         self.is_aer_gpu = False
-        self._providers: dict[Literal["aer", "real", "fake"], Provider] = {}
-        self._providers["aer"] = GeneralAerProvider()
-        self.backend_dict: dict[
-            Literal["aer", "real", "fake"], list[Union[Backend, GeneralAerBackend]]
+        self._providers: dict[
+            Literal["aer", "real", "fake"],
+            Union[Provider, FakeProvider, FakeProviderForBackendV2, None],
         ] = {}
-        self.backend_callsign_dict: dict[Literal["aer", "real", "fake"], str] = {}
+        self._providers["aer"] = GeneralAerProvider()
+        self.backend_dict: BackendDict = {"aer": {}, "real": {}, "fake": {}}
+        self.backend_callsign_dict: dict[
+            Literal["aer", "real", "fake"], dict[str, str]
+        ] = {}
 
         _aer_owned_backends: list[GeneralAerBackend] = self._providers["aer"].backends()
 
@@ -120,7 +137,7 @@ class BackendWrapper:
             self.backend_callsign_dict["aer"] = {
                 "state": "statevector",
             }
-            self.backend_dict["aer"]: dict[str, Union[Backend, GeneralAerBackend]] = {
+            self.backend_dict["aer"] = {
                 shorten_name(backendName(b), ["_simulator"]): b
                 for b in _aer_owned_backends
             }
@@ -134,7 +151,7 @@ class BackendWrapper:
                 "aer_state_gpu": "aer_statevector_gpu",
                 "aer_density_gpu": "aer_density_matrix_gpu",
             }
-            self.backend_dict["aer"]: dict[str, Union[Backend, GeneralAerBackend]] = {
+            self.backend_dict["aer"] = {
                 shorten_name(backendName(b), ["_simulator"]): b
                 for b in _aer_owned_backends
                 if backendName(b)
@@ -145,7 +162,7 @@ class BackendWrapper:
                 "aer_gpu": _aer_owned_backends[0],
                 **self.backend_dict["aer"],
             }
-            self.backend_dict["aer"]["aer_gpu"].set_options(device="GPU")
+            self.backend_dict["aer"]["aer_gpu"].set_options(device="GPU") # type: ignore
 
         (
             self.backend_callsign_dict["real"],
@@ -169,13 +186,13 @@ class BackendWrapper:
 
     def make_callsign(
         self,
-        sign: Hashable = "Galm 2",
+        sign: str = "Galm 2",
         who: str = "solo_wing_pixy",
     ) -> None:
         """Make a callsign for backend.
 
         Args:
-            sign (Hashable, optional): The callsign.
+            sign (str, optional): The callsign.
             who (str, optional): The backend.
         """
 
@@ -339,14 +356,14 @@ class BackendWrapper:
         self,
         name: str,
         backend: Backend,
-        callsign: Hashable = None,
+        callsign: Optional[str] = None,
     ) -> None:
         """Add a backend to backend wrapper.
 
         Args:
             name (str): The name of backend.
             backend (Backend): The backend.
-            callsign (Hashable, optional): The callsign of backend. Defaults to None.
+            callsign (Optional[str], optional): The callsign of backend. Defaults to None.
         """
         if name in self.backend:
             raise ValueError(f"'{name}' backend already exists.")

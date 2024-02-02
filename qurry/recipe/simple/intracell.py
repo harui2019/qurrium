@@ -83,7 +83,7 @@ class Intracell(TwoBody):
         """
         if hasattr(self, "_state"):
             raise AttributeError("Attribute 'state' is read-only.")
-        self._state = state
+        self._state: Literal["singlet", "minus", "plus"] = state
 
     def __init__(
         self,

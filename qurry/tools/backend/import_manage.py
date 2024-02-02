@@ -15,6 +15,7 @@ So this file is used to unify the import point of AerProvider, IBMProvider/IBMQP
 Avoiding the import error occurs on different parts of Qurry.
 
 """
+
 from typing import Union, Callable, Literal, Optional, overload, Type
 import warnings
 from importlib.metadata import distributions
@@ -210,8 +211,8 @@ except ImportError:
     IBM_AVAILABLE = False
 # pylint: enable=ungrouped-imports
 
-backendName: Callable[[Union[BackendV1, BackendV2, Backend]], str] = (
-    lambda back: back.name
+backendName: Callable[[Union[BackendV1, BackendV2, Backend]], str] = lambda back: (
+    back.name
     if isinstance(back, BackendV2)
     else (back.name() if isinstance(back, BackendV1) else "unknown_backend")
 )
@@ -386,7 +387,9 @@ async def _async_version_check():
     return check_msg
 
 
-def _real_backend_loader(real_provider=None):
+def _real_backend_loader(
+    real_provider=None,
+) -> tuple[dict[str, str], dict[str, Backend], None]:
     backend_ibmq_callsign = {}
     if not real_provider is None:
         _real_provider = real_provider
@@ -404,20 +407,19 @@ def _real_backend_loader(real_provider=None):
 @overload
 def fack_backend_loader(
     version: Union[Literal["v2"], str]
-) -> tuple[dict[str, str], dict[str, FakeBackendV2], FakeProviderForBackendV2]:
-    ...
+) -> tuple[dict[str, str], dict[str, FakeBackendV2], FakeProviderForBackendV2]: ...
 
 
 @overload
 def fack_backend_loader(
     version: Literal["v1"],
-) -> tuple[dict[str, str], dict[str, FakeBackend], FakeProvider]:
-    ...
+) -> tuple[dict[str, str], dict[str, FakeBackend], FakeProvider]: ...
 
 
 @overload
-def fack_backend_loader(version: None) -> tuple[dict[str, str], dict[str, any], None]:
-    ...
+def fack_backend_loader(
+    version: None,
+) -> tuple[dict[str, str], dict[str, any], None]: ...
 
 
 def fack_backend_loader(version=None):

@@ -7,7 +7,7 @@ Default Configuration for Qurry (:mod:`qurry.declare.default`)
 from typing import Optional
 import warnings
 
-from ..exceptions import QurryInvalidArgument, QurryUnrecongnizedArguments
+from ..exceptions import QurryUnrecongnizedArguments
 from ..capsule.mori import DefaultConfig
 
 transpileConfig = DefaultConfig(
@@ -130,8 +130,8 @@ def contain_checker(
                 + f"Available keys: {checker.default_names}"
             )
             if restrict:
-                raise QurryInvalidArgument(text)
-            warnings.warn(text, QurryInvalidArgument)
+                raise QurryUnrecongnizedArguments(text)
+            warnings.warn(text, QurryUnrecongnizedArguments)
 
         useless_key = checker.useless_keys(config)
         text = (
