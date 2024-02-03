@@ -345,11 +345,16 @@ class Before(NamedTuple):
     def export(
         self,
         unexports: Optional[list[str]] = None,
+        export_transpiled_circuit: bool = False,
     ) -> tuple[dict[str, Any], dict[str, Any]]:
         """Export the experiment's data before executing.
 
         Args:
             unexports (Optional[list[str]], optional): The list of unexported key. Defaults to None.
+            export_circuit (bool, optional):
+                Whether to export the transpiled circuit as txt. Defaults to False.
+                When set to True, the transpiled circuit will be exported as txt.
+                Otherwise, the circuit will be not exported but circuit qasm remains.
 
         Returns:
             tuple[dict[str, Any], dict[str, Any]]:
@@ -367,6 +372,8 @@ class Before(NamedTuple):
             # pylint: enable=no-member
             if k == "side_product":
                 tales = {**tales, **v}
+            elif k == "circuit":
+                adventures[k] = v if export_transpiled_circuit else []
             elif k in unexports:
                 ...
             else:

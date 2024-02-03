@@ -108,6 +108,7 @@ def multiprocess_exporter_and_writer(
     encoding: str = "utf-8",
     jsonable: bool = False,
     mute: bool = True,
+    export_transpiled_circuit: bool = False,
     _pbar: Optional[tqdm.tqdm] = None,
 ) -> tuple[Hashable, dict[str, str]]:
     """Multiprocess exporter and writer for experiment.
@@ -121,12 +122,16 @@ def multiprocess_exporter_and_writer(
         encoding (str, optional): The encoding of writing. Defaults to "utf-8".
         jsonable (bool, optional): The jsonable of writing. Defaults to False.
         mute (bool, optional): The mute of writing. Defaults to True.
+        export_transpiled_circuit (bool, optional) : Export the transpiled circuit. Defaults to False.
         _pbar (Optional[tqdm.tqdm], optional): The progress bar. Defaults to None.
 
     Returns:
         tuple[Hashable, dict[str, str]]: The ID of experiment and the files of experiment.
     """
-    exps_export = exps.export(save_location=save_location)
+    exps_export = exps.export(
+        save_location=save_location,
+        export_transpiled_circuit=export_transpiled_circuit,
+    )
     qurryinfo_exp_id, qurryinfo_files = exps_export.write(
         mode=mode,
         indent=indent,

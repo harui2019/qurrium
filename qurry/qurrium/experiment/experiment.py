@@ -512,6 +512,7 @@ class ExperimentPrototype(ABC):
     def export(
         self,
         save_location: Optional[Union[Path, str]] = None,
+        export_transpiled_circuit: bool = False,
     ) -> Export:
         """Export the data of experiment.
 
@@ -629,7 +630,10 @@ class ExperimentPrototype(ABC):
         if self.commons.save_location != save_location:
             self.commons = self.commons._replace(save_location=save_location)
 
-        adventures, tales = self.beforewards.export(unexports=self._unexports)
+        adventures, tales = self.beforewards.export(
+            unexports=self._unexports,
+            export_transpiled_circuit=export_transpiled_circuit,
+        )
         legacy = self.afterwards.export(unexports=self._unexports)
         reports, tales_reports = self.reports.export()
 
@@ -710,6 +714,7 @@ class ExperimentPrototype(ABC):
         indent: int = 2,
         encoding: str = "utf-8",
         jsonable: bool = False,
+        export_transpiled_circuit: bool = False,
         _pbar: Optional[tqdm.tqdm] = None,
         _qurryinfo_hold_access: Optional[str] = None,
     ) -> tuple[str, dict[str, str]]:
@@ -772,6 +777,7 @@ class ExperimentPrototype(ABC):
         # experiment write
         export_material = self.export(
             save_location=save_location,
+            export_transpiled_circuit=export_transpiled_circuit,
         )
         exp_id, files = export_material.write(
             mode=mode,
