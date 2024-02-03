@@ -14,9 +14,11 @@ from .analysis import EntropyRandomizedAnalysis
 from ...qurrium.experiment import ExperimentPrototype
 from ...process.randomized_measure.entangled_entropy import (
     entangled_entropy_core,
-    ExistingProcessBackendLabel,
-    DEFAULT_PROCESS_BACKEND,
     RandomizedEntangledEntropyComplex,
+)
+from ...process.randomized_measure.entropy_core import (
+    PostProcessingBackendLabel,
+    DEFAULT_PROCESS_BACKEND,
 )
 from ...process.randomized_measure.error_mitigation import depolarizing_error_mitgation
 from ...tools import qurry_progressbar, DEFAULT_POOL_SIZE
@@ -28,7 +30,7 @@ def randomized_entangled_entropy_complex(
     degree: Optional[Union[tuple[int, int], int]],
     measure: Optional[tuple[int, int]] = None,
     all_system_source: Optional[EntropyRandomizedAnalysis] = None,
-    backend: ExistingProcessBackendLabel = DEFAULT_PROCESS_BACKEND,
+    backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
     workers_num: Optional[int] = None,
     pbar: Optional[tqdm.tqdm] = None,
 ) -> RandomizedEntangledEntropyComplex:
@@ -73,7 +75,7 @@ def randomized_entangled_entropy_complex(
             Measuring range on quantum circuits. Defaults to None.
         all_system_source (Optional['EntropyRandomizedAnalysis'], optional):
             The source of the all system. Defaults to None.
-        backend (ExistingProcessBackendLabel, optional):
+        backend (PostProcessingBackendLabel, optional):
             Backend for the process. Defaults to DEFAULT_PROCESS_BACKEND.
         workers_num (Optional[int], optional):
             Number of multi-processing workers, it will be ignored if backend is Rust.
@@ -279,7 +281,7 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
         degree: Optional[Union[tuple[int, int], int]] = None,
         workers_num: Optional[int] = None,
         independent_all_system: bool = False,
-        backend: ExistingProcessBackendLabel = DEFAULT_PROCESS_BACKEND,
+        backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
         pbar: Optional[tqdm.tqdm] = None,
     ) -> EntropyRandomizedAnalysis:
         """Calculate entangled entropy with more information combined.
@@ -293,7 +295,7 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
                 Defaults to None.
             independent_all_system (bool, optional):
                 If True, then calculate the all system independently.
-            backend (ExistingProcessBackendLabel, optional):
+            backend (PostProcessingBackendLabel, optional):
                 Backend for the process. Defaults to DEFAULT_PROCESS_BACKEND.
             pbar (Optional[tqdm.tqdm], optional): Progress bar. Defaults to None.
 
@@ -375,7 +377,7 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
         degree: Optional[Union[tuple[int, int], int]] = None,
         measure: Optional[tuple[int, int]] = None,
         all_system_source: Optional["EntropyRandomizedAnalysis"] = None,
-        backend: ExistingProcessBackendLabel = DEFAULT_PROCESS_BACKEND,
+        backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
         workers_num: Optional[int] = None,
         pbar: Optional[tqdm.tqdm] = None,
     ) -> RandomizedEntangledEntropyComplex:
@@ -420,7 +422,7 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
                 Measuring range on quantum circuits. Defaults to None.
             all_system_source (Optional['EntropyRandomizedAnalysis'], optional):
                 The source of the all system. Defaults to None.
-            backend (ExistingProcessBackendLabel, optional):
+            backend (PostProcessingBackendLabel, optional):
                 Backend for the process. Defaults to DEFAULT_PROCESS_BACKEND.
             workers_num (Optional[int], optional):
                 Number of multi-processing workers, it will be ignored if backend is Rust.

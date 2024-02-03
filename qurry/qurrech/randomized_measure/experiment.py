@@ -13,7 +13,7 @@ from .analysis import EchoRandomizedAnalysis
 from ...qurrium.experiment import ExperimentPrototype
 from ...process.randomized_measure.wavefunction_overlap import (
     randomized_overlap_echo,
-    ExistingProcessBackendLabel,
+    PostProcessingBackendLabel,
     DEFAULT_PROCESS_BACKEND,
 )
 from ...tools import qurry_progressbar, DEFAULT_POOL_SIZE
@@ -148,7 +148,7 @@ class EchoRandomizedExperiment(ExperimentPrototype):
         counts: Optional[list[dict[str, int]]] = None,
         degree: Optional[Union[tuple[int, int], int]] = None,
         measure: Optional[tuple[int, int]] = None,
-        backend: ExistingProcessBackendLabel = DEFAULT_PROCESS_BACKEND,
+        backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
         workers_num: Optional[int] = None,
         pbar: Optional[tqdm.tqdm] = None,
     ) -> dict[str, float]:
