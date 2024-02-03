@@ -14,11 +14,11 @@ from ..utils import (
     ensemble_cell as ensemble_cell_py,
     cycling_slice as cycling_slice_py,
 )
-from ...exceptions import (
-    QurryCythonImportError,
-    QurryCythonUnavailableWarning,
-    QurryRustImportError,
-    QurryRustUnavailableWarning,
+from ..exceptions import (
+    PostProcessingCythonImportError,
+    PostProcessingCythonUnavailableWarning,
+    PostProcessingRustImportError,
+    PostProcessingRustUnavailableWarning,
 )
 
 
@@ -34,7 +34,7 @@ except ImportError as err:
 
     def purityCellCore(*args, **kwargs):
         """Dummy function for purityCellCore."""
-        raise QurryCythonImportError(
+        raise PostProcessingCythonImportError(
             "Cython is not available, using python to calculate purity cell."
         ) from FAILED_PYX_IMPORT
 
@@ -59,7 +59,7 @@ except ImportError as err:
 
     def purity_cell_rust_source(*args, **kwargs):
         """Dummy function for purity_cell_rust."""
-        raise QurryRustImportError(
+        raise PostProcessingRustImportError(
             "Rust is not available, using python to calculate purity cell."
         ) from FAILED_RUST_IMPORT
 
@@ -199,14 +199,14 @@ def purity_cell(
         warnings.warn(
             "Rust is not available, using Cython or Python to calculate purity cell."
             + f"Check the error: {FAILED_RUST_IMPORT}",
-            QurryRustUnavailableWarning,
+            PostProcessingRustUnavailableWarning,
         )
         backend = "Cython" if CYTHON_AVAILABLE else "Python"
     if not CYTHON_AVAILABLE and backend == "Cython":
         warnings.warn(
             "Cython is not available, using Python or Rust to calculate purity cell."
             + f"Check the error: {FAILED_PYX_IMPORT}",
-            QurryCythonUnavailableWarning,
+            PostProcessingCythonUnavailableWarning,
         )
         backend = "Rust" if RUST_AVAILABLE else "Python"
 

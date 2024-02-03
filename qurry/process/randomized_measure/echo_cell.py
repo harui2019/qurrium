@@ -5,16 +5,22 @@ Postprocessing - Wavefunction Overlap - Echo Cell
 ================================================================
 
 """
+
 import warnings
-from typing import Union, Literal
+from typing import Union
 import numpy as np
 
 from ..utils import ensemble_cell as ensemble_cell_py
-from ...exceptions import (
-    QurryCythonImportError,
-    QurryCythonUnavailableWarning,
-    # QurryRustImportError,
-    # QurryRustUnavailableWarning,
+from ..availability import (
+    availablility,
+    default_postprocessing_backend,
+    PostProcessingBackendLabel,
+)
+from ..exceptions import (
+    PostProcessingCythonImportError,
+    PostProcessingCythonUnavailableWarning,
+    # PostProcessingRustImportError,
+    # PostProcessingRustUnavailableWarning,
 )
 
 
@@ -30,7 +36,7 @@ except ImportError as err:
 
     def echoCellCore(*args, **kwargs):
         """Dummy function for purityCellCore."""
-        raise QurryCythonImportError(
+        raise PostProcessingCythonImportError(
             "Cython is not available, using python to calculate purity cell."
         ) from FAILED_PYX_IMPORT
 
@@ -49,23 +55,24 @@ except ImportError as err:
 
 #     def purity_cell_rust_source(*args, **kwargs):
 #         """Dummy function for purity_cell_rust."""
-#         raise QurryRustImportError(
+#         raise PostProcessingRustImportError(
 #             "Rust is not available, using python to calculate purity cell."
 #         ) from FAILED_RUST_IMPORT
 
 
-ExistingProcessBackendLabel = Literal["Cython", "Rust", "Python"]
-BackendAvailabilities: dict[ExistingProcessBackendLabel, Union[bool, ImportError, None]] = {
-    "Cython": CYTHON_AVAILABLE if CYTHON_AVAILABLE else FAILED_PYX_IMPORT,
-    # "Rust": RUST_AVAILABLE if RUST_AVAILABLE else FAILED_RUST_IMPORT,
-    "Python": True,
-}
-DEFAULT_PROCESS_BACKEND: ExistingProcessBackendLabel = (
-    # "Rust" if RUST_AVAILABLE else ("Cython" if CYTHON_AVAILABLE else "Python")
-    "Cython"
-    if CYTHON_AVAILABLE
-    else "Python"
+PostProcessingBackendStatement = availablility(
+    "randomized_measure.entangled_entropy",
+    [
+        # ("Rust", RUST_AVAILABLE, FAILED_RUST_IMPORT),
+        ("Cython", CYTHON_AVAILABLE, FAILED_PYX_IMPORT),
+    ],
 )
+DEFAULT_PROCESS_BACKEND = default_postprocessing_backend(
+    # RUST_AVAILABLE,
+    False,
+    CYTHON_AVAILABLE,
+)
+
 
 # def echo_cell_rust(
 #     idx: int,
@@ -171,7 +178,7 @@ def echo_cell(
     second_counts: dict[str, int],
     bitstring_range: tuple[int, int],
     subsystem_size: int,
-    backend: ExistingProcessBackendLabel = DEFAULT_PROCESS_BACKEND,
+    backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
 ) -> tuple[int, Union[float, np.float64]]:
     """Calculate the echo cell, one of overlap, of a subsystem.
 
@@ -189,14 +196,14 @@ def echo_cell(
     #     warnings.warn(
     #         "Rust is not available, using Cython or Python to calculate purity cell."
     #         + f"Check the error: {FAILED_RUST_IMPORT}",
-    #         QurryRustUnavailableWarning,
+    #         PostProcessingRustUnavailableWarning,
     #     )
     #     backend = "Cython" if CYTHON_AVAILABLE else "Python"
     if not CYTHON_AVAILABLE and backend == "Cython":
         warnings.warn(
             "Cython is not available, using Python or Rust to calculate purity cell."
             + f"Check the error: {FAILED_PYX_IMPORT}",
-            QurryCythonUnavailableWarning,
+            PostProcessingCythonUnavailableWarning,
         )
         # backend = "Rust" if RUST_AVAILABLE else "Python"
         backend = "Python"

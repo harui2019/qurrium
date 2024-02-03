@@ -39,14 +39,6 @@ class QurryPositionalArgumentNotSupported(QurryError, ValueError):
     """Positional argument is not supported."""
 
 
-class QurryCythonImportError(QurryError, ImportError):
-    """Cython import error."""
-
-
-class QurryRustImportError(QurryError, ImportError):
-    """Rust import error."""
-
-
 class QurryCountLost(QurryError):
     """Count lost error."""
 
@@ -100,14 +92,6 @@ class QurryProtectContent(QurryWarning):
 class QurrySummonerInfoIncompletion(QurryWarning):
     """Warning for summoner info incompletion.
     The summoner is the instance of :cls:`QurryMultiManager`."""
-
-
-class QurryCythonUnavailableWarning(QurryWarning):
-    """Cython unavailable warning."""
-
-
-class QurryRustUnavailableWarning(QurryWarning):
-    """Rust unavailable warning."""
 
 
 class QurryDummyRunnerWarning(QurryWarning):
