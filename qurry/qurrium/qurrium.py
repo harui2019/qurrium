@@ -1308,9 +1308,7 @@ class QurryPrototype(ABC):
         assert current_multimanager.summoner_id == besummonned
 
         print("| MultiRetrieve running...")
-        jobs_type, _pending_strategy = current_multimanager.multicommons.jobstype.split(
-            "."
-        )
+        jobs_type = current_multimanager.multicommons.jobstype
         if backend is None:
             raise ValueError("backend is None.")
 

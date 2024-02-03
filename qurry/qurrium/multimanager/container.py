@@ -124,6 +124,13 @@ class MultiCommonparams(NamedTuple):
         rawread_multiconfig["save_location"] = save_location
         rawread_multiconfig["export_location"] = export_location
 
+        ## v6 jobstype data
+        if "jobstype" in rawread_multiconfig:
+            v6jobstype = rawread_multiconfig["jobstype"].split(".")
+            if len(v6jobstype) == 2:
+                rawread_multiconfig["jobstype"] = v6jobstype[0]
+                rawread_multiconfig["pending_strategy"] = v6jobstype[1]
+
         return rawread_multiconfig
 
 
