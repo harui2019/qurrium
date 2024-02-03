@@ -21,27 +21,27 @@ from ...capsule import quickJSON
 class Export(NamedTuple):
     """Data-stored namedtuple with all experiments data which is jsonable."""
 
-    exp_id: str = ""
+    exp_id: str
     """ID of experiment, which will be packed into `.args.json`."""
-    exp_name: str = "exps"
+    exp_name: str
     """Name of the experiment, which will be packed into `.args.json`. 
     If this experiment is called by multimanager, 
     then this name will never apply as filename."""
     # Arguments for multi-experiment
-    serial: Optional[int] = None
+    serial: Optional[int]
     """Index of experiment in a multiOutput, which will be packed into `.args.json`."""
-    summoner_id: Optional[str] = None
+    summoner_id: Optional[str]
     """ID of experiment of the multiManager, which will be packed into `.args.json`."""
-    summoner_name: Optional[str] = None
+    summoner_name: Optional[str]
     """Name of experiment of the multiManager, which will be packed into `.args.json`."""
 
-    filename: str = ""
+    filename: str
     """The name of file to be exported, 
     it will be decided by the :meth:`.export` when it's called.
     More info in the pydoc of :prop:`files` or :meth:`.export`, 
     which will be packed into `.args.json`.
     """
-    files: dict[str, str] = {}
+    files: dict[str, str]
     """The list of file to be exported.
     For the `.write` function actually exports 4 different files
     respecting to `adventure`, `legacy`, `tales`, and `reports` like:
@@ -100,28 +100,28 @@ class Export(NamedTuple):
     
     """
 
-    args: dict[str, Any] = {}
+    args: dict[str, Any]
     """Construct the experiment's parameters, which will be packed into `.args.json`."""
-    commons: Union[dict[str, Any], CommonparamsDict] = {}
+    commons: CommonparamsDict
     """Construct the experiment's common parameters, which will be packed into `.args.json`."""
-    outfields: dict[str, Any] = {}
+    outfields: dict[str, Any]
     """Recording the data of other unused arguments, which will be packed into `.args.json`."""
 
-    adventures: dict[str, Any] = {}
+    adventures: dict[str, Any]
     """Recording the data of 'beforeward', which will be packed into `.advent.json`. 
     ~A Great Adventure begins~"""
-    legacy: dict[str, Any] = {}
+    legacy: dict[str, Any]
     """Recording the data of 'afterward', which will be packed into `.legacy.json`. 
     ~The Legacy remains from the achievement of ancestors~"""
-    tales: dict[str, Any] = {}
+    tales: dict[str, Any]
     """Recording the data of 'side_product' in 'afterward' and 'beforewards' for API, 
     which will be packed into `.*.tales.json`. 
     ~Tales of braves circulate~"""
 
-    reports: dict[Hashable, dict[str, Any]] = {}
+    reports: dict[Hashable, dict[str, Any]]
     """Recording the data of 'reports', which will be packed into `.reports.json`. 
     ~The guild concludes the results.~"""
-    tales_reports: dict[str, dict[Hashable, dict[str, Any]]] = {}
+    tales_reports: dict[str, dict[Hashable, dict[str, Any]]]
     """Recording the data of 'side_product' in 'reports' for API, 
     which will be packed into `.*.reprts.json`. 
     ~Tales of braves circulate~"""
@@ -254,7 +254,7 @@ class Export(NamedTuple):
                 + (f"{self.summoner_name}/" if self.summoner_name else "")
                 + f"{self.exp_name}..."
             )
-        folder = Path(self.commons["save_location"]) / Path(  # type: ignore
+        folder = Path(self.commons["save_location"]) / Path(
             self.files["folder"]  # just ignore it.
         )
         if not os.path.exists(folder):
