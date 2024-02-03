@@ -127,6 +127,10 @@ class MultiCommonparams(NamedTuple):
         return rawread_multiconfig
 
 
+TagListKeyable = Union[str, tuple[str, ...], Literal["_onetime"], Hashable]
+"""Type of keyable in :cls:`TagList`."""
+
+
 class Before(NamedTuple):
     """`dataNeccessary` and `expsMultiMain` in V4 format."""
 
@@ -135,22 +139,22 @@ class Before(NamedTuple):
     circuits_num: dict[str, int]
     """The map with tags of index of experiments, which multiple experiments shared."""
 
-    pending_pool: TagList[str, int]
+    pending_pool: TagList[TagListKeyable, int]
     """The pool of pending jobs, which multiple experiments shared, 
     it works only when executing experiments is remote.
     """
-    circuits_map: TagList[Hashable, int]
+    circuits_map: TagList[str, int]
     """The map of circuits of each experiments in the index of pending, 
     which multiple experiments shared.
     """
-    job_id: list[tuple[Optional[str], str]]
+    job_id: list[tuple[Optional[str], TagListKeyable]]
     """The list of job_id in pending, which multiple experiments shared, 
     it works only when executing experiments is remote.
     """
 
-    job_taglist: TagList[Hashable, str]
-    files_taglist: TagList[Hashable, str]
-    index_taglist: TagList[Hashable, Union[str, int]]
+    job_taglist: TagList[TagListKeyable, str]
+    files_taglist: TagList[TagListKeyable, str]
+    index_taglist: TagList[TagListKeyable, Union[str, int]]
 
     @staticmethod
     def exporting_name():
