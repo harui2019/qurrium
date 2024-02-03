@@ -5,6 +5,7 @@ Analysis Instance
 ================================================================
 
 """
+
 from typing import Optional, NamedTuple, Iterable, Any
 from abc import abstractmethod
 from pathlib import Path
@@ -96,7 +97,7 @@ class AnalysisPrototype:
 
     @property
     @abstractmethod
-    def default_side_product_fields(self) -> Iterable[str]:
+    def side_product_fields(self) -> Iterable[str]:
         """The fields that will be stored as side product."""
 
     def __init__(
@@ -104,7 +105,6 @@ class AnalysisPrototype:
         serial: int,
         summoner: Optional[tuple] = None,
         log: Optional[dict[str, Any]] = None,
-        side_product_fields: Optional[Iterable[str]] = None,
         **otherArgs,
     ):
         if log is None:
@@ -117,11 +117,6 @@ class AnalysisPrototype:
         )
         self.input, outfields = self.input_filter(**otherArgs)
         self.content, self.outfields = self.content_filter(**outfields)
-        self.side_product_fields = (
-            self.default_side_product_fields
-            if side_product_fields is None
-            else side_product_fields
-        )
 
         duplicate_fields = set(self.AnalysisInput._fields) & set(
             self.AnalysisContent._fields
@@ -275,9 +270,7 @@ class AnalysisPrototype:
             if filekey == "reports":
                 with open(save_location / filename, "r", encoding=encoding) as f:
                     export_set["reports"] = json.load(f)
-                export_material_set["reports"] = export_set["reports"][
-                    "reports"
-                ]
+                export_material_set["reports"] = export_set["reports"]["reports"]
 
             elif filekeydiv[0] == "reports" and filekeydiv[1] == "tales":
                 with open(save_location / filename, "r", encoding=encoding) as f:

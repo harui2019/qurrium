@@ -47,7 +47,7 @@ class EchoRandomizedAnalysis(AnalysisPrototype):
             return f"AnalysisContent(echo={self.echo}, and others)"
 
     @property
-    def default_side_product_fields(self) -> Iterable[str]:
+    def side_product_fields(self) -> Iterable[str]:
         """The fields that will be stored as side product."""
         return [
             "echoCells",
