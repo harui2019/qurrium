@@ -10,11 +10,9 @@ from typing import Union, Optional, Literal, TypedDict
 import numpy as np
 import tqdm
 
-from .entropy_core import (
-    entangled_entropy_core,
-    ExistingProcessBackendLabel,
-    DEFAULT_PROCESS_BACKEND,
-)
+
+from ..availability import PostProcessingBackendLabel
+from .entropy_core import entangled_entropy_core, DEFAULT_PROCESS_BACKEND
 from .error_mitigation import depolarizing_error_mitgation
 
 
@@ -56,7 +54,7 @@ def randomized_entangled_entropy(
     counts: list[dict[str, int]],
     degree: Optional[Union[tuple[int, int], int]],
     measure: Optional[tuple[int, int]] = None,
-    backend: ExistingProcessBackendLabel = DEFAULT_PROCESS_BACKEND,
+    backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
     workers_num: Optional[int] = None,
     pbar: Optional[tqdm.tqdm] = None,
 ) -> dict[str, Union[np.float64, float]]:
@@ -99,7 +97,7 @@ def randomized_entangled_entropy(
         degree (Optional[Union[tuple[int, int], int]]): Degree of the subsystem.
         measure (Optional[tuple[int, int]], optional):
             Measuring range on quantum circuits. Defaults to None.
-        backend (ExistingProcessBackendLabel, optional):
+        backend (PostProcessingBackendLabel, optional):
             Backend for the process. Defaults to DEFAULT_PROCESS_BACKEND.
         workers_num (Optional[int], optional):
             Number of multi-processing workers, it will be ignored if backend is Rust.
@@ -129,12 +127,11 @@ def randomized_entangled_entropy(
         backend=backend,
         multiprocess_pool_size=workers_num,
     )
-    purity_cell_list: Union[list[float], list[np.float64]] = list(
-        purity_cell_dict.values()
-    )  # type: ignore
+    purity_cell_list: list[Union[float, np.float64]] = list(purity_cell_dict.values())
 
-    purity = np.mean(purity_cell_list, dtype=np.float64)
-    purity_sd = np.std(purity_cell_list, dtype=np.float64)
+    # pylance cannot recognize the type
+    purity: np.float64 = np.mean(purity_cell_list, dtype=np.float64)  # type: ignore
+    purity_sd: np.float64 = np.std(purity_cell_list, dtype=np.float64)  # type: ignore
     entropy = -np.log2(purity, dtype=np.float64)
     entropy_sd = purity_sd / np.log(2) / purity
 
@@ -167,7 +164,7 @@ def randomized_entangled_entropy_mitigated(
     counts: list[dict[str, int]],
     degree: Optional[Union[tuple[int, int], int]],
     measure: Optional[tuple[int, int]] = None,
-    backend: ExistingProcessBackendLabel = DEFAULT_PROCESS_BACKEND,
+    backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
     workers_num: Optional[int] = None,
     existed_all_system: Optional[ExistingAllSystemSource] = None,
     pbar: Optional[tqdm.tqdm] = None,
@@ -211,7 +208,7 @@ def randomized_entangled_entropy_mitigated(
         degree (Optional[Union[tuple[int, int], int]]): Degree of the subsystem.
         measure (Optional[tuple[int, int]], optional):
             Measuring range on quantum circuits. Defaults to None.
-        backend (ExistingProcessBackendLabel, optional):
+        backend (PostProcessingBackendLabel, optional):
             Backend for the process. Defaults to DEFAULT_PROCESS_BACKEND.
         workers_num (Optional[int], optional):
             Number of multi-processing workers, it will be ignored if backend is Rust.
@@ -278,9 +275,7 @@ def randomized_entangled_entropy_mitigated(
         backend=backend,
         multiprocess_pool_size=workers_num,
     )
-    purity_cell_list: Union[list[float], list[np.float64]] = list(
-        purity_cell_dict.values()
-    )  # type: ignore
+    purity_cell_list: list[Union[float, np.float64]] = list(purity_cell_dict.values())
 
     if existed_all_system is None:
         if isinstance(pbar, tqdm.tqdm):
@@ -299,7 +294,7 @@ def randomized_entangled_entropy_mitigated(
             backend=backend,
             multiprocess_pool_size=workers_num,
         )
-        purity_cell_list_allsys: Union[list[float], list[np.float64]] = list(purity_cell_dict_allsys.values())  # type: ignore
+        purity_cell_list_allsys: list[Union[float, np.float64]] = list(purity_cell_dict_allsys.values())  # type: ignore
         source = "independent"
     else:
         for k, msg in [
@@ -325,21 +320,16 @@ def randomized_entangled_entropy_mitigated(
             f"Preparing error mitigation of {bitstring_range} on {measure}"
         )
 
-    purity: Union[np.float64, float] = np.mean(purity_cell_list, dtype=np.float64)
-    purity_allsys: Union[np.float64, float] = np.mean(
-        purity_cell_list_allsys, dtype=np.float64
-    )
-    purity_sd: Union[np.float64, float] = np.std(purity_cell_list, dtype=np.float64)
-    purity_sd_allsys: Union[np.float64, float] = np.std(
-        purity_cell_list_allsys, dtype=np.float64
-    )
+    # pylance cannot recognize the type
+    purity: np.float64 = np.mean(purity_cell_list, dtype=np.float64)  # type: ignore
+    purity_allsys: np.float64 = np.mean(purity_cell_list_allsys, dtype=np.float64)  # type: ignore
+    purity_sd: np.float64 = np.std(purity_cell_list, dtype=np.float64)  # type: ignore
+    purity_sd_allsys: np.float64 = np.std(purity_cell_list_allsys, dtype=np.float64)  # type: ignore
 
-    entropy: Union[np.float64, float] = -np.log2(purity, dtype=np.float64)
-    entropy_sd: Union[np.float64, float] = purity_sd / np.log(2) / purity
-    entropy_allsys: Union[np.float64, float] = -np.log2(purity_allsys, dtype=np.float64)
-    entropy_sd_allsys: Union[np.float64, float] = (
-        purity_sd_allsys / np.log(2) / purity_allsys
-    )
+    entropy: np.float64 = -np.log2(purity, dtype=np.float64)
+    entropy_sd: np.float64 = purity_sd / np.log(2) / purity
+    entropy_allsys: np.float64 = -np.log2(purity_allsys, dtype=np.float64)
+    entropy_sd_allsys: np.float64 = purity_sd_allsys / np.log(2) / purity_allsys
 
     if measure is None:
         measure_info = ("not specified, use all qubits", measure_range)

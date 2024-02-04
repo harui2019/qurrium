@@ -8,7 +8,7 @@ Postprocessing - Randomized Measure - Entangled Entropy
 
 import time
 import warnings
-from typing import Union, Optional, Literal
+from typing import Union, Optional
 import numpy as np
 
 from .purity_cell import (
@@ -19,21 +19,20 @@ from .purity_cell import (
     FAILED_PYX_IMPORT,
 )
 from ..utils import cycling_slice as cycling_slice_py, qubit_selector
-from ...exceptions import (
-    QurryCythonUnavailableWarning,
-    QurryRustImportError,
-    QurryRustUnavailableWarning,
+from ..availability import (
+    availablility,
+    default_postprocessing_backend,
+    PostProcessingBackendLabel,
+)
+from ..exceptions import (
+    PostProcessingCythonUnavailableWarning,
+    PostProcessingRustImportError,
+    PostProcessingRustUnavailableWarning,
 )
 from ...tools import ParallelManager, workers_distribution
 
 
 try:
-    # Proven import point for rust modules
-    # from ..boorust.randomized import (  # type: ignore
-    #     purity_cell_rust as purity_cell_rust_source,  # type: ignore
-    #     entangled_entropy_core_rust as entangled_entropy_core_rust_source,  # type: ignore
-    # )
-
     from ...boorust import randomized  # type: ignore
 
     entangled_entropy_core_rust_source = randomized.entangled_entropy_core_rust
@@ -46,21 +45,20 @@ except ImportError as err:
 
     def entangled_entropy_core_rust_source(*args, **kwargs):
         """Dummy function for entangled_entropy_core_rust."""
-        raise QurryRustImportError(
+        raise PostProcessingRustImportError(
             "Rust is not available, using python to calculate entangled entropy."
         ) from FAILED_RUST_IMPORT
 
 
-ExistingProcessBackendLabel = Literal["Cython", "Rust", "Python"]
-BackendAvailabilities: dict[
-    ExistingProcessBackendLabel, Union[bool, ImportError, None]
-] = {
-    "Cython": CYTHON_AVAILABLE if CYTHON_AVAILABLE else FAILED_PYX_IMPORT,
-    "Rust": RUST_AVAILABLE if RUST_AVAILABLE else FAILED_RUST_IMPORT,
-    "Python": True,
-}
-DEFAULT_PROCESS_BACKEND: ExistingProcessBackendLabel = (
-    "Rust" if RUST_AVAILABLE else ("Cython" if CYTHON_AVAILABLE else "Python")
+PostProcessingBackendStatement = availablility(
+    "randomized_measure.entangled_entropy",
+    [
+        ("Rust", RUST_AVAILABLE, FAILED_RUST_IMPORT),
+        ("Cython", CYTHON_AVAILABLE, FAILED_PYX_IMPORT),
+    ],
+)
+DEFAULT_PROCESS_BACKEND = default_postprocessing_backend(
+    RUST_AVAILABLE, CYTHON_AVAILABLE
 )
 
 
@@ -70,7 +68,7 @@ def entangled_entropy_core_pycyrust(
     degree: Optional[Union[tuple[int, int], int]],
     measure: Optional[tuple[int, int]] = None,
     multiprocess_pool_size: Optional[int] = None,
-    backend: ExistingProcessBackendLabel = "Cython",
+    backend: PostProcessingBackendLabel = "Cython",
 ) -> tuple[
     Union[dict[int, float], dict[int, np.float64]],
     tuple[int, int],
@@ -99,7 +97,13 @@ def entangled_entropy_core_pycyrust(
         ValueError: Measure range does not contain subsystem.
 
     Returns:
-        tuple[Union[dict[int, float], dict[int, np.float64]], tuple[int, int], tuple[int, int], str, float]:
+        tuple[
+            Union[dict[int, float], dict[int, np.float64]],
+            tuple[int, int],
+            tuple[int, int],
+            str,
+            float,
+        ]:
             Purity of each cell, Partition range, Measuring range, Message, Time to calculate.
     """
 
@@ -151,7 +155,7 @@ def entangled_entropy_core_pycyrust(
             + f"does not match dummyStringSlice '{_dummy_string_slice}'"
         )
 
-    if backend not in BackendAvailabilities:
+    if backend not in PostProcessingBackendStatement[1]:
         warnings.warn(
             f"Unknown backend '{backend}', using {DEFAULT_PROCESS_BACKEND} instead.",
         )
@@ -161,14 +165,14 @@ def entangled_entropy_core_pycyrust(
         warnings.warn(
             "Rust is not available, using Cython or Python to calculate purity cell."
             + f"Check the error: {FAILED_RUST_IMPORT}",
-            QurryRustUnavailableWarning,
+            PostProcessingRustUnavailableWarning,
         )
         backend = "Cython" if CYTHON_AVAILABLE else "Python"
     if not CYTHON_AVAILABLE and backend == "Cython":
         warnings.warn(
             "Cython is not available, using Python to calculate purity cell."
             + f"Check the error: {FAILED_PYX_IMPORT}",
-            QurryCythonUnavailableWarning,
+            PostProcessingCythonUnavailableWarning,
         )
         backend = "Rust" if RUST_AVAILABLE else "Python"
 
@@ -251,7 +255,7 @@ def entangled_entropy_core(
     counts: list[dict[str, int]],
     degree: Optional[Union[tuple[int, int], int]],
     measure: Union[tuple[int, int], list[int], None] = None,
-    backend: ExistingProcessBackendLabel = DEFAULT_PROCESS_BACKEND,
+    backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
     multiprocess_pool_size: Optional[int] = None,
 ) -> tuple[
     Union[dict[int, float], dict[int, np.float64]],
@@ -268,7 +272,7 @@ def entangled_entropy_core(
         degree (Optional[Union[tuple[int, int], int]]): Degree of the subsystem.
         measure (Optional[tuple[int, int]], optional):
             Measuring range on quantum circuits. Defaults to None.
-        backend (ExistingProcessBackendLabel, optional):
+        backend (PostProcessingBackendLabel, optional):
             Backend for the process. Defaults to DEFAULT_PROCESS_BACKEND.
         multiprocess_pool_size(Optional[int], optional):
             Number of multi-processing workers, it will be ignored if backend is Rust.
@@ -298,7 +302,7 @@ def entangled_entropy_core(
         warnings.warn(
             f"Rust is not available, using {backend} to calculate purity cell."
             + f" Check the error: {FAILED_RUST_IMPORT}",
-            QurryRustUnavailableWarning,
+            PostProcessingRustUnavailableWarning,
         )
 
     return entangled_entropy_core_pycyrust(

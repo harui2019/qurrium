@@ -10,4 +10,5 @@ from .container import (
     PENDING_STRATEGY,
     PendingTargetProviderLiteral,
     PENDING_TARGET_PROVIDER,
+    TagListKeyable,
 )

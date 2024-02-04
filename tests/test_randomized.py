@@ -12,7 +12,7 @@ import pytest
 import numpy as np
 
 from qurry.capsule import quickRead
-from qurry.exceptions import QurryRustUnavailableWarning
+from qurry.process.exceptions import PostProcessingRustUnavailableWarning
 from qurry.process.randomized_measure.entangled_entropy import entangled_entropy_core
 from qurry.process.utils.randomized import (
     RUST_AVAILABLE as rust_available_randomized,
@@ -31,7 +31,7 @@ else:
         """Dummy function."""
         warnings.warn(
             "Rust is not available, ensemble_cell_rust is a dummy function.",
-            category=QurryRustUnavailableWarning,
+            category=PostProcessingRustUnavailableWarning,
         )
         return ensemble_cell_py(s_i, s_i_meas, s_j, s_j_meas, a_num, shots)
 

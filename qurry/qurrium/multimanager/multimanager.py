@@ -480,6 +480,7 @@ class MultiManager:
         exps_container: Optional[ExperimentContainer] = None,
         indent: int = 2,
         encoding: str = "utf-8",
+        export_transpiled_circuit: bool = False,
         _only_quantity: bool = False,
     ) -> dict[str, Any]:
         """Export the multi-experiment.
@@ -491,8 +492,8 @@ class MultiManager:
                 Defaults to None.
             indent (int, optional): The indent of json file. Defaults to 2.
             encoding (str, optional): The encoding of json file. Defaults to "utf-8".
-            workers_num (Optional[int], optional): The number of workers for multiprocessing.
-                Defaults to None.
+            export_transpiled_circuit (bool, optional): 
+                Export the transpiled circuit. Defaults to False.
             _only_quantity (bool, optional): Whether only export quantity. Defaults to False.
 
         Returns:
@@ -631,6 +632,7 @@ class MultiManager:
                     encoding=encoding,
                     jsonable=True,
                     mute=True,
+                    export_transpiled_circuit=export_transpiled_circuit,
                     _pbar=None,
                 )
                 assert id_exec == tmp_id, "ID is not consistent."
@@ -783,7 +785,7 @@ class MultiManager:
                     **({"pbar": all_counts_progress} if tqdm_handleable else {}),
                 )
 
-            wave_continer[k].write(mute=True)
+            wave_continer[k].write()
             main, _tales = report.export()
             self.quantity_container[name][wave_continer[k].commons.tags].append(main)
 

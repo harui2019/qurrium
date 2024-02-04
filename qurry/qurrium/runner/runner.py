@@ -10,6 +10,7 @@ from abc import abstractmethod, ABC
 from typing import Optional, Literal
 from qiskit.providers import Backend, Provider
 
+from ..experiment import ExperimentPrototype
 from ..container import ExperimentContainer
 from ..multimanager import MultiManager
 from ...exceptions import QurryDummyRunnerWarning
@@ -24,7 +25,7 @@ class Runner(ABC):
     """The backend been used."""
     provider: Optional[Provider]
     """The provider used for this backend."""
-    experiment_container: ExperimentContainer
+    experiment_container: ExperimentContainer[ExperimentPrototype]
     """The experimental container from Qurry instance."""
 
     reports: dict[str, dict]
@@ -90,15 +91,3 @@ class ThirdPartyRunner(Runner):
     @abstractmethod
     def __init__(self, manager: MultiManager, backend: Backend, **kwargs):
         pass
-
-
-def retrieve_times_namer(retrieve_times: int) -> str:
-    """Retrieve times namer.
-
-    Args:
-        retrieve_times (int): The retrieve times.
-
-    Returns:
-        str: The retrieve times namer.
-    """
-    return "retrieve." + f"{retrieve_times}".rjust(3, "0")

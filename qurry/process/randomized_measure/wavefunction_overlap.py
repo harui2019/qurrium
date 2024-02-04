@@ -8,7 +8,7 @@ Postprocessing - Randomized Measure - Wavefunction Overlap
 
 import time
 import warnings
-from typing import Union, Optional, Literal
+from typing import Union, Optional
 import numpy as np
 import tqdm
 
@@ -20,10 +20,15 @@ from .echo_cell import (
     FAILED_PYX_IMPORT,
 )
 from ..utils import qubit_selector
-from ...exceptions import (
-    QurryCythonUnavailableWarning,
-    # QurryRustImportError,
-    # QurryRustUnavailableWarning,
+from ..availability import (
+    availablility,
+    default_postprocessing_backend,
+    PostProcessingBackendLabel,
+)
+from ..exceptions import (
+    PostProcessingCythonUnavailableWarning,
+    # PostProcessingRustImportError,
+    # PostProcessingRustUnavailableWarning,
 )
 from ...tools import (
     ParallelManager,
@@ -43,23 +48,21 @@ from ...tools import (
 
 #     def overlap_echo_core_rust_source(*args, **kwargs):
 #         """Dummy function for entangled_entropy_core_rust."""
-#         raise QurryRustImportError(
+#         raise PostProcessingRustImportError(
 #             "Rust is not available, using python to calculate overlap echo."
 #         ) from FAILED_RUST_IMPORT
 
-ExistingProcessBackendLabel = Literal["Cython", "Rust", "Python"]
-BackendAvailabilities: dict[
-    ExistingProcessBackendLabel, Union[bool, ImportError, None]
-] = {
-    "Cython": CYTHON_AVAILABLE if CYTHON_AVAILABLE else FAILED_PYX_IMPORT,
-    # "Rust": RUST_AVAILABLE if RUST_AVAILABLE else FAILED_RUST_IMPORT,
-    "Python": True,
-}
-DEFAULT_PROCESS_BACKEND: ExistingProcessBackendLabel = (
-    # "Rust" if RUST_AVAILABLE else ("Cython" if CYTHON_AVAILABLE else "Python")
-    "Cython"
-    if CYTHON_AVAILABLE
-    else "Python"
+PostProcessingBackendStatement = availablility(
+    "randomized_measure.entangled_entropy",
+    [
+        # ("Rust", RUST_AVAILABLE, FAILED_RUST_IMPORT),
+        ("Cython", CYTHON_AVAILABLE, FAILED_PYX_IMPORT),
+    ],
+)
+DEFAULT_PROCESS_BACKEND = default_postprocessing_backend(
+    # RUST_AVAILABLE,
+    False,
+    CYTHON_AVAILABLE,
 )
 
 
@@ -69,7 +72,7 @@ def overlap_echo_core_pycyrust(
     degree: Optional[Union[tuple[int, int], int]] = None,
     measure: Optional[tuple[int, int]] = None,
     multiprocess_pool_size: Optional[int] = None,
-    backend: ExistingProcessBackendLabel = DEFAULT_PROCESS_BACKEND,
+    backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
 ) -> tuple[
     Union[dict[int, float], dict[int, np.float64]],
     tuple[int, int],
@@ -89,7 +92,7 @@ def overlap_echo_core_pycyrust(
             if sets to 1, then disable to using multi-processing;
             if not specified, then use the number of all cpu counts - 2 by `cpu_count() - 2`.
             Defaults to None.
-        backend (ExistingProcessBackendLabel, optional):
+        backend (PostProcessingBackendLabel, optional):
             The backend of the process, 'Cython', 'Rust' or 'Python'.
             Defaults to DEFAULT_PROCESS_BACKEND.
 
@@ -157,7 +160,7 @@ def overlap_echo_core_pycyrust(
 
     msg = f"| Partition: {bitstring_range}, Measure: {measure}"
 
-    if backend not in BackendAvailabilities:
+    if backend not in PostProcessingBackendStatement[1]:
         warnings.warn(
             f"Unknown backend '{backend}', using {DEFAULT_PROCESS_BACKEND} instead.",
         )
@@ -167,14 +170,14 @@ def overlap_echo_core_pycyrust(
     #     warnings.warn(
     #         "Rust is not available, using Cython or Python to calculate purity cell."
     #         + f"Check the error: {FAILED_RUST_IMPORT}",
-    #         QurryRustUnavailableWarning,
+    #         PostProcessingRustUnavailableWarning,
     #     )
     #     backend = "Cython" if CYTHON_AVAILABLE else "Python"
     if not CYTHON_AVAILABLE and backend == "Cython":
         warnings.warn(
             "Cython is not available, using Python to calculate purity cell."
             + f"Check the error: {FAILED_PYX_IMPORT}",
-            QurryCythonUnavailableWarning,
+            PostProcessingCythonUnavailableWarning,
         )
         # backend = "Rust" if RUST_AVAILABLE else "Python"
         backend = "Python"
@@ -229,7 +232,7 @@ def overlap_echo_core_pycyrust(
 #         degree (Union[tuple[int, int], int]): Degree of the subsystem.
 #         measure (tuple[int, int], optional):
 #             Measuring range on quantum circuits. Defaults to None.
-#         backend (ExistingProcessBackendLabel, optional):
+#         backend (PostProcessingBackendLabel, optional):
 #             The backend of the process, 'Cython', 'Rust' or 'Python'.
 #             Defaults to DEFAULT_PROCESS_BACKEND.
 
@@ -251,7 +254,7 @@ def overlap_echo_core(
     degree: Optional[Union[tuple[int, int], int]],
     measure: Optional[tuple[int, int]] = None,
     multiprocess_pool_size: Optional[int] = None,
-    backend: ExistingProcessBackendLabel = DEFAULT_PROCESS_BACKEND,
+    backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
 ) -> tuple[
     Union[dict[int, float], dict[int, np.float64]],
     tuple[int, int],
@@ -271,7 +274,7 @@ def overlap_echo_core(
             if sets to 1, then disable to using multi-processing;
             if not specified, then use the number of all cpu counts - 2 by `cpu_count() - 2`.
             Defaults to None.
-        backend (ExistingProcessBackendLabel, optional):
+        backend (PostProcessingBackendLabel, optional):
             The backend of the process, 'Cython', 'Rust' or 'Python'.
             Defaults to DEFAULT_PROCESS_BACKEND.
 
@@ -300,7 +303,7 @@ def overlap_echo_core(
     #     warnings.warn(
     #         f"Rust is not available, using {backend} to calculate purity cell."
     #         + f" Check the error: {FAILED_RUST_IMPORT}",
-    #         QurryRustUnavailableWarning,
+    #         PostProcessingRustUnavailableWarning,
     #     )
 
     return overlap_echo_core_pycyrust(
@@ -313,7 +316,7 @@ def randomized_overlap_echo(
     counts: list[dict[str, int]],
     degree: Optional[Union[tuple[int, int], int]] = None,
     measure: Optional[tuple[int, int]] = None,
-    backend: ExistingProcessBackendLabel = DEFAULT_PROCESS_BACKEND,
+    backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
     workers_num: Optional[int] = None,
     pbar: Optional[tqdm.tqdm] = None,
 ) -> dict[str, float]:

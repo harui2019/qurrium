@@ -1160,6 +1160,7 @@ class QurryPrototype(ABC):
         compress_overwrite: bool = False,
         remain_only_compressed: bool = False,
         only_quantity: bool = False,
+        export_transpiled_circuit: bool = False,
     ) -> str:
         """Write the multimanager to the file.
 
@@ -1169,6 +1170,21 @@ class QurryPrototype(ABC):
                 Where to save the export content as `json` file.
                 If `save_location == None`, then cancelled the file to be exported.
                 Defaults to Path('./').
+            compress (bool, optional):
+                Whether to compress the export file.
+                Defaults to False.
+            compress_overwrite (bool, optional):
+                Whether to overwrite the compressed file.
+                Defaults to False.
+            remain_only_compressed (bool, optional):
+                Whether to remain only compressed file.
+                Defaults to False.
+            only_quantity (bool, optional):
+                Whether to export only the quantity of the experiment.
+                Defaults to False.
+            export_transpiled_circuit (bool, optional):
+                Whether to export the transpiled circuit.
+                Defaults to False.
 
         Raises:
             ValueError: summoner_id not in multimanagers.
@@ -1186,6 +1202,7 @@ class QurryPrototype(ABC):
         current_multimanager.write(
             save_location=save_location,
             exps_container=self.exps,
+            export_transpiled_circuit=export_transpiled_circuit,
             _only_quantity=only_quantity,
         )
 
@@ -1308,9 +1325,7 @@ class QurryPrototype(ABC):
         assert current_multimanager.summoner_id == besummonned
 
         print("| MultiRetrieve running...")
-        jobs_type, _pending_strategy = current_multimanager.multicommons.jobstype.split(
-            "."
-        )
+        jobs_type = current_multimanager.multicommons.jobstype
         if backend is None:
             raise ValueError("backend is None.")
 

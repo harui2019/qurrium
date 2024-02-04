@@ -5,8 +5,9 @@ Runner for IBM backend
 ================================================================
 
 """
+
 import warnings
-from typing import Hashable, Union, Optional, Iterable
+from typing import Hashable, Union, Optional
 from qiskit import QuantumCircuit
 
 from ...exceptions import QurryExtraPackageRequired
@@ -52,47 +53,12 @@ except ImportError:
             )
 
 
-from .runner import Runner, retrieve_times_namer
-from ..multimanager import MultiManager, PendingStrategyLiteral
+from .utils import pending_tags_decider, pk_from_list_to_tuple, retrieve_times_namer
+from .runner import Runner
+from ..multimanager import MultiManager, PendingStrategyLiteral, TagListKeyable
 from ..container import ExperimentContainer
 from ..utils import get_counts_and_exceptions
 from ...tools import qurry_progressbar, current_time
-
-
-def pending_tags_decider(pk: str) -> list[str]:
-    """Decide the pending tags.
-
-    Args:
-        pk (str): The pending key.
-
-    Returns:
-        list[str]: The pending tags.
-    """
-
-    if pk == "_onetime":
-        pending_tags = []
-    elif isinstance(pk, (list, tuple)):
-        pending_tags = list(pk)
-    else:
-        pending_tags = [pk]
-    return pending_tags
-
-
-def pk_from_list_to_tuple(pk: Union[str, list[str]]) -> Union[tuple[str, ...], str]:
-    """Convert the pending key from list to tuple.
-
-    Args:
-        pk (Union[str, list[str]]): The pending key.
-
-    Returns:
-        Union[tuple[str, ...], str]: The pending key.
-    """
-
-    if isinstance(pk, str):
-        return pk
-    if isinstance(pk, Iterable) and not isinstance(pk, tuple):
-        return tuple(pk)
-    return pk
 
 
 class IBMRunner(Runner):
@@ -134,7 +100,7 @@ class IBMRunner(Runner):
         self,
         pending_strategy: PendingStrategyLiteral = "tags",
         backend: Optional[IBMBackend] = None,
-    ) -> list[tuple[Optional[str], str]]:
+    ) -> list[tuple[Optional[str], TagListKeyable]]:
         """Pending jobs to remote backend.
 
         Args:
@@ -212,7 +178,6 @@ class IBMRunner(Runner):
         )
 
         for pk, pcirc_idxs in pendingpool_progressbar:
-            assert isinstance(pk, str), f"pk should be str, not {type(pk)}."
             if len(pcirc_idxs) == 0:
                 self.current_multimanager.beforewards.job_id.append((None, pk))
                 warnings.warn(f"| Pending pool '{pk}' is empty.")
@@ -257,16 +222,16 @@ class IBMRunner(Runner):
         for id_exec in self.current_multimanager.beforewards.exps_config:
             self.experiment_container[id_exec].commons.datetimes["pending"] = current
 
-        self.current_multimanager.multicommons.datetimes[
-            "pendingCompleted"
-        ] = current_time()
+        self.current_multimanager.multicommons.datetimes["pendingCompleted"] = (
+            current_time()
+        )
 
         return self.current_multimanager.beforewards.job_id
 
     def retrieve(
         self,
         overwrite: bool = False,
-    ) -> list[tuple[Optional[str], str]]:
+    ) -> list[tuple[Optional[str], TagListKeyable]]:
         """Retrieve jobs from remote backend.
 
         Args:
@@ -366,7 +331,6 @@ class IBMRunner(Runner):
         )
 
         for pk, pcircs in pendingpool_progressbar:
-            assert isinstance(pk, str), f"pk should be str, not {type(pk)}."
             pending_tags = pk_from_list_to_tuple(pk)
             if len(pcircs) == 0:
                 warnings.warn(f"Pending pool '{pending_tags}' is empty.")
@@ -441,8 +405,8 @@ class IBMRunner(Runner):
             self.experiment_container[current_id].commons.datetimes[
                 retrieve_times_name
             ] = current
-            self.current_multimanager.afterwards.allCounts[
-                current_id
-            ] = self.experiment_container[current_id].afterwards.counts
+            self.current_multimanager.afterwards.allCounts[current_id] = (
+                self.experiment_container[current_id].afterwards.counts
+            )
 
         return self.current_multimanager.beforewards.job_id

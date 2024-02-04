@@ -104,7 +104,7 @@ class EntropyRandomizedAnalysis(AnalysisPrototype):
             return f"AnalysisContent(purity={self.purity}, entropy={self.entropy}, and others)"
 
     @property
-    def default_side_product_fields(self) -> Iterable[str]:
+    def side_product_fields(self) -> Iterable[str]:
         """The fields that will be stored as side product."""
         return [
             "purityCells",

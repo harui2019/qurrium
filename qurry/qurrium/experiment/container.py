@@ -33,17 +33,17 @@ class ArgumentsPrototype(NamedTuple):
 class CommonparamsDict(TypedDict):
     """The export dictionary of :cls:`Commonparams`."""
 
-    exp_name: Optional[str]
-    exp_id: Optional[str]
-    wave_key: Optional[Hashable]
-    shots: Optional[int]
-    backend: Optional[Union[Backend, str]]
+    exp_name: str
+    exp_id: str
+    wave_key: Hashable
+    shots: int
+    backend: Union[Backend, str]
     run_args: dict[str, Any]
     transpile_args: dict[str, Any]
-    tags: Optional[tuple[str, ...]]
+    tags: tuple[str, ...]
     default_analysis: list[dict[str, Any]]
-    save_location: Optional[Union[Path, str]]
-    filename: Optional[str]
+    save_location: Union[Path, str]
+    filename: str
     files: dict[str, Path]
     serial: Optional[int]
     summoner_id: Optional[str]
@@ -65,14 +65,14 @@ class Commonparams(NamedTuple):
     """Number of shots to run the program (default: 1024)."""
     backend: Union[Backend, str]
     """Backend to execute the circuits on, or the backend used."""
-    run_args: dict
+    run_args: dict[str, Any]
     """Arguments of `execute`."""
 
     # Single job dedicated
     transpile_args: dict
     """Arguments of `qiskit.compiler.transpile`."""
 
-    tags: tuple
+    tags: tuple[str, ...]
     """Tags of experiment."""
 
     # Auto-analysis when counts are ready
@@ -180,17 +180,17 @@ class Commonparams(NamedTuple):
     def default_value() -> CommonparamsDict:
         """The default value of each field."""
         return {
-            "exp_name": None,
-            "exp_id": None,
+            "exp_name": "exps",
+            "exp_id": "",
             "wave_key": None,
-            "shots": None,
-            "backend": None,
+            "shots": -1,
+            "backend": "",
             "run_args": {},
             "transpile_args": {},
             "tags": (),
             "default_analysis": [],
-            "save_location": None,
-            "filename": None,
+            "save_location": Path("."),
+            "filename": "unknown",
             "files": {},
             "serial": None,
             "summoner_id": None,
@@ -345,11 +345,16 @@ class Before(NamedTuple):
     def export(
         self,
         unexports: Optional[list[str]] = None,
+        export_transpiled_circuit: bool = False,
     ) -> tuple[dict[str, Any], dict[str, Any]]:
         """Export the experiment's data before executing.
 
         Args:
             unexports (Optional[list[str]], optional): The list of unexported key. Defaults to None.
+            export_circuit (bool, optional):
+                Whether to export the transpiled circuit as txt. Defaults to False.
+                When set to True, the transpiled circuit will be exported as txt.
+                Otherwise, the circuit will be not exported but circuit qasm remains.
 
         Returns:
             tuple[dict[str, Any], dict[str, Any]]:
@@ -367,6 +372,8 @@ class Before(NamedTuple):
             # pylint: enable=no-member
             if k == "side_product":
                 tales = {**tales, **v}
+            elif k == "circuit":
+                adventures[k] = v if export_transpiled_circuit else []
             elif k in unexports:
                 ...
             else:

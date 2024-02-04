@@ -4,19 +4,17 @@ Construct (:mod:`qurry.process.utils.construct`)
 ================================================================
 
 """
-import warnings
-from typing import Union, Literal
 
-from ...exceptions import QurryRustImportError, QurryRustUnavailableWarning
+import warnings
+from typing import Union
+
+from ..availability import availablility
+from ..exceptions import (
+    PostProcessingRustImportError,
+    PostProcessingRustUnavailableWarning,
+)
 
 try:
-    # from ...boorust.randomized import (  # type: ignore
-    #     ensemble_cell_rust as ensemble_cell_rust_source,  # type: ignore
-    #     hamming_distance_rust as hamming_distance_rust_source,  # type: ignore
-    # )
-    # from qurry.boorust.construct import (
-    #     cycling_slice_rust as cycling_slice_rust_source,  # type: ignore
-    # )
     from ...boorust import construct  # type: ignore
 
     qubit_selector_rust_source = construct.qubit_selector_rust  # type: ignore
@@ -29,17 +27,18 @@ except ImportError as err:
 
     def qubit_selector_rust_source(*args, **kwargs):
         """Dummy function for cycling_slice_rust."""
-        raise QurryRustImportError(
+        raise PostProcessingRustImportError(
             "Rust is not available, using python to calculate cycling slice."
             + f" More infomation about this error: {FAILED_RUST_IMPORT}",
         )
 
 
-ExistingProcessBackendLabel = Literal["Rust", "Python"]
-BackendAvailabilities: dict[ExistingProcessBackendLabel, Union[bool, ImportError, None]] = {
-    "Rust": RUST_AVAILABLE if RUST_AVAILABLE else FAILED_RUST_IMPORT,
-    "Python": True,
-}
+PostProcessingBackendStatement = availablility(
+    "utils.construct",
+    [
+        ("Rust", RUST_AVAILABLE, FAILED_RUST_IMPORT),
+    ],
+)
 
 
 def qubit_selector(
@@ -132,6 +131,6 @@ def qubit_selector_rust(
     warnings.warn(
         "Rust is not available, using python to calculate qubit selector."
         + f" More infomation about this error: {FAILED_RUST_IMPORT}",
-        category=QurryRustUnavailableWarning,
+        category=PostProcessingRustUnavailableWarning,
     )
     return qubit_selector(num_qubits, degree)

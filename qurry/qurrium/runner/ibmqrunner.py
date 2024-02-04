@@ -5,8 +5,9 @@ Runner for IBMQ
 ================================================================
 
 """
+
 import warnings
-from typing import Literal, NamedTuple, Hashable, Any, Optional
+from typing import Literal, Optional, NamedTuple, Hashable, Any
 from qiskit import QuantumCircuit
 
 from ...exceptions import QurryExtraPackageRequired
@@ -24,8 +25,9 @@ except ImportError as exception:
         + "`qiskit-ibmq-provider`, please intall it then restart kernel."
     ) from exception
 
-from .runner import Runner, retrieve_times_namer
-from ..multimanager import MultiManager, PendingStrategyLiteral
+from .utils import retrieve_times_namer
+from .runner import Runner
+from ..multimanager import MultiManager, PendingStrategyLiteral, TagListKeyable
 from ..container import ExperimentContainer
 from ..utils import get_counts_and_exceptions
 from ...tools import qurry_progressbar, current_time
@@ -95,7 +97,7 @@ class IBMQRunner(Runner):
         self,
         pending_strategy: PendingStrategyLiteral = "tags",
         backend: Optional[IBMQBackend] = None,
-    ) -> list[tuple[Optional[str], str]]:
+    ) -> list[tuple[Optional[str], TagListKeyable]]:
         """Pending jobs to remote backend.
 
         Args:
@@ -228,9 +230,9 @@ class IBMQRunner(Runner):
         for id_exec in self.current_multimanager.beforewards.exps_config:
             self.experiment_container[id_exec].commons.datetimes["pending"] = current
 
-        self.current_multimanager.multicommons.datetimes[
-            "pendingCompleted"
-        ] = current_time()
+        self.current_multimanager.multicommons.datetimes["pendingCompleted"] = (
+            current_time()
+        )
 
         return self.current_multimanager.beforewards.job_id
 
@@ -238,7 +240,7 @@ class IBMQRunner(Runner):
         self,
         overwrite: bool = False,
         refresh: bool = False,
-    ) -> list[tuple[Optional[str], str]]:
+    ) -> list[tuple[Optional[str], TagListKeyable]]:
         pending_map: dict[Hashable, QurryIBMQBackendIO] = {}
         counts_tmp_container: dict[int, dict[str, int]] = {}
 
@@ -368,9 +370,9 @@ class IBMQRunner(Runner):
             self.experiment_container[current_id].commons.datetimes[
                 retrieve_times_name
             ] = current
-            self.current_multimanager.afterwards.allCounts[
-                current_id
-            ] = self.experiment_container[current_id].afterwards.counts
+            self.current_multimanager.afterwards.allCounts[current_id] = (
+                self.experiment_container[current_id].afterwards.counts
+            )
 
         return self.current_multimanager.beforewards.job_id
 

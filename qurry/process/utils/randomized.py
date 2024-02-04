@@ -1,30 +1,24 @@
 """
 ================================================================
-Randomized Measure Kit for Qurry 
+Randomized Measure Kit for PostProcessing 
 (:mod:`qurry.qurrium.utils.randomized`)
 ================================================================
 
 """
 
 import warnings
-from typing import Callable, Union, Optional, Literal, overload
+from typing import Callable, Optional, Union, overload
 import numpy as np
 
-from ...exceptions import (
-    QurryCythonImportError,
-    QurryCythonUnavailableWarning,
-    QurryRustImportError,
-    QurryRustUnavailableWarning,
+from ..availability import availablility
+from ..exceptions import (
+    PostProcessingCythonImportError,
+    PostProcessingCythonUnavailableWarning,
+    PostProcessingRustImportError,
+    PostProcessingRustUnavailableWarning,
 )
 
 try:
-    # from ...boorust.randomized import (  # type: ignore
-    #     ensemble_cell_rust as ensemble_cell_rust_source,  # type: ignore
-    #     hamming_distance_rust as hamming_distance_rust_source,  # type: ignore
-    # )
-    # from qurry.boorust.construct import (
-    #     cycling_slice_rust as cycling_slice_rust_source,  # type: ignore
-    # )
     from ...boorust import construct, randomized  # type: ignore
 
     ensemble_cell_rust_source = randomized.ensemble_cell_rust  # type: ignore
@@ -39,19 +33,19 @@ except ImportError as err:
 
     def ensemble_cell_rust_source(*args, **kwargs):
         """Dummy function for ensemble_cell_rust."""
-        raise QurryRustImportError(
+        raise PostProcessingRustImportError(
             "Rust is not available, using python to calculate ensemble cell."
         ) from FAILED_RUST_IMPORT
 
     def hamming_distance_rust_source(*args, **kwargs):
         """Dummy function for hamming_distance_rust."""
-        raise QurryRustImportError(
+        raise PostProcessingRustImportError(
             "Rust is not available, using python to calculate hamming distance."
         ) from FAILED_RUST_IMPORT
 
     def cycling_slice_rust_source(*args, **kwargs):
         """Dummy function for cycling_slice_rust."""
-        raise QurryRustImportError(
+        raise PostProcessingRustImportError(
             "Rust is not available, using python to calculate cycling slice."
         ) from FAILED_RUST_IMPORT
 
@@ -71,25 +65,24 @@ except ImportError as err:
 
     def ensembleCell(*args, **kwargs):
         """Dummy function for ensembleCell."""
-        raise QurryCythonImportError(
+        raise PostProcessingCythonImportError(
             "Cython is not available, using python to calculate ensemble cell."
         ) from FAILED_PYX_IMPORT
 
     def cycling_slice_cy_source(*args, **kwargs):
         """Dummy function for cycling_slice_cy."""
-        raise QurryCythonImportError(
+        raise PostProcessingCythonImportError(
             "Cython is not available, using python to calculate cycling slice."
         ) from FAILED_PYX_IMPORT
 
 
-ExistingProcessBackendLabel = Literal["Cython", "Rust", "Python"]
-BackendAvailabilities: dict[
-    ExistingProcessBackendLabel, Union[bool, ImportError, None]
-] = {
-    "Cython": CYTHON_AVAILABLE if CYTHON_AVAILABLE else FAILED_PYX_IMPORT,
-    "Rust": RUST_AVAILABLE if RUST_AVAILABLE else FAILED_RUST_IMPORT,
-    "Python": True,
-}
+PostProcessingBackendStatement = availablility(
+    "utils.construct",
+    [
+        ("Rust", RUST_AVAILABLE, FAILED_RUST_IMPORT),
+        ("Cython", CYTHON_AVAILABLE, FAILED_PYX_IMPORT),
+    ],
+)
 
 
 RXmatrix = np.array([[0, 1], [1, 0]])
@@ -180,7 +173,7 @@ def hamming_distance_rust(str1: str, str2: str) -> int:
     warnings.warn(
         "Rust is not available, using python to calculate ensemble cell."
         + f" Check: {FAILED_RUST_IMPORT}",
-        QurryRustUnavailableWarning,
+        PostProcessingRustUnavailableWarning,
     )
     return hamming_distance(str1, str2)
 
@@ -192,7 +185,7 @@ def ensemble_cell(
     s_j_meas: int,
     a_num: int,
     shots: int,
-) -> float:
+) -> np.float64:
     """Calculate the value of two counts from qubits in ensemble average.
 
     - about `diff = hamming_distance(sAi, sAj)`:
@@ -230,7 +223,7 @@ def ensemble_cell_cy(
     s_j_meas: int,
     a_num: int,
     shots: int,
-) -> float:
+) -> Union[float, np.float64]:
     """Calculate the value of two counts from qubits in ensemble average.
 
     - about `diff = hamming_distance(sAi, sAj)`:
@@ -248,14 +241,14 @@ def ensemble_cell_cy(
         shots (int): Shots of executation.
 
     Returns:
-        float: the value of two counts from qubits in ensemble average.
+        Union[float, np.float64]: the value of two counts from qubits in ensemble average.
     """
     if CYTHON_AVAILABLE:
         return ensembleCell(s_i, s_i_meas, s_j, s_j_meas, a_num, shots)
     warnings.warn(
         "Cython is not available, using python to calculate ensemble cell."
         + f" Check: {FAILED_PYX_IMPORT}",
-        QurryCythonUnavailableWarning,
+        PostProcessingCythonUnavailableWarning,
     )
     return ensemble_cell(s_i, s_i_meas, s_j, s_j_meas, a_num, shots)
 
@@ -267,7 +260,7 @@ def ensemble_cell_rust(
     s_j_meas: int,
     a_num: int,
     shots: int,
-) -> float:
+) -> Union[float, np.float64]:
     """Calculate the value of two counts from qubits in ensemble average by Rust.
 
     Args:
@@ -287,7 +280,7 @@ def ensemble_cell_rust(
     warnings.warn(
         "Rust is not available, using python to calculate ensemble cell."
         + f" Check: {FAILED_RUST_IMPORT}",
-        QurryRustUnavailableWarning,
+        PostProcessingRustUnavailableWarning,
     )
     return ensemble_cell(s_i, s_i_meas, s_j, s_j_meas, a_num, shots)
 
@@ -359,7 +352,7 @@ def cycling_slice_cy(target: str, start: int, end: int, step: int = 1) -> str:
     warnings.warn(
         "Cython is not available, using python to calculate cycling slice."
         + f" Check: {FAILED_PYX_IMPORT}",
-        QurryCythonUnavailableWarning,
+        PostProcessingCythonUnavailableWarning,
     )
     return cycling_slice(target, start, end, step)
 
@@ -384,6 +377,6 @@ def cycling_slice_rust(target: str, start: int, end: int, step: int = 1) -> str:
     warnings.warn(
         "Rust is not available, using python to calculate cycling slice."
         + f" Check: {FAILED_RUST_IMPORT}",
-        QurryRustUnavailableWarning,
+        PostProcessingRustUnavailableWarning,
     )
     return cycling_slice(target, start, end, step)
