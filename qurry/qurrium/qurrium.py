@@ -1276,7 +1276,7 @@ class QurryPrototype(ABC):
         refresh: bool = False,
         overwrite: bool = False,
         read_from_tarfile: bool = False,
-        skip_compress: bool = False,
+        compress: bool = False,
     ) -> Hashable:
         """Retrieve the multimanager from the remote backend.
 
@@ -1354,7 +1354,7 @@ class QurryPrototype(ABC):
             return besummonned
 
         print(f"| Retrieve {current_multimanager.summoner_name} completed.")
-        bewritten = self.multiWrite(besummonned, compress=not skip_compress)
+        bewritten = self.multiWrite(besummonned, compress=compress)
         assert bewritten == besummonned
 
         return current_multimanager.multicommons.summoner_id
