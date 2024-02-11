@@ -714,7 +714,6 @@ class QurryPrototype(ABC):
         manager_run_args: Optional[dict[str, Any]] = None,
         is_retrieve: bool = False,
         is_read: bool = False,
-        read_version: Literal["v4", "v5"] = "v5",
         read_from_tarfile: bool = False,
     ) -> tuple[list[dict[str, Any]], str]:
         """Control the experiment's parameters for running multiple jobs.
@@ -757,9 +756,6 @@ class QurryPrototype(ABC):
             is_read (bool, optional):
                 Whether this jobs will read the existed experiment data during initializing.
                 Defaults to False.
-            read_version (Literal['v4', 'v5'], optional):
-                The version of the data to be read.
-                Defaults to 'v5'.
 
         Returns:
             tuple[list[dict[str, Any]], str]:
@@ -795,7 +791,6 @@ class QurryPrototype(ABC):
                 is_read=is_read,
                 read_from_tarfile=read_from_tarfile,
                 save_location=save_location,
-                version=read_version,
             )
         else:
             current_multimanager = MultiManager(
