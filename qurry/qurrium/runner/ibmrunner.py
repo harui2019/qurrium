@@ -54,7 +54,7 @@ except ImportError:
 
 
 from .utils import pending_tags_decider, pk_from_list_to_tuple, retrieve_times_namer
-from .runner import Runner
+from .runner import Runner, retrieve_counter
 from ..multimanager import MultiManager, PendingStrategyLiteral, TagListKeyable
 from ..container import ExperimentContainer
 from ..utils import get_counts_and_exceptions
@@ -244,12 +244,7 @@ class IBMRunner(Runner):
         pending_map: dict[Hashable, Union[IBMCircuitJob, "IBMQJob"]] = {}
         couts_tmp_container: dict[int, dict[str, int]] = {}
 
-        already_retrieved: list[str] = [
-            datetime_tag
-            for datetime_tag in self.current_multimanager.multicommons.datetimes
-            if "retrieve" in datetime_tag
-        ]
-        retrieve_times = len(already_retrieved)
+        retrieve_times = retrieve_counter(self.current_multimanager.multicommons.datetimes)
         retrieve_times_name = retrieve_times_namer(retrieve_times + 1)
 
         if retrieve_times > 0 and not overwrite:

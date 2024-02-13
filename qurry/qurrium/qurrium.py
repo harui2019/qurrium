@@ -34,7 +34,7 @@ from .multimanager import (
     PendingTargetProviderLiteral,
     PendingStrategyLiteral,
 )
-from .runner import ExtraBackendAccessor
+from .runner import ExtraBackendAccessor, retrieve_counter
 
 
 from .utils import get_counts_and_exceptions, qasm_drawer
@@ -1369,7 +1369,18 @@ class QurryPrototype(ABC):
             )
             return besummonned
 
-        print(f"| Retrieve {current_multimanager.summoner_name} completed.")
+        retrieve_times = retrieve_counter(current_multimanager.multicommons.datetimes)
+
+        if retrieve_times > 0:
+            if overwrite:
+                print(f"| Retrieve {current_multimanager.summoner_name} overwrite.")
+            else:
+                print(
+                    f"| Retrieve skip for {current_multimanager.summoner_name} existed."
+                )
+                return besummonned
+        else:
+            print(f"| Retrieve {current_multimanager.summoner_name} completed.")
         bewritten = self.multiWrite(besummonned, compress=compress)
         assert bewritten == besummonned
 

@@ -26,7 +26,7 @@ except ImportError as exception:
     ) from exception
 
 from .utils import retrieve_times_namer
-from .runner import Runner
+from .runner import Runner, retrieve_counter
 from ..multimanager import MultiManager, PendingStrategyLiteral, TagListKeyable
 from ..container import ExperimentContainer
 from ..utils import get_counts_and_exceptions
@@ -244,12 +244,7 @@ class IBMQRunner(Runner):
         pending_map: dict[Hashable, QurryIBMQBackendIO] = {}
         counts_tmp_container: dict[int, dict[str, int]] = {}
 
-        already_retrieved: list[str] = [
-            datetimeTag
-            for datetimeTag in self.current_multimanager.multicommons.datetimes
-            if "retrieve" in datetimeTag
-        ]
-        retrieve_times = len(already_retrieved)
+        retrieve_times = retrieve_counter(self.current_multimanager.multicommons.datetimes)
         retrieve_times_name = retrieve_times_namer(retrieve_times + 1)
 
         print(f"| retrieve times: {retrieve_times}, overwrite: {overwrite}")
