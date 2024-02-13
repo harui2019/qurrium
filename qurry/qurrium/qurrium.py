@@ -1270,9 +1270,6 @@ class QurryPrototype(ABC):
         assert besummonned in self.multimanagers
         assert self.multimanagers[besummonned].multicommons.summoner_id == besummonned
 
-        if not reload:
-            return besummonned
-
         quene: list[ExperimentPrototype] = self.experiment.read(
             save_location=self.multimanagers[besummonned].multicommons.save_location,
             name_or_id=self.multimanagers[besummonned].multicommons.summoner_name,
