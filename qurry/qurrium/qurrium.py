@@ -19,7 +19,7 @@ from qiskit import execute, transpile, QuantumCircuit
 from qiskit.providers import Backend, JobV1 as Job
 
 from ..tools import qurry_progressbar, ParallelManager
-from ..tools.backend import GeneralAerSimulator
+from ..tools.backend import GeneralSimulator
 from ..tools.datetime import current_time, DatetimeDict
 from ..declare.default import (
     transpileConfig,
@@ -223,7 +223,7 @@ class QurryPrototype(ABC):
         if default_analysis is None:
             default_analysis = []
         if backend is None:
-            backend = GeneralAerSimulator()
+            backend = GeneralSimulator()
 
         # wave
         if isinstance(wave, QuantumCircuit):
@@ -706,7 +706,7 @@ class QurryPrototype(ABC):
         summoner_name: str = "exps",
         summoner_id: Optional[str] = None,
         shots: int = 1024,
-        backend: Backend = GeneralAerSimulator(),
+        backend: Backend = GeneralSimulator(),
         tags: Optional[list[str]] = None,
         save_location: Union[Path, str] = Path("./"),
         jobstype: PendingTargetProviderLiteral = "local",
@@ -835,7 +835,7 @@ class QurryPrototype(ABC):
         summoner_name: str = "exps",
         summoner_id: Optional[str] = None,
         shots: int = 1024,
-        backend: Backend = GeneralAerSimulator(),
+        backend: Backend = GeneralSimulator(),
         tags: Optional[list[str]] = None,
         manager_run_args: Optional[dict[str, Any]] = None,
         save_location: Union[Path, str] = Path("./"),
@@ -929,7 +929,7 @@ class QurryPrototype(ABC):
         summoner_name: str = "exps",
         summoner_id: Optional[str] = None,
         shots: int = 1024,
-        backend: Backend = GeneralAerSimulator(),
+        backend: Backend = GeneralSimulator(),
         tags: Optional[list[str]] = None,
         save_location: Union[Path, str] = Path("./"),
         compress: bool = False,
@@ -1024,7 +1024,7 @@ class QurryPrototype(ABC):
         summoner_name: str = "exps",
         summoner_id: Optional[str] = None,
         shots: int = 1024,
-        backend: Backend = GeneralAerSimulator(),
+        backend: Backend = GeneralSimulator(),
         tags: Optional[list[str]] = None,
         manager_run_args: Optional[dict[str, Any]] = None,
         save_location: Union[Path, str] = Path("./"),

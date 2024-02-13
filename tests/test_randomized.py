@@ -27,7 +27,7 @@ else:
 
     def ensemble_cell_rust(
         s_i: str, s_i_meas: int, s_j: str, s_j_meas: int, a_num: int, shots: int
-    ):
+    ) -> Union[float, np.float64]:
         """Dummy function."""
         warnings.warn(
             "Rust is not available, ensemble_cell_rust is a dummy function.",
