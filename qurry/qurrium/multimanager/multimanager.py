@@ -342,7 +342,9 @@ class MultiManager:
             multicommons["datetimes"]["bulid"] = current_time()
 
         if is_tarfile_existed:
-            if not multiconfig_name_v5.exists() or not multiconfig_name_v7.exists():
+            if (not multiconfig_name_v5.exists()) and (
+                not multiconfig_name_v7.exists()
+            ):
                 multicommons["datetimes"].add_serial("decompress")
             elif read_from_tarfile:
                 multicommons["datetimes"].add_serial("decompressOverwrite")
