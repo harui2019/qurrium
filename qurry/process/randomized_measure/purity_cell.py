@@ -7,12 +7,17 @@ Postprocessing - Randomized Measure - Purity Cell
 """
 
 import warnings
-from typing import Union, Literal
+from typing import Union
 import numpy as np
 
 from ..utils import (
     ensemble_cell as ensemble_cell_py,
     cycling_slice as cycling_slice_py,
+)
+from ..availability import (
+    availablility,
+    default_postprocessing_backend,
+    PostProcessingBackendLabel,
 )
 from ..exceptions import (
     PostProcessingCythonImportError,
@@ -64,16 +69,15 @@ except ImportError as err:
         ) from FAILED_RUST_IMPORT
 
 
-ExistingProcessBackendLabel = Literal["Cython", "Rust", "Python"]
-BackendAvailabilities: dict[
-    ExistingProcessBackendLabel, Union[bool, ImportError, None]
-] = {
-    "Cython": CYTHON_AVAILABLE if CYTHON_AVAILABLE else FAILED_PYX_IMPORT,
-    "Rust": RUST_AVAILABLE if RUST_AVAILABLE else FAILED_RUST_IMPORT,
-    "Python": True,
-}
-DEFAULT_PROCESS_BACKEND: ExistingProcessBackendLabel = (
-    "Rust" if RUST_AVAILABLE else ("Cython" if CYTHON_AVAILABLE else "Python")
+PostProcessingBackendStatement = availablility(
+    "randomized_measure.purity_cell",
+    [
+        ("Rust", RUST_AVAILABLE, FAILED_RUST_IMPORT),
+        ("Cython", CYTHON_AVAILABLE, FAILED_PYX_IMPORT),
+    ],
+)
+DEFAULT_PROCESS_BACKEND = default_postprocessing_backend(
+    RUST_AVAILABLE, CYTHON_AVAILABLE
 )
 
 
@@ -180,7 +184,7 @@ def purity_cell(
     single_counts: dict[str, int],
     bitstring_range: tuple[int, int],
     subsystem_size: int,
-    backend: ExistingProcessBackendLabel = DEFAULT_PROCESS_BACKEND,
+    backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
 ) -> tuple[int, Union[float, np.float64]]:
     """Calculate the purity cell, one of overlap, of a subsystem.
 

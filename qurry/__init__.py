@@ -60,10 +60,14 @@ except ModuleNotFoundError as qurry_boorust_import_error:
     RUST_AVAILABLE = False
     FAILED_RUST_IMPORT = qurry_boorust_import_error
 
-BackendAvailabilities = {
-    "Python": True,
-    "Rust": RUST_AVAILABLE if RUST_AVAILABLE else FAILED_RUST_IMPORT,
-}
+from .process.availability import availablility
+
+PostProcessingBackendStatement = availablility(
+    "boorust",
+    [
+        ("Rust", RUST_AVAILABLE, FAILED_RUST_IMPORT),
+    ],
+)
 
 # """
 # Note that this does not define a package,
