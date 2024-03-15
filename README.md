@@ -23,6 +23,8 @@ and [National Center for Theoretical Sciences, Physics Division](https://phys.nc
 
 ## Environment
 
+**We currently <ins>ONLY SUPPORT qiskit up to 0.46.0</ins>, qiskit 1.0.0+ is not supported yet.**
+
 ![Available Python Version](https://img.shields.io/badge/Python-3.9_|_3.10_|_3.11_|_3.12-blue?logo=python&logoColor=white)
 
 ![Available System](https://img.shields.io/badge/Ubuntu-18.04+-purple?logo=Ubuntu&logoColor=white) ![Available System](https://img.shields.io/badge/Ubuntu_on_WSL-18.04+-purple?logo=Ubuntu&logoColor=white)
