@@ -1,6 +1,5 @@
 # qiskit main
-qiskit>=0.32.2
-qiskit-terra
+qiskit<1.0.0
 # qiskit-aer>=0.10.4
 requests
 
