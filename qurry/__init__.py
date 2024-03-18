@@ -46,7 +46,7 @@ from .tools import (
     pytorch_cuda_check,
 )
 
-from .version import __version__, __version_str__
+from .version import __version__
 
 # pylint: disable=no-name-in-module,import-error,wrong-import-order,no-member
 try:
@@ -62,7 +62,7 @@ except ModuleNotFoundError as qurry_boorust_import_error:
 
 from .process.availability import availablility
 
-PostProcessingBackendStatement = availablility(
+BACKEND_AVAILABLE = availablility(
     "boorust",
     [
         ("Rust", RUST_AVAILABLE, FAILED_RUST_IMPORT),

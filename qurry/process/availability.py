@@ -10,6 +10,8 @@ from typing import Union, Literal, Optional, Callable
 PostProcessingBackendLabel = Union[Literal["Cython", "Rust", "Python"], str]
 """The backend label for post-processing."""
 
+BACKEND_TYPES: list[PostProcessingBackendLabel] = ["Python", "Cython", "Rust"]
+
 
 def availablility(
     module_location: str,
