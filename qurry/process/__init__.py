@@ -47,9 +47,9 @@ def availability_status_print() -> (
         },
     ]
     availability_status = {}
-    for (mod_location, available) in availability_dict:
+    # pylint: disable=no-member
+    for mod_location, available_dict in availability_dict:
         mod1, file1 = mod_location.split(".")
-        print(mod1, file1, available)
         if mod1 not in availability_status:
             availability_status[mod1] = {}
             pre_hoshi.append(
@@ -60,7 +60,7 @@ def availability_status_print() -> (
             )
         availability_status[mod1][file1] = {}
         for bt in BACKEND_TYPES:
-            availability_status[mod1][file1][bt] = available.get(bt, None)
+            availability_status[mod1][file1][bt] = available_dict.get(bt, None)
         pre_hoshi.append(
             {
                 "type": "itemize",
