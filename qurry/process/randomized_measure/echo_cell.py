@@ -60,8 +60,8 @@ except ImportError as err:
 #         ) from FAILED_RUST_IMPORT
 
 
-PostProcessingBackendStatement = availablility(
-    "randomized_measure.entangled_entropy",
+BACKEND_AVAILABLE = availablility(
+    "randomized_measure.echo_cell",
     [
         # ("Rust", RUST_AVAILABLE, FAILED_RUST_IMPORT),
         ("Cython", CYTHON_AVAILABLE, FAILED_PYX_IMPORT),

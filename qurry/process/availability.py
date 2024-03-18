@@ -7,7 +7,7 @@ Availability for the post-processing module.
 
 from typing import Union, Literal, Optional, Callable
 
-PostProcessingBackendLabel = Literal["Cython", "Rust", "Python"]
+PostProcessingBackendLabel = Union[Literal["Cython", "Rust", "Python"], str]
 """The backend label for post-processing."""
 
 

@@ -69,7 +69,7 @@ except ImportError as err:
         ) from FAILED_RUST_IMPORT
 
 
-PostProcessingBackendStatement = availablility(
+BACKEND_AVAILABLE = availablility(
     "randomized_measure.purity_cell",
     [
         ("Rust", RUST_AVAILABLE, FAILED_RUST_IMPORT),

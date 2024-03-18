@@ -33,7 +33,7 @@ except ImportError as err:
         )
 
 
-PostProcessingBackendStatement = availablility(
+BACKEND_AVAILABLE = availablility(
     "utils.construct",
     [
         ("Rust", RUST_AVAILABLE, FAILED_RUST_IMPORT),
