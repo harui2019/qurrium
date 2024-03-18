@@ -7,7 +7,7 @@ Default Configuration for Qurry Experimrnt
 """
 from pathlib import Path
 
-from ..tools.backend import GeneralAerSimulator
+from ..tools.backend import GeneralSimulator
 from ..capsule.mori import DefaultConfig
 from ..tools.datetime import DatetimeDict
 
@@ -17,7 +17,7 @@ commonparamsConfig = DefaultConfig(
         "exp_id": None,
         "wave_key": None,
         "shots": 1024,
-        "backend": GeneralAerSimulator(),
+        "backend": GeneralSimulator(),
         "provider": None,
         "run_args": {},
         "runBy": "gate",

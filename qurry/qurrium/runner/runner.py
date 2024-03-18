@@ -8,12 +8,28 @@ Runner for pending and retrieve jobs from remote backend.
 import warnings
 from abc import abstractmethod, ABC
 from typing import Optional, Literal
+
 from qiskit.providers import Backend, Provider
 
 from ..experiment import ExperimentPrototype
 from ..container import ExperimentContainer
 from ..multimanager import MultiManager
+from ...tools import DatetimeDict
 from ...exceptions import QurryDummyRunnerWarning
+
+
+def retrieve_counter(datetimes_dict: DatetimeDict):
+    """Count the number of retrieve jobs in the datetimes_dict.""
+
+    Args:
+        datetimes_dict (DatetimeDict): The datetimes_dict from Qurry instance.
+
+    Returns:
+        int: The number of retrieve jobs in the datetimes_dict.
+    """
+    return len(
+        [datetime_tag for datetime_tag in datetimes_dict if "retrieve" in datetime_tag]
+    )
 
 
 class Runner(ABC):

@@ -76,7 +76,7 @@ except ImportError as err:
         ) from FAILED_PYX_IMPORT
 
 
-PostProcessingBackendStatement = availablility(
+BACKEND_AVAILABLE = availablility(
     "utils.construct",
     [
         ("Rust", RUST_AVAILABLE, FAILED_RUST_IMPORT),

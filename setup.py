@@ -4,7 +4,8 @@ Setup Script for Qurry
 ================================================================
 
 """
-from pathlib import Path
+
+import os
 from setuptools import setup, Extension
 from setuptools_rust import Binding, RustExtension
 
@@ -41,20 +42,14 @@ cy_extensions = [
     Extension("qurry.boost.inputfixer", ["qurry/boost/inputfixer.pyx"]),
 ]
 
-allowed_globals = {}
-allow_locals = {}
-ver_path = Path("./qurry/version.py")
-with open(ver_path, encoding="utf-8") as ver_file:
-    # pylint: disable-next=exec-used
-    exec(ver_file.read(), allowed_globals, allow_locals)
-    # pylint: disable-next=exec-used
+with open(os.path.join("qurry", "VERSION.txt"), encoding="utf-8") as version_file:
+    __version__ = version_file.read().strip()
 
-__version_str__ = allow_locals["__version_str__"]
-print(f"| Version: {__version_str__}")
+print(f"| Version: {__version__}")
 
 
 setup(
-    version=__version_str__,
+    version=__version__,
     ext_modules=re_cythonize(
         cy_extensions,
         language_level=3,

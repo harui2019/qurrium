@@ -16,206 +16,66 @@ Avoiding the import error occurs on different parts of Qurry.
 
 """
 
-from typing import Union, Callable, Literal, Optional, overload, Type
-import warnings
+from typing import Union, Callable, Literal, Optional, overload
 from importlib.metadata import distributions
 import requests
 
 from qiskit import __qiskit_version__
-from qiskit.providers import BackendV1, BackendV2, Backend, Provider
+from qiskit.providers import BackendV1, BackendV2, Backend
 from qiskit.providers.fake_provider import (
     FakeProvider,
     FakeProviderForBackendV2,
     FakeBackend,
     FakeBackendV2,
 )
+from qiskit.providers.models import QasmBackendConfiguration
 
+from .import_ibm import (
+    VERSION_INFOS as real_version_infos,
+    DEFAULT_SOURCE as real_default_source,
+    RealProviderType,
+)
+from .import_simulator import (
+    VERSION_INFOS as sim_version_infos,
+    DEFAULT_SOURCE as sim_default_source,
+)
 from ..command import pytorch_cuda_check
-from ...exceptions import QurryExtraPackageRequired
 from ...capsule.hoshi import Hoshi
 
-# pylint: disable=ungrouped-imports
-AerImportPointType = Literal[
-    "qiskit_aer", "qiskit.providers.aer", "qiskit.providers.basicaer"
-]
-AER_SIMULATOR_SOURCE: dict[AerImportPointType, Type[Backend]] = {}
-AER_BACKEND_SOURCE: dict[AerImportPointType, Type[Backend]] = {}
-AER_PROVIDER_SOURCE: dict[AerImportPointType, Type[Provider]] = {}
-try:
-    try:
-        from qiskit_aer import (
-            AerProvider as AerProviderIndep,
-            AerSimulator as AerSimulatorIndep,
-        )
-        from qiskit_aer.backends.aerbackend import AerBackend as AerBackendIndep
-        from qiskit_aer.version import get_version_info as get_version_info_aer
-
-        AER_VERSION_INFO = get_version_info_aer()
-        AER_IMPORT_POINT: AerImportPointType = "qiskit_aer"
-        IS_FROM_INDEPENDENT_AER_PACKAGE = True
-
-        AER_SIMULATOR_SOURCE["qiskit_aer"] = AerSimulatorIndep
-        AER_BACKEND_SOURCE["qiskit_aer"] = AerBackendIndep
-        AER_PROVIDER_SOURCE["qiskit_aer"] = AerProviderIndep
-
-    except ImportError:
-        from qiskit.providers.aer import (  # type: ignore
-            AerProvider as AerProviderDep,  # type: ignore
-            AerSimulator as AerSimulatorDep,  # type: ignore
-        )
-        from qiskit.providers.aer.backends.aerbackend import (  # type: ignore
-            AerBackend as AerBackendDep,
-        )  # type: ignore
-        from qiskit.providers.aer.version import VERSION  # type: ignore
-
-        AER_VERSION_INFO: str = VERSION
-        AER_IMPORT_POINT: AerImportPointType = "qiskit.providers.aer"
-        IS_FROM_INDEPENDENT_AER_PACKAGE = False
-
-        AER_SIMULATOR_SOURCE["qiskit.providers.aer"] = AerSimulatorDep
-        AER_BACKEND_SOURCE["qiskit.providers.aer"] = AerBackendDep
-        AER_PROVIDER_SOURCE["qiskit.providers.aer"] = AerProviderDep
-
-except ImportError as err:
-    AER_VERSION_INFO = ""
-    AER_IMPORT_POINT: AerImportPointType = "qiskit.providers.basicaer"
-    IS_FROM_INDEPENDENT_AER_PACKAGE = False
-    from qiskit.providers.backend import BackendV1 as BackendV1Dep
-    from qiskit.providers.basicaer.basicaerprovider import (
-        BasicAerProvider,
-        QasmSimulatorPy,
-    )
-
-    AER_SIMULATOR_SOURCE["qiskit.providers.basicaer"] = QasmSimulatorPy
-    AER_BACKEND_SOURCE["qiskit.providers.basicaer"] = BackendV1Dep
-    AER_PROVIDER_SOURCE["qiskit.providers.basicaer"] = BasicAerProvider
-
-assert AER_IMPORT_POINT in AER_SIMULATOR_SOURCE, "AER_SIMULATOR_SOURCE not found"
-assert AER_IMPORT_POINT in AER_BACKEND_SOURCE, "AER_BACKEND_SOURCE not found"
-assert AER_IMPORT_POINT in AER_PROVIDER_SOURCE, "AER_PROVIDER_SOURCE not found"
-
-
-class GeneralAerSimulator(AER_SIMULATOR_SOURCE[AER_IMPORT_POINT]):
-    """AerSimulator from qiskit-aer package."""
-
-    def __init__(self):
-        if AER_IMPORT_POINT == "qiskit.providers.basicaer":
-            warnings.warn(
-                "Qurry uses QasmSimulatorPy as default simulator, consider to install 'qiskit-aer'."
-            )
-        super().__init__()
-
-    def __repr__(self):
-        if AER_IMPORT_POINT == "qiskit.providers.basicaer":
-            return f"<QasmSimulatorPy({self.configuration().backend_name})>"
-        return super().__repr__()
-
-
-class GeneralAerBackend(AER_BACKEND_SOURCE[AER_IMPORT_POINT]):
-    """AerBackend from qiskit-aer package."""
-
-
-class GeneralAerProvider(AER_PROVIDER_SOURCE[AER_IMPORT_POINT]):
-    """AerProvider from qiskit-aer package."""
-
-    def __init__(self):
-        if AER_IMPORT_POINT == "qiskit.providers.basicaer":
-            warnings.warn(
-                "Qurry uses BasicAerProvider as default provider, consider to install 'qiskit-aer'."
-            )
-        super().__init__()
-
-    def __str__(self):
-        if AER_IMPORT_POINT == "qiskit.providers.basicaer":
-            return "BasicAerProvider"
-        return super().__str__()
-
-
-# pylint: enable=ungrouped-imports, too-few-public-methods
-
-
-class DummyProvider(Provider):
-    """A dummy provider for :class:`qurry.tools.backend.backendWrapper`
-    to use when the real provider is not available,
-    And it will print a warning message when you try to use it.
-    Also it is a cheatsheet for type checking in this scenario.
-
-    """
-
-    @staticmethod
-    def save_account():
-        """A dummy method for :class:`qurry.tools.backend.backendWrapper`
-        to use when the real provider is not available,
-        And it will print a warning message when you try to use it.
-        Also it is a cheatsheet for type checking in this scenario.
-
-        """
-        raise QurryExtraPackageRequired(
-            "The real provider is not available, please check your installation"
-        )
-
-    @staticmethod
-    def load_account():
-        """A dummy method for :class:`qurry.tools.backend.backendWrapper`
-        to use when the real provider is not available,
-        And it will print a warning message when you try to use it.
-        Also it is a cheatsheet for type checking in this scenario.
-
-        """
-
-        raise QurryExtraPackageRequired(
-            "The real provider is not available, please check your installation"
-        )
-
-    @staticmethod
-    def get_provider():
-        """A dummy method for :class:`qurry.tools.backend.backendWrapper`
-        to use when the real provider is not available,
-        And it will print a warning message when you try to use it.
-        Also it is a cheatsheet for type checking in this scenario.
-
-        """
-        raise QurryExtraPackageRequired(
-            "The real provider is not available, please check your installation"
-        )
-
-
-try:
-    from qiskit_ibm_provider import IBMProvider as IBMProviderIndep
-    from qiskit_ibm_provider.version import get_version_info as get_version_info_ibm
-
-    IBMProvider = IBMProviderIndep
-    IBM_AVAILABLE = True
-except ImportError:
-    IBMProvider = DummyProvider
-
-    def get_version_info_ibm() -> str:
-        """A dummy method for :class:`qurry.tools.backend.backendWrapper`
-        to use when the real provider is not available,
-        And it will print a warning message when you try to use it.
-        Also it is a cheatsheet for type checking in this scenario.
-
-        """
-        return "Not available, please install it first."
-
-    IBM_AVAILABLE = False
-
-# pylint: disable=ungrouped-imports
-try:
-    from qiskit import IBMQ as IBMQ_OLD
-
-    IBMQ = IBMQ_OLD
-    IBMQ_AVAILABLE = True
-except ImportError:
-    IBMQ = DummyProvider
-    IBM_AVAILABLE = False
-# pylint: enable=ungrouped-imports
 
 backendName: Callable[[Union[BackendV1, BackendV2, Backend]], str] = lambda back: (
     back.name
     if isinstance(back, BackendV2)
     else (back.name() if isinstance(back, BackendV1) else "unknown_backend")
 )
+"""Get the name of backend.
+
+Args:
+    back (Union[BackendV1, BackendV2, Backend]): The backend instance.
+    
+Returns:
+    str: The name of backend.
+"""
+
+
+def backend_name_getter(back: Union[BackendV1, BackendV2, Backend]) -> str:
+    """Get the name of backend.
+
+    Args:
+        back (Union[BackendV1, BackendV2, Backend]): The backend instance.
+
+    Returns:
+        str: The name of backend.
+    """
+    if hasattr(back, "configuration"):
+        config: QasmBackendConfiguration = back.configuration()  # type: ignore
+        assert isinstance(config, QasmBackendConfiguration), "Invalid configuration"
+        return config.backend_name
+    if isinstance(back, BackendV2):
+        return back.name
+    if isinstance(back, BackendV1):
+        return back.name()
+    return "unknown_backend"
 
 
 def shorten_name(
@@ -329,22 +189,19 @@ def _version_check():
             ),
         )
     )
-    if IBM_AVAILABLE:
-        check_msg.newline(
-            {
-                "type": "itemize",
-                "description": "qiskit-ibm-provider",
-                "value": get_version_info_ibm(),
-            }
-        )
-    else:
-        check_msg.newline(
-            {
-                "type": "itemize",
-                "description": "qiskit-ibm-provider",
-                "value": "Not available, please install it first.",
-            }
-        )
+    check_msg.newline(
+        {
+            "type": "itemize",
+            "description": (
+                real_default_source if real_default_source else "qiskit_ibm_provider"
+            ),
+            "value": (
+                real_version_infos[real_default_source]
+                if real_default_source
+                else "Not available, please install it first."
+            ),
+        }
+    )
 
     if "qiskit-aer-gpu" in local_version_dict:
         check_msg.newline(
@@ -358,7 +215,7 @@ def _version_check():
             {
                 "type": "itemize",
                 "description": "qiskit-aer",
-                "value": f"{AER_VERSION_INFO}, imported from {AER_IMPORT_POINT}",
+                "value": f"{sim_version_infos[sim_default_source]}, imported from '{sim_default_source}'",
             }
         )
         check_msg.newline(
@@ -387,13 +244,35 @@ async def _async_version_check():
     return check_msg
 
 
-def _real_backend_loader(
+@overload
+def real_backend_loader(
     real_provider=None,
-) -> tuple[dict[str, str], dict[str, Backend], None]:
-    backend_ibmq_callsign = {}
+) -> tuple[dict[str, str], dict[str, Backend], None]: ...
+
+
+@overload
+def real_backend_loader(
+    real_provider: RealProviderType,
+) -> tuple[dict[str, str], dict[str, Backend], RealProviderType]: ...
+
+
+def real_backend_loader(real_provider=None):
+    """Load the real backend.
+
+    Args:
+        real_provider (Optional[RealProviderType], optional):
+            The real provider. Defaults to None.
+
+    Returns:
+        tuple[dict[str, str], dict[str, Backend], Optional[RealProviderType]]:
+            The callsign of real backend,
+            the real backend dict,
+            the real provider.
+    """
     if not real_provider is None:
+        backend_ibmq_callsign = {}
         _real_provider = real_provider
-        backend_ibmq = {backendName(b): b for b in real_provider.backends()}
+        backend_ibmq = {backend_name_getter(b): b for b in real_provider.backends()}
         backend_ibmq_callsign = {
             shorten_name(bn, ["ibm_", "ibmq_"], ["ibmq_qasm_simulator"]): bn
             for bn in [backs for backs in backend_ibmq if "ibm" in backs]
@@ -401,7 +280,7 @@ def _real_backend_loader(
         backend_ibmq_callsign["ibmq_qasm"] = "ibmq_qasm_simulator"
         return backend_ibmq_callsign, backend_ibmq, _real_provider
 
-    return backend_ibmq_callsign, {}, None
+    return {}, {}, None
 
 
 @overload

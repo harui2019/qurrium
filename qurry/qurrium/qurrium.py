@@ -19,7 +19,7 @@ from qiskit import execute, transpile, QuantumCircuit
 from qiskit.providers import Backend, JobV1 as Job
 
 from ..tools import qurry_progressbar, ParallelManager
-from ..tools.backend import GeneralAerSimulator
+from ..tools.backend import GeneralSimulator
 from ..tools.datetime import current_time, DatetimeDict
 from ..declare.default import (
     transpileConfig,
@@ -34,7 +34,7 @@ from .multimanager import (
     PendingTargetProviderLiteral,
     PendingStrategyLiteral,
 )
-from .runner import ExtraBackendAccessor
+from .runner import ExtraBackendAccessor, retrieve_counter
 
 
 from .utils import get_counts_and_exceptions, qasm_drawer
@@ -223,7 +223,7 @@ class QurryPrototype(ABC):
         if default_analysis is None:
             default_analysis = []
         if backend is None:
-            backend = GeneralAerSimulator()
+            backend = GeneralSimulator()
 
         # wave
         if isinstance(wave, QuantumCircuit):
@@ -703,10 +703,10 @@ class QurryPrototype(ABC):
     def _params_control_multi(
         self,
         config_list: list[dict[str, Any]],
-        summoner_name: str = "exps",
+        summoner_name: Optional[str] = None,
         summoner_id: Optional[str] = None,
         shots: int = 1024,
-        backend: Backend = GeneralAerSimulator(),
+        backend: Backend = GeneralSimulator(),
         tags: Optional[list[str]] = None,
         save_location: Union[Path, str] = Path("./"),
         jobstype: PendingTargetProviderLiteral = "local",
@@ -714,7 +714,6 @@ class QurryPrototype(ABC):
         manager_run_args: Optional[dict[str, Any]] = None,
         is_retrieve: bool = False,
         is_read: bool = False,
-        read_version: Literal["v4", "v5"] = "v5",
         read_from_tarfile: bool = False,
     ) -> tuple[list[dict[str, Any]], str]:
         """Control the experiment's parameters for running multiple jobs.
@@ -757,9 +756,6 @@ class QurryPrototype(ABC):
             is_read (bool, optional):
                 Whether this jobs will read the existed experiment data during initializing.
                 Defaults to False.
-            read_version (Literal['v4', 'v5'], optional):
-                The version of the data to be read.
-                Defaults to 'v5'.
 
         Returns:
             tuple[list[dict[str, Any]], str]:
@@ -767,19 +763,21 @@ class QurryPrototype(ABC):
                 each experimemt and summoner_id (ID of multimanager).
         """
 
-        if tags is None:
-            tags = []
-        if manager_run_args is None:
-            manager_run_args = {
-                "max_experiments_per_job": 200,
-            }
-
         if summoner_id in self.multimanagers:
             current_multimanager = self.multimanagers[summoner_id]
             return (
                 list(current_multimanager.beforewards.exps_config.values()),
                 current_multimanager.summoner_id,
             )
+
+        if summoner_name is None:
+            summoner_name = "exps"
+        if tags is None:
+            tags = []
+        if manager_run_args is None:
+            manager_run_args = {
+                "max_experiments_per_job": 200,
+            }
 
         is_read = is_retrieve | is_read
 
@@ -795,7 +793,6 @@ class QurryPrototype(ABC):
                 is_read=is_read,
                 read_from_tarfile=read_from_tarfile,
                 save_location=save_location,
-                version=read_version,
             )
         else:
             current_multimanager = MultiManager(
@@ -840,7 +837,7 @@ class QurryPrototype(ABC):
         summoner_name: str = "exps",
         summoner_id: Optional[str] = None,
         shots: int = 1024,
-        backend: Backend = GeneralAerSimulator(),
+        backend: Backend = GeneralSimulator(),
         tags: Optional[list[str]] = None,
         manager_run_args: Optional[dict[str, Any]] = None,
         save_location: Union[Path, str] = Path("./"),
@@ -934,7 +931,7 @@ class QurryPrototype(ABC):
         summoner_name: str = "exps",
         summoner_id: Optional[str] = None,
         shots: int = 1024,
-        backend: Backend = GeneralAerSimulator(),
+        backend: Backend = GeneralSimulator(),
         tags: Optional[list[str]] = None,
         save_location: Union[Path, str] = Path("./"),
         compress: bool = False,
@@ -1029,7 +1026,7 @@ class QurryPrototype(ABC):
         summoner_name: str = "exps",
         summoner_id: Optional[str] = None,
         shots: int = 1024,
-        backend: Backend = GeneralAerSimulator(),
+        backend: Backend = GeneralSimulator(),
         tags: Optional[list[str]] = None,
         manager_run_args: Optional[dict[str, Any]] = None,
         save_location: Union[Path, str] = Path("./"),
@@ -1222,9 +1219,10 @@ class QurryPrototype(ABC):
 
     def multiRead(
         self,
-        summoner_name: str = "exps",
+        summoner_name: Optional[str] = None,
         summoner_id: Optional[str] = None,
         save_location: Union[Path, str] = Path("./"),
+        reload: bool = False,
         read_from_tarfile: bool = False,
         # defaultMultiAnalysis: list[dict[str, Any]] = []
         # analysisName: str = 'report',
@@ -1232,7 +1230,7 @@ class QurryPrototype(ABC):
         """Read the multimanager from the file.
 
         Args:
-            summoner_name (str, optional):
+            summoner_name (Optional[str], optional):
                 Name for multimanager. Defaults to 'exps'.
             summoner_id (Optional[str], optional):
                 Name for multimanager. Defaults to None.
@@ -1240,12 +1238,26 @@ class QurryPrototype(ABC):
                 Where to save the export content as `json` file.
                 If `save_location == None`, then cancelled the file to be exported.
                 Defaults to Path('./').
+            reload (bool, optional):
+                Whether to reload the multimanager.
+                Defaults to False.
+            read_from_tarfile (bool, optional):
+                Whether to read from the tarfile.
+                Defaults to False.
 
         Returns:
             str: SummonerID (ID of multimanager).
         """
 
-        print("| MultiRead running...")
+        if summoner_id in self.multimanagers:
+            if not reload:
+                print("| MultiRead found existed multimanager.")
+                return summoner_id
+            print("| MultiRead reloading...")
+            del self.multimanagers[summoner_id]
+        else:
+            print("| MultiRead running...")
+
         _, besummonned = self._params_control_multi(
             config_list=[],
             summoner_name=summoner_name,
@@ -1260,7 +1272,7 @@ class QurryPrototype(ABC):
 
         quene: list[ExperimentPrototype] = self.experiment.read(
             save_location=self.multimanagers[besummonned].multicommons.save_location,
-            name_or_id=summoner_name,
+            name_or_id=self.multimanagers[besummonned].multicommons.summoner_name,
         )
         for exp in quene:
             self.exps[exp.exp_id] = exp
@@ -1269,19 +1281,20 @@ class QurryPrototype(ABC):
 
     def multiRetrieve(
         self,
-        summoner_name: str = "exps",
+        summoner_name: Optional[str] = None,
         summoner_id: Optional[str] = None,
         backend: Optional[Backend] = None,
         save_location: Union[Path, str] = Path("./"),
         refresh: bool = False,
         overwrite: bool = False,
+        reload: bool = False,
         read_from_tarfile: bool = False,
-        skip_compress: bool = False,
+        compress: bool = False,
     ) -> Hashable:
         """Retrieve the multimanager from the remote backend.
 
         Args:
-            summoner_name (str, optional):
+            summoner_name (Optional[str], optional):
                 Name for multimanager. Defaults to 'exps'.
             summoner_id (Optional[str], optional):
                 Name for multimanager. Defaults to None.
@@ -1303,13 +1316,15 @@ class QurryPrototype(ABC):
             overwrite (bool, optional):
                 Overwrite the local file if it exists.
                 Defaults to False.
-            defaultMultiAnalysis (list[dict[str, Any]], optional):
-                The default configurations of multiple analysis,
-                if it's given, then will run automatically after the experiment results are ready.
-                Defaults to [].
-            analysisName (str, optional):
-                The name of the analysis.
-                Defaults to 'report'.
+            reload (bool, optional):
+                Whether to reload the multimanager.
+                Defaults to False.
+            read_from_tarfile (bool, optional):
+                Whether to read from the tarfile.
+                Defaults to False.
+            compress (bool, optional):
+                Whether to compress the export file.
+                Defaults to False.
 
         Returns:
             Hashable: SummonerID (ID of multimanager).
@@ -1319,6 +1334,7 @@ class QurryPrototype(ABC):
             summoner_name=summoner_name,
             summoner_id=summoner_id,
             save_location=save_location,
+            reload=reload,
             read_from_tarfile=read_from_tarfile,
         )
         current_multimanager = self.multimanagers[besummonned]
@@ -1353,8 +1369,19 @@ class QurryPrototype(ABC):
             )
             return besummonned
 
-        print(f"| Retrieve {current_multimanager.summoner_name} completed.")
-        bewritten = self.multiWrite(besummonned, compress=not skip_compress)
+        retrieve_times = retrieve_counter(current_multimanager.multicommons.datetimes)
+
+        if retrieve_times > 0:
+            if overwrite:
+                print(f"| Retrieve {current_multimanager.summoner_name} overwrite.")
+            else:
+                print(
+                    f"| Retrieve skip for {current_multimanager.summoner_name} existed."
+                )
+                return besummonned
+        else:
+            print(f"| Retrieve {current_multimanager.summoner_name} completed.")
+        bewritten = self.multiWrite(besummonned, compress=compress)
         assert bewritten == besummonned
 
         return current_multimanager.multicommons.summoner_id

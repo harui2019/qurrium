@@ -6,7 +6,7 @@ Runner for running on Different Backends (IBM, IBMQ, ThirdParty, etc.)
 
 """
 
-from .runner import Runner, ThirdPartyRunner
+from .runner import Runner, ThirdPartyRunner, retrieve_counter
 from .accesor import BACKEND_AVAILABLE, ExtraBackendAccessor
 
 if BACKEND_AVAILABLE["IBMQ"]:

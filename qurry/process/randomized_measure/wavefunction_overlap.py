@@ -52,8 +52,8 @@ from ...tools import (
 #             "Rust is not available, using python to calculate overlap echo."
 #         ) from FAILED_RUST_IMPORT
 
-PostProcessingBackendStatement = availablility(
-    "randomized_measure.entangled_entropy",
+BACKEND_AVAILABLE = availablility(
+    "randomized_measure.wavefunction_overlap",
     [
         # ("Rust", RUST_AVAILABLE, FAILED_RUST_IMPORT),
         ("Cython", CYTHON_AVAILABLE, FAILED_PYX_IMPORT),
@@ -160,7 +160,7 @@ def overlap_echo_core_pycyrust(
 
     msg = f"| Partition: {bitstring_range}, Measure: {measure}"
 
-    if backend not in PostProcessingBackendStatement[1]:
+    if backend not in BACKEND_AVAILABLE[1]:
         warnings.warn(
             f"Unknown backend '{backend}', using {DEFAULT_PROCESS_BACKEND} instead.",
         )

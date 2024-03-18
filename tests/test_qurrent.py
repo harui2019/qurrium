@@ -7,7 +7,7 @@ Test the qurry.qurrent module EntropyMeasure class.
 import pytest
 import numpy as np
 from qurry.qurrent import EntropyMeasure
-from qurry.tools.backend import GeneralAerSimulator
+from qurry.tools.backend import GeneralSimulator
 from qurry.capsule import mori, hoshi
 from qurry.recipe import TrivialParamagnet, GHZ, TopologicalParamagnet
 
@@ -31,7 +31,7 @@ for i in range(4, 7, 2):
     wave_adds_01.append(expDemo01.add(TopologicalParamagnet(i), f"{i}-topological"))
     wave_adds_02.append(expDemo02.add(TopologicalParamagnet(i), f"{i}-topological"))
 
-backend = GeneralAerSimulator()
+backend = GeneralSimulator()
 # backend = BasicAer.backends()[0]
 print(backend.configuration())
 

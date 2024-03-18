@@ -12,7 +12,7 @@ import tarfile
 import warnings
 
 from pathlib import Path
-from typing import Literal, Union, Optional, Hashable, Any
+from typing import Union, Optional, Hashable, Any
 from uuid import uuid4, UUID
 
 from .container import MultiCommonparams, Before, After
@@ -159,7 +159,6 @@ class MultiManager:
         is_read: bool = False,
         encoding: str = "utf-8",
         read_from_tarfile: bool = False,
-        version: Literal["v4", "v5"] = "v5",
         **kwargs,
     ) -> None:
         """Initialize the multi-experiment.
@@ -174,8 +173,6 @@ class MultiManager:
             read_from_tarfile (bool, optional): Whether read from tarfile. Defaults to False.
             filetype (TagList._availableFileType, optional):
                 The filetype of json file. Defaults to "json".
-            version (Literal[&quot;v4&quot;, &quot;v5&quot;], optional):
-                The version of json file. Defaults to "v5".
             **kwargs (Any): The other arguments of multi-experiment.
 
         Raises:
@@ -198,10 +195,7 @@ class MultiManager:
             )
         finally:
             if summoner_id is None:
-                if is_read and version == "v5":
-                    summoner_id = ""
-                else:
-                    summoner_id = str(uuid4())
+                summoner_id = "" if is_read else str(uuid4())
             else:
                 ...
 
@@ -240,7 +234,7 @@ class MultiManager:
                 )
                 self.easydecompress()
 
-        if is_read and version == "v5":
+        if is_read:
             if multiconfig_name_v5.exists():
                 print("| Found the multiConfig.json, reading in 'v5' file structure.")
                 rawread_multiconfig = self.MultiCommonparams._read_as_dict(
@@ -343,14 +337,14 @@ class MultiManager:
             multicommons["datetimes"] = DatetimeDict()
         else:
             multicommons["datetimes"] = DatetimeDict(**multicommons["datetimes"])
-        if version == "v4":
-            multicommons["datetimes"]["v4Read"] = current_time()
 
         if "build" not in multicommons["datetimes"] and not is_read:
             multicommons["datetimes"]["bulid"] = current_time()
 
         if is_tarfile_existed:
-            if not multiconfig_name_v5.exists() or not multiconfig_name_v7.exists():
+            if (not multiconfig_name_v5.exists()) and (
+                not multiconfig_name_v7.exists()
+            ):
                 multicommons["datetimes"].add_serial("decompress")
             elif read_from_tarfile:
                 multicommons["datetimes"].add_serial("decompressOverwrite")
@@ -492,7 +486,7 @@ class MultiManager:
                 Defaults to None.
             indent (int, optional): The indent of json file. Defaults to 2.
             encoding (str, optional): The encoding of json file. Defaults to "utf-8".
-            export_transpiled_circuit (bool, optional): 
+            export_transpiled_circuit (bool, optional):
                 Export the transpiled circuit. Defaults to False.
             _only_quantity (bool, optional): Whether only export quantity. Defaults to False.
 
