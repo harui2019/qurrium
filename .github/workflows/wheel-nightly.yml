@@ -26,6 +26,9 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: "3.11"
+          
+      - name: Reversion
+        run: python get_version.py --release nightly
 
       - name: Update Pip
         run: |
@@ -62,6 +65,9 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: "3.11"
+
+      - name: Reversion
+        run: python get_version.py --release nightly
 
       - name: Update Pip
         run: |
@@ -100,6 +106,9 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: "3.11"
+
+      - name: Reversion
+        run: python get_version.py --release nightly
 
       - name: Install Python and Update Pip
         run: |

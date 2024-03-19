@@ -5,11 +5,9 @@ name: draft-release-with-tag
 on:
   push:
     branches:
-      - main
       - pre-release
 env:
   CARGO_TERM_COLOR: always
-      
 
 jobs:
   create_tag:
