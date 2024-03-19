@@ -77,10 +77,12 @@ ImportPointOrder = [
     "qiskit_ibm_provider",
     "qiskit_ibmq_provider",
 ]
-BACKEND_SOURCES: dict[ImportPointType, Type[Backend]] = {}
+BACKEND_SOURCES: dict[ImportPointType, Optional[Type[Backend]]] = {}
 RealProviderType = Union[Provider, "IBMQWrapper"]
-PROVIDER_SOURCES: dict[ImportPointType, Union[Type[Provider], "IBMQWrapper"]] = {}
-VERSION_INFOS: dict[ImportPointType, str] = {}
+PROVIDER_SOURCES: dict[
+    ImportPointType, Optional[Union[Type[Provider], "IBMQWrapper"]]
+] = {}
+VERSION_INFOS: dict[ImportPointType, Optional[str]] = {}
 IMPORT_ERROR_INFOS: dict[ImportPointType, ImportError] = {}
 
 try:
@@ -92,6 +94,9 @@ try:
     VERSION_INFOS["qiskit_ibm_provider"] = get_version_info()
     BACKEND_SOURCES["qiskit_ibm_provider"] = IBMBackend
 except ImportError as err:
+    PROVIDER_SOURCES["qiskit_ibm_provider"] = None
+    VERSION_INFOS["qiskit_ibm_provider"] = None
+    BACKEND_SOURCES["qiskit_ibm_provider"] = None
     IMPORT_ERROR_INFOS["qiskit_ibm_provider"] = err
 
 try:
@@ -99,9 +104,14 @@ try:
     from qiskit.providers.ibmq import IBMQBackend  # type: ignore
 
     PROVIDER_SOURCES["qiskit_ibmq_provider"] = IBMQ
-    VERSION_INFOS["qiskit_ibmq_provider"] = __qiskit_version__["qiskit_ibmq_provider"]
+    VERSION_INFOS["qiskit_ibmq_provider"] = __qiskit_version__.get(
+        "qiskit_ibmq_provider"
+    )
     BACKEND_SOURCES["qiskit_ibmq_provider"] = IBMQBackend
 except ImportError as err:
+    PROVIDER_SOURCES["qiskit_ibmq_provider"] = None
+    VERSION_INFOS["qiskit_ibmq_provider"] = None
+    BACKEND_SOURCES["qiskit_ibmq_provider"] = None
     IMPORT_ERROR_INFOS["qiskit_ibmq_provider"] = err
 
 
