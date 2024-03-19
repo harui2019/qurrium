@@ -77,7 +77,7 @@ except ImportError as err:
 
 
 BACKEND_AVAILABLE = availablility(
-    "utils.construct",
+    "utils.randomized",
     [
         ("Rust", RUST_AVAILABLE, FAILED_RUST_IMPORT),
         ("Cython", CYTHON_AVAILABLE, FAILED_PYX_IMPORT),
