@@ -1,11 +1,11 @@
 # from https://github.com/dear-github/dear-github/issues/214#issuecomment-1060001840
 # from https://github.com/dear-github/dear-github/issues/214#issuecomment-1080042519
 
-name: Tag Creation Nightly
+name: Tag Creation Stable
 on:
   push:
     branches:
-      - pre-release
+      - main
 env:
   CARGO_TERM_COLOR: always
 
@@ -24,7 +24,7 @@ jobs:
           git config --global user.email 'harui2019@proton.me'
 
       - name: Read Version File
-        run: python get_version.py
+        run: python get_version.py --release stable
 
       - name: Check out Version
         run: |
@@ -73,11 +73,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.CI_TOKEN }}
         with:
           tag_name: v${{ env.VERSION }}
-          name: ${{ env.VERSION }} nightly
+          name: ${{ env.VERSION }} stable
           body: |
-            NIGHTLY_DRAFT
+            STABLE_DRAFT
           draft: true
-          prerelease: true
   
       - name: Upload TAR.GZ release asset
         id: upload-tar-gz-release-asset
