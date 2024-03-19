@@ -14,7 +14,7 @@ So this file is used to unify the import point of AerProvider, IBMProvider/IBMQP
 Avoiding the import error occurs on different parts of Qurry.
 """
 
-from typing import Literal, Type
+from typing import Literal, Type, Optional
 
 from qiskit import __qiskit_version__
 from qiskit.providers import BackendV1, BackendV2, Backend, Provider
@@ -35,7 +35,7 @@ ImportPointOrder = [
 SIMULATOR_SOURCES: dict[ImportPointType, Type[Backend]] = {}
 BACKEND_SOURCES: dict[ImportPointType, Type[Backend]] = {}
 PROVIDER_SOURCES: dict[ImportPointType, Type[Provider]] = {}
-VERSION_INFOS: dict[ImportPointType, str] = {}
+VERSION_INFOS: dict[ImportPointType, Optional[str]] = {}
 IMPORT_ERROR_INFOS: dict[ImportPointType, ImportError] = {}
 
 try:
@@ -73,7 +73,7 @@ try:
         QasmSimulatorPy,
     )
 
-    VERSION_INFOS["qiskit.providers.basicaer"] = __qiskit_version__["qiskit"]
+    VERSION_INFOS["qiskit.providers.basicaer"] = __qiskit_version__.get("qiskit")
     SIMULATOR_SOURCES["qiskit.providers.basicaer"] = QasmSimulatorPy
     BACKEND_SOURCES["qiskit.providers.basicaer"] = BackendV1
     PROVIDER_SOURCES["qiskit.providers.basicaer"] = BasicAerProvider
@@ -83,7 +83,7 @@ except ImportError as err:
 try:
     from qiskit.providers.basic_provider import BasicSimulator, BasicProvider  # type: ignore
 
-    VERSION_INFOS["qiskit.providers.basic_provider"] = __qiskit_version__["qiskit"]
+    VERSION_INFOS["qiskit.providers.basic_provider"] = __qiskit_version__.get("qiskit")
     SIMULATOR_SOURCES["qiskit.providers.basic_provider"] = BasicSimulator
     BACKEND_SOURCES["qiskit.providers.basic_provider"] = BackendV2
     PROVIDER_SOURCES["qiskit.providers.basic_provider"] = BasicProvider
