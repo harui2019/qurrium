@@ -254,8 +254,11 @@ class BackendWrapper:
                 for b in _sim_backends
             }
         else:
-            if "GPU" in _sim_backends[0].available_devices():
-                self.is_aer_gpu = True
+            if hasattr(_sim_backends[0], "available_devices"):
+                self.is_aer_gpu = "GPU" in _sim_backends[0].available_devices()
+            else:
+                self.is_aer_gpu = False
+
             self.backend_callsign_dict["sim"] = {
                 "state": "statevector",
                 "aer_state": "aer_statevector",

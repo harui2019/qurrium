@@ -1,15 +1,13 @@
 # from https://github.com/dear-github/dear-github/issues/214#issuecomment-1060001840
 # from https://github.com/dear-github/dear-github/issues/214#issuecomment-1080042519
 
-name: draft-release-with-tag
+name: Tag Creation Stable
 on:
   push:
     branches:
       - main
-      - pre-release
 env:
   CARGO_TERM_COLOR: always
-      
 
 jobs:
   create_tag:
@@ -22,11 +20,11 @@ jobs:
 
       - name: Set up Git user
         run: |
-          git config --global user.name 'Your Name'
-          git config --global user.email 'youremail@example.com'
+          git config --global user.name 'harui2019_via_action-bot'
+          git config --global user.email 'harui2019@proton.me'
 
       - name: Read Version File
-        run: python get_version.py
+        run: python get_version.py --release stable
 
       - name: Check out Version
         run: |
@@ -59,7 +57,7 @@ jobs:
       - name: Create custom tarball artifact
         run: |
           mkdir -p artifacts
-          tar czhvf ${{ steps.get_tarball_name.outputs.TARBALL_NAME }}.tar.gz \
+          tar czhvf ${{ steps.get_tarball_name.outputs.TARBALL_NAME }}-${{ env.VERSION }}.tar.gz \
             --exclude="*metarepo-cpe-tag*" \
             --directory=../ \
             qurry/crates/ qurry/tests/ qurry/qurry/ \
@@ -70,16 +68,15 @@ jobs:
   
       - name: Create draft release
         id: create_release
-        uses: actions/create-release@v1
+        uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.CI_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
-          release_name: ${{ github.ref }}
+          tag_name: v${{ env.VERSION }}
+          name: ${{ env.VERSION }} stable
           body: |
-            DRAFT
+            STABLE_DRAFT
           draft: true
-          prerelease: true
   
       - name: Upload TAR.GZ release asset
         id: upload-tar-gz-release-asset
@@ -88,7 +85,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.CI_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.get_tarball_name.outputs.TARBALL_NAME }}.tar.gz
-          asset_name: ${{ steps.get_tarball_name.outputs.TARBALL_NAME }}.tar.gz
+          asset_path: ${{ steps.get_tarball_name.outputs.TARBALL_NAME }}-${{ env.VERSION }}.tar.gz
+          asset_name: ${{ steps.get_tarball_name.outputs.TARBALL_NAME }}-${{ env.VERSION }}.tar.gz
           asset_content_type: application/gzip
   

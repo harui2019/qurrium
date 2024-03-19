@@ -1,5 +1,5 @@
 ---
-name: Wheel Builds
+name: Wheel Builds Nightly
 on:
   push:
     branches:
@@ -26,6 +26,9 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: "3.11"
+          
+      - name: Reversion
+        run: python get_version.py --release nightly
 
       - name: Update Pip
         run: |
@@ -63,6 +66,9 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Reversion
+        run: python get_version.py --release nightly
+
       - name: Update Pip
         run: |
           pip install --upgrade pipenv wheel pip
@@ -77,16 +83,10 @@ jobs:
         env:
           CIBW_PLATFORM: windows
 
-      - name: Publish distribution 📦 to TestPyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+      - uses: actions/upload-artifact@v3
         with:
-          packages-dir: wheelhouse/
-          repository-url: https://test.pypi.org/legacy/
-
-      # - uses: actions/upload-artifact@v3
-      #   with:
-      #     path: ./wheelhouse/*.whl
-      #     name: shared-wheel-builds
+          path: ./wheelhouse/*.whl
+          name: shared-wheel-builds-windows
 
   build_wheels_macos_arm:
     name: Build wheels on macOS (${{ matrix.os }}) of arm64
@@ -107,6 +107,9 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Reversion
+        run: python get_version.py --release nightly
+
       - name: Install Python and Update Pip
         run: |
           pip install --upgrade pipenv wheel pip
@@ -125,16 +128,10 @@ jobs:
             CARGO_BUILD_TARGET="aarch64-apple-darwin"
             PYO3_CROSS_LIB_DIR="/Library/Frameworks/Python.framework/Versions/$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')/lib/python$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')"
 
-      - name: Publish distribution 📦 to TestPyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+      - uses: actions/upload-artifact@v3
         with:
-          packages-dir: wheelhouse/
-          repository-url: https://test.pypi.org/legacy/
-
-      # - uses: actions/upload-artifact@v3
-      #   with:
-      #     path: ./wheelhouse/*.whl
-      #     name: shared-wheel-builds
+          path: ./wheelhouse/*.whl
+          name: shared-wheel-builds-macos-arm
 
   publish-to-testpypi:
     name: Publish Python 🐍 distribution 📦 to TestPyPI (Common Distro)
@@ -155,6 +152,58 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: shared-wheel-builds
+          path: deploy
+
+      - name: Publish distribution 📦 to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: deploy
+          repository-url: https://test.pypi.org/legacy/
+
+  publish-to-testpypi-windows:
+    name: Publish Python 🐍 distribution 📦 to TestPyPI (Common Distro)
+    needs:
+      - build_wheels_windows
+    runs-on: ubuntu-latest
+
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/p/qurry
+
+    permissions:
+      id-token: write # IMPORTANT: mandatory for trusted publishing
+
+    steps:
+      - name: Download all the dists
+        uses: actions/download-artifact@v3
+        with:
+          name: shared-wheel-builds-windows
+          path: deploy
+
+      - name: Publish distribution 📦 to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: deploy
+          repository-url: https://test.pypi.org/legacy/
+
+  publish-to-testpypi-macos-arm:
+    name: Publish Python 🐍 distribution 📦 to TestPyPI (Common Distro)
+    needs:
+      - build_wheels_macos_arm
+    runs-on: ubuntu-latest
+
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/p/qurry
+
+    permissions:
+      id-token: write # IMPORTANT: mandatory for trusted publishing
+
+    steps:
+      - name: Download all the dists
+        uses: actions/download-artifact@v3
+        with:
+          name: shared-wheel-builds-macos-arm
           path: deploy
 
       - name: Publish distribution 📦 to TestPyPI
