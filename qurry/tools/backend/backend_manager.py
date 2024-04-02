@@ -548,6 +548,7 @@ class BackendManager(BackendWrapper):
         token: str,
         *args,
         real_provider_source: RealImportPointType = "qiskit_ibm_provider",
+        overwrite: bool = False,
         **kwargs,
     ) -> None:
         """Save account to Qiskit.
@@ -588,7 +589,7 @@ class BackendManager(BackendWrapper):
             try:
                 from qiskit_ibm_provider import IBMProvider
 
-                IBMProvider.save_account(token=token, **kwargs)
+                IBMProvider.save_account(token=token, overwrite=overwrite, **kwargs)
             except ImportError as err:
                 raise ImportError(
                     "Provider by 'qiskit_ibm_provider' is not available, "
@@ -599,7 +600,7 @@ class BackendManager(BackendWrapper):
             try:
                 from qiskit.providers.ibmq import IBMQ  # type: ignore
 
-                IBMQ.save_account(token=token, **kwargs)
+                IBMQ.save_account(token=token, overwrite=overwrite, **kwargs)
             except ImportError as err:
                 raise ImportError(
                     "Provider by 'qiskit_ibmq_provider' is not available, "
