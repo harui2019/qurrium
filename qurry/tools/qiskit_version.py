@@ -12,7 +12,10 @@ since 1.0.0.
 from collections.abc import Mapping
 from importlib.metadata import distributions
 
-from qiskit import __version__
+from qiskit import __version__ as qiskit_version
+from ..version import __version__
+
+from ..capsule.hoshi import Hoshi
 
 KNOWN_CORE_PACKAGE = {
     "main": [
@@ -46,7 +49,7 @@ class QiskitVersion(Mapping):
 
     def __init__(self):
         self._version_dict = {
-            "qiskit": __version__,
+            "qiskit": qiskit_version,
         }
         self._loaded = False
 
@@ -85,3 +88,58 @@ class QiskitVersion(Mapping):
 
 
 QISKIT_VERSION = QiskitVersion()
+
+
+def qiskit_version_statesheet() -> Hoshi:
+    """Get the version of qiskit and its packages as a statesheet.
+
+    Returns:
+        Hoshi: The statesheet of the version of qiskit and its packages.
+    """
+    item = [
+        ("txt", f"| Qurry version: {__version__}"),
+        ("divider", 44),
+        ("h3", "Qiskit version"),
+    ]
+    for package_type, package_list in KNOWN_CORE_PACKAGE.items():
+        item.append(
+            {
+                "type": "itemize",
+                "description": package_type,
+            }
+        )
+        for package in package_list:
+            pkg_version = QISKIT_VERSION.get(package)
+            if pkg_version:
+                item.append(
+                    {
+                        "type": "itemize",
+                        "description": package,
+                        "value": pkg_version,
+                        "listing_level": 2,
+                        "ljust_description_filler": " ",
+                    }
+                )
+    item.append(("divider", 44))
+
+    if "qiskit-aer-gpu" in QISKIT_VERSION:
+        item.append(
+            {
+                "type": "itemize",
+                "description": "qiskit-aer-gpu"
+                + (
+                    " and qiskit-aer-gpu-cu11"
+                    if "qiskit-aer-gpu-cu11" in QISKIT_VERSION
+                    else ""
+                )
+                + " should have the same version as qiskit-aer.",
+                "listing_itemize": "+",
+                "ljust_description_filler": " ",
+            }
+        )
+        item.append(("divider", 44))
+
+    return Hoshi(item)
+
+
+QISKIT_VERSION_STATESHEET = qiskit_version_statesheet()
