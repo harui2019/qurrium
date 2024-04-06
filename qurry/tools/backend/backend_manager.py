@@ -38,22 +38,18 @@ from ...exceptions import QurryPositionalArgumentNotSupported
 from ...capsule.hoshi import Hoshi
 
 
-class BackendDict(TypedDict):
-    """The dict of backend."""
-
-    real: dict[str, Union[Backend, GeneralBackend, FakeBackend, FakeBackendV2, None]]
-    sim: dict[str, Union[Backend, GeneralBackend, FakeBackend, FakeBackendV2]]
-    fake: dict[str, Union[Backend, FakeBackend, FakeBackendV2, None]]
-    extra: dict[str, Union[Backend, GeneralBackend, FakeBackend, FakeBackendV2, None]]
+BackendDict = dict[
+    Union[Literal["real", "sim", "fake", "extra"], str],
+    dict[str, Union[Backend, GeneralBackend, FakeBackend, FakeBackendV2, any]],
+]
+"""The dict of backend."""
 
 
-class BackendCallSignDict(TypedDict):
-    """The dict of backend callsign."""
-
-    real: dict[str, str]
-    sim: dict[str, str]
-    fake: dict[str, str]
-    extra: dict[str, str]
+BackendCallSignDict = dict[
+    Union[Literal["real", "sim", "fake", "extra"], str],
+    dict[str, str],
+]
+"""The dict of backend callsign."""
 
 
 class ProviderDict(TypedDict):
@@ -177,8 +173,8 @@ def _statesheet_preparings(
             check_msg.newline(
                 {
                     "type": "itemize",
-                    "description": f" callsign: {k}",
-                    "value": f"for: {v}",
+                    "description": f"{k}",
+                    "value": f"{v}",
                     "listing_level": 2,
                 }
             )
@@ -607,5 +603,5 @@ class BackendManager(BackendWrapper):
                     + "but it is a deprecated module, consider to use 'qiskit_ibm_provider'."
                     + "then check installation of 'qiskit-ibmq-provider'."
                 ) from err
-
-        raise ValueError(f"Unknown provider source: {real_default_source}.")
+        else:
+            raise ValueError(f"Unknown provider source: {real_default_source}.")
