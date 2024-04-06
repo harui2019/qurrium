@@ -20,7 +20,6 @@ from typing import Union, Callable, Literal, Optional, overload
 from importlib.metadata import distributions
 import requests
 
-from qiskit import __qiskit_version__
 from qiskit.providers import BackendV1, BackendV2, Backend
 from qiskit.providers.fake_provider import (
     FakeProvider,
@@ -39,6 +38,7 @@ from .import_simulator import (
     VERSION_INFOS as sim_version_infos,
     DEFAULT_SOURCE as sim_default_source,
 )
+from ..qiskit_version import QISKIT_VERSION
 from ..command import pytorch_cuda_check
 from ...capsule.hoshi import Hoshi
 
@@ -171,7 +171,7 @@ def _version_check():
                 }
             )
 
-    for k, v in __qiskit_version__.items():
+    for k, v in QISKIT_VERSION.items():
         check_msg.newline(
             {
                 "type": "itemize",

@@ -15,10 +15,9 @@ Avoiding the import error occurs on different parts of Qurry.
 """
 
 from typing import Union, Literal, Optional, Type
-
-from qiskit import __qiskit_version__
 from qiskit.providers import Backend, Provider
 
+from ..qiskit_version import QISKIT_VERSION
 from ...exceptions import QurryExtraPackageRequired
 
 
@@ -104,7 +103,7 @@ try:
     from qiskit.providers.ibmq import IBMQBackend  # type: ignore
 
     PROVIDER_SOURCES["qiskit_ibmq_provider"] = IBMQ
-    VERSION_INFOS["qiskit_ibmq_provider"] = __qiskit_version__.get(
+    VERSION_INFOS["qiskit_ibmq_provider"] = QISKIT_VERSION.get(
         "qiskit_ibmq_provider"
     )
     BACKEND_SOURCES["qiskit_ibmq_provider"] = IBMQBackend

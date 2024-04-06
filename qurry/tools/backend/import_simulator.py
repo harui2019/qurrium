@@ -16,8 +16,9 @@ Avoiding the import error occurs on different parts of Qurry.
 
 from typing import Literal, Type, Optional
 
-from qiskit import __qiskit_version__
 from qiskit.providers import BackendV1, BackendV2, Backend, Provider
+
+from ..qiskit_version import QISKIT_VERSION
 
 # pylint: disable=ungrouped-imports
 ImportPointType = Literal[
@@ -73,7 +74,7 @@ try:
         QasmSimulatorPy,
     )
 
-    VERSION_INFOS["qiskit.providers.basicaer"] = __qiskit_version__.get("qiskit")
+    VERSION_INFOS["qiskit.providers.basicaer"] = QISKIT_VERSION.get("qiskit")
     SIMULATOR_SOURCES["qiskit.providers.basicaer"] = QasmSimulatorPy
     BACKEND_SOURCES["qiskit.providers.basicaer"] = BackendV1
     PROVIDER_SOURCES["qiskit.providers.basicaer"] = BasicAerProvider
@@ -83,7 +84,7 @@ except ImportError as err:
 try:
     from qiskit.providers.basic_provider import BasicSimulator, BasicProvider  # type: ignore
 
-    VERSION_INFOS["qiskit.providers.basic_provider"] = __qiskit_version__.get("qiskit")
+    VERSION_INFOS["qiskit.providers.basic_provider"] = QISKIT_VERSION.get("qiskit")
     SIMULATOR_SOURCES["qiskit.providers.basic_provider"] = BasicSimulator
     BACKEND_SOURCES["qiskit.providers.basic_provider"] = BackendV2
     PROVIDER_SOURCES["qiskit.providers.basic_provider"] = BasicProvider
