@@ -139,7 +139,7 @@ def qiskit_version_statesheet() -> Hoshi:
         )
         item.append(("divider", 44))
 
-    return Hoshi(item)
+    return Hoshi(item, ljust_description_filler=".")
 
 
 QISKIT_VERSION_STATESHEET = qiskit_version_statesheet()

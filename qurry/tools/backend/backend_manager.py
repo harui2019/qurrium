@@ -77,6 +77,7 @@ def _statesheet_preparings(
                 "type": "itemize",
                 "description": "Aer GPU",
                 "value": is_aer_gpu,
+                "ljust_description_filler": ".",
             }
         )
         check_msg.newline(
@@ -388,6 +389,7 @@ class BackendWrapper:
                 ("h3", "BackendWrapper Statesheet"),
             ],
             ljust_description_len=35,
+            ljust_description_filler=".",
         )
 
         for desc, backs, backs_callsign in [

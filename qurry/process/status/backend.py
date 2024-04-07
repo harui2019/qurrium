@@ -42,7 +42,7 @@ def availability_status_print() -> (
             "description": "Backend Availability",
             "value": " ".join([f"{bt}".ljust(6) for bt in BACKEND_TYPES]),
             "listing_level": 2,
-            "ljust_description_filler": " ",
+            "ljust_description_filler": ".",
         },
     ]
     availability_status = {}
