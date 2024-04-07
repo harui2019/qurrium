@@ -117,7 +117,7 @@ def qiskit_version_statesheet() -> Hoshi:
                         "description": package,
                         "value": pkg_version,
                         "listing_level": 2,
-                        "ljust_description_filler": " ",
+                        "ljust_description_filler": ".",
                     }
                 )
     item.append(("divider", 44))
@@ -134,7 +134,7 @@ def qiskit_version_statesheet() -> Hoshi:
                 )
                 + " should have the same version as qiskit-aer.",
                 "listing_itemize": "+",
-                "ljust_description_filler": " ",
+                "ljust_description_filler": ".",
             }
         )
         item.append(("divider", 44))

@@ -84,6 +84,7 @@ def _statesheet_preparings(
                 "type": "itemize",
                 "description": "Simulator Provider by",
                 "value": sim_default_source,
+                "ljust_description_filler": ".",
             }
         )
     elif "IBM" in desc:
@@ -97,6 +98,7 @@ def _statesheet_preparings(
                         if real_default_source
                         else "Not available, please install them first."
                     ),
+                    "ljust_description_filler": ".",
                 }
             )
     elif "Fake" in desc:
@@ -110,6 +112,7 @@ def _statesheet_preparings(
                         if isinstance(fake_provider, FakeProviderForBackendV2)
                         else "FackBackendV1"
                     ),
+                    "ljust_description_filler": ".",
                 }
             )
         check_msg.newline(
@@ -176,6 +179,7 @@ def _statesheet_preparings(
                     "description": f"{k}",
                     "value": f"{v}",
                     "listing_level": 2,
+                    "ljust_description_filler": ".",
                 }
             )
 
