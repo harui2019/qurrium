@@ -20,7 +20,7 @@ from typing import Union, Callable, Literal, Optional, overload
 from importlib.metadata import distributions
 import requests
 
-from qiskit.providers import BackendV1, BackendV2, Backend
+from qiskit.providers import BackendV1, BackendV2, Backend, Provider
 from qiskit.providers.fake_provider import (
     FakeProvider,
     FakeProviderForBackendV2,
@@ -32,7 +32,6 @@ from qiskit.providers.models import QasmBackendConfiguration
 from .import_ibm import (
     VERSION_INFOS as real_version_infos,
     DEFAULT_SOURCE as real_default_source,
-    RealProviderType,
 )
 from .import_simulator import (
     VERSION_INFOS as sim_version_infos,
@@ -252,19 +251,19 @@ def real_backend_loader(
 
 @overload
 def real_backend_loader(
-    real_provider: RealProviderType,
-) -> tuple[dict[str, str], dict[str, Backend], RealProviderType]: ...
+    real_provider: Provider,
+) -> tuple[dict[str, str], dict[str, Backend], Provider]: ...
 
 
 def real_backend_loader(real_provider=None):
     """Load the real backend.
 
     Args:
-        real_provider (Optional[RealProviderType], optional):
+        real_provider (Optional[Provider], optional):
             The real provider. Defaults to None.
 
     Returns:
-        tuple[dict[str, str], dict[str, Backend], Optional[RealProviderType]]:
+        tuple[dict[str, str], dict[str, Backend], Optional[Provider]]:
             The callsign of real backend,
             the real backend dict,
             the real provider.

@@ -500,6 +500,23 @@ class BackendManager(BackendWrapper):
                     "Provider by 'qiskit_ibm_provider' is not available, "
                     + "check installation of 'qiskit-ibm-provider' first."
                 ) from err
+
+        elif real_provider_source == "qiskit_ibm_runtime":
+            print("| Provider by 'qiskit_ibm_runtime'.")
+            try:
+                from qiskit_ibm_runtime import QiskitRuntimeService
+
+                new_provider = QiskitRuntimeService(instance=self.instance)
+                super().__init__(
+                    real_provider=new_provider,
+                    fake_version=fake_version,
+                )
+            except ImportError as err:
+                raise ImportError(
+                    "Provider by 'qiskit_ibm_runtime' is not available, "
+                    + "check installation of 'qiskit-ibm-runtime' first."
+                ) from err
+
         elif real_provider_source == "qiskit_ibmq_provider":
             print("| Provider by 'qiskit.providers.ibmq', which will be deprecated.")
             try:
@@ -516,12 +533,16 @@ class BackendManager(BackendWrapper):
             except ImportError as err:
                 raise ImportError(
                     "Provider by 'qiskit_ibmq_provider' is not available, "
-                    + "but it is a deprecated module, consider to use 'qiskit_ibm_provider'."
+                    + "but it is a deprecated module, "
+                    + "consider to use 'qiskit_ibm_provider' or 'qiskit-ibm-runtime'."
                     + "then check installation of 'qiskit-ibmq-provider'."
                 ) from err
 
         else:
-            print("| No IBM or IBMQ provider available.")
+            print(
+                "| No any IBM devices provider is available,"
+                + " pip install 'qiskit-ibm-provider' or 'qiskit-ibm-runtime'."
+            )
             super().__init__(
                 real_provider=None,
                 fake_version=fake_version,
@@ -549,33 +570,19 @@ class BackendManager(BackendWrapper):
     def save_account(
         token: str,
         *args,
-        real_provider_source: RealImportPointType = "qiskit_ibm_provider",
+        real_provider_source: Optional[RealImportPointType] = real_default_source,
         overwrite: bool = False,
         **kwargs,
     ) -> None:
         """Save account to Qiskit.
 
-        (The following is copied from :func:`qiskit_ibmq_provider.IBMProvider.save_account`)
         Args:
-            useIBMProvider:
-                Using provider by 'qiskit_ibm_provider' instead of 'qiskit.providers.ibmq'.
             token:
                 IBM Quantum API token.
             url: The API URL.
                 Defaults to https://auth.quantum-computing.ibm.com/api
-            instance:
-                The hub/group/project.
-            name:
-                Name of the account to save.
-            proxies:
-                Proxy configuration. Supported optional keys are ``urls``
-                (a dictionary mapping protocol or protocol
-                and host to the URL of the proxy, documented at
-                https://docs.python-requests.org/en/latest/api/#requests.Session.proxies),
-                ``username_ntlm``, ``password_ntlm`` (username and password to enable NTLM user
-                authentication)
-            verify:
-                Verify the server's TLS certificate.
+            real_provider_source:
+                The source of provider. Defaults to real_default_source.
             overwrite:
                 ``True`` if the existing account is to be overwritten.
 
@@ -609,5 +616,35 @@ class BackendManager(BackendWrapper):
                     + "but it is a deprecated module, consider to use 'qiskit_ibm_provider'."
                     + "then check installation of 'qiskit-ibmq-provider'."
                 ) from err
+
+        elif real_provider_source == "qiskit_ibm_runtime":
+            try:
+                from qiskit_ibm_runtime import QiskitRuntimeService
+
+                QiskitRuntimeService.save_account(
+                    token=token, overwrite=overwrite, **kwargs
+                )
+
+            except ImportError as err:
+                raise ImportError(
+                    "Provider by 'qiskit_ibm_runtime' is not available, "
+                    + "check installation of 'qiskit-ibm-runtime' first."
+                ) from err
+
+        elif real_provider_source is None:
+            raise ValueError(
+                (
+                    "We did not detect any provider source"
+                    if real_default_source is None
+                    else "Please choose one of the source of provider"
+                )
+                + ", such as 'qiskit_ibm_provider', 'qiskit_ibm_runtime', or 'qiskit_ibmq_provider'"
+                + (
+                    ", check your installation."
+                    if real_default_source is None
+                    else "to save account to specific provider."
+                )
+            )
+
         else:
             raise ValueError(f"Unknown provider source: {real_default_source}.")
