@@ -71,7 +71,7 @@ try:
         FakeProvider as FakeProviderIndep,  # type: ignore
         FakeProviderForBackendV2 as FakeProviderForBackendV2Indep,  # type: ignore
     )
-    from qiskit_ibm_runtime.fake_provider.fake_backend import (
+    from qiskit_ibm_runtime.fake_provider.fake_backend import ( # type: ignore
         FakeBackend as FakeBackendIndep,  # type: ignore
         FakeBackendV2 as FakeBackendV2Indep,  # type: ignore
     )
