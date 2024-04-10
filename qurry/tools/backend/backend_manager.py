@@ -585,6 +585,9 @@ class BackendManager(BackendWrapper):
                 The source of provider. Defaults to real_default_source.
             overwrite:
                 ``True`` if the existing account is to be overwritten.
+                Defaults to ``False``.
+            **kwargs:
+                Additional parameters for saving account.
 
         """
         if len(args) > 0:
