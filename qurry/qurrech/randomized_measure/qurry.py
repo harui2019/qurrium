@@ -203,8 +203,24 @@ class EchoRandomizedListen(QurryPrototype):
                 f"Preparing {args.times} random unitary with {args.workers_num} workers."
             )
 
+        # !Warning: DO NOT USE MULTI-PROCESSING HERE !!!!!
+        # See https://github.com/numpy/numpy/issues/9650
+        # And https://github.com/harui2019/qurry/issues/78
+        # The random seed will be duplicated in each process,
+        # and it will make duplicated result.
+        # unitaryList = pool.starmap(
+        #     local_random_unitary, [(args.unitary_loc, None) for _ in range(args.times)])
+
         if args.unitary_loc is None:
             actual_unitary_loc = (0, circuit.num_qubits)
+            warnings.warn(
+                f"| unitary_loc is not specified, using the whole qubits {actual_unitary_loc},"
+                + " but it should be not None anymore here.",
+                QurryArgumentsExpectedNotNone,
+            )
+        else:
+            actual_unitary_loc = args.unitary_loc
+
         unitary_dict = {
             i: {j: random_unitary(2) for j in range(*actual_unitary_loc)}
             for i in range(args.times)

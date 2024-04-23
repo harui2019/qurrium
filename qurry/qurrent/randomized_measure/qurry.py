@@ -205,7 +205,7 @@ class EntropyRandomizedMeasure(QurryPrototype):
                 f"Preparing {args.times} random unitary with {args.workers_num} workers."
             )
 
-        # DO NOT USE MULTI-PROCESSING HERE !!!!!
+        # !Warning: DO NOT USE MULTI-PROCESSING HERE !!!!!
         # See https://github.com/numpy/numpy/issues/9650
         # And https://github.com/harui2019/qurry/issues/78
         # The random seed will be duplicated in each process,
@@ -220,6 +220,9 @@ class EntropyRandomizedMeasure(QurryPrototype):
                 + " but it should be not None anymore here.",
                 QurryArgumentsExpectedNotNone,
             )
+        else:
+            actual_unitary_loc = args.unitary_loc
+
         unitary_dict = {
             i: {j: random_unitary(2) for j in range(*actual_unitary_loc)}
             for i in range(args.times)
