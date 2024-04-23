@@ -9,6 +9,7 @@ It is only for pendings and retrieve to remote backend.
 from typing import Union, Optional, Hashable, Iterable, Any, Type
 from pathlib import Path
 import tqdm
+import warnings
 
 from qiskit import QuantumCircuit
 
@@ -29,7 +30,7 @@ class WavesExecuter(QurryPrototype):
 
     def params_control(
         self,
-        wave_key: Hashable = None,
+        wave_key: Optional[Hashable] = None,
         exp_name: str = "exps",
         waves: Optional[list[Hashable]] = None,
         **other_kwargs: Any,
@@ -60,21 +61,27 @@ class WavesExecuter(QurryPrototype):
         """
         if waves is None:
             waves = []
+        if wave_key is not None:
+            warnings.warn(
+                "| The `wave_key` is not used in this class. "
+                + "Please use `waves` instead.",
+            )
 
         for w in waves:
             if not self.has(w):
                 raise ValueError(f"| The wave '{w}' is not in `.waves`.")
 
         if len(waves) > 0:
-            wave_key = waves[-1]
+            represent_wave_key = waves[-1]
         else:
             raise ValueError(
-                "| This is Qurry required multiple waves gvien in `waves` to be measured."
+                "| This is WavesExecuter required multiple waves gvien"
+                + "in parameter `waves` to be measured."
             )
 
         return self.experiment.filter(
             exp_name=exp_name,
-            wave_key=wave_key,
+            wave_key=represent_wave_key,
             waves=waves,
             **other_kwargs,
         )

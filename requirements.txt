@@ -1,6 +1,7 @@
 # qiskit main
 qiskit<1.0.0
 # qiskit-aer>=0.10.4
+qiskit-ibm-runtime<0.18.0
 requests
 
 # qiskit-aer-gpu ; platform_system=='Linux' and python_version<='3.9'

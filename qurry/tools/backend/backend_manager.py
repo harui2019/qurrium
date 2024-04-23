@@ -12,48 +12,35 @@ from random import random
 from typing import Optional, Union, Literal, TypedDict
 
 from qiskit.providers import Backend, Provider
-from qiskit.providers.fake_provider import (
-    FakeProvider,
-    FakeProviderForBackendV2,
-    FakeBackend,
-    FakeBackendV2,
-)
 
-from .import_manage import (
-    backend_name_getter,
-    real_backend_loader,
-    fack_backend_loader,
-    shorten_name,
-)
+from .utils import backend_name_getter, shorten_name
 from .import_simulator import (
     GeneralBackend,
     GeneralProvider,
-    DEFAULT_SOURCE as sim_default_source,
+    SIM_DEFAULT_SOURCE as sim_default_source,
 )
+from .import_fake import fack_backend_loader
 from .import_ibm import (
-    DEFAULT_SOURCE as real_default_source,
+    REAL_DEFAULT_SOURCE as real_default_source,
     ImportPointType as RealImportPointType,
+    real_backend_loader,
 )
 from ...exceptions import QurryPositionalArgumentNotSupported
 from ...capsule.hoshi import Hoshi
 
 
-class BackendDict(TypedDict):
-    """The dict of backend."""
-
-    real: dict[str, Union[Backend, GeneralBackend, FakeBackend, FakeBackendV2, None]]
-    sim: dict[str, Union[Backend, GeneralBackend, FakeBackend, FakeBackendV2]]
-    fake: dict[str, Union[Backend, FakeBackend, FakeBackendV2, None]]
-    extra: dict[str, Union[Backend, GeneralBackend, FakeBackend, FakeBackendV2, None]]
+BackendDict = dict[
+    Union[Literal["real", "sim", "fake", "extra"], str],
+    dict[str, Union[Backend, GeneralBackend, any]],
+]
+"""The dict of backend."""
 
 
-class BackendCallSignDict(TypedDict):
-    """The dict of backend callsign."""
-
-    real: dict[str, str]
-    sim: dict[str, str]
-    fake: dict[str, str]
-    extra: dict[str, str]
+BackendCallSignDict = dict[
+    Union[Literal["real", "sim", "fake", "extra"], str],
+    dict[str, str],
+]
+"""The dict of backend callsign."""
 
 
 class ProviderDict(TypedDict):
@@ -61,7 +48,7 @@ class ProviderDict(TypedDict):
 
     real: Union[Provider, None]
     sim: GeneralProvider
-    fake: Union[FakeProvider, FakeProviderForBackendV2, None]
+    fake: Union[Provider, None]
 
 
 def _statesheet_preparings(
@@ -70,7 +57,7 @@ def _statesheet_preparings(
     backs: list[str],
     backs_callsign: dict[str, str],
     is_aer_gpu: bool,
-    fake_provider: Union[FakeProvider, FakeProviderForBackendV2, None],
+    fake_version: Union[Literal["v1", "v2"], None],
 ):
     backs_len = len(backs)
     check_msg.divider()
@@ -81,6 +68,7 @@ def _statesheet_preparings(
                 "type": "itemize",
                 "description": "Aer GPU",
                 "value": is_aer_gpu,
+                "ljust_description_filler": ".",
             }
         )
         check_msg.newline(
@@ -88,6 +76,7 @@ def _statesheet_preparings(
                 "type": "itemize",
                 "description": "Simulator Provider by",
                 "value": sim_default_source,
+                "ljust_description_filler": ".",
             }
         )
     elif "IBM" in desc:
@@ -101,19 +90,19 @@ def _statesheet_preparings(
                         if real_default_source
                         else "Not available, please install them first."
                     ),
+                    "ljust_description_filler": ".",
                 }
             )
     elif "Fake" in desc:
-        if fake_provider:
+        if fake_version is not None:
             check_msg.newline(
                 {
                     "type": "itemize",
                     "description": "Fake Provider by",
                     "value": (
-                        "FackBackendV2"
-                        if isinstance(fake_provider, FakeProviderForBackendV2)
-                        else "FackBackendV1"
+                        "FakeProviderV2" if fake_version == "v2" else "FakeProvider"
                     ),
+                    "ljust_description_filler": ".",
                 }
             )
         check_msg.newline(
@@ -177,9 +166,10 @@ def _statesheet_preparings(
             check_msg.newline(
                 {
                     "type": "itemize",
-                    "description": f" callsign: {k}",
-                    "value": f"for: {v}",
+                    "description": f"{k}",
+                    "value": f"{v}",
                     "listing_level": 2,
+                    "ljust_description_filler": ".",
                 }
             )
 
@@ -224,6 +214,7 @@ class BackendWrapper:
         fake_version: Union[Literal["v1", "v2"], None] = None,
     ) -> None:
         self.is_aer_gpu = False
+        self.fake_version: Union[Literal["v1", "v2"], None] = fake_version
         self._providers: ProviderDict = {
             "sim": GeneralProvider(),
             "real": None,
@@ -292,16 +283,14 @@ class BackendWrapper:
             self.backend_dict["fake"],
             self._providers["fake"],
         ) = fack_backend_loader(fake_version)
+        if self._providers is None:
+            self.fake_version = None
 
     def __repr__(self):
         repr_str = f"<{self.__class__.__name__}("
         repr_str += f'sim="{sim_default_source}", '
         fakeprovider_repr = (
-            (
-                "FakeProviderV2"
-                if isinstance(self._providers["fake"], FakeProviderForBackendV2)
-                else "FakeProvider"
-            )
+            ("FakeProviderV2" if self.fake_version == "v2" else "FakeProvider")
             if self._providers["fake"]
             else None
         )
@@ -388,6 +377,7 @@ class BackendWrapper:
                 ("h3", "BackendWrapper Statesheet"),
             ],
             ljust_description_len=35,
+            ljust_description_filler=".",
         )
 
         for desc, backs, backs_callsign in [
@@ -406,7 +396,7 @@ class BackendWrapper:
                 backs,
                 backs_callsign,
                 self.is_aer_gpu,
-                self._providers["fake"],
+                self.fake_version,
             )
 
         return check_msg
@@ -498,6 +488,23 @@ class BackendManager(BackendWrapper):
                     "Provider by 'qiskit_ibm_provider' is not available, "
                     + "check installation of 'qiskit-ibm-provider' first."
                 ) from err
+
+        elif real_provider_source == "qiskit_ibm_runtime":
+            print("| Provider by 'qiskit_ibm_runtime'.")
+            try:
+                from qiskit_ibm_runtime import QiskitRuntimeService
+
+                new_provider = QiskitRuntimeService(instance=self.instance)
+                super().__init__(
+                    real_provider=new_provider,
+                    fake_version=fake_version,
+                )
+            except ImportError as err:
+                raise ImportError(
+                    "Provider by 'qiskit_ibm_runtime' is not available, "
+                    + "check installation of 'qiskit-ibm-runtime' first."
+                ) from err
+
         elif real_provider_source == "qiskit_ibmq_provider":
             print("| Provider by 'qiskit.providers.ibmq', which will be deprecated.")
             try:
@@ -514,12 +521,16 @@ class BackendManager(BackendWrapper):
             except ImportError as err:
                 raise ImportError(
                     "Provider by 'qiskit_ibmq_provider' is not available, "
-                    + "but it is a deprecated module, consider to use 'qiskit_ibm_provider'."
+                    + "but it is a deprecated module, "
+                    + "consider to use 'qiskit_ibm_provider' or 'qiskit-ibm-runtime'."
                     + "then check installation of 'qiskit-ibmq-provider'."
                 ) from err
 
         else:
-            print("| No IBM or IBMQ provider available.")
+            print(
+                "| No any IBM devices provider is available,"
+                + " pip install 'qiskit-ibm-provider' or 'qiskit-ibm-runtime'."
+            )
             super().__init__(
                 real_provider=None,
                 fake_version=fake_version,
@@ -531,11 +542,7 @@ class BackendManager(BackendWrapper):
         repr_str += f'real="{real_default_source}", '
         repr_str += f'instance="{self.instance}", '
         fakeprovider_repr = (
-            (
-                "FakeProviderV2"
-                if isinstance(self._providers["fake"], FakeProviderForBackendV2)
-                else "FakeProvider"
-            )
+            ("FakeProviderV2" if self.fake_version == "v2" else "FakeProvider")
             if self._providers["fake"]
             else None
         )
@@ -547,34 +554,24 @@ class BackendManager(BackendWrapper):
     def save_account(
         token: str,
         *args,
-        real_provider_source: RealImportPointType = "qiskit_ibm_provider",
+        real_provider_source: Optional[RealImportPointType] = real_default_source,
+        overwrite: bool = False,
         **kwargs,
     ) -> None:
         """Save account to Qiskit.
 
-        (The following is copied from :func:`qiskit_ibmq_provider.IBMProvider.save_account`)
         Args:
-            useIBMProvider:
-                Using provider by 'qiskit_ibm_provider' instead of 'qiskit.providers.ibmq'.
             token:
                 IBM Quantum API token.
             url: The API URL.
                 Defaults to https://auth.quantum-computing.ibm.com/api
-            instance:
-                The hub/group/project.
-            name:
-                Name of the account to save.
-            proxies:
-                Proxy configuration. Supported optional keys are ``urls``
-                (a dictionary mapping protocol or protocol
-                and host to the URL of the proxy, documented at
-                https://docs.python-requests.org/en/latest/api/#requests.Session.proxies),
-                ``username_ntlm``, ``password_ntlm`` (username and password to enable NTLM user
-                authentication)
-            verify:
-                Verify the server's TLS certificate.
+            real_provider_source:
+                The source of provider. Defaults to real_default_source.
             overwrite:
                 ``True`` if the existing account is to be overwritten.
+                Defaults to ``False``.
+            **kwargs:
+                Additional parameters for saving account.
 
         """
         if len(args) > 0:
@@ -588,7 +585,7 @@ class BackendManager(BackendWrapper):
             try:
                 from qiskit_ibm_provider import IBMProvider
 
-                IBMProvider.save_account(token=token, **kwargs)
+                IBMProvider.save_account(token=token, overwrite=overwrite, **kwargs)
             except ImportError as err:
                 raise ImportError(
                     "Provider by 'qiskit_ibm_provider' is not available, "
@@ -599,7 +596,7 @@ class BackendManager(BackendWrapper):
             try:
                 from qiskit.providers.ibmq import IBMQ  # type: ignore
 
-                IBMQ.save_account(token=token, **kwargs)
+                IBMQ.save_account(token=token, overwrite=overwrite, **kwargs)
             except ImportError as err:
                 raise ImportError(
                     "Provider by 'qiskit_ibmq_provider' is not available, "
@@ -607,4 +604,34 @@ class BackendManager(BackendWrapper):
                     + "then check installation of 'qiskit-ibmq-provider'."
                 ) from err
 
-        raise ValueError(f"Unknown provider source: {real_default_source}.")
+        elif real_provider_source == "qiskit_ibm_runtime":
+            try:
+                from qiskit_ibm_runtime import QiskitRuntimeService
+
+                QiskitRuntimeService.save_account(
+                    token=token, overwrite=overwrite, **kwargs
+                )
+
+            except ImportError as err:
+                raise ImportError(
+                    "Provider by 'qiskit_ibm_runtime' is not available, "
+                    + "check installation of 'qiskit-ibm-runtime' first."
+                ) from err
+
+        elif real_provider_source is None:
+            raise ValueError(
+                (
+                    "We did not detect any provider source"
+                    if real_default_source is None
+                    else "Please choose one of the source of provider"
+                )
+                + ", such as 'qiskit_ibm_provider', 'qiskit_ibm_runtime', or 'qiskit_ibmq_provider'"
+                + (
+                    ", check your installation."
+                    if real_default_source is None
+                    else "to save account to specific provider."
+                )
+            )
+
+        else:
+            raise ValueError(f"Unknown provider source: {real_default_source}.")
