@@ -6,9 +6,11 @@ on:
       - pre-release
     tags:
       - "*.[0-9]+.[0-9]+.dev[0-9]+"
+    
 
 jobs:
   build_wheels:
+    if: github.repository == 'harui2019/qurry'
     name: Build wheels on ${{ matrix.os }} of x86 series
     runs-on: ${{ matrix.os }}
 
@@ -48,6 +50,7 @@ jobs:
           name: shared-wheel-builds
 
   build_wheels_windows:
+    if: github.repository == 'harui2019/qurry'
     name: Build wheels on ${{ matrix.os }} of x86 series
     runs-on: ${{ matrix.os }}
 
@@ -89,6 +92,7 @@ jobs:
           name: shared-wheel-builds-windows
 
   build_wheels_macos_arm:
+    if: github.repository == 'harui2019/qurry'
     name: Build wheels on macOS (${{ matrix.os }}) of arm64
     runs-on: ${{ matrix.os }}
 
@@ -134,6 +138,7 @@ jobs:
           name: shared-wheel-builds-macos-arm
 
   publish-to-testpypi:
+    if: github.repository == 'harui2019/qurry'
     name: Publish Python 🐍 distribution 📦 to TestPyPI (Common Distro)
     needs:
       - build_wheels
@@ -161,7 +166,8 @@ jobs:
           repository-url: https://test.pypi.org/legacy/
 
   publish-to-testpypi-windows:
-    name: Publish Python 🐍 distribution 📦 to TestPyPI (Common Distro)
+    if: github.repository == 'harui2019/qurry'
+    name: Publish Python 🐍 distribution 📦 to TestPyPI (Windows)
     needs:
       - build_wheels_windows
     runs-on: ubuntu-latest
@@ -187,7 +193,8 @@ jobs:
           repository-url: https://test.pypi.org/legacy/
 
   publish-to-testpypi-macos-arm:
-    name: Publish Python 🐍 distribution 📦 to TestPyPI (Common Distro)
+    if: github.repository == 'harui2019/qurry'
+    name: Publish Python 🐍 distribution 📦 to TestPyPI (MacOS ARM)
     needs:
       - build_wheels_macos_arm
     runs-on: ubuntu-latest
@@ -213,6 +220,7 @@ jobs:
           repository-url: https://test.pypi.org/legacy/
 
   # build_wheels_aarch64:
+  #   if: github.repository == 'harui2019/qurry'
   #   name: Build wheels on ${{ matrix.os }} of aarch64
   #   runs-on: ${{ matrix.os }}
 
@@ -258,6 +266,7 @@ jobs:
   #         repository-url: https://test.pypi.org/legacy/
 
   # sdist:
+  #   if: github.repository == 'harui2019/qurry'
   #   name: Build and publish sdist
   #   runs-on: ${{ matrix.os }}
   #   needs: ["publish-to-testpypi"]
