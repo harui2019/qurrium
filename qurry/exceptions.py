@@ -100,3 +100,7 @@ class QurryDummyRunnerWarning(QurryWarning):
 
 class QurryHashIDInvalid(QurryWarning):
     """Hash ID invalid warning."""
+
+
+class QurryArgumentsExpectedNotNone(QurryWarning):
+    """Arguments expected not None warning."""

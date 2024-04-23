@@ -8,6 +8,7 @@ Wave Function Overlap - Randomized Measurement
 
 from pathlib import Path
 from typing import Union, Optional, Hashable, Any, Type
+import warnings
 import tqdm
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
@@ -23,6 +24,7 @@ from ...qurrium.utils.randomized import (
 )
 from ...process.utils import qubit_selector
 from ...tools import ParallelManager
+from ...exceptions import QurryArgumentsExpectedNotNone
 
 
 def circuit_method_core(
@@ -87,7 +89,7 @@ class EchoRandomizedListen(QurryPrototype):
         self,
         wave_key: Hashable = None,
         wave_key_2: Union[Hashable, QuantumCircuit] = None,
-        exp_name: str = "exps",
+        exp_name: Optional[str] = None,
         times: int = 100,
         measure: Union[tuple[int, int], int, None] = None,
         unitary_loc: Union[tuple[int, int], int, None] = None,
@@ -167,10 +169,14 @@ class EchoRandomizedListen(QurryPrototype):
                 f"unitary_loc range '{unitary_loc}' does not contain measure range '{measure}'."
             )
 
-        exp_name = f"w={wave_key}+{wave_key_2}.with{times}random.{self.shortName}"
+        actual_exp_name = (
+            f"w={wave_key}+{wave_key_2}.with{times}random.{self.shortName}"
+            if exp_name is None
+            else exp_name
+        )
 
         return self.experiment.filter(
-            exp_name=exp_name,
+            exp_name=actual_exp_name,
             wave_key=wave_key,
             wave_key_2=wave_key_2,
             times=times,
@@ -197,8 +203,10 @@ class EchoRandomizedListen(QurryPrototype):
                 f"Preparing {args.times} random unitary with {args.workers_num} workers."
             )
 
+        if args.unitary_loc is None:
+            actual_unitary_loc = (0, circuit.num_qubits)
         unitary_dict = {
-            i: {j: random_unitary(2) for j in range(*args.unitary_loc)}
+            i: {j: random_unitary(2) for j in range(*actual_unitary_loc)}
             for i in range(args.times)
         }
 
@@ -233,9 +241,12 @@ class EchoRandomizedListen(QurryPrototype):
                 for i in range(args.times)
             ],
         )
-        if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str(
-                f"Writing 'unitaryOP' with {args.workers_num} workers."
+        if args.unitary_loc is None:
+            actual_unitary_loc = (0, circuit.num_qubits)
+            warnings.warn(
+                f"| unitary_loc is not specified, using the whole qubits {actual_unitary_loc},"
+                + " but it should be not None anymore here.",
+                QurryArgumentsExpectedNotNone,
             )
         unitary_operator_list = pool.starmap(
             local_random_unitary_operators,

@@ -8,6 +8,7 @@ Second Renyi Entropy - Randomized Measurement
 
 from pathlib import Path
 from typing import Union, Optional, Hashable, Any, Type
+import warnings
 import tqdm
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
@@ -23,6 +24,7 @@ from ...qurrium.utils.randomized import (
 )
 from ...process.utils import qubit_selector
 from ...tools import ParallelManager
+from ...exceptions import QurryArgumentsExpectedNotNone
 
 
 def circuit_method_core(
@@ -116,7 +118,7 @@ class EntropyRandomizedMeasure(QurryPrototype):
     def params_control(
         self,
         wave_key: Hashable = None,
-        exp_name: str = "exps",
+        exp_name: Optional[str] = None,
         times: int = 100,
         measure: Optional[Union[tuple[int, int], int]] = None,
         unitary_loc: Optional[Union[tuple[int, int], int]] = None,
@@ -168,10 +170,14 @@ class EntropyRandomizedMeasure(QurryPrototype):
                 f"unitary_loc range '{unitary_loc}' does not contain measure range '{measure}'."
             )
 
-        exp_name = f"w={wave_key}.with{times}random.{self.shortName}"
+        actual_exp_name = (
+            f"w={wave_key}.with{times}random.{self.shortName}"
+            if exp_name is None
+            else exp_name
+        )
 
         return self.experiment.filter(
-            exp_name=exp_name,
+            exp_name=actual_exp_name,
             wave_key=wave_key,
             times=times,
             measure=measure,
@@ -207,8 +213,15 @@ class EntropyRandomizedMeasure(QurryPrototype):
         # unitaryList = pool.starmap(
         #     local_random_unitary, [(args.unitary_loc, None) for _ in range(args.times)])
 
+        if args.unitary_loc is None:
+            actual_unitary_loc = (0, circuit.num_qubits)
+            warnings.warn(
+                f"| unitary_loc is not specified, using the whole qubits {actual_unitary_loc},"
+                + " but it should be not None anymore here.",
+                QurryArgumentsExpectedNotNone,
+            )
         unitary_dict = {
-            i: {j: random_unitary(2) for j in range(*args.unitary_loc)}
+            i: {j: random_unitary(2) for j in range(*actual_unitary_loc)}
             for i in range(args.times)
         }
 
