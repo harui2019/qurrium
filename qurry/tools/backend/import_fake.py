@@ -10,10 +10,12 @@ Avoiding the import error occurs on different parts of Qurry.
 """
 
 from typing import Literal, Type, Union, Optional, overload
+import warnings
 
 from qiskit.providers import BackendV2, BackendV1, Backend
 
 from .utils import backend_name_getter, shorten_name
+from ...exceptions import QurryDependenciesNotWorking, QurryDependenciesFailureError
 
 # pylint: disable=ungrouped-imports
 ImportPointType = Literal[
@@ -66,12 +68,19 @@ except ImportError as err:
     FAKE_PROVIDER_SOURCES["qiskit.providers.fake_provider"] = None
     FAKE_PROVIDERFORV2_SOURCES["qiskit.providers.fake_provider"] = None
 
+QISKIT_IBM_RUNTIME_ISSUE_1318 = """
+"The version of 'qiskit-ibm-runtime' is 0.18.0, 
+FackBackend is not working in this version for this issue: 
+https://github.com/Qiskit/qiskit-ibm-runtime/issues/1318.
+You need to change the version of 'qiskit-ibm-runtime' to access FakeBackend
+"""
+
 try:
     from qiskit_ibm_runtime.fake_provider import (
         FakeProvider as FakeProviderIndep,  # type: ignore
         FakeProviderForBackendV2 as FakeProviderForBackendV2Indep,  # type: ignore
     )
-    from qiskit_ibm_runtime.fake_provider.fake_backend import ( # type: ignore
+    from qiskit_ibm_runtime.fake_provider.fake_backend import (  # type: ignore
         FakeBackend as FakeBackendIndep,  # type: ignore
         FakeBackendV2 as FakeBackendV2Indep,  # type: ignore
     )
@@ -84,6 +93,11 @@ try:
         FakeProviderForBackendV2Indep
     )
     FAKE_VERSION_INFOS["qiskit_ibm_runtime.fake_provider"] = qiskit_ibm_runtime_version
+    if qiskit_ibm_runtime_version.split(".")[1] == "18":
+        warnings.warn(
+            QISKIT_IBM_RUNTIME_ISSUE_1318,
+            category=QurryDependenciesNotWorking,
+        )
 
 
 except ImportError as err:
@@ -105,21 +119,24 @@ def get_default_fake_provider() -> Optional[ImportPointType]:
 FAKE_DEFAULT_SOURCE: Optional[ImportPointType] = get_default_fake_provider()
 
 
-LUCKY_MSG = (
-    "No fake provider available for version conflict. "
-    + "If you are still using qiskit 0.46.X and lower originally, "
-    + "then install newer qiskit-ibm-runtime at same time, "
-    + "please check whether the version of qiskit "
-    + "has been updated to 1.0 by the installation "
-    + "because since qiskit-ibm-runtime 0.18.0 "
-    + "has been updated its dependency to qiskit 1.0. "
-    + "If you already have qiskit-ibm-runtimes installed and lower than 0.18.0, "
-    + "it is only available to use qiskit 0.46.X as dependency "
-    + "for the migration of fake_provider is not completed around this version. "
-    + "Many of the fake backends are not available in qiskit-ibm-runtime. "
-    + "(This made me a lot problem to handle the fake backends in Qurry.) "
-    + "(If you see this error raised, good luck to you to fix environment. :smile:.)"
-)
+LUCKY_MSG = """
+No fake provider available for version conflict.
+For qiskit<1.0.0 please install qiskit-ibm-runtime<0.21.0 by
+'pip install qiskit-ibm-runtime<0.21.0'.
+More infomation can be found in https://github.com/harui2019/qurry/wiki/Qiskit-Version-Choosing.
+If you are still using qiskit 0.46.X and lower originally,
+then install newer qiskit-ibm-runtime at same time,
+please check whether the version of qiskit
+has been updated to 1.0 by the installation
+because since qiskit-ibm-runtime 0.21.0+
+has been updated its dependency to qiskit 1.0.
+If you already have qiskit-ibm-runtimes installed and lower than 0.21.0,
+it is only available to use qiskit 0.46.X as dependency
+for the migration of fake_provider is not completed around this version.
+Many of the fake backends are not available in qiskit-ibm-runtime.
+(This made me a lot problem to handle the fake backends in Qurry.)
+(If you see this error raised, good luck to you to fix environment. :smile:.)
+"""
 
 
 @overload
@@ -171,11 +188,15 @@ def fack_backend_loader(version=None):
     assert _fake_provider_v1_becalled is not None, LUCKY_MSG
     assert _fake_provider_v2_becalled is not None, LUCKY_MSG
 
-    _fake_provider = (
-        _fake_provider_v1_becalled()
-        if version == "v1"
-        else _fake_provider_v2_becalled()
-    )
+    try:
+        _fake_provider = (
+            _fake_provider_v1_becalled()
+            if version == "v1"
+            else _fake_provider_v2_becalled()
+        )
+    except FileNotFoundError as err1318:
+        raise QurryDependenciesFailureError(QISKIT_IBM_RUNTIME_ISSUE_1318) from err1318
+
     backend_fake: dict[str, Backend] = {
         backend_name_getter(b): b for b in _fake_provider.backends()
     }

@@ -1,9 +1,5 @@
 # qiskit main
-qiskit<1.0.0
-# qiskit-aer>=0.10.4
-qiskit-ibm-runtime<0.18.0
+qiskit>=0.45.0, <1.0.0
+# other dependencies
 requests
-
-# qiskit-aer-gpu ; platform_system=='Linux' and python_version<='3.9'
 tqdm
-matplotlib

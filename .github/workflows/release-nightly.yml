@@ -11,7 +11,8 @@ env:
 
 jobs:
   create_tag:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
+    # runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -20,9 +21,9 @@ jobs:
 
       - name: Set up Git user
         run: |
-          git config --global user.name 'harui2019_via_action-bot'
-          git config --global user.email 'harui2019@proton.me'
-
+          git config --global user.name ${{ github.repository_owner }}_action_bot
+          git config --global user.email ${{ github.repository_owner }}@users.noreply.github.com
+  
       - name: Read Version File
         run: python get_version.py
 

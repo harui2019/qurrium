@@ -43,6 +43,10 @@ class QurryCountLost(QurryError):
     """Count lost error."""
 
 
+class QurryDependenciesFailureError(QurryError):
+    """The dependencies of Qurry like Qiskit raise some error."""
+
+
 # General Warning
 class QurryWarning(Warning):
     """Base class for warning raised by Qurry."""
@@ -104,3 +108,8 @@ class QurryHashIDInvalid(QurryWarning):
 
 class QurryArgumentsExpectedNotNone(QurryWarning):
     """Arguments expected not None warning."""
+
+
+class QurryDependenciesNotWorking(QurryWarning):
+    """Some function from the dependencies of Qurry
+    like Qiskit will not working for some reason."""

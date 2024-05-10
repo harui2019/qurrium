@@ -9,13 +9,14 @@ on:
 
 jobs:
   build_wheels:
+    if: github.repository == 'harui2019/qurry'
     name: Build wheels on ${{ matrix.os }} of x86 series
     runs-on: ${{ matrix.os }}
 
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-11, windows-latest]
+        os: [ubuntu-latest, macos-11]
 
     steps:
       - uses: actions/checkout@v3
@@ -44,7 +45,50 @@ jobs:
           path: ./wheelhouse/*.whl
           name: shared-wheel-builds
 
+  # build_wheels_windows:
+  #   if: github.repository == 'harui2019/qurry'
+  #   name: Build wheels on ${{ matrix.os }} of x86 series
+  #   runs-on: ${{ matrix.os }}
+
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       os: [windows]
+
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #       with:
+  #         token: ${{ secrets.CI_TOKEN }}
+  #         submodules: true
+
+  #     - uses: actions/setup-python@v4
+  #       with:
+  #         python-version: "3.11"
+
+  #     - name: Reversion
+  #       run: python get_version.py --release nightly
+
+  #     - name: Update Pip
+  #       run: |
+  #         pip install --upgrade pipenv wheel pip
+  #         pip install setuptools_rust setuptools
+  #         pip install .
+
+  #     - name: Install Rust
+  #       uses: dtolnay/rust-toolchain@stable
+
+  #     - name: Build wheels
+  #       uses: pypa/cibuildwheel@v2.16.2
+  #       env:
+  #         CIBW_PLATFORM: windows
+
+  #     - uses: actions/upload-artifact@v3
+  #       with:
+  #         path: ./wheelhouse/*.whl
+  #         name: shared-wheel-builds-windows
+
   build_wheels_macos_arm:
+    if: github.repository == 'harui2019/qurry'
     name: Build wheels on macOS (${{ matrix.os }}) of arm64
     runs-on: ${{ matrix.os }}
 
@@ -86,16 +130,13 @@ jobs:
           path: ./wheelhouse/*.whl
           name: shared-wheel-builds
 
-  publish-to-testpypi:
-    name: Publish Python 🐍 distribution 📦 to TestPyPI (Common Distro)
+  publish-to-pypi:
+    if: github.repository == 'harui2019/qurry'
+    name: Publish Python 🐍 distribution 📦 to PyPI (Common Distro)
     needs:
       - build_wheels
-      - build_wheels_macos_arm
+      # - build_wheels_macos_arm
     runs-on: ubuntu-latest
-
-    environment:
-      name: testpypi
-      url: https://test.pypi.org/p/qurry
 
     permissions:
       id-token: write # IMPORTANT: mandatory for trusted publishing
@@ -113,7 +154,54 @@ jobs:
           packages-dir: deploy
           repository-url: https://test.pypi.org/legacy/
 
+  # publish-to-pypi-windows:
+  #   if: github.repository == 'harui2019/qurry'
+  #   name: Publish Python 🐍 distribution 📦 to PyPI (Windows)
+  #   needs:
+  #     - build_wheels_windows
+  #   runs-on: ubuntu-latest
+
+  #   permissions:
+  #     id-token: write # IMPORTANT: mandatory for trusted publishing
+
+  #   steps:
+  #     - name: Download all the dists
+  #       uses: actions/download-artifact@v3
+  #       with:
+  #         name: shared-wheel-builds-windows
+  #         path: deploy
+
+  #     - name: Publish distribution 📦 to TestPyPI
+  #       uses: pypa/gh-action-pypi-publish@release/v1
+  #       with:
+  #         packages-dir: deploy
+  #         repository-url: https://test.pypi.org/legacy/
+
+  publish-to-pypi-macos-arm:
+    if: github.repository == 'harui2019/qurry'
+    name: Publish Python 🐍 distribution 📦 to PyPI (MacOS ARM)
+    needs:
+      - build_wheels_macos_arm
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write # IMPORTANT: mandatory for trusted publishing
+
+    steps:
+      - name: Download all the dists
+        uses: actions/download-artifact@v3
+        with:
+          name: shared-wheel-builds-macos-arm
+          path: deploy
+
+      - name: Publish distribution 📦 to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: deploy
+          repository-url: https://test.pypi.org/legacy/
+
   # build_wheels_aarch64:
+  #   if: github.repository == 'harui2019/qurry'
   #   name: Build wheels on ${{ matrix.os }} of aarch64
   #   runs-on: ${{ matrix.os }}
 
@@ -159,13 +247,11 @@ jobs:
   #         repository-url: https://test.pypi.org/legacy/
 
   # sdist:
+  #   if: github.repository == 'harui2019/qurry'
   #   name: Build and publish sdist
   #   runs-on: ${{ matrix.os }}
-  #   needs: ["publish-to-testpypi"]
+  #   needs: ["publish-to-pypi"]
 
-  #   environment:
-  #     name: testpypi
-  #     url: https://test.pypi.org/p/qurry
   #   permissions:
   #     id-token: write
   #   strategy:
@@ -186,7 +272,5 @@ jobs:
   #       run: pip install -U build
   #     - name: Build sdist
   #       run: python -m build . --sdist
-  #     - name: Publish distribution 📦 to TestPyPI
+  #     - name: Publish distribution 📦 to TPyPI
   #       uses: pypa/gh-action-pypi-publish@release/v1
-  #       with:
-  #         repository-url: https://test.pypi.org/legacy/

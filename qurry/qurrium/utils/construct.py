@@ -4,12 +4,14 @@ Construct (:mod:`qurry.qurrium.utils.construct`)
 ================================================================
 
 """
+
 import warnings
 from typing import Union, Optional
 
 from qiskit import QuantumCircuit
 from qiskit.result import Result
 from qiskit.exceptions import QiskitError
+from qiskit.qasm2 import dumps
 
 from ...exceptions import QurryCountLost
 
@@ -41,7 +43,7 @@ def qasm_drawer(qc: QuantumCircuit) -> str:
     Returns:
         str: The drawing of circuit in qasm format.
     """
-    txt = qc.qasm(encoding="utf-8")
+    txt = dumps(qc)
     assert isinstance(txt, str), "The drawing of circuit does not export."
     return txt
 
