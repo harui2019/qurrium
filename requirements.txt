@@ -1,5 +1,5 @@
 # qiskit main
-qiskit<1.0.0
+qiskit>=0.45.0, <1.0.0
 # other dependencies
 requests
 tqdm
