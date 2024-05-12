@@ -1,7 +1,7 @@
 # from https://github.com/dear-github/dear-github/issues/214#issuecomment-1060001840
 # from https://github.com/dear-github/dear-github/issues/214#issuecomment-1080042519
 
-name: Tag Creation Stable
+name: Release Stable
 on:
   push:
     branches:
