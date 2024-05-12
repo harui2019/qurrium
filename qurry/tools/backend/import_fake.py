@@ -68,12 +68,12 @@ except ImportError as err:
     FAKE_PROVIDER_SOURCES["qiskit.providers.fake_provider"] = None
     FAKE_PROVIDERFORV2_SOURCES["qiskit.providers.fake_provider"] = None
 
-QISKIT_IBM_RUNTIME_ISSUE_1318 = """
-"The version of 'qiskit-ibm-runtime' is 0.18.0, 
-FackBackend is not working in this version for this issue: 
-https://github.com/Qiskit/qiskit-ibm-runtime/issues/1318.
-You need to change the version of 'qiskit-ibm-runtime' to access FakeBackend
-"""
+QISKIT_IBM_RUNTIME_ISSUE_1318 = (
+"The version of 'qiskit-ibm-runtime' is 0.18.0, "
+"FackBackend is not working in this version for this issue: "
+"https://github.com/Qiskit/qiskit-ibm-runtime/issues/1318."
+"You need to change the version of 'qiskit-ibm-runtime' to access FakeBackend"
+)
 
 try:
     from qiskit_ibm_runtime.fake_provider import (
@@ -136,7 +136,7 @@ for the migration of fake_provider is not completed around this version.
 Many of the fake backends are not available in qiskit-ibm-runtime.
 (This made me a lot problem to handle the fake backends in Qurry.)
 (If you see this error raised, good luck to you to fix environment. :smile:.)
-"""
+""".replace('\n', '').strip()
 
 
 @overload
