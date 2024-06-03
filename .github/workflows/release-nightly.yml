@@ -1,7 +1,7 @@
 # from https://github.com/dear-github/dear-github/issues/214#issuecomment-1060001840
 # from https://github.com/dear-github/dear-github/issues/214#issuecomment-1080042519
 
-name: Tag Creation Nightly
+name: Release Nightly
 on:
   push:
     branches:
@@ -11,8 +11,8 @@ env:
 
 jobs:
   create_tag:
-    runs-on: self-hosted
-    # runs-on: ubuntu-latest
+    # runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v2
