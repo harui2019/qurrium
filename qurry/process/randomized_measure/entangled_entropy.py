@@ -20,33 +20,113 @@ class RandomizedEntangledEntropyComplex(TypedDict):
     """The result of the analysis."""
 
     purity: Union[np.float64, float]
+    """The purity of the system."""
     entropy: Union[np.float64, float]
-    puritySD: Union[np.float64, float]
-    entropySD: Union[np.float64, float]
+    """The entropy of the system."""
     purityCells: Union[dict[int, np.float64], dict[int, float]]
-    bitStringRange: Union[tuple[int, int], tuple[()]]
+    """The purity of each cell."""
+    puritySD: Union[np.float64, float]
+    """The standard deviation of the purity."""
+    entropySD: Union[np.float64, float]
+    """The standard deviation of the entropy."""
+    degree: Optional[Union[tuple[int, int], int]]
+    """The range of partition."""
+    measureActually: tuple[int, int]
+    """The range of partition refer to all qubits."""
+    bitStringRange: tuple[int, int]
+    """The range of partition on the bitstring."""
+    countsNum: int
+    """The number of counts."""
+
+
+class RandomizedEntangledEntropyMitigatedComplex(TypedDict):
+    """The result of the analysis."""
+
+    purity: Union[np.float64, float]
+    """The purity of the system."""
+    entropy: Union[np.float64, float]
+    """The entropy of the system."""
+    puritySD: Union[np.float64, float]
+    """The standard deviation of the purity."""
+    entropySD: Union[np.float64, float]
+    """The standard deviation of the entropy."""
+    purityCells: Union[dict[int, np.float64], dict[int, float]]
+    """The purity of each cell."""
+    bitStringRange: tuple[int, int]
+    """The range of partition on the bitstring."""
 
     allSystemSource: Union[str, Literal["independent"]]
+    """The source of all system."""
     purityAllSys: Union[np.float64, float]
+    """The purity of all system."""
     entropyAllSys: Union[np.float64, float]
+    """The entropy of all system."""
     puritySDAllSys: Union[np.float64, float]
+    """The standard deviation of the purity of all system."""
     entropySDAllSys: Union[np.float64, float]
+    """The standard deviation of the entropy of all system."""
     purityCellsAllSys: Union[dict[int, np.float64], dict[int, float]]
-    bitsStringRangeAllSys: Union[tuple[int, int], tuple[()], None]
+    """The purity of each cell of all system."""
+    bitsStringRangeAllSys: tuple[int, int]
+    """The range of partition on the bitstring of all system."""
 
     errorRate: Union[np.float64, float]
+    """The error rate of the measurement from depolarizing error migigation calculated."""
     mitigatedPurity: Union[np.float64, float]
+    """The mitigated purity."""
     mitigatedEntropy: Union[np.float64, float]
+    """The mitigated entropy."""
 
     degree: Optional[Union[tuple[int, int], int]]
+    """The range of partition."""
     num_qubits: int
+    """The number of qubits of this syystem."""
     measure: tuple[str, Union[list[int], tuple[int, int]]]
-    measureActually: Union[tuple[int, int], tuple[()]]
-    measureActuallyAllSys: Union[tuple[int, int], tuple[()], None]
+    """The qubit range of the measurement and text description.
+        
+        - The first element is the text description.
+        - The second element is the qubit range of the measurement.
+        
+        ---
+        - When the measurement is specified, it will be:
+        
+        >>> ("measure range:", (0, 3))
+        
+        - When the measurement is not specified, it will be:
+        
+        >>> ("not specified, use all qubits", (0, 3))
+        
+        - When null counts exist, it will be:
+        
+        >>> ("The following is the index of null counts.", [0, 1, 2, 3])
+        
+        """
+    measureActually: tuple[int, int]
+    """The range of partition refer to all qubits."""
+    measureActuallyAllSys: tuple[int, int]
+    """The range of partition refer to all qubits of all system."""
 
     countsNum: int
+    """The number of counts."""
     takingTime: Union[np.float64, float]
+    """The time of taking during specific partition."""
     takingTimeAllSys: Union[np.float64, float]
+    """The taking time of the all system if it is calculated, 
+    it will be 0 when use the all system from other analysis.
+    """
+
+
+class ExistingAllSystemSource(TypedDict):
+    """Existing all system source."""
+
+    purityCellsAllSys: dict[int, float]
+    """The purity of each cell of all system."""
+    bitStringRange: tuple[int, int]
+    """The range of partition on the bitstring."""
+    measureActually: tuple[int, int]
+    """The range of partition refer to all qubits."""
+    source: str
+    """The source of all system."""
 
 
 def randomized_entangled_entropy(
@@ -57,7 +137,7 @@ def randomized_entangled_entropy(
     backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
     workers_num: Optional[int] = None,
     pbar: Optional[tqdm.tqdm] = None,
-) -> dict[str, Union[np.float64, float]]:
+) -> RandomizedEntangledEntropyComplex:
     """Calculate entangled entropy.
 
     - Which entropy:
@@ -65,50 +145,87 @@ def randomized_entangled_entropy(
         The entropy we compute is the Second Order Rényi Entropy.
 
     - Reference:
-        - Used in:
-            Statistical correlations between locally randomized measurements:
-            A toolbox for probing entanglement in many-body quantum states -
-            A. Elben, B. Vermersch, C. F. Roos, and P. Zoller,
-            [PhysRevA.99.052323](https://doi.org/10.1103/PhysRevA.99.052323)
 
-        - `bibtex`:
+        Probing Rényi entanglement entropy via randomized measurements -
+        Tiff Brydges, Andreas Elben, Petar Jurcevic, Benoît Vermersch,
+        Christine Maier, Ben P. Lanyon, Peter Zoller, Rainer Blatt ,and Christian F. Roos ,
+        [doi:10.1126/science.aau4963](
+            https://www.science.org/doi/abs/10.1126/science.aau4963)
+
+    - `bibtex`:
 
     ```bibtex
-        @article{PhysRevA.99.052323,
-            title = {Statistical correlations between locally randomized measurements:
-            A toolbox for probing entanglement in many-body quantum states},
-            author = {Elben, A. and Vermersch, B. and Roos, C. F. and Zoller, P.},
-            journal = {Phys. Rev. A},
-            volume = {99},
-            issue = {5},
-            pages = {052323},
-            numpages = {12},
-            year = {2019},
-            month = {May},
-            publisher = {American Physical Society},
-            doi = {10.1103/PhysRevA.99.052323},
-            url = {https://link.aps.org/doi/10.1103/PhysRevA.99.052323}
-        }
-        ```
+    @article{doi:10.1126/science.aau4963,
+        author = {Tiff Brydges  and Andreas Elben  and Petar Jurcevic
+        and Benoît Vermersch  and Christine Maier  and Ben P. Lanyon
+        and Peter Zoller  and Rainer Blatt  and Christian F. Roos },
+        title = {Probing Rényi entanglement entropy via randomized measurements},
+        journal = {Science},
+        volume = {364},
+        number = {6437},
+        pages = {260-263},
+        year = {2019},
+        doi = {10.1126/science.aau4963},
+        URL = {https://www.science.org/doi/abs/10.1126/science.aau4963},
+        eprint = {https://www.science.org/doi/pdf/10.1126/science.aau4963},
+        abstract = {Quantum systems are predicted to be better at information
+        processing than their classical counterparts, and quantum entanglement
+        is key to this superior performance. But how does one gauge the degree
+        of entanglement in a system? Brydges et al. monitored the build-up of
+        the so-called Rényi entropy in a chain of up to 10 trapped calcium ions,
+        each of which encoded a qubit. As the system evolved,
+        interactions caused entanglement between the chain and the rest of
+        the system to grow, which was reflected in the growth of
+        the Rényi entropy. Science, this issue p. 260 The buildup of entropy
+        in an ion chain reflects a growing entanglement between the chain
+        and its complement. Entanglement is a key feature of many-body quantum systems.
+        Measuring the entropy of different partitions of a quantum system
+        provides a way to probe its entanglement structure.
+        Here, we present and experimentally demonstrate a protocol
+        for measuring the second-order Rényi entropy based on statistical correlations
+        between randomized measurements. Our experiments, carried out with a trapped-ion
+        quantum simulator with partition sizes of up to 10 qubits,
+        prove the overall coherent character of the system dynamics and
+        reveal the growth of entanglement between its parts,
+        in both the absence and presence of disorder.
+        Our protocol represents a universal tool for probing and
+        characterizing engineered quantum systems in the laboratory,
+        which is applicable to arbitrary quantum states of up to
+        several tens of qubits.}}
+    ```
 
     Args:
-        shots (int): Shots of the experiment on quantum machine.
-        counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
-        degree (Optional[Union[tuple[int, int], int]]): Degree of the subsystem.
+        shots (int):
+            Shots of the counts.
+        counts (list[dict[str, int]]):
+            Counts from randomized measurement results.
+        degree (Optional[Union[tuple[int, int], int]]):
+            The range of partition.
         measure (Optional[tuple[int, int]], optional):
-            Measuring range on quantum circuits. Defaults to None.
+            The range that implemented the measuring gate.
+            If not specified, then use all qubits.
+            This will affect the range of partition
+            when you not implement the measuring gate on all qubit.
+            Defaults to None.
         backend (PostProcessingBackendLabel, optional):
-            Backend for the process. Defaults to DEFAULT_PROCESS_BACKEND.
+            Backend for the post-processing.
+            Defaults to DEFAULT_PROCESS_BACKEND.
         workers_num (Optional[int], optional):
             Number of multi-processing workers, it will be ignored if backend is Rust.
             if sets to 1, then disable to using multi-processing;
             if not specified, then use the number of all cpu counts by `os.cpu_count()`.
+            This only works for Python and Cython backend.
             Defaults to None.
-        pbar (Optional[tqdm.tqdm], optional): Progress bar. Defaults to None.
+        pbar (Optional[tqdm.tqdm], optional):
+            The progress bar API, you can use put a :cls:`tqdm` object here.
+            This function will update the progress bar description.
+            Defaults to None.
 
     Returns:
-        dict[str,Union[np.float64, float]]: A dictionary contains purity, entropy,
-            a list of each overlap, puritySD, degree, actual measure range, bitstring range.
+        RandomizedEntangledEntropyComplex:
+            A dictionary contains purity, entropy,
+            a list of each overlap, puritySD, degree,
+            actual measure range, bitstring range and more.
     """
 
     if isinstance(pbar, tqdm.tqdm):
@@ -135,7 +252,7 @@ def randomized_entangled_entropy(
     entropy = -np.log2(purity, dtype=np.float64)
     entropy_sd = purity_sd / np.log(2) / purity
 
-    quantity = {
+    quantity: RandomizedEntangledEntropyComplex = {
         "purity": purity,
         "entropy": entropy,
         "purityCells": purity_cell_dict,
@@ -150,15 +267,6 @@ def randomized_entangled_entropy(
     return quantity
 
 
-class ExistingAllSystemSource(TypedDict):
-    """Existing all system source."""
-
-    purityCellsAllSys: dict[int, float]
-    bitStringRange: tuple[int, int]
-    measureActually: tuple[int, int]
-    source: str
-
-
 def randomized_entangled_entropy_mitigated(
     shots: int,
     counts: list[dict[str, int]],
@@ -168,59 +276,126 @@ def randomized_entangled_entropy_mitigated(
     workers_num: Optional[int] = None,
     existed_all_system: Optional[ExistingAllSystemSource] = None,
     pbar: Optional[tqdm.tqdm] = None,
-) -> RandomizedEntangledEntropyComplex:
-    """Calculate entangled entropy.
+) -> RandomizedEntangledEntropyMitigatedComplex:
+    """Calculate entangled entropy with depolarizing error mitigation.
 
     - Which entropy:
 
         The entropy we compute is the Second Order Rényi Entropy.
 
     - Reference:
-        - Used in:
-            Statistical correlations between locally randomized measurements:
-            A toolbox for probing entanglement in many-body quantum states -
-            A. Elben, B. Vermersch, C. F. Roos, and P. Zoller,
-            [PhysRevA.99.052323](https://doi.org/10.1103/PhysRevA.99.052323)
 
-        - `bibtex`:
+        Probing Rényi entanglement entropy via randomized measurements -
+        Tiff Brydges, Andreas Elben, Petar Jurcevic, Benoît Vermersch,
+        Christine Maier, Ben P. Lanyon, Peter Zoller, Rainer Blatt ,and Christian F. Roos ,
+        [doi:10.1126/science.aau4963](
+            https://www.science.org/doi/abs/10.1126/science.aau4963)
+
+        Simple mitigation of global depolarizing errors in quantum simulations -
+        Vovrosh, Joseph and Khosla, Kiran E. and Greenaway, Sean and Self,
+        Christopher and Kim, M. S. and Knolle, Johannes,
+        [PhysRevE.104.035309](
+            https://link.aps.org/doi/10.1103/PhysRevE.104.035309)
+
+    - `bibtex`:
 
     ```bibtex
-        @article{PhysRevA.99.052323,
-            title = {Statistical correlations between locally randomized measurements:
-            A toolbox for probing entanglement in many-body quantum states},
-            author = {Elben, A. and Vermersch, B. and Roos, C. F. and Zoller, P.},
-            journal = {Phys. Rev. A},
-            volume = {99},
-            issue = {5},
-            pages = {052323},
-            numpages = {12},
-            year = {2019},
-            month = {May},
+    @article{doi:10.1126/science.aau4963,
+        author = {Tiff Brydges  and Andreas Elben  and Petar Jurcevic
+        and Benoît Vermersch  and Christine Maier  and Ben P. Lanyon
+        and Peter Zoller  and Rainer Blatt  and Christian F. Roos },
+        title = {Probing Rényi entanglement entropy via randomized measurements},
+        journal = {Science},
+        volume = {364},
+        number = {6437},
+        pages = {260-263},
+        year = {2019},
+        doi = {10.1126/science.aau4963},
+        URL = {https://www.science.org/doi/abs/10.1126/science.aau4963},
+        eprint = {https://www.science.org/doi/pdf/10.1126/science.aau4963},
+        abstract = {Quantum systems are predicted to be better at information
+        processing than their classical counterparts, and quantum entanglement
+        is key to this superior performance. But how does one gauge the degree
+        of entanglement in a system? Brydges et al. monitored the build-up of
+        the so-called Rényi entropy in a chain of up to 10 trapped calcium ions,
+        each of which encoded a qubit. As the system evolved,
+        interactions caused entanglement between the chain and the rest of
+        the system to grow, which was reflected in the growth of
+        the Rényi entropy. Science, this issue p. 260 The buildup of entropy
+        in an ion chain reflects a growing entanglement between the chain
+        and its complement. Entanglement is a key feature of many-body quantum systems.
+        Measuring the entropy of different partitions of a quantum system
+        provides a way to probe its entanglement structure.
+        Here, we present and experimentally demonstrate a protocol
+        for measuring the second-order Rényi entropy based on statistical correlations
+        between randomized measurements. Our experiments, carried out with a trapped-ion
+        quantum simulator with partition sizes of up to 10 qubits,
+        prove the overall coherent character of the system dynamics and
+        reveal the growth of entanglement between its parts,
+        in both the absence and presence of disorder.
+        Our protocol represents a universal tool for probing and
+        characterizing engineered quantum systems in the laboratory,
+        which is applicable to arbitrary quantum states of up to
+        several tens of qubits.}}
+    ```
+
+    ```bibtex
+        @article{PhysRevE.104.035309,
+            title = {Simple mitigation of global depolarizing errors in quantum simulations},
+            author = {Vovrosh, Joseph and Khosla, Kiran E. and Greenaway, Sean and Self,
+            Christopher and Kim, M. S. and Knolle, Johannes},
+            journal = {Phys. Rev. E},
+            volume = {104},
+            issue = {3},
+            pages = {035309},
+            numpages = {8},
+            year = {2021},
+            month = {Sep},
             publisher = {American Physical Society},
-            doi = {10.1103/PhysRevA.99.052323},
-            url = {https://link.aps.org/doi/10.1103/PhysRevA.99.052323}
+            doi = {10.1103/PhysRevE.104.035309},
+            url = {https://link.aps.org/doi/10.1103/PhysRevE.104.035309}
         }
-        ```
+    ```
 
     Args:
-        shots (int): Shots of the experiment on quantum machine.
-        counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
-        degree (Optional[Union[tuple[int, int], int]]): Degree of the subsystem.
+        shots (int):
+            Shots of the counts.
+        counts (list[dict[str, int]]):
+            Counts from randomized measurement results.
+        degree (Optional[Union[tuple[int, int], int]]):
+            The range of partition.
         measure (Optional[tuple[int, int]], optional):
-            Measuring range on quantum circuits. Defaults to None.
+            The range that implemented the measuring gate.
+            If not specified, then use all qubits.
+            This will affect the range of partition
+            when you not implement the measuring gate on all qubit.
+            Defaults to None.
         backend (PostProcessingBackendLabel, optional):
-            Backend for the process. Defaults to DEFAULT_PROCESS_BACKEND.
+            Backend for the post-processing.
+            Defaults to DEFAULT_PROCESS_BACKEND.
         workers_num (Optional[int], optional):
             Number of multi-processing workers, it will be ignored if backend is Rust.
             if sets to 1, then disable to using multi-processing;
             if not specified, then use the number of all cpu counts by `os.cpu_count()`.
+            This only works for Python and Cython backend.
             Defaults to None.
         existed_all_system (Optional[ExistingAllSystemSource], optional):
-            Existing all system source. Defaults to None.
-        pbar (Optional[tqdm.tqdm], optional): Progress bar. Defaults to None.
+            Existing all system source.
+            If there is known all system result,
+            then you can put it here to save a lot of time on calculating all system
+            for not matter what partition you are using,
+            their all system result is the same.
+            All system source should contain
+            `purityCellsAllSys`, `bitStringRange`, `measureActually`, `source` for its name.
+            This can save a lot of time
+            Defaults to None.
+        pbar (Optional[tqdm.tqdm], optional):
+            The progress bar API, you can use put a :cls:`tqdm` object here.
+            This function will update the progress bar description.
+            Defaults to None.
 
     Returns:
-        dict[str,Union[np.float64, float]]: A dictionary contains
+        RandomizedEntangledEntropyMitigatedComplex: A dictionary contains
             purity, entropy, a list of each overlap, puritySD,
             purity of all system, entropy of all system,
             a list of each overlap in all system, puritySD of all system,
@@ -235,7 +410,7 @@ def randomized_entangled_entropy_mitigated(
             "purityCells": {},
             "puritySD": np.NaN,
             "entropySD": np.NaN,
-            "bitStringRange": (),
+            "bitStringRange": (0, 0),
             # all system
             "allSystemSource": "Null counts exist, no measure.",
             "purityAllSys": np.NaN,
@@ -243,7 +418,7 @@ def randomized_entangled_entropy_mitigated(
             "purityCellsAllSys": {},
             "puritySDAllSys": np.NaN,
             "entropySDAllSys": np.NaN,
-            "bitsStringRangeAllSys": (),
+            "bitsStringRangeAllSys": (0, 0),
             # mitigated
             "errorRate": np.NaN,
             "mitigatedPurity": np.NaN,
@@ -252,8 +427,8 @@ def randomized_entangled_entropy_mitigated(
             "degree": degree,
             "num_qubits": 0,
             "measure": ("The following is the index of null counts.", null_counts),
-            "measureActually": (),
-            "measureActuallyAllSys": (),
+            "measureActually": (0, 0),
+            "measureActuallyAllSys": (0, 0),
             "countsNum": len(counts),
             "takingTime": 0,
             "takingTimeAllSys": 0,
@@ -294,7 +469,9 @@ def randomized_entangled_entropy_mitigated(
             backend=backend,
             multiprocess_pool_size=workers_num,
         )
-        purity_cell_list_allsys: list[Union[float, np.float64]] = list(purity_cell_dict_allsys.values())  # type: ignore
+        purity_cell_list_allsys: list[Union[float, np.float64]] = list(
+            purity_cell_dict_allsys.values()
+        )  # type: ignore
         source = "independent"
     else:
         for k, msg in [
@@ -309,6 +486,7 @@ def randomized_entangled_entropy_mitigated(
         if isinstance(pbar, tqdm.tqdm):
             pbar.set_description_str(f"Using existing all system from '{source}'")
         purity_cell_dict_allsys = existed_all_system["purityCellsAllSys"]
+
         purity_cell_list_allsys = list(purity_cell_dict_allsys.values())
         bitstring_range_allsys = existed_all_system["bitStringRange"]
         measure_range_allsys = existed_all_system["measureActually"]
@@ -354,7 +532,7 @@ def randomized_entangled_entropy_mitigated(
     if isinstance(pbar, tqdm.tqdm):
         pbar.set_description_str(msg[2:-1] + " with mitigation.")
 
-    quantity: RandomizedEntangledEntropyComplex = {
+    quantity: RandomizedEntangledEntropyMitigatedComplex = {
         # target system
         "purity": purity,
         "entropy": entropy,
