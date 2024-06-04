@@ -11,32 +11,26 @@ env:
 
 jobs:
   create_tag:
-    # runs-on: self-hosted
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v2
         with:
           submodules: true
-
       - name: Set up Git user
         run: |
           git config --global user.name ${{ github.repository_owner }}_action_bot
           git config --global user.email ${{ github.repository_owner }}@users.noreply.github.com
-
       - name: Read Version File
         run: python get_version.py --release stable
-
       - name: Check out Version
         run: |
           echo '| Version: ${{ env.VERSION }} in action'
-
       - name: Check Version Tag
         uses: mukunku/tag-exists-action@v1.2.0
         id: checkTag
-        with: 
+        with:
           tag: ${{ env.VERSION }}
-
       - name: Create Version Tag
         run: |
           if ${{ steps.checkTag.outputs.exists }} ; then
@@ -46,15 +40,12 @@ jobs:
             git tag -a ${{ env.VERSION }} -m "New release"
             git push origin ${{ env.VERSION }}
           fi
-
       - name: Get custom tarball name
         id: get_tarball_name
         run: echo ::set-output name=TARBALL_NAME::qurry-${{ github.ref_name }}
-  
       - name: Get archived folder name for custom tarball
         id: get_archived_folder_name
         run: echo ::set-output name=ARCHIVED_FOLDER::${{ github.repository_owner }}-qurry-$(git rev-parse --short HEAD)
-  
       - name: Create custom tarball artifact
         run: |
           mkdir -p artifacts
@@ -66,7 +57,6 @@ jobs:
             qurry/Cargo.toml qurry/Cargo.lock qurry/MANIFEST.in \
             qurry/.gitignore qurry/.gitmodules qurry/README.md \
             --transform s/qurry/${{ steps.get_archived_folder_name.outputs.ARCHIVED_FOLDER }}/
-  
       - name: Create draft release
         id: create_release
         uses: softprops/action-gh-release@v2
@@ -78,7 +68,6 @@ jobs:
           body: |
             STABLE_DRAFT
           draft: true
-  
       - name: Upload TAR.GZ release asset
         id: upload-tar-gz-release-asset
         uses: actions/upload-release-asset@v1
@@ -89,4 +78,3 @@ jobs:
           asset_path: ${{ steps.get_tarball_name.outputs.TARBALL_NAME }}-${{ env.VERSION }}.tar.gz
           asset_name: ${{ steps.get_tarball_name.outputs.TARBALL_NAME }}-${{ env.VERSION }}.tar.gz
           asset_content_type: application/gzip
-  
