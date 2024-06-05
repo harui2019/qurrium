@@ -6,12 +6,16 @@ Post-processing Status Conclusions
 """
 
 from typing import Union
+
 from ..randomized_measure import (
     entangled_availability,
     purity_cell_availability,
     overlap_availability,
     echo_cell_availability,
 )
+from ..hadamard_test import purity_echo_core_availability
+from ..magnet_square import magnet_square_availability
+
 from ..utils import construct_availability, randomized_availability
 from ..availability import BACKEND_TYPES
 from ...version import __version__
@@ -32,6 +36,8 @@ def availability_status_print() -> (
         echo_cell_availability,
         randomized_availability,
         construct_availability,
+        purity_echo_core_availability,
+        magnet_square_availability,
     ]
     pre_hoshi = [
         ("txt", f"| Qurry version: {__version__}"),
@@ -78,7 +84,7 @@ def availability_status_print() -> (
     for d, v in [
         ("True", "Working normally."),
         ("False", "Exception occurred."),
-        ("None", "Not supported yet."),
+        ("None", "Not supported."),
     ]:
         pre_hoshi.append(
             {

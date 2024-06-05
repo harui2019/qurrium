@@ -1,16 +1,14 @@
+mod hadamard;
 mod randomized;
-
 extern crate pyo3;
 
-use pyo3::prelude::{ Python, PyModule, PyResult, wrap_pyfunction, pymodule };
+use pyo3::prelude::*;
 
+use crate::hadamard::purity_echo_core_rust;
+use crate::randomized::construct::{cycling_slice_rust, qubit_selector_rust};
 use crate::randomized::randomized::{
-    entangled_entropy_core_rust,
-    ensemble_cell_rust,
-    hamming_distance_rust,
-    purity_cell_rust,
+    ensemble_cell_rust, entangled_entropy_core_rust, hamming_distance_rust, purity_cell_rust,
 };
-use crate::randomized::construct::{ cycling_slice_rust, qubit_selector_rust };
 
 #[pymodule]
 fn boorust(py: Python<'_>, m: &PyModule) -> PyResult<()> {
@@ -29,8 +27,12 @@ fn register_child_module(py: Python<'_>, parent_module: &PyModule) -> PyResult<(
     construct.add_function(wrap_pyfunction!(qubit_selector_rust, construct)?)?;
     construct.add_function(wrap_pyfunction!(cycling_slice_rust, construct)?)?;
 
+    let hadamard = PyModule::new(py, "hadamard")?;
+    hadamard.add_function(wrap_pyfunction!(purity_echo_core_rust, hadamard)?)?;
+
     parent_module.add_submodule(randomized)?;
     parent_module.add_submodule(construct)?;
+    parent_module.add_submodule(hadamard)?;
     Ok(())
 }
 
@@ -38,7 +40,11 @@ fn register_child_module(py: Python<'_>, parent_module: &PyModule) -> PyResult<(
 // Note that this does not define a package,
 // so this won’t allow Python code to directly import submodules
 // by using from parent_module import child_module.
-// For more information, see #759 and #1517.
+// For more information,
+// see [#759](https://github.com/PyO3/pyo3/issues/759)
+// and [#1517](https://github.com/PyO3/pyo3/issues/1517).
+// from https://pyo3.rs/v0.21.2/module#python-submodules
+// (Since PyO3 0.20.0)
 // '''
 // WTF?
 

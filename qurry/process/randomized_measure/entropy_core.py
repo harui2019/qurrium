@@ -89,8 +89,8 @@ def entangled_entropy_core_pycyrust(
             if sets to 1, then disable to using multi-processing;
             if not specified, then use the number of all cpu counts by `os.cpu_count()`.
             Defaults to None.
-        use_cython (bool, optional): Use cython to calculate purity cell. Defaults to True.
-        _hide_print (bool, optional): Hide print. Defaults to False.
+        backend (PostProcessingBackendLabel, optional):
+            Backend for the process. Defaults to 'Cython'.
 
     Raises:
         ValueError: Get degree neither 'int' nor 'tuple[int, int]'.
@@ -199,7 +199,6 @@ def entangled_entropy_core_pycyrust(
             purity_cell_items.append(
                 cell_calculation(i, c, bitstring_range, subsystems_size)
             )
-        taken = round(time.time() - begin, 3)
 
     else:
         msg += f", {launch_worker} workers, {times} overlaps."
@@ -209,8 +208,8 @@ def entangled_entropy_core_pycyrust(
             cell_calculation,
             [(i, c, bitstring_range, subsystems_size) for i, c in enumerate(counts)],
         )
-        taken = round(time.time() - begin, 3)
 
+    taken = round(time.time() - begin, 3)
     purity_cell_dict: Union[dict[int, float], dict[int, np.float64]] = dict(
         purity_cell_items
     )  # type: ignore

@@ -47,17 +47,17 @@ def test_ensemble_cell_rust(test_items):
     """Test the ensemble_cell_rust function."""
 
     assert cython_available_randomized, "Cython is not available."
+    assert rust_available_randomized, "Rust is not available."
     ensemble_cell_cy_result = ensemble_cell_cy(*test_items)
     ensemble_cell_py_result = ensemble_cell_py(*test_items)
+    ensemble_cell_rust_result = ensemble_cell_rust(*test_items)
 
-    if rust_available_randomized:
-        ensemble_cell_rust_result = ensemble_cell_rust(*test_items)
-        assert (
-            np.abs(ensemble_cell_rust_result - ensemble_cell_cy_result) < 1e-10
-        ), "Rust and Cython results are not equal in ensemble_cell."
-        assert (
-            np.abs(ensemble_cell_rust_result - ensemble_cell_py_result) < 1e-10
-        ), "Rust and Python results are not equal in ensemble_cell."
+    assert (
+        np.abs(ensemble_cell_rust_result - ensemble_cell_cy_result) < 1e-10
+    ), "Rust and Cython results are not equal in ensemble_cell."
+    assert (
+        np.abs(ensemble_cell_rust_result - ensemble_cell_py_result) < 1e-10
+    ), "Rust and Python results are not equal in ensemble_cell."
     assert (
         np.abs(ensemble_cell_cy_result - ensemble_cell_py_result) < 1e-10
     ), "Cython and Python results are not equal in ensemble_cell."
@@ -90,26 +90,26 @@ def test_entangled_entropy_core(
     """Test the entangled_entropy_core function."""
 
     assert cython_available_randomized, "Cython is not available."
+    assert rust_available_randomized, "Rust is not available."
     cy = entangled_entropy_core(*test_items, backend="Cython")
     py = entangled_entropy_core(*test_items, backend="Python")
+    rust = entangled_entropy_core(*test_items, backend="Rust")
 
-    if rust_available_randomized:
-        rust = entangled_entropy_core(*test_items, backend="Rust")
-        assert (
-            np.abs(
-                np.average(np.array(list(rust[0].values())))
-                - np.average(np.array(list(cy[0].values())))
-            )
-            < 1e-10
-        ), "Rust and Cython results are not equal in entangled_entropy_core."
+    assert (
+        np.abs(
+            np.average(np.array(list(rust[0].values())))
+            - np.average(np.array(list(cy[0].values())))
+        )
+        < 1e-10
+    ), "Rust and Cython results are not equal in entangled_entropy_core."
 
-        assert (
-            np.abs(
-                np.average(np.array(list(rust[0].values())))
-                - np.average(np.array(list(py[0].values())))
-            )
-            < 1e-10
-        ), "Rust and Python results are not equal in entangled_entropy_core."
+    assert (
+        np.abs(
+            np.average(np.array(list(rust[0].values())))
+            - np.average(np.array(list(py[0].values())))
+        )
+        < 1e-10
+    ), "Rust and Python results are not equal in entangled_entropy_core."
 
     assert (
         np.abs(

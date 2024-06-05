@@ -14,7 +14,16 @@ and The Measuring Tool for Renyi Entropy, Loschmidt Echo, and More
 > For more information, 
 > see [#759](https://github.com/PyO3/pyo3/issues/759) 
 > and [#1517](https://github.com/PyO3/pyo3/issues/1517).
-from https://pyo3.rs/v0.20.0/module#python-submodules
+from https://pyo3.rs/v0.21.2/module#python-submodules
+(Since PyO3 0.20.0)
+
+But Qiskit found a solution to this problem.
+You can find this implementation in the Qiskit source code.
+In their root __init__.py file, 
+they import the submodules and assign them to the sys.modules dictionary.
+
+Also, do not make .pyi for boorust modules.
+It will overwrite and corrupt the module from Rust.
 
 ### Rust availablity
 
@@ -48,12 +57,19 @@ from .tools import (
 
 from .version import __version__
 
-# pylint: disable=no-name-in-module,import-error,wrong-import-order,no-member
+# pylint: disable=no-name-in-module,import-error
+# pylint: disable=wrong-import-order,no-member,c-extension-no-member
+
+# But Qiskit found a solution to this problem.
+# You can find this implementation in the Qiskit source code.
+# In their root __init__.py file,
+# they import the submodules and assign them to the sys.modules dictionary.
 try:
     import qurry.boorust  # type: ignore
 
     sys.modules["qurry.boorust.construct"] = qurry.boorust.construct  # type: ignore
     sys.modules["qurry.boorust.randomized"] = qurry.boorust.randomized  # type: ignore
+    sys.modules["qurry.boorust.hadamard"] = qurry.boorust.hadamard  # type: ignore
     RUST_AVAILABLE = True
     FAILED_RUST_IMPORT = None
 except ModuleNotFoundError as qurry_boorust_import_error:
@@ -68,6 +84,8 @@ BACKEND_AVAILABLE = availablility(
         ("Rust", RUST_AVAILABLE, FAILED_RUST_IMPORT),
     ],
 )
+# pylint: enable=no-name-in-module,import-error
+# pylint: enable=wrong-import-order,no-member,c-extension-no-member
 
 # """
 # Note that this does not define a package,
@@ -77,10 +95,9 @@ BACKEND_AVAILABLE = availablility(
 # see [#759](https://github.com/PyO3/pyo3/issues/759) and
 # [#1517](https://github.com/PyO3/pyo3/issues/1517).
 # """
-# from https://pyo3.rs/v0.20.0/module#python-submodules
+# from https://pyo3.rs/v0.21.2/module#python-submodules
+# (Since PyO3 0.20.0)
 # WTF?
 
 # DO NOT MAKE .pyi FOR boorust MODULES.
 # it will overwrite and corrupt the module from rust.
-
-# pylint: enable=no-name-in-module,import-error,wrong-import-order,no-member
