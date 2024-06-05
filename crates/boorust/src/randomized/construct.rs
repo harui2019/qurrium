@@ -1,10 +1,9 @@
 extern crate pyo3;
 
-use pyo3::prelude::*;
 use pyo3::exceptions::PyValueError;
+use pyo3::prelude::*;
 
-#[derive(Clone)]
-#[derive(FromPyObject)]
+#[derive(Clone, FromPyObject)]
 pub enum QubitDegree {
     Pair(i32, i32),
     Single(i32),
@@ -15,7 +14,7 @@ pub fn cycling_slice_rust(target: &str, start: i32, end: i32, step: i32) -> PyRe
     let length = target.len() as i32;
     let slice_check = vec![
         ("start <= -length", start <= -length),
-        ("end >= length", end >= length)
+        ("end >= length", end >= length),
     ];
 
     if slice_check.iter().all(|&(_, v)| v) {
@@ -24,9 +23,10 @@ pub fn cycling_slice_rust(target: &str, start: i32, end: i32, step: i32) -> PyRe
             .filter(|&&(_, v)| !v)
             .map(|&(k, _)| format!(" {}", k))
             .collect();
-        return Err(
-            PyValueError::new_err(format!("Slice out of range: {}", invalid_ranges.join(";")))
-        );
+        return Err(PyValueError::new_err(format!(
+            "Slice out of range: {}",
+            invalid_ranges.join(";")
+        )));
     }
 
     if length <= 0 {
@@ -64,21 +64,14 @@ pub fn qubit_selector_rust(num_qubits: i32, degree: Option<QubitDegree>) -> PyRe
     let item_range: (i32, i32) = match degree {
         Some(QubitDegree::Single(d)) => {
             if d > num_qubits {
-                return Err(
-                    PyValueError::new_err(
-                        format!(
-                            "The subsystem A includes {} qubits beyond {} which the wave function has.",
-                            d,
-                            num_qubits
-                        )
-                    )
-                );
+                return Err(PyValueError::new_err(format!(
+                    "The subsystem A includes {} qubits beyond {} which the wave function has.",
+                    d, num_qubits
+                )));
             } else if d < 0 {
-                return Err(
-                    PyValueError::new_err(
-                        "The number of qubits of subsystem A has to be a natural number."
-                    )
-                );
+                return Err(PyValueError::new_err(
+                    "The number of qubits of subsystem A has to be a natural number.",
+                ));
             }
 
             let _subsystem: Vec<i32> = full_subsystem
@@ -93,7 +86,11 @@ pub fn qubit_selector_rust(num_qubits: i32, degree: Option<QubitDegree>) -> PyRe
             raw_values.push(start);
             raw_values.push(end);
             let mapped_values = raw_values.iter().map(|d: &i32| {
-                if d != &num_qubits { (d+num_qubits) % num_qubits } else { num_qubits }
+                if d != &num_qubits {
+                    (d + num_qubits) % num_qubits
+                } else {
+                    num_qubits
+                }
             });
 
             let vec_parsed: Vec<i32> = mapped_values.collect::<Vec<i32>>();
@@ -109,7 +106,7 @@ pub fn qubit_selector_rust(num_qubits: i32, degree: Option<QubitDegree>) -> PyRe
                 .collect::<Vec<i32>>();
             tmp
         }
-        None => { (0, num_qubits) }
+        None => (0, num_qubits),
     };
 
     assert!(item_range.1 >= item_range.0);
@@ -128,7 +125,7 @@ pub fn construct_test() {
         Some(QubitDegree::Pair(4, 6)),
         Some(QubitDegree::Single(6)),
         Some(QubitDegree::Pair(7, 3)),
-        Some(QubitDegree::Single(8))
+        Some(QubitDegree::Single(8)),
     ];
     let num_qubits = 8;
 
