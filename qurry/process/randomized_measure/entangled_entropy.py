@@ -37,6 +37,8 @@ class RandomizedEntangledEntropyComplex(TypedDict):
     """The range of partition on the bitstring."""
     countsNum: int
     """The number of counts."""
+    takingTime: Union[np.float64, float]
+    """The time of taking during specific partition."""
 
 
 class RandomizedEntangledEntropyMitigatedComplex(TypedDict):
@@ -235,7 +237,7 @@ def randomized_entangled_entropy(
         bitstring_range,
         measure_range,
         _msg,
-        _taken,
+        taken,
     ) = entangled_entropy_core(
         shots=shots,
         counts=counts,
@@ -262,6 +264,7 @@ def randomized_entangled_entropy(
         "measureActually": measure_range,
         "bitStringRange": bitstring_range,
         "countsNum": len(counts),
+        "takingTime": taken,
     }
 
     return quantity
