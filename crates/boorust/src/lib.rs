@@ -6,8 +6,10 @@ use pyo3::prelude::*;
 
 use crate::hadamard::purity_echo_core_rust;
 use crate::randomized::construct::{cycling_slice_rust, qubit_selector_rust};
+use crate::randomized::echo::overlap_echo_core_rust;
+use crate::randomized::entropy::entangled_entropy_core_rust;
 use crate::randomized::randomized::{
-    ensemble_cell_rust, entangled_entropy_core_rust, hamming_distance_rust, purity_cell_rust,
+    echo_cell_rust, ensemble_cell_rust, hamming_distance_rust, purity_cell_rust,
 };
 
 #[pymodule]
@@ -18,10 +20,12 @@ fn boorust(py: Python<'_>, m: &PyModule) -> PyResult<()> {
 
 fn register_child_module(py: Python<'_>, parent_module: &PyModule) -> PyResult<()> {
     let randomized = PyModule::new(py, "randomized")?;
-    randomized.add_function(wrap_pyfunction!(entangled_entropy_core_rust, randomized)?)?;
     randomized.add_function(wrap_pyfunction!(ensemble_cell_rust, randomized)?)?;
     randomized.add_function(wrap_pyfunction!(hamming_distance_rust, randomized)?)?;
     randomized.add_function(wrap_pyfunction!(purity_cell_rust, randomized)?)?;
+    randomized.add_function(wrap_pyfunction!(echo_cell_rust, randomized)?)?;
+    randomized.add_function(wrap_pyfunction!(entangled_entropy_core_rust, randomized)?)?;
+    randomized.add_function(wrap_pyfunction!(overlap_echo_core_rust, randomized)?)?;
 
     let construct = PyModule::new(py, "construct")?;
     construct.add_function(wrap_pyfunction!(qubit_selector_rust, construct)?)?;
