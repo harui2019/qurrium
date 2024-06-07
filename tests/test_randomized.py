@@ -14,6 +14,7 @@ import numpy as np
 from qurry.capsule import quickRead
 from qurry.process.exceptions import PostProcessingRustUnavailableWarning
 from qurry.process.randomized_measure.entangled_entropy import entangled_entropy_core
+from qurry.process.randomized_measure.wavefunction_overlap import overlap_echo_core
 from qurry.process.utils.randomized import (
     RUST_AVAILABLE as rust_available_randomized,
     CYTHON_AVAILABLE as cython_available_randomized,
@@ -118,3 +119,42 @@ def test_entangled_entropy_core(
         )
         < 1e-10
     ), "Cython and Python results are not equal in entangled_entropy_core."
+
+
+@pytest.mark.parametrize("test_items", test_setup_core)
+def test_overlap_echo_core(
+    test_items: tuple[
+        int, list[dict[str, int]], Union[int, tuple[int, int]], tuple[int, int]
+    ]
+):
+    """Test the overlap_echo_core function."""
+
+    assert cython_available_randomized, "Cython is not available."
+    assert rust_available_randomized, "Rust is not available."
+    cy = overlap_echo_core(*test_items, backend="Cython")
+    py = overlap_echo_core(*test_items, backend="Python")
+    rust = overlap_echo_core(*test_items, backend="Rust")
+
+    assert (
+        np.abs(
+            np.average(np.array(list(rust[0].values())))
+            - np.average(np.array(list(cy[0].values())))
+        )
+        < 1e-10
+    ), "Rust and Cython results are not equal in overlap_echo_core."
+
+    assert (
+        np.abs(
+            np.average(np.array(list(rust[0].values())))
+            - np.average(np.array(list(py[0].values())))
+        )
+        < 1e-10
+    ), "Rust and Python results are not equal in overlap_echo_core."
+
+    assert (
+        np.abs(
+            np.average(np.array(list(cy[0].values())))
+            - np.average(np.array(list(py[0].values())))
+        )
+        < 1e-10
+    ), "Cython and Python results are not equal in overlap_echo_core."

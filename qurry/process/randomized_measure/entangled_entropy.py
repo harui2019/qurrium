@@ -10,10 +10,9 @@ from typing import Union, Optional, Literal, TypedDict
 import numpy as np
 import tqdm
 
-
-from ..availability import PostProcessingBackendLabel
 from .entropy_core import entangled_entropy_core, DEFAULT_PROCESS_BACKEND
 from .error_mitigation import depolarizing_error_mitgation
+from ..availability import PostProcessingBackendLabel
 
 
 class RandomizedEntangledEntropyComplex(TypedDict):
