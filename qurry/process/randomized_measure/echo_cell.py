@@ -19,8 +19,8 @@ from ..availability import (
 from ..exceptions import (
     PostProcessingCythonImportError,
     PostProcessingCythonUnavailableWarning,
-    # PostProcessingRustImportError,
-    # PostProcessingRustUnavailableWarning,
+    PostProcessingRustImportError,
+    PostProcessingRustUnavailableWarning,
 )
 
 
@@ -42,60 +42,59 @@ except ImportError as err:
 
     # pylint: enable=invalid-name, unused-argument
 
-# try:
-#     from ...boorust import randomized  # type: ignore
+try:
+    from ...boorust import randomized  # type: ignore
 
-#     purity_cell_rust_source = randomized.echo_cell_rust
+    echo_cell_rust_source = randomized.echo_cell_rust
 
-#     RUST_AVAILABLE = True
-#     FAILED_RUST_IMPORT = None
-# except ImportError as err:
-#     RUST_AVAILABLE = False
-#     FAILED_RUST_IMPORT = err
+    RUST_AVAILABLE = True
+    FAILED_RUST_IMPORT = None
+except ImportError as err:
+    RUST_AVAILABLE = False
+    FAILED_RUST_IMPORT = err
 
-#     def purity_cell_rust_source(*args, **kwargs):
-#         """Dummy function for purity_cell_rust."""
-#         raise PostProcessingRustImportError(
-#             "Rust is not available, using python to calculate purity cell."
-#         ) from FAILED_RUST_IMPORT
+    def echo_cell_rust_source(*args, **kwargs):
+        """Dummy function for cho_cell_rust."""
+        raise PostProcessingRustImportError(
+            "Rust is not available, using python to calculate purity cell."
+        ) from FAILED_RUST_IMPORT
 
 
 BACKEND_AVAILABLE = availablility(
     "randomized_measure.echo_cell",
     [
-        # ("Rust", RUST_AVAILABLE, FAILED_RUST_IMPORT),
+        ("Rust", RUST_AVAILABLE, FAILED_RUST_IMPORT),
         ("Cython", CYTHON_AVAILABLE, FAILED_PYX_IMPORT),
     ],
 )
 DEFAULT_PROCESS_BACKEND = default_postprocessing_backend(
-    # RUST_AVAILABLE,
-    False,
+    RUST_AVAILABLE,
     CYTHON_AVAILABLE,
 )
 
 
-# def echo_cell_rust(
-#     idx: int,
-#     first_counts: dict[str, int],
-#     second_counts: dict[str, int],
-#     bitstring_range: tuple[int, int],
-#     subsystem_size: int,
-# ) -> tuple[int, float]:
-#     """Calculate the echo cell, one of overlap, of a subsystem by Rust.
+def echo_cell_rust(
+    idx: int,
+    first_counts: dict[str, int],
+    second_counts: dict[str, int],
+    bitstring_range: tuple[int, int],
+    subsystem_size: int,
+) -> tuple[int, float]:
+    """Calculate the echo cell, one of overlap, of a subsystem by Rust.
 
-#     Args:
-#         idx (int): Index of the cell (counts).
-#         first_counts (dict[str, int]): Counts measured by the first quantum circuit.
-#         second_counts (dict[str, int]): Counts measured by the second quantum circuit.
-#         bitstring_range (tuple[int, int]): The range of the subsystem.
-#         subsystem_size (int): Subsystem size included.
+    Args:
+        idx (int): Index of the cell (counts).
+        first_counts (dict[str, int]): Counts measured by the first quantum circuit.
+        second_counts (dict[str, int]): Counts measured by the second quantum circuit.
+        bitstring_range (tuple[int, int]): The range of the subsystem.
+        subsystem_size (int): Subsystem size included.
 
-#     Returns:
-#         tuple[int, float]: Index, one of overlap purity.
-#     """
-#     return idx, purity_cell_rust_source(
-#         dict(first_counts), dict(second_counts), bitstring_range, subsystem_size
-#     )
+    Returns:
+        tuple[int, float]: Index, one of overlap purity.
+    """
+    return idx, echo_cell_rust_source(
+        first_counts, second_counts, bitstring_range, subsystem_size
+    )
 
 
 def echo_cell_cy(
@@ -192,28 +191,29 @@ def echo_cell(
     Returns:
         tuple[int, float]: Index, one of overlap purity.
     """
-    # if not RUST_AVAILABLE and backend == "Rust":
-    #     warnings.warn(
-    #         "Rust is not available, using Cython or Python to calculate purity cell."
-    #         + f"Check the error: {FAILED_RUST_IMPORT}",
-    #         PostProcessingRustUnavailableWarning,
-    #     )
-    #     backend = "Cython" if CYTHON_AVAILABLE else "Python"
+    if not RUST_AVAILABLE and backend == "Rust":
+        warnings.warn(
+            "Rust is not available, using Cython or Python to calculate purity cell."
+            + f"Check the error: {FAILED_RUST_IMPORT}",
+            PostProcessingRustUnavailableWarning,
+        )
+        backend = "Cython" if CYTHON_AVAILABLE else "Python"
     if not CYTHON_AVAILABLE and backend == "Cython":
         warnings.warn(
             "Cython is not available, using Python or Rust to calculate purity cell."
             + f"Check the error: {FAILED_PYX_IMPORT}",
             PostProcessingCythonUnavailableWarning,
         )
-        # backend = "Rust" if RUST_AVAILABLE else "Python"
-        backend = "Python"
+        backend = "Rust" if RUST_AVAILABLE else "Python"
 
     if backend == "Cython":
         return echo_cell_cy(
             idx, first_counts, second_counts, bitstring_range, subsystem_size
         )
-    # if backend == "Rust":
-    #     return purity_cell_rust(idx, single_counts, bitstring_range, subsystem_size)
+    if backend == "Rust":
+        return echo_cell_rust(
+            idx, first_counts, second_counts, bitstring_range, subsystem_size
+        )
     return echo_cell_py(
         idx, first_counts, second_counts, bitstring_range, subsystem_size
     )
