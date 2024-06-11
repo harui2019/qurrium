@@ -7,6 +7,7 @@ Dummy Case Kit
 """
 
 from typing import Callable, Optional
+import random
 import numpy as np
 
 from ..availability import (
@@ -81,12 +82,21 @@ def make_two_bit_str_32_py(
         list[str]: The list of bit strings.
     """
     ultmax = 31
+    is_less_than_16 = False
+    less_slice = 0
+
     if num is None:
         logged_num = ultmax
         real_num = 2**ultmax
     else:
-        logged_num = np.log2(num)
-        real_num = num
+        if num < 16:
+            is_less_than_16 = True
+            less_slice = num
+            logged_num = 4
+            real_num = 16
+        else:
+            logged_num = np.log2(num)
+            real_num = num
 
     if logged_num > ultmax:
         raise ValueError(f"num should be less than {2**ultmax} for safety reason.")
@@ -104,7 +114,11 @@ def make_two_bit_str_32_py(
         ]
 
     if bitlen <= logged_num:
-        return generate_bits(bitlen)
+        result = generate_bits(bitlen)
+        if is_less_than_16:
+            random.shuffle(result)
+            return result[:less_slice]
+        return result
     less_bitlen = bitlen - int(logged_num) - 1
 
     raw_content = generate_bits(int(logged_num))
@@ -138,10 +152,14 @@ def make_two_bit_str_32_py(
     remain_fillers = generate_bits(less_bitlen)
     len_remain_fillers = len(remain_fillers)
 
-    return [
+    result = [
         filler_h_or_e(remain_fillers[np.random.randint(0, len_remain_fillers)], item)
         for item in num_fulfill_content
     ]
+    if is_less_than_16:
+        random.shuffle(result)
+        return result[:less_slice]
+    return result
 
 
 def make_two_bit_str_unlimit(

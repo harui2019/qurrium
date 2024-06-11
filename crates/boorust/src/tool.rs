@@ -3,11 +3,12 @@ extern crate pyo3;
 use dashmap::DashMap;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use rand::rngs::StdRng;
-use rand::{Rng, SeedableRng};
+use rand::seq::SliceRandom;
+use rand::thread_rng;
+use rand::Rng;
 use rayon::prelude::*;
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 fn generate_bits(num: usize, bits: Option<Arc<Vec<String>>>) -> Arc<Vec<String>> {
     let bits = bits.unwrap_or_else(|| Arc::new(vec![String::new()]));
@@ -17,7 +18,7 @@ fn generate_bits(num: usize, bits: Option<Arc<Vec<String>>>) -> Arc<Vec<String>>
     }
 
     let new_bits: Vec<String> = bits
-        .par_iter()
+        .iter()
         .flat_map(|bit| vec![format!("0{}", bit), format!("1{}", bit)])
         .collect();
 
@@ -26,28 +27,56 @@ fn generate_bits(num: usize, bits: Option<Arc<Vec<String>>>) -> Arc<Vec<String>>
 
 #[pyfunction]
 pub fn make_two_bit_str_32(bitlen: usize, num: Option<usize>) -> PyResult<Vec<String>> {
-    const ULTMX: usize = 31;
+    const ULTMAX: usize = 31;
+    let mut is_less_than_16 = false;
+    let mut less_slice = 0;
 
     let (logged_num, real_num) = match num {
-        None => (ULTMX as f64, 2_usize.pow(ULTMX as u32)),
+        None => (ULTMAX as f64, 2_usize.pow(ULTMAX as u32)),
         Some(n) => {
-            let logged = (n as f64).log2();
-            (logged, n)
+            if n < 16 {
+                is_less_than_16 = true;
+                less_slice = n;
+                (4 as f64, 16)
+            } else {
+                let logged = (n as f64).log2();
+                (logged, n)
+            }
         }
     };
 
-    if logged_num > ULTMX as f64 {
-        return Err(PyErr::new::<PyValueError, _>(format!(
+    if logged_num > ULTMAX as f64 {
+        return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
             "num should be less than {} for safety reasons.",
-            2_usize.pow(ULTMX as u32)
+            2_usize.pow(ULTMAX as u32)
         )));
+    }
+
+    fn generate_bits(num: usize, bits: Option<Arc<Vec<String>>>) -> Arc<Vec<String>> {
+        let bits = bits.unwrap_or_else(|| Arc::new(vec![String::new()]));
+
+        if num == 0 {
+            return bits;
+        }
+
+        let new_bits: Vec<String> = bits
+            .par_iter()
+            .flat_map(|bit| vec![format!("0{}", bit), format!("1{}", bit)])
+            .collect();
+
+        generate_bits(num - 1, Some(Arc::new(new_bits)))
     }
 
     let generate_bits =
         |num| Arc::try_unwrap(generate_bits(num, None)).unwrap_or_else(|arc| (*arc).clone());
 
     if bitlen <= logged_num as usize {
-        return Ok(generate_bits(bitlen));
+        let mut result = generate_bits(bitlen);
+        if is_less_than_16 {
+            result.shuffle(&mut thread_rng());
+            return Ok(result[..less_slice].to_vec());
+        }
+        return Ok(result);
     }
 
     let less_bitlen = bitlen - logged_num as usize - 1;
@@ -64,17 +93,13 @@ pub fn make_two_bit_str_32(bitlen: usize, num: Option<usize>) -> PyResult<Vec<St
         vec!["1", "0"]
     };
 
-    let rng = Arc::new(Mutex::new(StdRng::from_entropy()));
-
-    let filler_h_or_e = |ff: &str, item: &str| -> String {
-        let rng = Arc::clone(&rng);
-        let mut rng = rng.lock().unwrap();
-        if rng.gen::<bool>() {
+    fn filler_h_or_e(ff: &str, item: &str) -> String {
+        if rand::thread_rng().gen::<bool>() {
             format!("{}{}", ff, item)
         } else {
             format!("{}{}", item, ff)
         }
-    };
+    }
 
     let mut num_fulfill_content: Vec<String> = raw_content
         .par_iter()
@@ -93,9 +118,8 @@ pub fn make_two_bit_str_32(bitlen: usize, num: Option<usize>) -> PyResult<Vec<St
         num_fulfill_content = num_fulfill_content
             .par_iter()
             .map(|item| {
-                let rng = Arc::clone(&rng);
-                let mut rng2 = rng.lock().unwrap();
-                let rand_item = &raw_content[rng2.gen_range(0..len_raw_content)];
+                let mut rng = rand::thread_rng();
+                let rand_item = &raw_content[rng.gen_range(0..len_raw_content)];
                 filler_h_or_e(rand_item, item)
             })
             .collect();
@@ -103,22 +127,28 @@ pub fn make_two_bit_str_32(bitlen: usize, num: Option<usize>) -> PyResult<Vec<St
     }
 
     if less_bitlen == 0 {
+        if is_less_than_16 {
+            return Ok(num_fulfill_content[..less_slice].to_vec());
+        }
         return Ok(num_fulfill_content);
     }
 
     let remain_fillers = generate_bits(less_bitlen);
     let len_remain_fillers = remain_fillers.len();
 
-    let result: Vec<String> = num_fulfill_content
+    let mut result: Vec<String> = num_fulfill_content
         .par_iter()
         .map(|item| {
-            let rng = Arc::clone(&rng);
-            let mut rng2 = rng.lock().unwrap();
-            let filler = &remain_fillers[rng2.gen_range(0..len_remain_fillers)];
+            let mut rng = rand::thread_rng();
+            let filler = &remain_fillers[rng.gen_range(0..len_remain_fillers)];
             filler_h_or_e(filler, item)
         })
         .collect();
 
+    if is_less_than_16 {
+        result.shuffle(&mut thread_rng());
+        return Ok(result[..less_slice].to_vec());
+    }
     Ok(result)
 }
 
@@ -144,7 +174,7 @@ pub fn make_dummy_case_32(
     };
     let result = DashMap::new();
 
-    bitstring_cases.par_iter().for_each(|case| {
+    bitstring_cases.iter().for_each(|case| {
         result.insert(case.clone(), shot_per_case);
     });
 
