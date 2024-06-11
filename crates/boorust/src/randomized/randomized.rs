@@ -2,6 +2,7 @@ extern crate pyo3;
 extern crate rayon;
 
 use pyo3::prelude::*;
+use rayon::prelude::*;
 use std::collections::HashMap;
 use std::panic;
 
@@ -73,13 +74,16 @@ pub fn purity_cell_rust(
         }
     }
 
-    let mut purity_cell: f64 = 0.0;
-    for (s_ai, s_ai_meas) in single_counts_under_degree.iter() {
-        for (s_aj, s_aj_meas) in single_counts_under_degree.iter() {
-            purity_cell +=
-                ensemble_cell_rust(s_ai, *s_ai_meas, s_aj, *s_aj_meas, subsystem_size, shots);
-        }
-    }
+    let purity_cell: f64 = single_counts_under_degree
+        .par_iter()
+        .flat_map(|(s_ai, s_ai_meas)| {
+            single_counts_under_degree
+                .par_iter()
+                .map(move |(s_aj, s_aj_meas)| {
+                    ensemble_cell_rust(s_ai, *s_ai_meas, s_aj, *s_aj_meas, subsystem_size, shots)
+                })
+        })
+        .sum();
 
     (idx, purity_cell)
 }
@@ -150,13 +154,16 @@ pub fn echo_cell_rust(
         }
     }
 
-    let mut purity_cell: f64 = 0.0;
-    for (s_ai, s_ai_meas) in single_counts_under_degree.iter() {
-        for (s_aj, s_aj_meas) in second_counts_under_degree.iter() {
-            purity_cell +=
-                ensemble_cell_rust(s_ai, *s_ai_meas, s_aj, *s_aj_meas, subsystem_size, shots);
-        }
-    }
+    let echo_cell: f64 = single_counts_under_degree
+        .par_iter()
+        .flat_map(|(s_ai, s_ai_meas)| {
+            second_counts_under_degree
+                .par_iter()
+                .map(move |(s_aj, s_aj_meas)| {
+                    ensemble_cell_rust(s_ai, *s_ai_meas, s_aj, *s_aj_meas, subsystem_size, shots)
+                })
+        })
+        .sum();
 
-    (idx, purity_cell)
+    (idx, echo_cell)
 }
