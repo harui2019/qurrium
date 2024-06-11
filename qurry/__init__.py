@@ -70,6 +70,7 @@ try:
     sys.modules["qurry.boorust.construct"] = qurry.boorust.construct  # type: ignore
     sys.modules["qurry.boorust.randomized"] = qurry.boorust.randomized  # type: ignore
     sys.modules["qurry.boorust.hadamard"] = qurry.boorust.hadamard  # type: ignore
+    sys.modules["qurry.boorust.dummy"] = qurry.boorust.dummy  # type: ignore
     RUST_AVAILABLE = True
     FAILED_RUST_IMPORT = None
 except ModuleNotFoundError as qurry_boorust_import_error:
