@@ -7,7 +7,7 @@ Randomized Measure Kit for PostProcessing
 """
 
 import warnings
-from typing import Callable, Optional, Union, overload
+from typing import Union, overload
 import numpy as np
 
 from ..availability import availablility
@@ -83,59 +83,6 @@ BACKEND_AVAILABLE = availablility(
         ("Cython", CYTHON_AVAILABLE, FAILED_PYX_IMPORT),
     ],
 )
-
-
-RXmatrix = np.array([[0, 1], [1, 0]])
-"""Pauli-X matrix"""
-RYmatrix = np.array([[0, -1j], [1j, 0]])
-"""Pauli-Y matrix"""
-RZmatrix = np.array([[1, 0], [0, -1]])
-"""Pauli-Z matrix"""
-
-# pylint: disable=unnecessary-direct-lambda-call
-
-
-def make_two_bit_str(num: int, bits: Optional[list[str]] = None) -> list[str]:
-    """Make a list of bit strings with length of `num`.
-
-    Args:
-        num (int): bit string length.
-        bits (list[str], optional): The input for recurrsion. Defaults to [''].
-
-    Returns:
-        list[str]: The list of bit strings.
-    """
-    bits = [""] if bits is None else bits
-
-    return (
-        (
-            lambda bits_inner: [
-                *["0" + item for item in bits_inner],
-                *["1" + item for item in bits_inner],
-            ]
-        )(make_two_bit_str(num - 1, bits))
-        if num > 0
-        else bits
-    )
-
-
-makeTwoBitStrOneLiner: Callable[[int, list[str]], list[str]] = lambda num, bits=[""]: (
-    (lambda bits: [*["0" + item for item in bits], *["1" + item for item in bits]])(
-        makeTwoBitStrOneLiner(num - 1, bits)
-    )
-    if num > 0
-    else bits
-)
-"""Make a list of bit strings with length of `num`. But it's an ONE LINE code.
-
-    Args:
-        num (int): bit string length.
-        bits (list[str], optional): The input for recurrsion. Defaults to [''].
-
-    Returns:
-        list[str]: The list of bit strings.
-"""
-# pylint: enable=unnecessary-direct-lambda-call
 
 
 def hamming_distance(str1: str, str2: str) -> int:
