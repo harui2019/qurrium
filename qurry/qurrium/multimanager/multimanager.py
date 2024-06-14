@@ -34,6 +34,8 @@ from ...exceptions import (
 
 class MultiManager:
     """The manager of multiple experiments."""
+    
+    __name__ = "MultiManager"
 
     MultiCommonparams = MultiCommonparams
     Before = Before

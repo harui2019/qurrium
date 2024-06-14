@@ -6,7 +6,7 @@ Wave Function Overlap - Randomized Measurement Experiment
 
 """
 
-from typing import Union, Optional, Hashable, NamedTuple
+from typing import Union, Optional, Hashable, NamedTuple, Iterable
 import tqdm
 
 from .analysis import EchoRandomizedAnalysis
@@ -73,18 +73,27 @@ class EchoRandomizedExperiment(ExperimentPrototype):
     def analyze(
         self,
         degree: Optional[Union[tuple[int, int], int]] = None,
+        counts_used: Optional[Iterable[int]] = None,
         workers_num: Optional[int] = None,
+        backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
         pbar: Optional[tqdm.tqdm] = None,
     ) -> EchoRandomizedAnalysis:
         """Calculate entangled entropy with more information combined.
 
         Args:
             degree (Union[tuple[int, int], int]): Degree of the subsystem.
+            counts_used (Optional[Iterable[int]], optional):
+                The index of the counts used.
+                If not specified, then use all counts.
+                Defaults to None.
             workers_num (Optional[int], optional):
                 Number of multi-processing workers,
                 if sets to 1, then disable to using multi-processing;
                 if not specified, then use the number of all cpu counts - 2 by `cpu_count() - 2`.
                 Defaults to None.
+            backend (PostProcessingBackendLabel, optional):
+                Backend for the process. Defaults to DEFAULT_PROCESS_BACKEND.
+            pbar (Optional[tqdm.tqdm], optional): Progress bar. Defaults to None.
 
         Returns:
             dict[str, float]: A dictionary contains
@@ -101,7 +110,24 @@ class EchoRandomizedExperiment(ExperimentPrototype):
         shots = self.commons.shots
         measure = self.args.measure
         unitary_loc = self.args.unitary_loc
-        counts = self.afterwards.counts
+        len_counts = len(self.afterwards.counts)
+        assert len_counts % 2 == 0, "The counts should be even."
+        len_counts_half = int(len_counts / 2)
+        if isinstance(counts_used, Iterable):
+            if max(counts_used) >= len_counts_half:
+                raise ValueError(
+                    "counts_used should be less than "
+                    f"{len_counts_half }, but get {max(counts_used)}."
+                )
+            counts = [self.afterwards.counts[i] for i in counts_used] + [
+                self.afterwards.counts[i + len_counts_half] for i in counts_used
+            ]
+        else:
+            if counts_used is not None:
+                raise ValueError(
+                    f"counts_used should be Iterable, but get {type(counts_used)}."
+                )
+            counts = self.afterwards.counts
 
         if isinstance(pbar, tqdm.tqdm):
             qs = self.quantities(
@@ -109,6 +135,7 @@ class EchoRandomizedExperiment(ExperimentPrototype):
                 counts=counts,
                 degree=degree,
                 measure=measure,
+                backend=backend,
                 workers_num=workers_num,
                 pbar=pbar,
             )
@@ -125,6 +152,7 @@ class EchoRandomizedExperiment(ExperimentPrototype):
                     counts=counts,
                     degree=degree,
                     measure=measure,
+                    backend=backend,
                     workers_num=workers_num,
                     pbar=pb_self,
                 )
@@ -135,6 +163,7 @@ class EchoRandomizedExperiment(ExperimentPrototype):
             serial=serial,
             shots=shots,
             unitary_loc=unitary_loc,
+            counts_used=counts_used,
             **qs,  # type: ignore
         )
 

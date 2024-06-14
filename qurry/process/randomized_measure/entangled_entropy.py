@@ -84,24 +84,24 @@ class RandomizedEntangledEntropyMitigatedComplex(TypedDict):
     """The number of qubits of this syystem."""
     measure: tuple[str, Union[list[int], tuple[int, int]]]
     """The qubit range of the measurement and text description.
-        
-        - The first element is the text description.
-        - The second element is the qubit range of the measurement.
-        
-        ---
-        - When the measurement is specified, it will be:
-        
-        >>> ("measure range:", (0, 3))
-        
-        - When the measurement is not specified, it will be:
-        
-        >>> ("not specified, use all qubits", (0, 3))
-        
-        - When null counts exist, it will be:
-        
-        >>> ("The following is the index of null counts.", [0, 1, 2, 3])
-        
-        """
+    
+    - The first element is the text description.
+    - The second element is the qubit range of the measurement.
+    
+    ---
+    - When the measurement is specified, it will be:
+    
+    >>> ("measure range:", (0, 3))
+    
+    - When the measurement is not specified, it will be:
+    
+    >>> ("not specified, use all qubits", (0, 3))
+    
+    - When null counts exist, it will be:
+    
+    >>> ("The following is the index of null counts.", [0, 1, 2, 3])
+    
+    """
     measureActually: tuple[int, int]
     """The range of partition refer to all qubits."""
     measureActuallyAllSys: tuple[int, int]

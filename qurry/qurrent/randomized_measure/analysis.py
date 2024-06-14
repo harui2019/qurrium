@@ -21,8 +21,11 @@ class EntropyRandomizedAnalysis(AnalysisPrototype):
         """To set the analysis."""
 
         degree: tuple[int, int]
+        """The range of partition."""
         shots: int
+        """The number of shots."""
         unitary_loc: Optional[tuple[int, int]] = None
+        """The location of the random unitary operator."""
 
     input: AnalysisInput
 
@@ -93,12 +96,14 @@ class EntropyRandomizedAnalysis(AnalysisPrototype):
 
         countsNum: Optional[int] = None
         """The number of counts of the experiment."""
-
         takingTime: Optional[float] = None
         """The taking time of the selected system."""
         takingTimeAllSys: Optional[float] = None
         """The taking time of the all system if it is calculated, 
         it will be 0 when use the all system from other analysis."""
+        counts_used: Optional[Iterable[int]] = None
+        """The index of the counts used.
+        If not specified, then use all counts."""
 
         def __repr__(self):
             return f"AnalysisContent(purity={self.purity}, entropy={self.entropy}, and others)"
