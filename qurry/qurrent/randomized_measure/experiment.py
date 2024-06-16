@@ -117,6 +117,7 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
                 Defaults to None.
             independent_all_system (bool, optional):
                 If True, then calculate the all system independently.
+                Otherwise, use the existed all system source with same `count_used`.
             backend (PostProcessingBackendLabel, optional):
                 Backend for the process. Defaults to DEFAULT_PROCESS_BACKEND.
             pbar (Optional[tqdm.tqdm], optional): Progress bar. Defaults to None.
@@ -153,7 +154,10 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
         available_all_system_source = [
             k
             for k, v in self.reports.items()
-            if v.content.allSystemSource == "independent"
+            if (
+                v.content.allSystemSource == "independent"
+                and v.content.counts_used == counts_used
+            )
         ]
 
         if len(available_all_system_source) > 0 and not independent_all_system:
