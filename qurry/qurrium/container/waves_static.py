@@ -1,203 +1,234 @@
+"""
+================================================================
+WaveContainer
+(:mod:`qurry.qurry.qurrium.container.waves_static`)
+================================================================
+
+"""
+
+from typing import Literal, Union, Optional, Hashable, overload
 from qiskit import QuantumCircuit
 from qiskit.quantum_info import Operator
 from qiskit.circuit import Gate, Instruction
 
-from typing import Literal, Union, Optional, Hashable, MutableMapping
 
 from .waves_dynamic import _add, _remove
 
 
 class WaveContainer(dict[Hashable, QuantumCircuit]):
-    __name__ = "WaveContainer"
+    """WaveContainer is a customized dictionary for storing waves."""
 
-    @property
-    def lastWave(self) -> QuantumCircuit:
-        """The last wave function be called or used.
-        Replace the property :prop:`waveNow`. in :cls:`QurryV4`"""
-        if self.lastWaveKey == None:
-            raise KeyError("No wave function added yet.")
-        else:
-            return self[self.lastWaveKey]
+    __name__ = "WaveContainer"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.lastWaveKey = None
 
     def add(
-        self: MutableMapping[Hashable, QuantumCircuit],
+        self,
         wave: QuantumCircuit,
         key: Optional[Hashable] = None,
-        replace: Literal[True, False, 'duplicate'] = False,
+        replace: Literal[True, False, "duplicate"] = False,
     ) -> Hashable:
+        """Add wave to container.
 
-        self.lastWaveKey = _add(
-            _wave_container=self,
-            wave=wave,
-            key=key,
-            replace=replace
-        )
-        return self.lastWaveKey
+        Args:
+            wave (QuantumCircuit): The wave circuit.
+            key (Optional[Hashable], optional):
+                The key of wave in 'fict' `.waves`. Defaults to None.
+            replace (Literal[True, False, "duplicate"], optional):
+                Replace the wave with same key or not. Defaults to False.
 
-    def remove(
-        self: MutableMapping[Hashable, QuantumCircuit],
-        key: Hashable,
-    ) -> None:
+        Returns:
+            Hashable: The key of wave in 'dict' `.waves`.
+
+        Raises:
+            KeyError: If the wave with same key exists and `replace==False`.
+        """
+        return _add(_wave_container=self, wave=wave, key=key, replace=replace)
+
+    def remove(self, key: Hashable) -> None:
+        """Remove wave from container.
+
+        Args:
+            key (Hashable): The key of wave in 'dict' `.waves`.
+        """
         _remove(self, key)
 
+    @overload
+    def get_wave(self, wave: list[Hashable], run_by: Literal["gate"]) -> list[Gate]:
+        ...
+
+    @overload
+    def get_wave(self, wave: list[Hashable], run_by: Literal["operator"]) -> list[Operator]:
+        ...
+
+    @overload
+    def get_wave(self, wave: list[Hashable], run_by: Literal["instruction"]) -> list[Instruction]:
+        ...
+
+    @overload
     def get_wave(
-        self: MutableMapping[Hashable, QuantumCircuit],
-        wave: Union[list[Hashable], Hashable, None] = None,
-        runBy: Optional[Literal['gate', 'operator',
-                                'instruction', 'copy', 'call']] = None,
-    ) -> Union[list[Union[Gate, Operator, Instruction, QuantumCircuit]], Union[Gate, Operator, Instruction, QuantumCircuit]]:
+        self, wave: list[Hashable], run_by: Optional[Literal["copy", "call"]]
+    ) -> list[QuantumCircuit]:
+        ...
+
+    @overload
+    def get_wave(self, wave: Hashable, run_by: Literal["gate"]) -> Gate:
+        ...
+
+    @overload
+    def get_wave(self, wave: Hashable, run_by: Literal["operator"]) -> Operator:
+        ...
+
+    @overload
+    def get_wave(self, wave: Hashable, run_by: Literal["instruction"]) -> Instruction:
+        ...
+
+    @overload
+    def get_wave(self, wave: Hashable, run_by: Optional[Literal["copy", "call"]]) -> QuantumCircuit:
+        ...
+
+    def get_wave(self, wave=None, run_by=None):
         """Parse wave Circuit into `Instruction` as `Gate` or `Operator` on `QuantumCircuit`.
 
         Args:
             wave (Optional[Hashable], optional):
                 The key of wave in 'fict' `.waves`.
-                If `wave==None`, then chooses `.lastWave` automatically added by last calling of `.addWave`.
                 Defaults to None.
-            runBy (Optional[str], optional):
+            run_by (Optional[str], optional):
                 Export as `Gate`, `Operator`, `Instruction` or a copy when input is `None`.
                 Defaults to `None`.
 
+
+        Raises:
+            ValueError: If `wave is None`.
+            KeyError: If `wave` not in `self`.
+
         Returns:
-            waveReturn: The result of the wave as `Gate` or `Operator`.
+            Union[
+                list[Union[Gate, Operator, Instruction, QuantumCircuit]],
+                Union[Gate, Operator, Instruction, QuantumCircuit]
+            ]: The result of the wave as `Gate` or `Operator`.
         """
 
-        if wave == None:
-            wave = self.lastWave
-        elif isinstance(wave, list):
-            return [self.get_wave(w, runBy) for w in wave]
+        if wave is None:
+            raise ValueError("Need to input wave name.")
+        if isinstance(wave, list):
+            return [self.get_wave(w, run_by) for w in wave]
 
         if wave not in self:
             raise KeyError(f"Wave {wave} not found in {self}")
 
-        if runBy == 'operator':
+        if run_by == "operator":
             return Operator(self[wave])
-        elif runBy == 'gate':
+        if run_by == "gate":
             return self[wave].to_gate()
-        elif runBy == 'instruction':
+        if run_by == "instruction":
             return self[wave].to_instruction()
-        elif runBy == 'copy':
+        if run_by == "copy":
             return self[wave].copy()
-        elif runBy == 'call':
-            self.lastWaveKey = wave
+        if run_by == "call":
             return self[wave]
-        else:
-            return self[wave].to_gate()
+        return self[wave].to_gate()
 
-    def call(
-        self: MutableMapping[Hashable, QuantumCircuit],
-        wave: Union[list[Hashable], Hashable, None] = None,
-    ) -> Union[list[QuantumCircuit], QuantumCircuit]:
+    @overload
+    def call(self, wave: list[Hashable]) -> list[QuantumCircuit]:
+        ...
+
+    @overload
+    def call(self, wave: Hashable) -> QuantumCircuit:
+        ...
+
+    def call(self, wave):
         """Export wave function as `QuantumCircuit`.
 
         Args:
-            wave (Optional[Hashable], optional):
-                The key of wave in 'fict' `.waves`.
-                If `wave==None`, then chooses `.lastWave` automatically added by last calling of `.addWave`.
-                Defaults to None.
+            wave (Union[list[Hashable], Hashable]):
+                The key of wave in 'dict' `.waves`.
 
         Returns:
-            QuantumCircuit: The circuit of wave function.
+            Union[list[QuantumCircuit], QuantumCircuit]:
+                The circuit of wave function.
         """
         return self.get_wave(
             wave=wave,
-            runBy='call',
+            run_by="call",
         )
 
     def __call__(
-        self: MutableMapping[Hashable, QuantumCircuit],
-        wave: Union[list[Hashable], Hashable, None] = None,
+        self, wave: Union[list[Hashable], Hashable]
     ) -> Union[list[QuantumCircuit], QuantumCircuit]:
-
         return self.call(wave=wave)
 
-    def operator(
-        self: MutableMapping[Hashable, QuantumCircuit],
-        wave: Union[list[Hashable], Hashable, None] = None,
-    ) -> Union[list[Operator], Operator]:
+    def operator(self, wave: Union[list[Hashable], Hashable]) -> Union[list[Operator], Operator]:
         """Export wave function as `Operator`.
 
         Args:
-            wave (Optional[Hashable], optional):
-                The key of wave in 'fict' `.waves`.
-                If `wave==None`, then chooses `.lastWave` automatically added by last calling of `.addWave`.
-                Defaults to None.
+            wave (Union[list[Hashable], Hashable]):
+                The key of wave in 'dict' `.waves`.
 
         Returns:
-            Operator: The operator of wave function.
+            Union[list[Operator], Operator]:
+                The operator of wave function.
         """
         return self.get_wave(
             wave=wave,
-            runBy='operator',
+            run_by="operator",
         )
 
-    def gate(
-        self: MutableMapping[Hashable, QuantumCircuit],
-        wave: Union[list[Hashable], Hashable, None] = None,
-    ) -> Union[list[Gate], Gate]:
-        """Export wave function as `Operator`.
+    def gate(self, wave: Union[list[Hashable], Hashable]) -> Union[list[Gate], Gate]:
+        """Export wave function as `Gate`.
 
         Args:
-            wave (Optional[Hashable], optional):
-                The key of wave in 'fict' `.waves`.
-                If `wave==None`, then chooses `.lastWave` automatically added by last calling of `.addWave`.
-                Defaults to None.
+            wave (Union[list[Hashable], Hashable]):
+                The key of wave in 'dict' `.waves`.
 
         Returns:
-            Operator: The operator of wave function.
+            Union[list[Gate], Gate]:
+                The gate of wave function.
         """
         return self.get_wave(
             wave=wave,
-            runBy='gate',
+            run_by="gate",
         )
 
     def copy_circuit(
-        self: MutableMapping[Hashable, QuantumCircuit],
-        wave: Union[list[Hashable], Hashable, None] = None,
-    ) -> Union[list[Gate], Gate]:
-        """Export wave function as `Operator`.
+        self, wave: Union[list[Hashable], Hashable]
+    ) -> Union[list[QuantumCircuit], QuantumCircuit]:
+        """Export a copy of wave function as `QuantumCircuit`.
 
         Args:
-            wave (Optional[Hashable], optional):
-                The key of wave in 'fict' `.waves`.
-                If `wave==None`, then chooses `.lastWave` automatically added by last calling of `.addWave`.
-                Defaults to None.
+            wave (Union[list[Hashable], Hashable]):
+                The key of wave in 'dict' `.waves`.
 
         Returns:
-            Operator: The operator of wave function.
+            Union[list[QuantumCircuit], QuantumCircuit]:
+                The copy circuit of wave function.
         """
         return self.get_wave(
             wave=wave,
-            runBy='copy',
+            run_by="copy",
         )
 
     def instruction(
-        self: MutableMapping[Hashable, QuantumCircuit],
-        wave: Union[list[Hashable], Hashable, None] = None,
-    ) -> Union[list[Gate], Gate]:
-        """Export wave function as `Operator`.
+        self, wave: Union[list[Hashable], Hashable]
+    ) -> Union[list[Instruction], Instruction]:
+        """Export wave function as `Instruction`.
 
         Args:
-            wave (Optional[Hashable], optional):
-                The key of wave in 'fict' `.waves`.
-                If `wave==None`, then chooses `.lastWave` automatically added by last calling of `.addWave`.
-                Defaults to None.
+            wave (Union[list[Hashable], Hashable]):
+                The key of wave in 'dict' `.waves`.
 
         Returns:
-            Operator: The operator of wave function.
+            Union[list[Instruction], Instruction]:
+                The instruction of wave function.
         """
         return self.get_wave(
             wave=wave,
-            runBy='instruction',
+            run_by="instruction",
         )
 
-    def has(
-        self: MutableMapping[Hashable, QuantumCircuit],
-        wavename: Hashable,
-    ) -> bool:
+    def has(self, wavename: Hashable) -> bool:
         """Is there a wave with specific name.
 
         Args:
@@ -209,6 +240,9 @@ class WaveContainer(dict[Hashable, QuantumCircuit]):
         return wavename in self
 
     def __repr__(self):
-        inner_lines = '\n'.join('    %s: ...' % k for k in self.keys())
+        inner_lines = "\n".join(f"    {k}: ..." for k in self.keys())
         inner_lines2 = "{\n%s\n}" % inner_lines
-        return f"<{self.__name__}={inner_lines2} with {len(self)} waves load, a customized dictionary>"
+        return (
+            f"<{self.__name__}={inner_lines2} with {len(self)} "
+            + "waves load, a customized dictionary>"
+        )

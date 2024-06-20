@@ -1,9 +1,15 @@
-from .construct import qubit_selector, wave_selector, decomposer, get_counts, workers_distribution
-from .inputfixer import levenshtein_distance
-from .randomized import (
-    RXmatrix, RYmatrix, RZmatrix,
-    makeTwoBitStr, makeTwoBitStrOneLiner, cycling_slice,
-    hamming_distance, ensembleCell, densityMatrixToBloch, qubitOpToPauliCoeff,
+"""
+================================================================
+Utility functions for qurry
+(:mod:`qurry.qurrium.utils`)
+================================================================
+"""
+
+from .construct import qasm_drawer, decomposer, get_counts_and_exceptions
+from .inputfixer import damerau_levenshtein_distance, outfields_check
+from .iocontrol import (
+    naming,
+    IOComplex,
+    FULL_SUFFIX_OF_COMPRESS_FORMAT,
+    STAND_COMPRESS_FORMAT,
 )
-from .iocontrol import naming, IOComplex, FULL_SUFFIX_OF_COMPRESS_FORMAT, STAND_COMPRESS_FORMAT
-from .datetime import currentTime, datetimeDict

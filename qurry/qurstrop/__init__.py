@@ -11,7 +11,7 @@
 #     """Call `StringOperator` methods.
 
 #     Args:
-#         method (Literal[&#39;original&#39;], optional): 
+#         method (Literal[&#39;original&#39;], optional):
 
 #             - original: the original `StringOperator`.
 #             Defaults to 'original'.

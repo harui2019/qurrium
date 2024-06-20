@@ -11,46 +11,59 @@ _It's a great thanks for
 and [National Center for Theoretical Sciences, Physics Division](https://phys.ncts.ntu.edu.tw/) located [National Taiwan University](https://www.ntu.edu.tw/)
 , which funded the development of this tool during the author [@harui2019](https://github.com/harui2019/) worked at this institution as Research Assistiant, and i also a great thanks for [IBM Quantum Hub at National Taiwan University](https://quantum.ntu.edu.tw/) providing the access right of [IBM Quantum](https://quantum-computing.ibm.com/), let us can fully test this tool and execute our experiments._
 
-<p><img src="./docs/image/logo/NCCU_Physics_Logo.png" href="https://phys.nccu.edu.tw/" alt="National Chengchi University" width="500" ></p>
+<p><img src="https://raw.githubusercontent.com/harui2019/harui2019/main/docs/image/logo/NCCU_Physics_Logo.png" href="https://phys.nccu.edu.tw/" alt="National Chengchi University" width="500" ></p>
 
-<p><img src="./docs/image/logo/NSTC_Logo.png" href="https://www.nstc.gov.tw/" alt="NSTC" width="500" ></p>
+<p><img src="https://raw.githubusercontent.com/harui2019/harui2019/main/docs/image/logo/NSTC_Logo.png" href="https://www.nstc.gov.tw/" alt="NSTC" width="500" ></p>
 
-<p><img src="./docs/image/logo/NCTS_Phys_Logo.png" href="https://phys.ncts.ntu.edu.tw/" alt="National Center for Theoretical Sciences, Physics Division" width="500" ></p>
+<p><img src="https://raw.githubusercontent.com/harui2019/harui2019/main/docs/image/logo/NCTS_Phys_Logo.png" href="https://phys.ncts.ntu.edu.tw/" alt="National Center for Theoretical Sciences, Physics Division" width="500" ></p>
 
-<p><img src="./docs/image/logo/NTU_IBM_Q_Hub_Logo.png" href="https://quantum.ntu.edu.tw/" alt="IBM Quantum Hub at National Taiwan University" width="500"></p>
+<p><img src="https://raw.githubusercontent.com/harui2019/harui2019/main/docs/image/logo/NTU_IBM_Q_Hub_Logo.png" href="https://quantum.ntu.edu.tw/" alt="IBM Quantum Hub at National Taiwan University" width="500"></p>
 
 ---
 
 ## Environment
 
-![Available Python Version](https://img.shields.io/badge/Python-3.9_|_3.10_|_3.11-blue?logo=python&logoColor=white)
-![Available System](https://img.shields.io/badge/Ubuntu-18.04+-purple?logo=Ubuntu&logoColor=white) ![Available System](https://img.shields.io/badge/Ubuntu_on_Windows_WSL-18.04+-purple?logo=Ubuntu&logoColor=white)
+**We currently <ins>ONLY SUPPORT qiskit up to 0.46.0</ins>, qiskit 1.0.0+ is not supported yet.**
 
- <!-- ![Available System](https://img.shields.io/badge/Windows-10_|_11-purple?logo=Windows&logoColor=white) -->
+![Available Python Version](https://img.shields.io/badge/Python-3.9_|_3.10_|_3.11_|_3.12-blue?logo=python&logoColor=white)
 
-- **Recommended `Python 3.9.7+` installed by Anaconda**
+![Available System](https://img.shields.io/badge/Ubuntu-18.04+-purple?logo=Ubuntu&logoColor=white) ![Available System](https://img.shields.io/badge/Ubuntu_on_WSL-18.04+-purple?logo=Ubuntu&logoColor=white)
 
-  - on
+![Available System](https://img.shields.io/badge/Windows-10_|_11-purple?logo=Windows&logoColor=white) ![Available System](https://img.shields.io/badge/MacOS-11+-purple?logo=Apple&logoColor=white)
 
-    - **Ubuntu 18.04+ LTS** on `x86_64` **(recommended)**
-    - **Ubuntu 18.04+ LTS on Windows 10/11 WSL2** on `x86_64` **(recommended)**
-      - We strongly recommend to use Linux based system, due to the paralell calculation function only works on Unix-like currently and the GPU acceleration of `Qiskit`, `qiskit-aer-gpu` only works with Nvidia CUDA on Linux.
-    - ~~**Windows 10/11** on `x86_64`~~
-      - currently with issues on `multiprocessing` module on Windows.
-    - **MacOS 12+** on **`arm64 (Apple Silicon, M1 chips)`**
-    - **MacOS 12+** on **`x86_64 (Intel chips)`**
-      - Maybe some unknown python issues exist.
+- **Ubuntu 18.04+ LTS (All ManyLinux 2014 compatible distro)**
+  - on `x86_64` **(recommended)**
+  - on `x86_64` Windows 10/11 WSL2 **(recommended)**
+  - on `aarch64`
+  - We strongly recommend to use Linux based system, due to Python multiprocessing may exist some unknown issue on Windows and the GPU acceleration of `Qiskit`, `qiskit-aer-gpu` only works with Nvidia CUDA on Linux.
+- **Windows 10/11**
+  - on `x86_64`
+- **MacOS 11+**
+  - on `aarch64 (Apple Silicon, M1/M2/M3 chips)` **(recommended)**
+  - on `x86_64 (Intel chips)`
 
-  - with required modules:
-
-    - `qiskit`
-
-  - with optional modules:
-    - `qiskit-aer-gpu`: when use Linux
+- with required modules:
+  - `qiskit`, `qiskit-aer`, `tqdm`, `requests`
+- with optional modules:
+  - `qiskit-aer-gpu`: when use Linux
+  - `qiskit-ibm-provider`: when use IBM Quantum
+  - `qiskit-ibmq-provider`: when use IBM Quantum, the deprecated version of `qiskit-ibm-provider`
 
 ---
 
 ## Install
+
+### By PyPI
+
+Not available now, but coming soon
+
+### By TestPyPI
+
+```bash
+pip install qiskit qiskit-aer tqdm requests 
+# the installation from testPyPI can' t find these dependencies
+pip install -i https://test.pypi.org/simple/ qurry
+```
 
 ### Maually by Git
 
@@ -77,10 +90,6 @@ pytest
 ```
 
 After you finish the installation and want to comfirm the installation.
-
-### By PyPI
-
-Not available now, but coming soon
 
 ---
 

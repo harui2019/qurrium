@@ -1,4 +1,14 @@
+"""
+================================================================
+MultiManager (:mod:`qurry.qurry.qurrium.multimanager`)
+================================================================
+"""
+
 from .multimanager import MultiManager
-from .ibmqrunner import IBMQRunner
-from .ibmrunner import IBMRunner
-from .runner import Runner, ThirdPartyRunner
+from .container import (
+    PendingStrategyLiteral,
+    PENDING_STRATEGY,
+    PendingTargetProviderLiteral,
+    PENDING_TARGET_PROVIDER,
+    TagListKeyable,
+)

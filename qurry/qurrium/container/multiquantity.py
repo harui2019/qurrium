@@ -1,20 +1,22 @@
-import tqdm
-from typing import Union, Optional, Literal
+"""
+================================================================
+The container for quantities of analysis for :cls:`MultiManager`.
+(:mod:`qurry.qurrium.container.multiquantity`)
+================================================================
+"""
+from typing import Union, Optional, Literal, Hashable
 from pathlib import Path
 
-from ...mori import TagList
+from ...tools import qurry_progressbar
+from ...capsule.mori import TagList
 
 
-class QuantityContainer(dict[str, TagList[dict[str, float]]]):
-    """The container of analysis for :cls:`MultiManager`.
-    """
+class QuantityContainer(dict[str, TagList[Hashable, dict[str, float]]]):
+    """The container for quantities of analysis for :cls:`MultiManager`."""
 
     __name__ = "QuantityContainer"
 
-    def __init__(self):
-        super().__init__()
-
-    def remove(self, name: str) -> TagList[dict[str, float]]:
+    def remove(self, name: str) -> TagList[Hashable, dict[str, float]]:
         """Removes the analysis.
 
         Args:
@@ -27,27 +29,37 @@ class QuantityContainer(dict[str, TagList[dict[str, float]]]):
     def read(
         self,
         key: str,
-        saveLocation: Union[str, Path],
-        tagListName: str,
+        save_location: Union[str, Path],
+        taglist_name: str,
         name: Optional[str] = None,
     ):
+        """Reads the analysis.
 
+        Args:
+            key (str): The key of the analysis.
+            save_location (Union[str, Path]): The save location of the analysis.
+            taglist_name (str): The name of the taglist.
+            name (Optional[str], optional): The name of the analysis. Defaults to None.
+        """
         self[key] = TagList.read(
-            saveLocation=saveLocation,
-            tagListName=tagListName,
+            save_location=save_location,
+            taglist_name=taglist_name,
             name=name,
         )
 
     def write(
         self,
-        saveLocation: Union[str, Path],
-        filetype: Literal['json', 'csv'] = 'json',
+        save_location: Union[str, Path],
+        filetype: Literal["json", "csv"] = "json",
         indent: int = 2,
         encoding: str = "utf-8",
     ) -> dict[str, str]:
         """Writes the analysis to files.
 
         Args:
+            save_location (Union[str, Path]): The save location of the analysis.
+            filetype (Literal[&#39;json&#39;, &#39;csv&#39;], optional):
+                The filetype of the analysis. Defaults to "json".
             indent (int, optional): The indent of the json file. Defaults to 2.
             encoding (str, optional): The encoding of the json file. Defaults to "utf-8".
 
@@ -55,36 +67,43 @@ class QuantityContainer(dict[str, TagList[dict[str, float]]]):
             dict[str, str]: The path of the files.
         """
 
-        quantityOutput = {}
-        quantityProgress = tqdm.tqdm(
+        quantity_output = {}
+        if len(self) == 0:
+            print("| No quantity to export.")
+            return quantity_output
+
+        quantity_progress = qurry_progressbar(
             self.items(),
-            desc='exporting quantity',
-            bar_format='| {n_fmt}/{total_fmt} - {desc} - {elapsed} < {remaining}',
+            desc="exporting quantity",
+            bar_format="qurry-barless",
         )
 
-        for i, (k, v) in enumerate(quantityProgress):
-            quantityProgress.set_description(f'exporting quantity: {k}')
+        for i, (k, v) in enumerate(quantity_progress):
+            quantity_progress.set_description_str(f"exporting quantity: {k}")
             filename = v.export(
-                saveLocation=saveLocation,
-                tagListName='quantity',
-                name=f'{k}',
+                save_location=save_location,
+                taglist_name="quantity",
+                name=f"{k}",
                 filetype=filetype,
-                openArgs={
-                    'mode': 'w+',
-                    'encoding': encoding,
+                open_args={
+                    "mode": "w+",
+                    "encoding": encoding,
                 },
-                jsonDumpArgs={
-                    'indent': indent,
-                }
+                json_dump_args={
+                    "indent": indent,
+                },
             )
-            quantityOutput[k] = str(filename)
+            quantity_output[k] = str(filename)
 
             if i == len(self) - 1:
-                quantityProgress.set_description(f'exported quantity complete')
+                quantity_progress.set_description_str("exported quantity complete")
 
-        return quantityOutput
+        return quantity_output
 
     def __repr__(self):
-        inner_lines = '\n'.join('    %s: ...' % k for k in self.keys())
+        inner_lines = "\n".join([f"    {k}: ..." for k in self.keys()])
         inner_lines2 = "{\n%s\n}" % inner_lines
-        return f"<{self.__name__}={inner_lines2} with {len(self)} analysis results load, a customized dictionary>"
+        return (
+            f"<{self.__name__}={inner_lines2} with {len(self)} "
+            + "analysis results load, a customized dictionary>"
+        )

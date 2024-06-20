@@ -1,31 +1,38 @@
+"""
+================================================================
+Qurrent - Second Renyi Entropy Measurement
+(:mod:`qurry.qurrent`)
+================================================================
+
+"""
 from typing import Literal, Union, overload
 
-from .RandomizedMeasure import EntropyRandomizedMeasure
-from .HadamardTest import EntropyHadamardTest
+from .randomized_measure import EntropyRandomizedMeasure
+from .hadamard_test import EntropyHadamardTest
 
-    
+
+# pylint: disable=invalid-name
 @overload
-def EntropyMeasure(
-    *args, method: Literal['hadamard'], **kwargs
-) -> EntropyHadamardTest:
+def EntropyMeasure(*args, method: Literal["hadamard"], **kwargs) -> EntropyHadamardTest:
     ...
 
+
 @overload
 def EntropyMeasure(
-    *args, method: Union[Literal['randomized', 'base'], str] = 'randomized', **kwargs
+    *args, method: Union[Literal["randomized", "base"], str] = "randomized", **kwargs
 ) -> EntropyRandomizedMeasure:
     ...
 
 
 def EntropyMeasure(
     *args,
-    method = 'randomized',
+    method="randomized",
     **kwargs,
 ):
     """Call `EntropyMeasure` methods.
 
     Args:
-        method (Literal[&#39;randomized&#39;, &#39;hadamard&#39;, &#39;base&#39;], optional): 
+        method (Literal[&#39;randomized&#39;, &#39;hadamard&#39;, &#39;base&#39;], optional):
 
             - randomized: running by haar randomized measure.
             - hadamard: running by hadamard test.
@@ -35,9 +42,11 @@ def EntropyMeasure(
     Returns:
         Union[EntropyMeasureBase, EntropyMeasureV2Base]: method.
     """
-    if method == 'randomized' or method == 'haar':
+    if method in ("randomized", "haar"):
         return EntropyRandomizedMeasure(*args, **kwargs)
-    elif method == 'hadamard':
+    if method == "hadamard":
         return EntropyHadamardTest(*args, **kwargs)
-    else:
-        return EntropyRandomizedMeasure(*args, **kwargs)
+    return EntropyRandomizedMeasure(*args, **kwargs)
+
+
+# pylint: enable=invalid-name

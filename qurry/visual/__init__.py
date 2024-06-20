@@ -1,1 +1,0 @@
-from .qurchart import QurchartConfig
