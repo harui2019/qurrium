@@ -535,7 +535,7 @@ class QurryPrototype(ABC):
             current_exp.commons.backend, "run"
         ), "Current backend is not runnable."
         execution: Job = current_exp.commons.backend.run(  # type: ignore
-            circuits=current_exp.beforewards.circuit,
+            current_exp.beforewards.circuit,
             shots=current_exp.commons.shots,
             **current_exp.commons.run_args,
         )
