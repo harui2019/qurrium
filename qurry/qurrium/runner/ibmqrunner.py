@@ -39,7 +39,7 @@ class QurryIBMQBackendIO(NamedTuple):
 
     """
 
-    managedJob: ManagedJobSet
+    managedJob: Optional[ManagedJobSet]
     """The managed job set."""
     jobID: str
     """The job ID on IBMQ."""
@@ -82,7 +82,13 @@ class IBMQRunner(Runner):
         """The multimanager from Qurry instance."""
         self.backend = backend
         """The backend will be use to pending and retrieve."""
-        self.provider = backend.provider() if backend is not None else provider
+        tmp_provider = backend.provider() if backend is not None else provider
+        assert (
+            tmp_provider is not None
+        ), f"Provider should be given, but got {tmp_provider} from" + (
+            "backend.provider()" if backend is not None else "the input."
+        )
+        self.provider = tmp_provider
         """The provider will be used to pending and retrieve."""
         self.experiment_container = experimental_container
         """The experimental container from Qurry instance."""
@@ -127,7 +133,11 @@ class IBMQRunner(Runner):
                 f"| Given backend and provider as {backend.name()} and {backend.provider()}."
             )
             self.backend = backend
-            self.provider = backend.provider()
+            tmp_provider = backend.provider()
+            assert (
+                tmp_provider is not None
+            ), f"The backend {backend} has no provider, backend.provider() >>> {tmp_provider}"
+            self.provider = tmp_provider
         else:
             if backend is not None:
                 print(
@@ -244,7 +254,9 @@ class IBMQRunner(Runner):
         pending_map: dict[Hashable, QurryIBMQBackendIO] = {}
         counts_tmp_container: dict[int, dict[str, int]] = {}
 
-        retrieve_times = retrieve_counter(self.current_multimanager.multicommons.datetimes)
+        retrieve_times = retrieve_counter(
+            self.current_multimanager.multicommons.datetimes
+        )
         retrieve_times_name = retrieve_times_namer(retrieve_times + 1)
 
         print(f"| retrieve times: {retrieve_times}, overwrite: {overwrite}")

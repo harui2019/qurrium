@@ -14,7 +14,7 @@ from ...exceptions import QurryExtraPackageRequired
 
 try:
     from qiskit_ibm_provider import IBMBackend, IBMProvider  # type: ignore
-    from qiskit_ibm_provider.job import IBMCircuitJob  # type: ignore
+    from qiskit_ibm_provider.job import IBMCircuitJob, IBMJob  # type: ignore
     from qiskit_ibm_provider.exceptions import IBMError  # type: ignore
 except ImportError:
     raise QurryExtraPackageRequired(
@@ -24,7 +24,7 @@ except ImportError:
 
 try:
     # pylint: disable=ungrouped-imports
-    from qiskit.providers.ibmq import IBMQBackend, IBMQJob, IBMQError  # type: ignore
+    from qiskit.providers.ibmq import IBMQBackend, IBMQError  # type: ignore
 
     # pylint: enable=ungrouped-imports
 
@@ -111,7 +111,8 @@ class IBMRunner(Runner):
                 - "tags": Pending each circuit in one job with tags.
 
                 Defaults to "onetime".
-            backend (Optional[IBMBackend], optional): The backend will be used to pending. Defaults to None.
+            backend (Optional[IBMBackend], optional):
+                The backend will be used to pending. Defaults to None.
 
         Returns:
             list[tuple[Optional[str], str]]: The list of job_id and pending tags.
@@ -241,10 +242,12 @@ class IBMRunner(Runner):
             list[tuple[Optional[str], str]]: The list of job_id and pending tags.
         """
 
-        pending_map: dict[Hashable, Union[IBMCircuitJob, "IBMQJob"]] = {}
+        pending_map: dict[Hashable, Union[IBMCircuitJob, "IBMJob", None]] = {}
         couts_tmp_container: dict[int, dict[str, int]] = {}
 
-        retrieve_times = retrieve_counter(self.current_multimanager.multicommons.datetimes)
+        retrieve_times = retrieve_counter(
+            self.current_multimanager.multicommons.datetimes
+        )
         retrieve_times_name = retrieve_times_namer(retrieve_times + 1)
 
         if retrieve_times > 0 and not overwrite:
@@ -331,24 +334,25 @@ class IBMRunner(Runner):
                 warnings.warn(f"Pending pool '{pending_tags}' is empty.")
                 continue
 
-            if pending_map[pending_tags] is not None:
+            tmp_pending_map = pending_map[pending_tags]
+            if tmp_pending_map is not None:
                 pendingpool_progressbar.set_description_str(
-                    f"{pending_tags}/{pending_map[pending_tags].job_id()}"
-                    + f"/{pending_map[pending_tags].tags()}",
+                    f"{pending_tags}/{tmp_pending_map.job_id()}"
+                    + f"/{tmp_pending_map.tags()}",
                     refresh=True,
                 )
-                self.reports[pending_map[pending_tags].job_id()] = {
+                self.reports[tmp_pending_map.job_id()] = {
                     "time": current,
                     "type": "retrieve",
                 }
                 try:
                     counts, exceptions = get_counts_and_exceptions(
-                        result=pending_map[pending_tags].result(),
+                        result=tmp_pending_map.result(),
                         result_idx_list=[rk - pcircs[0] for rk in pcircs],
                     )
                 except IBMError as e:
                     counts, exceptions = [{} for _ in pcircs], {
-                        pending_map[pending_tags].job_id(): e
+                        tmp_pending_map.job_id(): e
                     }
             else:
                 pendingpool_progressbar.set_description_str(
