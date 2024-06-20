@@ -15,7 +15,7 @@ from typing import Literal, Union, Optional, Hashable, Any, overload, TypeVar, T
 from pathlib import Path
 import tqdm
 
-from qiskit import execute, transpile, QuantumCircuit
+from qiskit import transpile, QuantumCircuit
 from qiskit.providers import Backend, JobV1 as Job
 
 from ..tools import qurry_progressbar, ParallelManager
@@ -64,7 +64,7 @@ class QurryPrototype(ABC):
         """Add new wave function to measure.
 
         Args:
-            waveCircuit (QuantumCircuit): The wave functions or circuits want to measure.
+            wave (QuantumCircuit): The wave functions or circuits want to measure.
             key (Optional[Hashable], optional):
                 Given a specific key to add to the wave function or circuit,
                 if `key == None`, then generate a number as key.
@@ -201,7 +201,7 @@ class QurryPrototype(ABC):
                 Name of experiment of the multiManager.
                 **!!ATTENTION, this should only be used by `Multimanager`!!**
                 _description_. Defaults to None.
-            muteOutfieldsWarning (bool, optional):
+            mute_outfields_warning (bool, optional):
                 Mute the warning when there are unused arguments detected and stored in outfields.
                 Defaults to False.
 
@@ -524,14 +524,20 @@ class QurryPrototype(ABC):
         id_now = self.build(save_location=save_location, _pbar=_pbar, **other_kwargs)
         assert self.exps[id_now].commons.exp_id == id_now
         current_exp = self.exps[id_now]
+        assert isinstance(current_exp.commons.backend, Backend), (
+            f"Current backend {current_exp.commons.backend} needs to be backend not "
+            + f"{type({current_exp.commons.backend})}."
+        )
 
         if isinstance(_pbar, tqdm.tqdm):
             _pbar.set_description_str("Executing...")
-        execution: Job = execute(
-            current_exp.beforewards.circuit,
-            **current_exp.commons.run_args,
-            backend=current_exp.commons.backend,
+        assert hasattr(
+            current_exp.commons.backend, "run"
+        ), "Current backend is not runnable."
+        execution: Job = current_exp.commons.backend.run(  # type: ignore
+            circuits=current_exp.beforewards.circuit,
             shots=current_exp.commons.shots,
+            **current_exp.commons.run_args,
         )
         # commons
         date = current_time()
