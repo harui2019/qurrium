@@ -243,9 +243,7 @@ class TopologicalParamagnet(TwoBody):
             self.h(i)
         for i in range(0, num_qubits, 2):
             self.cz(i, (i + 1) % num_qubits)
-        for i in range(
-            1, (num_qubits - 1 if self.border_cond == "open" else num_qubits), 2
-        ):
+        for i in range(1, (num_qubits - 1 if self.border_cond == "open" else num_qubits), 2):
             self.cz(i, (i + 1) % num_qubits)
 
 

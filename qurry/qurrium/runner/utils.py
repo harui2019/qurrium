@@ -10,13 +10,23 @@ from typing import Hashable, Union, Iterable, Literal, overload
 
 
 @overload
-def pending_tags_decider(pk: Literal["_onetime"]) -> list[str]: ...
+def pending_tags_decider(pk: Literal["_onetime"]) -> list[str]:
+    ...
+
+
 @overload
-def pending_tags_decider(pk: Union[list[str], tuple[str]]) -> list[str]: ...
+def pending_tags_decider(pk: Union[list[str], tuple[str]]) -> list[str]:
+    ...
+
+
 @overload
-def pending_tags_decider(pk: str) -> list[str]: ...
+def pending_tags_decider(pk: str) -> list[str]:
+    ...
+
+
 @overload
-def pending_tags_decider(pk: Hashable) -> list[Hashable]: ...
+def pending_tags_decider(pk: Hashable) -> list[Hashable]:
+    ...
 
 
 def pending_tags_decider(pk):
@@ -37,11 +47,18 @@ def pending_tags_decider(pk):
 
 
 @overload
-def pk_from_list_to_tuple(pk: str) -> str: ...
+def pk_from_list_to_tuple(pk: str) -> str:
+    ...
+
+
 @overload
-def pk_from_list_to_tuple(pk: Hashable) -> Hashable: ...
+def pk_from_list_to_tuple(pk: Hashable) -> Hashable:
+    ...
+
+
 @overload
-def pk_from_list_to_tuple(pk: Iterable[Hashable]) -> tuple[Hashable, ...]: ...
+def pk_from_list_to_tuple(pk: Iterable[Hashable]) -> tuple[Hashable, ...]:
+    ...
 
 
 def pk_from_list_to_tuple(pk):

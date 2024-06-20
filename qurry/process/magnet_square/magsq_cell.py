@@ -13,6 +13,7 @@ from ..availability import (
     availablility,
     default_postprocessing_backend,
 )
+
 # from ..exceptions import (
 #     PostProcessingRustImportError,
 # )
@@ -83,9 +84,7 @@ def magsq_cell_py(
         tuple[int, Union[float, np.float64]]: Index, one of magnitudes square.
     """
     sum_counts = sum(single_counts.values())
-    assert (
-        shots == sum_counts
-    ), f"Shots: {shots} must be equal to the sum of counts: {sum_counts}."
+    assert shots == sum_counts, f"Shots: {shots} must be equal to the sum of counts: {sum_counts}."
 
     _magnetsq_cell = np.float64(0)
     for bits in single_counts:

@@ -6,7 +6,7 @@ Second Renyi Entropy - Randomized Measurement
 
 """
 
-from typing import Union, Optional, NamedTuple
+from typing import Union, Optional, NamedTuple, Iterable
 import tqdm
 
 from .analysis import EntropyRandomizedAnalysis
@@ -96,6 +96,7 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
     def analyze(
         self,
         degree: Optional[Union[tuple[int, int], int]] = None,
+        counts_used: Optional[Iterable[int]] = None,
         workers_num: Optional[int] = None,
         independent_all_system: bool = False,
         backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
@@ -105,6 +106,10 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
 
         Args:
             degree (Union[tuple[int, int], int]): Degree of the subsystem.
+            counts_used (Optional[Iterable[int]], optional):
+                The index of the counts used.
+                If not specified, then use all counts.
+                Defaults to None.
             workers_num (Optional[int], optional):
                 Number of multi-processing workers,
                 if sets to 1, then disable to using multi-processing;
@@ -112,6 +117,7 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
                 Defaults to None.
             independent_all_system (bool, optional):
                 If True, then calculate the all system independently.
+                Otherwise, use the existed all system source with same `count_used`.
             backend (PostProcessingBackendLabel, optional):
                 Backend for the process. Defaults to DEFAULT_PROCESS_BACKEND.
             pbar (Optional[tqdm.tqdm], optional): Progress bar. Defaults to None.
@@ -131,12 +137,22 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
         shots = self.commons.shots
         measure = self.args.measure
         unitary_loc = self.args.unitary_loc
-        counts = self.afterwards.counts
+        if isinstance(counts_used, Iterable):
+            if max(counts_used) >= len(self.afterwards.counts):
+                raise ValueError(
+                    "counts_used should be less than "
+                    f"{len(self.afterwards.counts)}, but get {max(counts_used)}."
+                )
+            counts = [self.afterwards.counts[i] for i in counts_used]
+        else:
+            if counts_used is not None:
+                raise ValueError(f"counts_used should be Iterable, but get {type(counts_used)}.")
+            counts = self.afterwards.counts
 
         available_all_system_source = [
             k
             for k, v in self.reports.items()
-            if v.content.allSystemSource == "independent"
+            if (v.content.allSystemSource == "independent" and v.content.counts_used == counts_used)
         ]
 
         if len(available_all_system_source) > 0 and not independent_all_system:
@@ -180,6 +196,7 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
             serial=serial,
             shots=shots,
             unitary_loc=unitary_loc,
+            counts_used=counts_used,
             **qs,
         )
 

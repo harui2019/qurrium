@@ -16,15 +16,13 @@ from ..randomized_measure import (
 from ..hadamard_test import purity_echo_core_availability
 from ..magnet_square import magnet_square_availability
 
-from ..utils import construct_availability, randomized_availability
+from ..utils import construct_availability, randomized_availability, dummy_availability
 from ..availability import BACKEND_TYPES
 from ...version import __version__
 from ...capsule.hoshi import Hoshi
 
 
-def availability_status_print() -> (
-    tuple[Hoshi, dict[str, dict[str, dict[str, Union[bool, None]]]]]
-):
+def availability_status_print() -> tuple[Hoshi, dict[str, dict[str, dict[str, Union[bool, None]]]]]:
     """Print the availability status of the post-processing modules.
 
     Returns: tuple[Hoshi, dict[str, dict[str, dict[str, Union[bool, None]]]]]
@@ -36,6 +34,7 @@ def availability_status_print() -> (
         echo_cell_availability,
         randomized_availability,
         construct_availability,
+        dummy_availability,
         purity_echo_core_availability,
         magnet_square_availability,
     ]
@@ -71,10 +70,7 @@ def availability_status_print() -> (
                 "type": "itemize",
                 "description": f"{file1}",
                 "value": " ".join(
-                    [
-                        f"{availability_status[mod1][file1][bt]}".ljust(6)
-                        for bt in BACKEND_TYPES
-                    ]
+                    [f"{availability_status[mod1][file1][bt]}".ljust(6) for bt in BACKEND_TYPES]
                 ),
                 "listing_level": 2,
                 "ljust_description_filler": ".",

@@ -105,9 +105,7 @@ def get_default_sim_source() -> ImportPointType:
     for source in ImportPointOrder:
         if source in SIMULATOR_SOURCES:
             return source
-    raise ImportError(
-        "No available simulator source, please check the installation of qiskit."
-    )
+    raise ImportError("No available simulator source, please check the installation of qiskit.")
 
 
 SIM_DEFAULT_SOURCE: ImportPointType = get_default_sim_source()

@@ -127,9 +127,7 @@ try:
     from qiskit.providers.ibmq import IBMQBackend, AccountProvider  # type: ignore
 
     REAL_PROVIDER_SOURCES["qiskit_ibmq_provider"] = AccountProvider
-    REAL_VERSION_INFOS["qiskit_ibmq_provider"] = QISKIT_VERSION.get(
-        "qiskit_ibmq_provider"
-    )
+    REAL_VERSION_INFOS["qiskit_ibmq_provider"] = QISKIT_VERSION.get("qiskit_ibmq_provider")
     REAL_BACKEND_SOURCES["qiskit_ibmq_provider"] = IBMQBackend
 except ImportError as err:
     REAL_PROVIDER_SOURCES["qiskit_ibmq_provider"] = None
@@ -161,13 +159,15 @@ REAL_DEFAULT_SOURCE: Optional[ImportPointType] = get_default_real_source()
 @overload
 def real_backend_loader(
     real_provider=None,
-) -> tuple[dict[str, str], dict[str, Backend], None]: ...
+) -> tuple[dict[str, str], dict[str, Backend], None]:
+    ...
 
 
 @overload
 def real_backend_loader(
     real_provider: Provider,
-) -> tuple[dict[str, str], dict[str, Backend], Provider]: ...
+) -> tuple[dict[str, str], dict[str, Backend], Provider]:
+    ...
 
 
 def real_backend_loader(real_provider=None):
@@ -183,7 +183,7 @@ def real_backend_loader(real_provider=None):
             the real backend dict,
             the real provider.
     """
-    if not real_provider is None:
+    if real_provider is not None:
         backend_ibmq_callsign = {}
         _real_provider = real_provider
         backend_ibmq = {backend_name_getter(b): b for b in real_provider.backends()}

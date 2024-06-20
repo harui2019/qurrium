@@ -41,8 +41,6 @@ class DatetimeDict(dict[str, str]):
         for d in self:
             if d.startswith(eventname):
                 repeat_times_plus_one += 1
-        eventname_with_times = f"{eventname}." + f"{repeat_times_plus_one}".rjust(
-            3, "0"
-        )
+        eventname_with_times = f"{eventname}." + f"{repeat_times_plus_one}".rjust(3, "0")
         self[eventname_with_times] = current_time()
         return eventname_with_times, self[eventname_with_times]

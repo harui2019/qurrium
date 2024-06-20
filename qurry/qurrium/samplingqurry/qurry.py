@@ -74,7 +74,6 @@ class QurryV5(QurryPrototype):
         exp_id: Hashable,
         _pbar: Optional[tqdm.tqdm] = None,
     ) -> list[QuantumCircuit]:
-
         assert exp_id in self.exps
         assert self.exps[exp_id].commons.exp_id == exp_id
         current_exp = self.exps[exp_id]
@@ -82,9 +81,7 @@ class QurryV5(QurryPrototype):
         commons = current_exp.commons
         circuit = self.waves[commons.wave_key]
 
-        current_exp["exp_name"] = (
-            f"{args.exp_name}-{current_exp.commons.wave_key}-x{args.sampling}"
-        )
+        current_exp["exp_name"] = f"{args.exp_name}-{current_exp.commons.wave_key}-x{args.sampling}"
         print(
             f"| Directly call: {current_exp.commons.wave_key} with sampling {args.sampling} times."
         )

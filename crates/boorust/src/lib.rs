@@ -1,5 +1,6 @@
 mod hadamard;
 mod randomized;
+mod tool;
 extern crate pyo3;
 
 use pyo3::prelude::*;
@@ -11,6 +12,7 @@ use crate::randomized::entropy::entangled_entropy_core_rust;
 use crate::randomized::randomized::{
     echo_cell_rust, ensemble_cell_rust, hamming_distance_rust, purity_cell_rust,
 };
+use crate::tool::{make_dummy_case_32, make_two_bit_str_32, make_two_bit_str_unlimit};
 
 #[pymodule]
 fn boorust(py: Python<'_>, m: &PyModule) -> PyResult<()> {
@@ -34,9 +36,15 @@ fn register_child_module(py: Python<'_>, parent_module: &PyModule) -> PyResult<(
     let hadamard = PyModule::new(py, "hadamard")?;
     hadamard.add_function(wrap_pyfunction!(purity_echo_core_rust, hadamard)?)?;
 
+    let dummy = PyModule::new(py, "dummy")?;
+    dummy.add_function(wrap_pyfunction!(make_two_bit_str_32, dummy)?)?;
+    dummy.add_function(wrap_pyfunction!(make_dummy_case_32, dummy)?)?;
+    dummy.add_function(wrap_pyfunction!(make_two_bit_str_unlimit, dummy)?)?;
+
     parent_module.add_submodule(randomized)?;
     parent_module.add_submodule(construct)?;
     parent_module.add_submodule(hadamard)?;
+    parent_module.add_submodule(dummy)?;
     Ok(())
 }
 

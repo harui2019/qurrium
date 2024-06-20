@@ -75,18 +75,14 @@ def qubit_selector(
                 + f"beyond {num_qubits} which the wave function has."
             )
         if degree < 0:
-            raise ValueError(
-                "The number of qubits of subsystem A has to be natural number."
-            )
+            raise ValueError("The number of qubits of subsystem A has to be natural number.")
 
         item_range = (num_qubits - degree, num_qubits)
         subsystem = subsystem[num_qubits - degree : num_qubits]
 
     elif isinstance(degree, (tuple, list)):
         if len(degree) == 2:
-            deg_parsed = [
-                (d % num_qubits if d != num_qubits else num_qubits) for d in degree
-            ]
+            deg_parsed = [(d % num_qubits if d != num_qubits else num_qubits) for d in degree]
             item_range = (min(deg_parsed), max(deg_parsed))
             subsystem = subsystem[min(deg_parsed) : max(deg_parsed)]
 
@@ -97,9 +93,7 @@ def qubit_selector(
             )
 
     else:
-        raise ValueError(
-            f"'degree' must be 'int' or 'tuple[int, int]', but get '{degree}'."
-        )
+        raise ValueError(f"'degree' must be 'int' or 'tuple[int, int]', but get '{degree}'.")
 
     return item_range
 

@@ -15,13 +15,8 @@ BACKEND_TYPES: list[PostProcessingBackendLabel] = ["Python", "Cython", "Rust"]
 
 def availablility(
     module_location: str,
-    import_statement: list[
-        tuple[PostProcessingBackendLabel, bool, Optional[ImportError]]
-    ],
-) -> tuple[
-    str,
-    dict[PostProcessingBackendLabel, Union[bool, Optional[ImportError]]],
-]:
+    import_statement: list[tuple[PostProcessingBackendLabel, bool, Optional[ImportError]]],
+) -> tuple[str, dict[PostProcessingBackendLabel, Union[bool, Optional[ImportError]]],]:
     """Returns the availablility of the post-processing backend.
 
     Args:
@@ -47,10 +42,10 @@ def availablility(
     }
 
 
-default_postprocessing_backend: Callable[[bool, bool], PostProcessingBackendLabel] = (
-    lambda rust_available=False, cython_available=False: (
-        "Rust" if rust_available else "Cython" if cython_available else "Python"
-    )
+default_postprocessing_backend: Callable[
+    [bool, bool], PostProcessingBackendLabel
+] = lambda rust_available=False, cython_available=False: (
+    "Rust" if rust_available else "Cython" if cython_available else "Python"
 )
 """Return the default post-processing backend.
 

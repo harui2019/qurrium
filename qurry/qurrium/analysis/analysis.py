@@ -60,9 +60,7 @@ class AnalysisPrototype:
             tuple[AnalysisInput, dict[str, Any]]: The filtered input and unused arguments.
         """
         if len(args) > 0:
-            raise ValueError(
-                "analysis filter can't be initialized with positional arguments."
-            )
+            raise ValueError("analysis filter can't be initialized with positional arguments.")
         infields = {}
         outfields = {}
 
@@ -118,9 +116,7 @@ class AnalysisPrototype:
         self.input, outfields = self.input_filter(**otherArgs)
         self.content, self.outfields = self.content_filter(**outfields)
 
-        duplicate_fields = set(self.AnalysisInput._fields) & set(
-            self.AnalysisContent._fields
-        )
+        duplicate_fields = set(self.AnalysisInput._fields) & set(self.AnalysisContent._fields)
         if len(duplicate_fields) > 0:
             raise QurryInvalidInherition(
                 f"{self.__name__}.AnalysisInput and {self.__name__}"
@@ -238,11 +234,9 @@ class AnalysisPrototype:
             if not (k in main or k in side):
                 lost_key.append(k)
 
-        if len(lost_key) > 0:
-            print(f"| Analysis main product may lost the following keys: {lost_key}.")
-
         content = {k: v for k, v in main.items() if k not in ("input", "header")}
         instance = cls(**main["header"], **main["input"], **content, **side)
+        instance.header.log["lost_key"] = lost_key
         return instance
 
     @classmethod

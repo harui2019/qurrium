@@ -17,7 +17,10 @@
 
 #     - Reference:
 #         - Used in:
-#             Crossing a topological phase transition with a quantum computer - Smith, Adam and Jobst, Bernhard and Green, Andrew G. and Pollmann, Frank, [PhysRevResearch.4.L022020](https://link.aps.org/doi/10.1103/PhysRevResearch.4.L022020)
+#             Crossing a topological phase transition with a quantum computer -
+#             Smith, Adam and Jobst, Bernhard and Green, Andrew G. and Pollmann, Frank,
+#             [PhysRevResearch.4.L022020](
+#             https://link.aps.org/doi/10.1103/PhysRevResearch.4.L022020)
 
 #         - `bibtex`:
 
@@ -321,7 +324,8 @@
 #                 ...
 #             else:
 #                 raise ValueError(
-#                     f"The element number of 'resultIdxList': {len(resultIdxList)} needs to be 1 for 'StringOperator'.")
+#                     f"The element number of 'resultIdxList': {len(resultIdxList)} "
+#                     "needs to be 1 for 'StringOperator'.")
 #         else:
 #             raise ValueError("'resultIdxList' needs to be 'list'.")
 

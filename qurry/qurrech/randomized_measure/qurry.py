@@ -55,9 +55,7 @@ def circuit_method_core(
     qc_exp1 = QuantumCircuit(q_func1, c_meas1)
     qc_exp1.name = f"{exp_name}-{idx}"
 
-    qc_exp1.compose(
-        target_circuit, [q_func1[i] for i in range(num_qubits)], inplace=True
-    )
+    qc_exp1.compose(target_circuit, [q_func1[i] for i in range(num_qubits)], inplace=True)
 
     qc_exp1.barrier()
     for j in range(*unitary_loc):
@@ -222,8 +220,7 @@ class EchoRandomizedListen(QurryPrototype):
             actual_unitary_loc = args.unitary_loc
 
         unitary_dict = {
-            i: {j: random_unitary(2) for j in range(*actual_unitary_loc)}
-            for i in range(args.times)
+            i: {j: random_unitary(2) for j in range(*actual_unitary_loc)} for i in range(args.times)
         }
 
         if isinstance(_pbar, tqdm.tqdm):
@@ -268,25 +265,19 @@ class EchoRandomizedListen(QurryPrototype):
             local_random_unitary_operators,
             [(args.unitary_loc, unitary_dict[i]) for i in range(args.times)],
         )
-        current_exp.beforewards.side_product["unitaryOP"] = dict(
-            enumerate(unitary_operator_list)
-        )
+        current_exp.beforewards.side_product["unitaryOP"] = dict(enumerate(unitary_operator_list))
 
         # currentExp.beforewards.side_product['unitaryOP'] = {
         #     k: {i: np.array(v[i]).tolist() for i in range(*args.unitary_loc)}
         #     for k, v in unitaryList.items()}
 
         if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str(
-                f"Writing 'randomized' with {args.workers_num} workers."
-            )
+            _pbar.set_description_str(f"Writing 'randomized' with {args.workers_num} workers.")
         randomized_list = pool.starmap(
             local_random_unitary_pauli_coeff,
             [(args.unitary_loc, unitary_operator_list[i]) for i in range(args.times)],
         )
-        current_exp.beforewards.side_product["randomized"] = dict(
-            enumerate(randomized_list)
-        )
+        current_exp.beforewards.side_product["randomized"] = dict(enumerate(randomized_list))
 
         # currentExp.beforewards.side_product['randomized'] = {i: {
         #     j: qubitOpToPauliCoeff(

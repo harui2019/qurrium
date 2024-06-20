@@ -1,0 +1,9 @@
+{
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter"
+    },
+    "flake8.args": [
+        "--max-line-length=100",
+        "--ignore=F401, W503, E203, W291"
+    ]
+}

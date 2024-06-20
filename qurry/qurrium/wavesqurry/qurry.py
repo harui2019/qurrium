@@ -34,11 +34,7 @@ class WavesExecuter(QurryPrototype):
         exp_name: str = "exps",
         waves: Optional[list[Hashable]] = None,
         **other_kwargs: Any,
-    ) -> tuple[
-        WavesQurryExperiment.Arguments,
-        WavesQurryExperiment.Commonparams,
-        dict[str, Any],
-    ]:
+    ) -> tuple[WavesQurryExperiment.Arguments, WavesQurryExperiment.Commonparams, dict[str, Any],]:
         """Handling all arguments and initializing a single experiment.
 
         Args:
@@ -63,8 +59,7 @@ class WavesExecuter(QurryPrototype):
             waves = []
         if wave_key is not None:
             warnings.warn(
-                "| The `wave_key` is not used in this class. "
-                + "Please use `waves` instead.",
+                "| The `wave_key` is not used in this class. " + "Please use `waves` instead.",
             )
 
         for w in waves:

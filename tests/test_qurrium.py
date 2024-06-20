@@ -46,7 +46,9 @@ def test_quantity_01(tgt):
     exp_id = exp_demo_01.measure(wave=tgt, sampling=10, backend=backend)
     exp_demo_01.exps[exp_id].analyze()
     quantity = exp_demo_01.exps[exp_id].reports[0].content._asdict()
-    assert all(["dummy" in quantity, "utlmatic_answer" in quantity])
+    assert all(
+        ["dummy" in quantity, "utlmatic_answer" in quantity]
+    ), f"The necessary quantities 'dummy', 'utlmatic_answer' are not found: {quantity.keys()}."
 
 
 @pytest.mark.parametrize("tgt", wave_adds_02)
@@ -60,4 +62,6 @@ def test_quantity_02(tgt):
     exp_id = exp_demo_02.measure(waves=[tgt for _ in range(10)], backend=backend)
     exp_demo_02.exps[exp_id].analyze()
     quantity = exp_demo_02.exps[exp_id].reports[0].content._asdict()
-    assert all(["dummy" in quantity, "utlmatic_answer" in quantity])
+    assert all(
+        ["dummy" in quantity, "utlmatic_answer" in quantity]
+    ), f"The necessary quantities 'dummy', 'utlmatic_answer' are not found: {quantity.keys()}."

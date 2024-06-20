@@ -97,11 +97,11 @@ class Commonparams(NamedTuple):
     """The list of file to be exported.
     For the `.write` function actually exports 4 different files
     respecting to `adventure`, `legacy`, `tales`, and `reports` like:
-    
+
     ```python
     files = {
         'folder': './blabla_experiment/',
-        
+
         'args': './blabla_experiment/args/blabla_experiment.id={exp_id}.args.json',
         'advent': './blabla_experiment/advent/blabla_experiment.id={exp_id}.advent.json',
         'legacy': './blabla_experiment/legacy/blabla_experiment.id={exp_id}.legacy.json',
@@ -122,11 +122,11 @@ class Commonparams(NamedTuple):
     which `blabla_experiment` is the example filename.
     If this experiment is called by :cls:`multimanager`, 
     then the it will be named after `summoner_name` as known as the name of :cls:`multimanager`.
-    
+
     ```python
     files = {
         'folder': './BLABLA_project/',
-        
+
         'args': './BLABLA_project/args/index={serial}.id={exp_id}.args.json',
         'advent': './BLABLA_project/advent/index={serial}.id={exp_id}.advent.json',
         'legacy': './BLABLA_project/legacy/index={serial}.id={exp_id}.legacy.json',
@@ -147,7 +147,7 @@ class Commonparams(NamedTuple):
     which `BLBLA_project` is the example :cls:`multimanager` name 
     stored at :prop:`commonparams.summoner_name`.
     At this senerio, the `exp_name` will never apply as filename.
-    
+
     """
 
     # Arguments for multi-experiment

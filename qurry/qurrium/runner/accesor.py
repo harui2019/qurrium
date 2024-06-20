@@ -14,6 +14,7 @@ from ..multimanager import (
     PendingTargetProviderLiteral,
     PENDING_TARGET_PROVIDER,
     PendingStrategyLiteral,
+    TagListKeyable,
 )
 from ..container import ExperimentContainer
 from ...capsule.hoshi import Hoshi
@@ -26,9 +27,7 @@ def acessibility() -> dict[PendingTargetProviderLiteral, bool]:
     Returns:
         dict[str, bool]: The acessibility of extra backend.
     """
-    result: dict[PendingTargetProviderLiteral, bool] = dict.fromkeys(
-        PENDING_TARGET_PROVIDER, False
-    )
+    result: dict[PendingTargetProviderLiteral, bool] = dict.fromkeys(PENDING_TARGET_PROVIDER, False)
 
     # pylint: disable=import-outside-toplevel, unused-import
     try:
@@ -89,7 +88,7 @@ class ExtraBackendAccessor:
     """Accessor for extra backend."""
 
     # """The excutor of extra backend."""
-    jobs: list[tuple[Optional[str], str]]
+    jobs: list[tuple[Optional[str], TagListKeyable]]
     """The list of pending jobs or retrieving jobs."""
     jobs_info: Hoshi
     """The information of pending jobs or retrieving jobs."""
@@ -167,7 +166,7 @@ class ExtraBackendAccessor:
     def pending(
         self,
         pending_strategy: PendingStrategyLiteral = "tags",
-    ) -> tuple[str, list[tuple[Optional[str], str]]]:
+    ) -> tuple[str, list[tuple[Optional[str], TagListKeyable]]]:
         """Pending jobs to remote backend."""
 
         self.jobs = self.multirunner.pending(
@@ -193,7 +192,7 @@ class ExtraBackendAccessor:
 
     def retrieve(
         self, overwrite: bool = False, **other_kwargs: any
-    ) -> tuple[str, list[tuple[Optional[str], str]]]:
+    ) -> tuple[str, list[tuple[Optional[str], TagListKeyable]]]:
         """Retrieve jobs from remote backend."""
 
         self.jobs = self.multirunner.retrieve(overwrite=overwrite, **other_kwargs)

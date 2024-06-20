@@ -92,9 +92,7 @@ def echo_cell_rust(
     Returns:
         tuple[int, float]: Index, one of overlap purity.
     """
-    return idx, echo_cell_rust_source(
-        first_counts, second_counts, bitstring_range, subsystem_size
-    )
+    return idx, echo_cell_rust_source(first_counts, second_counts, bitstring_range, subsystem_size)
 
 
 def echo_cell_cy(
@@ -164,9 +162,7 @@ def echo_cell_py(
     _echo_cell = np.float64(0)
     for s_i, s_i_meas in first_counts_under_degree.items():
         for s_j, s_j_meas in second_counts_under_degree.items():
-            _echo_cell += ensemble_cell_py(
-                s_i, s_i_meas, s_j, s_j_meas, subsystem_size, shots
-            )
+            _echo_cell += ensemble_cell_py(s_i, s_i_meas, s_j, s_j_meas, subsystem_size, shots)
 
     return idx, _echo_cell
 
@@ -207,13 +203,7 @@ def echo_cell(
         backend = "Rust" if RUST_AVAILABLE else "Python"
 
     if backend == "Cython":
-        return echo_cell_cy(
-            idx, first_counts, second_counts, bitstring_range, subsystem_size
-        )
+        return echo_cell_cy(idx, first_counts, second_counts, bitstring_range, subsystem_size)
     if backend == "Rust":
-        return echo_cell_rust(
-            idx, first_counts, second_counts, bitstring_range, subsystem_size
-        )
-    return echo_cell_py(
-        idx, first_counts, second_counts, bitstring_range, subsystem_size
-    )
+        return echo_cell_rust(idx, first_counts, second_counts, bitstring_range, subsystem_size)
+    return echo_cell_py(idx, first_counts, second_counts, bitstring_range, subsystem_size)

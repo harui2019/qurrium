@@ -15,7 +15,7 @@ from typing import Literal, Union, Optional, Hashable, Any, overload, TypeVar, T
 from pathlib import Path
 import tqdm
 
-from qiskit import execute, transpile, QuantumCircuit
+from qiskit import transpile, QuantumCircuit
 from qiskit.providers import Backend, JobV1 as Job
 
 from ..tools import qurry_progressbar, ParallelManager
@@ -64,7 +64,7 @@ class QurryPrototype(ABC):
         """Add new wave function to measure.
 
         Args:
-            waveCircuit (QuantumCircuit): The wave functions or circuits want to measure.
+            wave (QuantumCircuit): The wave functions or circuits want to measure.
             key (Optional[Hashable], optional):
                 Given a specific key to add to the wave function or circuit,
                 if `key == None`, then generate a number as key.
@@ -127,9 +127,7 @@ class QurryPrototype(ABC):
     @abstractmethod
     def params_control(
         self, wave_key: Hashable, **other_kwargs
-    ) -> tuple[
-        ExperimentPrototype.Arguments, ExperimentPrototype.Commonparams, dict[str, Any]
-    ]:
+    ) -> tuple[ExperimentPrototype.Arguments, ExperimentPrototype.Commonparams, dict[str, Any]]:
         """Control the experiment's parameters."""
         raise NotImplementedError
 
@@ -201,7 +199,7 @@ class QurryPrototype(ABC):
                 Name of experiment of the multiManager.
                 **!!ATTENTION, this should only be used by `Multimanager`!!**
                 _description_. Defaults to None.
-            muteOutfieldsWarning (bool, optional):
+            mute_outfields_warning (bool, optional):
                 Mute the warning when there are unused arguments detected and stored in outfields.
                 Defaults to False.
 
@@ -524,14 +522,18 @@ class QurryPrototype(ABC):
         id_now = self.build(save_location=save_location, _pbar=_pbar, **other_kwargs)
         assert self.exps[id_now].commons.exp_id == id_now
         current_exp = self.exps[id_now]
+        assert isinstance(current_exp.commons.backend, Backend), (
+            f"Current backend {current_exp.commons.backend} needs to be backend not "
+            + f"{type({current_exp.commons.backend})}."
+        )
 
         if isinstance(_pbar, tqdm.tqdm):
             _pbar.set_description_str("Executing...")
-        execution: Job = execute(
+        assert hasattr(current_exp.commons.backend, "run"), "Current backend is not runnable."
+        execution: Job = current_exp.commons.backend.run(  # type: ignore
             current_exp.beforewards.circuit,
-            **current_exp.commons.run_args,
-            backend=current_exp.commons.backend,
             shots=current_exp.commons.shots,
+            **current_exp.commons.run_args,
         )
         # commons
         date = current_time()
@@ -581,9 +583,7 @@ class QurryPrototype(ABC):
         """
 
         if len(args) > 0:
-            raise ValueError(
-                f"{self.__name__} can't be initialized with positional arguments."
-            )
+            raise ValueError(f"{self.__name__} can't be initialized with positional arguments.")
 
         # preparing
         id_now = self.run(
@@ -678,9 +678,7 @@ class QurryPrototype(ABC):
         """
 
         if len(args) > 0:
-            raise ValueError(
-                f"{self.__name__} can't be initialized with positional arguments."
-            )
+            raise ValueError(f"{self.__name__} can't be initialized with positional arguments.")
 
         id_now = self.result(
             save_location=save_location,
@@ -906,9 +904,7 @@ class QurryPrototype(ABC):
                 skip_export=True,  # export later for it's not efficient for one by one
                 _pbar=initial_config_list_progress,
             )
-            initial_config_list_progress.set_description_str(
-                "Loading data to multimanager..."
-            )
+            initial_config_list_progress.set_description_str("Loading data to multimanager...")
             current_multimanager.register(
                 current_id=current_id,
                 config=config,
@@ -989,9 +985,7 @@ class QurryPrototype(ABC):
         assert current_multimanager.summoner_id == besummonned
         circ_serial: list[int] = []
 
-        experiment_progress = qurry_progressbar(
-            current_multimanager.beforewards.exps_config
-        )
+        experiment_progress = qurry_progressbar(current_multimanager.beforewards.exps_config)
 
         for id_exec in experiment_progress:
             experiment_progress.set_description_str("Experiments running...")
@@ -1097,9 +1091,7 @@ class QurryPrototype(ABC):
         summoner_id: str,
         analysis_name: str = "report",
         no_serialize: bool = False,
-        specific_analysis_args: Optional[
-            dict[Hashable, Union[dict[str, Any], bool]]
-        ] = None,
+        specific_analysis_args: Optional[dict[Hashable, Union[dict[str, Any], bool]]] = None,
         compress: bool = False,
         write: bool = True,
         **analysis_args: Any,
@@ -1190,7 +1182,7 @@ class QurryPrototype(ABC):
             str: SummonerID (ID of multimanager).
         """
 
-        if not summoner_id in self.multimanagers:
+        if summoner_id not in self.multimanagers:
             raise ValueError("No such summoner_id in multimanagers.", summoner_id)
 
         current_multimanager = self.multimanagers[summoner_id]
@@ -1375,9 +1367,7 @@ class QurryPrototype(ABC):
             if overwrite:
                 print(f"| Retrieve {current_multimanager.summoner_name} overwrite.")
             else:
-                print(
-                    f"| Retrieve skip for {current_multimanager.summoner_name} existed."
-                )
+                print(f"| Retrieve skip for {current_multimanager.summoner_name} existed.")
                 return besummonned
         else:
             print(f"| Retrieve {current_multimanager.summoner_name} completed.")

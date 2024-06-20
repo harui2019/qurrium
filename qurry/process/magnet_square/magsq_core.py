@@ -70,9 +70,7 @@ def magnetic_square_core_pyrust(
     num_qubits: int,
     multiprocess_pool_size: Optional[int] = None,
     backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
-) -> tuple[
-    Union[float, np.float64], dict[int, Union[float, np.float64]], int, float, str
-]:
+) -> tuple[Union[float, np.float64], dict[int, Union[float, np.float64]], int, float, str]:
     """The core function of magnet square by Python and Rust.
 
     Args:
@@ -141,9 +139,7 @@ def magnetic_square_core(
     num_qubits: int,
     multiprocess_pool_size: Optional[int] = None,
     backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
-) -> tuple[
-    Union[float, np.float64], dict[int, Union[float, np.float64]], int, float, str
-]:
+) -> tuple[Union[float, np.float64], dict[int, Union[float, np.float64]], int, float, str]:
     """The core function of magnet square by Python.
 
     Args:
@@ -186,6 +182,4 @@ def magnetic_square_core(
             )
         )
 
-    return magnetic_square_core_pyrust(
-        counts, shots, num_qubits, multiprocess_pool_size, backend
-    )
+    return magnetic_square_core_pyrust(counts, shots, num_qubits, multiprocess_pool_size, backend)

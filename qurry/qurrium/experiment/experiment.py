@@ -81,9 +81,7 @@ class ExperimentPrototype(ABC):
             tuple[argsCore, dict[str, Any]]: argsCore, outfields for other unused arguments.
         """
         if len(args) > 0:
-            raise ValueError(
-                "args filter can't be initialized with positional arguments."
-            )
+            raise ValueError("args filter can't be initialized with positional arguments.")
         infields = {}
         commonsinput = {}
         outfields = {}
@@ -96,9 +94,7 @@ class ExperimentPrototype(ABC):
                 outfields[k] = v
 
         if cls.Arguments is ArgumentsPrototype:
-            raise NotImplementedError(
-                f"{cls.__name__}.Arguments should be overwritten."
-            )
+            raise NotImplementedError(f"{cls.__name__}.Arguments should be overwritten.")
 
         return cls.Arguments(**infields), cls.Commonparams(**commonsinput), outfields
 
@@ -121,9 +117,7 @@ class ExperimentPrototype(ABC):
         """Initialize the experiment."""
 
         if len(args) > 0:
-            raise ValueError(
-                f"{self.__name__} can't be initialized with positional arguments."
-            )
+            raise ValueError(f"{self.__name__} can't be initialized with positional arguments.")
         try:
             if exp_id is not None:
                 UUID(exp_id, version=4)
@@ -140,14 +134,12 @@ class ExperimentPrototype(ABC):
                 ...
 
         if self.Arguments is ArgumentsPrototype:
-            raise NotImplementedError(
-                f"{self.__name__}.Arguments should be overwritten."
-            )
+            raise NotImplementedError(f"{self.__name__}.Arguments should be overwritten.")
         duplicate_fields = set(self.Arguments._fields) & set(self.Commonparams._fields)
         if len(duplicate_fields) > 0:
             raise QurryInvalidInherition(
                 f"{self.__name__}.arguments and {self.__name__}.commonparams "
-                + f"should not have same fields: {duplicate_fields}."
+                f"should not have same fields: {duplicate_fields}."
             )
 
         params = {}
@@ -171,18 +163,14 @@ class ExperimentPrototype(ABC):
             for raw_input_analysis in commons["default_analysis"]:
                 if isinstance(raw_input_analysis, dict):
                     filted_analysis.append(
-                        self.analysis_container.input_filter(**raw_input_analysis)[
-                            0
-                        ]._asdict()
+                        self.analysis_container.input_filter(**raw_input_analysis)[0]._asdict()
                     )
-                elif isinstance(
-                    raw_input_analysis, self.analysis_container.AnalysisInput
-                ):
+                elif isinstance(raw_input_analysis, self.analysis_container.AnalysisInput):
                     filted_analysis.append(raw_input_analysis._asdict())
                 else:
                     warnings.warn(
                         f"Analysis input {raw_input_analysis} is not a 'dict' or "
-                        + "'.analysis_container.AnalysisInput', it will be ignored."
+                        "'.analysis_container.AnalysisInput', it will be ignored."
                     )
             commons["default_analysis"] = filted_analysis
         else:
@@ -221,30 +209,24 @@ class ExperimentPrototype(ABC):
                 counts=[],
             )
         )
-        self.reports = (
-            reports if isinstance(reports, AnalysesContainer) else AnalysesContainer()
-        )
+        self.reports = reports if isinstance(reports, AnalysesContainer) else AnalysesContainer()
 
         _summon_check = {
             "serial": self.commons.serial,
             "summoner_id": self.commons.summoner_id,
             "summoner_name": self.commons.summoner_name,
         }
-        _summon_detect = any((not v is None) for v in _summon_check.values())
-        _summon_fulfill = all((not v is None) for v in _summon_check.values())
+        _summon_detect = any((v is not None) for v in _summon_check.values())
+        _summon_fulfill = all((v is not None) for v in _summon_check.values())
         if _summon_detect:
             if not _summon_fulfill:
                 summon_msg = Hoshi(ljust_description_len=20)
                 summon_msg.newline(("divider",))
                 summon_msg.newline(("h3", "Summoner Info Incompletion"))
                 summon_msg.newline(("itemize", "Summoner info detect.", _summon_detect))
-                summon_msg.newline(
-                    ("itemize", "Summoner info fulfilled.", _summon_fulfill)
-                )
+                summon_msg.newline(("itemize", "Summoner info fulfilled.", _summon_fulfill))
                 for k, v in _summon_check.items():
-                    summon_msg.newline(
-                        ("itemize", k, str(v), f"fulfilled: {not v is None}", 2)
-                    )
+                    summon_msg.newline(("itemize", k, str(v), f"fulfilled: {not v is None}", 2))
                 warnings.warn(
                     "Summoner data is not completed, it will export in single experiment mode.",
                     category=QurrySummonerInfoIncompletion,
@@ -272,7 +254,7 @@ class ExperimentPrototype(ABC):
 
     def replace_backend(self, backend: Backend) -> None:
         """Replace the backend of the experiment.
-        
+
         Args:
             backend (Backend): The new backend.
         """
@@ -491,9 +473,7 @@ class ExperimentPrototype(ABC):
             else:
                 info.newline(("itemize", str(k), len(v), f"Number of {k}", 2))
 
-        info.newline(
-            ("itemize", "reports", len(self.reports), "Number of analysis.", 1)
-        )
+        info.newline(("itemize", "reports", len(self.reports), "Number of analysis.", 1))
         if report_expanded:
             for ser, item in self.reports.items():
                 info.newline(
@@ -619,13 +599,9 @@ class ExperimentPrototype(ABC):
         elif save_location is None:
             save_location = Path(self.commons.save_location)
             if self.commons.save_location is None:
-                raise ValueError(
-                    "save_location is None, please provide a valid save_location"
-                )
+                raise ValueError("save_location is None, please provide a valid save_location")
         else:
-            raise TypeError(
-                f"save_location must be Path or str, not {type(save_location)}"
-            )
+            raise TypeError(f"save_location must be Path or str, not {type(save_location)}")
 
         if self.commons.save_location != save_location:
             self.commons = self.commons._replace(save_location=save_location)
@@ -643,7 +619,7 @@ class ExperimentPrototype(ABC):
 
         # multi-experiment mode
         if all(
-            (not v is None)
+            (v is not None)
             for v in [
                 self.commons.serial,
                 self.commons.summoner_id,
@@ -655,8 +631,7 @@ class ExperimentPrototype(ABC):
         else:
             repeat_times = 1
             tmp = (
-                folder
-                + f"./{self.beforewards.exp_name}.{str(repeat_times).rjust(RJUST_LEN, '0')}/"
+                folder + f"./{self.beforewards.exp_name}.{str(repeat_times).rjust(RJUST_LEN, '0')}/"
             )
             while os.path.exists(tmp):
                 repeat_times += 1
@@ -689,12 +664,8 @@ class ExperimentPrototype(ABC):
             exp_id=str(self.commons.exp_id),
             exp_name=str(self.beforewards.exp_name),
             serial=(None if self.commons.serial is None else int(self.commons.serial)),
-            summoner_id=(
-                None if self.commons.summoner_id else str(self.commons.summoner_id)
-            ),
-            summoner_name=(
-                None if self.commons.summoner_name else str(self.commons.summoner_name)
-            ),
+            summoner_id=(None if self.commons.summoner_id else str(self.commons.summoner_id)),
+            summoner_name=(None if self.commons.summoner_name else str(self.commons.summoner_name)),
             filename=str(filename),
             files={k: str(Path(v)) for k, v in files.items()},
             args=jsonablize(self.args._asdict()),
@@ -857,9 +828,7 @@ class ExperimentPrototype(ABC):
         else:
             raise ValueError("'save_location' needs to be the type of 'str' or 'Path'.")
         if not os.path.exists(save_location):
-            raise FileNotFoundError(
-                f"'save_location' does not exist, '{save_location}'."
-            )
+            raise FileNotFoundError(f"'save_location' does not exist, '{save_location}'.")
 
         # Construct the experiment
         # arguments, commonparams, outfields
@@ -946,15 +915,11 @@ class ExperimentPrototype(ABC):
         else:
             raise ValueError("'save_location' needs to be the type of 'str' or 'Path'.")
         if not os.path.exists(save_location):
-            raise FileNotFoundError(
-                f"'save_location' does not exist, '{save_location}'."
-            )
+            raise FileNotFoundError(f"'save_location' does not exist, '{save_location}'.")
 
         export_location = save_location / name_or_id
         if not os.path.exists(export_location):
-            raise FileNotFoundError(
-                f"'ExportLoaction' does not exist, '{export_location}'."
-            )
+            raise FileNotFoundError(f"'ExportLoaction' does not exist, '{export_location}'.")
 
         qurryinfo: dict[str, dict[str, str]] = {}
         qurryinfo_location = export_location / "qurryinfo.json"

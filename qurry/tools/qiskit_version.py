@@ -127,11 +127,7 @@ def qiskit_version_statesheet() -> Hoshi:
             {
                 "type": "itemize",
                 "description": "qiskit-aer-gpu"
-                + (
-                    " and qiskit-aer-gpu-cu11"
-                    if "qiskit-aer-gpu-cu11" in QISKIT_VERSION
-                    else ""
-                )
+                + (" and qiskit-aer-gpu-cu11" if "qiskit-aer-gpu-cu11" in QISKIT_VERSION else "")
                 + " should have the same version as qiskit-aer.",
                 "listing_itemize": "+",
                 "ljust_description_filler": ".",

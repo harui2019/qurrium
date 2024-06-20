@@ -47,11 +47,7 @@ def pytorch_cuda_check() -> Optional[bool]:
             + " ".join(
                 (
                     torch.__version__,
-                    (
-                        torch.cuda.get_device_properties(0)
-                        if torch.cuda.is_available()
-                        else "CPU"
-                    ),
+                    (torch.cuda.get_device_properties(0) if torch.cuda.is_available() else "CPU"),
                 )
             )
         )

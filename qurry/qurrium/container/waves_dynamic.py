@@ -59,15 +59,11 @@ def wave_container_maker(
         ...
 
     @overload
-    def get_wave(
-        self, wave: list[Hashable], run_by: Literal["operator"]
-    ) -> list[Operator]:
+    def get_wave(self, wave: list[Hashable], run_by: Literal["operator"]) -> list[Operator]:
         ...
 
     @overload
-    def get_wave(
-        self, wave: list[Hashable], run_by: Literal["instruction"]
-    ) -> list[Instruction]:
+    def get_wave(self, wave: list[Hashable], run_by: Literal["instruction"]) -> list[Instruction]:
         ...
 
     @overload
@@ -89,9 +85,7 @@ def wave_container_maker(
         ...
 
     @overload
-    def get_wave(
-        self, wave: Hashable, run_by: Optional[Literal["copy", "call"]]
-    ) -> QuantumCircuit:
+    def get_wave(self, wave: Hashable, run_by: Optional[Literal["copy", "call"]]) -> QuantumCircuit:
         ...
 
     def get_wave(self, wave=None, run_by=None):
@@ -166,9 +160,7 @@ def wave_container_maker(
     ) -> Union[list[QuantumCircuit], QuantumCircuit]:
         return self.call(wave=wave)
 
-    def operator(
-        self, wave: Union[list[Hashable], Hashable]
-    ) -> Union[list[Operator], Operator]:
+    def operator(self, wave: Union[list[Hashable], Hashable]) -> Union[list[Operator], Operator]:
         """Export wave function as `Operator`.
 
         Args:

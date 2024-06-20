@@ -13,7 +13,7 @@ from qiskit.providers import Backend, Provider
 
 from ..experiment import ExperimentPrototype
 from ..container import ExperimentContainer
-from ..multimanager import MultiManager
+from ..multimanager import MultiManager, TagListKeyable
 from ...tools import DatetimeDict
 from ...exceptions import QurryDummyRunnerWarning
 
@@ -27,9 +27,7 @@ def retrieve_counter(datetimes_dict: DatetimeDict):
     Returns:
         int: The number of retrieve jobs in the datetimes_dict.
     """
-    return len(
-        [datetime_tag for datetime_tag in datetimes_dict if "retrieve" in datetime_tag]
-    )
+    return len([datetime_tag for datetime_tag in datetimes_dict if "retrieve" in datetime_tag])
 
 
 class Runner(ABC):
@@ -52,11 +50,11 @@ class Runner(ABC):
         self,
         pending_strategy: Literal["default", "onetime", "each", "tags"],
         backend: Backend,
-    ):
+    ) -> list[tuple[Optional[str], TagListKeyable]]:
         """Pending jobs to remote backend."""
 
     @abstractmethod
-    def retrieve(self, overwrite: bool = False):
+    def retrieve(self, overwrite: bool = False) -> list[tuple[Optional[str], TagListKeyable]]:
         """Retrieve jobs from remote backend."""
 
 
@@ -82,17 +80,34 @@ class DummyRunner(Runner):
         self,
         pending_strategy: Literal["default", "onetime", "each", "tags"],
         backend: Optional[Backend] = None,
-    ):
+    ) -> list[tuple[Optional[str], TagListKeyable]]:
+        """ATTENTION!! This method does not do anything.
+
+        Args:
+            pending_strategy (Literal["default", "onetime", "each", "tags"]): The pending strategy.
+            backend (Optional[Backend], optional): The backend to be used. Defaults to None.
+
+        Returns:
+            list[tuple[Optional[str], TagListKeyable]]: The pending jobs.
+        """
         warnings.warn(
-            "You are using a dummy runner, which does not support any jobs.",
+            "You are using a dummy runner, it does not do anything.",
             QurryDummyRunnerWarning,
         )
         return []
 
-    def retrieve(self, overwrite: bool = False):
-        print("Dummy runner does not support retrieve.", overwrite)
+    def retrieve(self, overwrite: bool = False) -> list[tuple[Optional[str], TagListKeyable]]:
+        """ATTENTION!! This method does not do anything.
+
+        Args:
+            overwrite (bool, optional): Whether to overwrite the jobs. Defaults to False.
+
+        Returns:
+            list[tuple[Optional[str], TagListKeyable]]: The retrieved jobs.
+        """
+
         warnings.warn(
-            "You are using a dummy runner, which does not support any jobs.",
+            "You are using a dummy runner, it does not do anything.",
             QurryDummyRunnerWarning,
         )
         return []

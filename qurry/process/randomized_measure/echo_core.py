@@ -111,9 +111,7 @@ def overlap_echo_core_pycyrust(
 
     # check shots
     sample_shots = sum(counts[0].values())
-    assert (
-        sample_shots == shots
-    ), f"shots {shots} does not match sample_shots {sample_shots}"
+    assert sample_shots == shots, f"shots {shots} does not match sample_shots {sample_shots}"
 
     # Determine worker number
     launch_worker = workers_distribution(multiprocess_pool_size)
@@ -130,9 +128,7 @@ def overlap_echo_core_pycyrust(
         "b > a": (bitstring_range[1] > bitstring_range[0]),
         "a >= -allsystemSize": bitstring_range[0] >= -allsystem_size,
         "b <= allsystemSize": bitstring_range[1] <= allsystem_size,
-        "b-a <= allsystemSize": (
-            (bitstring_range[1] - bitstring_range[0]) <= allsystem_size
-        ),
+        "b-a <= allsystemSize": ((bitstring_range[1] - bitstring_range[0]) <= allsystem_size),
     }
     if not all(bitstring_check.values()):
         raise ValueError(
@@ -145,9 +141,7 @@ def overlap_echo_core_pycyrust(
         measure = qubit_selector(len(list(counts[0].keys())[0]))
 
     _dummy_string = "".join(str(ds) for ds in range(allsystem_size))
-    _dummy_string_slice = cycling_slice_py(
-        _dummy_string, bitstring_range[0], bitstring_range[1], 1
-    )
+    _dummy_string_slice = cycling_slice_py(_dummy_string, bitstring_range[0], bitstring_range[1], 1)
     is_avtive_cycling_slice = (
         _dummy_string[bitstring_range[0] : bitstring_range[1]] != _dummy_string_slice
     )
@@ -198,9 +192,7 @@ def overlap_echo_core_pycyrust(
         msg += f", single process, {times} overlaps, it will take a lot of time."
         print(msg)
         for i, (c1, c2) in enumerate(counts_pair):
-            echo_cell_items.append(
-                cell_calculation(i, c1, c2, bitstring_range, subsystem_size)
-            )
+            echo_cell_items.append(cell_calculation(i, c1, c2, bitstring_range, subsystem_size))
 
         take_time = round(time.time() - begin_time, 3)
     else:

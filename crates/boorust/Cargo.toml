@@ -12,7 +12,13 @@ crate-type = ["cdylib"]
 
 [dependencies]
 rayon = "1.8.0"
-pyo3 = { version = "0.20.0", extension-module = ["pyo3/extension-module"], features = ["extension-module"] }
+pyo3 = { version = "0.20.0", extension-module = [
+    "pyo3/extension-module",
+], features = [
+    "extension-module",
+] }
+dashmap = "5.3"
+rand = "0.8.4"
 
 # [dependencies.pyo3]
 # workspace = true
