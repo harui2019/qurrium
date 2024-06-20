@@ -226,7 +226,7 @@ class ExperimentPrototype(ABC):
                 summon_msg.newline(("itemize", "Summoner info detect.", _summon_detect))
                 summon_msg.newline(("itemize", "Summoner info fulfilled.", _summon_fulfill))
                 for k, v in _summon_check.items():
-                    summon_msg.newline(("itemize", k, str(v), f"fulfilled: {not v is None}", 2))
+                    summon_msg.newline(("itemize", k, str(v), f"fulfilled: {v is not None}", 2))
                 warnings.warn(
                     "Summoner data is not completed, it will export in single experiment mode.",
                     category=QurrySummonerInfoIncompletion,
