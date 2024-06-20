@@ -125,6 +125,5 @@ def naming(
         save_location=save_location,
         export_location=export_location,
         tarName=f"{immutable_name}.{FULL_SUFFIX_OF_COMPRESS_FORMAT}",
-        tarLocation=save_location
-        / f"{immutable_name}.{FULL_SUFFIX_OF_COMPRESS_FORMAT}",
+        tarLocation=save_location / f"{immutable_name}.{FULL_SUFFIX_OF_COMPRESS_FORMAT}",
     )

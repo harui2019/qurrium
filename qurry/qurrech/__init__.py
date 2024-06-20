@@ -47,9 +47,7 @@ def EchoListen(
 
 
 @overload
-def WaveFunctionOverlap(
-    *args, method: Literal["hadamard"], **kwargs
-) -> EchoHadamardTest:
+def WaveFunctionOverlap(*args, method: Literal["hadamard"], **kwargs) -> EchoHadamardTest:
     ...
 
 

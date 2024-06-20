@@ -104,9 +104,7 @@ def purity_echo_core(
 
     only_counts = counts[0]
     sample_shots = sum(only_counts.values())
-    assert (
-        sample_shots == shots
-    ), f"shots {shots} does not match sample_shots {sample_shots}"
+    assert sample_shots == shots, f"shots {shots} does not match sample_shots {sample_shots}"
 
     is_zero_include = "0" in only_counts
     is_one_include = "1" in only_counts

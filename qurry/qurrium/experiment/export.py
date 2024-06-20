@@ -45,12 +45,12 @@ class Export(NamedTuple):
     """The list of file to be exported.
     For the `.write` function actually exports 4 different files
     respecting to `adventure`, `legacy`, `tales`, and `reports` like:
-    
+
     ```python
     files = {
         'folder': './blabla_experiment/',
         'qurryinfo': './blabla_experiment/qurryinfo.json',
-        
+
         'args': './blabla_experiment/args/blabla_experiment.id={exp_id}.args.json',
         'advent': './blabla_experiment/advent/blabla_experiment.id={exp_id}.advent.json',
         'legacy': './blabla_experiment/legacy/blabla_experiment.id={exp_id}.legacy.json',
@@ -71,12 +71,12 @@ class Export(NamedTuple):
     which `blabla_experiment` is the example filename.
     If this experiment is called by :cls:`multimanager`, 
     then the it will be named after `summoner_name` as known as the name of :cls:`multimanager`.
-    
+
     ```python
     files = {
         'folder': './BLABLA_project/',
         'qurryinfo': './BLABLA_project/qurryinfo.json',
-        
+
         'args': './BLABLA_project/args/index={serial}.id={exp_id}.args.json',
         'advent': './BLABLA_project/advent/index={serial}.id={exp_id}.advent.json',
         'legacy': './BLABLA_project/legacy/index={serial}.id={exp_id}.legacy.json',
@@ -97,7 +97,7 @@ class Export(NamedTuple):
     which `BLBLA_project` is the example :cls:`multimanager` name 
     stored at :prop:`commonparams.summoner_name`.
     At this senerio, the `exp_name` will never apply as filename.
-    
+
     """
 
     args: dict[str, Any]
@@ -244,9 +244,7 @@ class Export(NamedTuple):
             else:
                 export_set[f"reports.tales.{tk}"] = [tv]
             if f"reports.tales.{tk}" not in self.files:
-                warnings.warn(
-                    f"reports.tales.{tk} is not in export_names, it's not exported."
-                )
+                warnings.warn(f"reports.tales.{tk} is not in export_names, it's not exported.")
         # Exportation
         if _pbar is not None:
             _pbar.set_description_str(
@@ -254,9 +252,7 @@ class Export(NamedTuple):
                 + (f"{self.summoner_name}/" if self.summoner_name else "")
                 + f"{self.exp_name}..."
             )
-        folder = Path(self.commons["save_location"]) / Path(
-            self.files["folder"]  # just ignore it.
-        )
+        folder = Path(self.commons["save_location"]) / Path(self.files["folder"])  # just ignore it.
         if not os.path.exists(folder):
             os.mkdir(folder)
         for k in REQUIRED_FOLDER:

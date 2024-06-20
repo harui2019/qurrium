@@ -27,9 +27,7 @@ def retrieve_counter(datetimes_dict: DatetimeDict):
     Returns:
         int: The number of retrieve jobs in the datetimes_dict.
     """
-    return len(
-        [datetime_tag for datetime_tag in datetimes_dict if "retrieve" in datetime_tag]
-    )
+    return len([datetime_tag for datetime_tag in datetimes_dict if "retrieve" in datetime_tag])
 
 
 class Runner(ABC):
@@ -56,9 +54,7 @@ class Runner(ABC):
         """Pending jobs to remote backend."""
 
     @abstractmethod
-    def retrieve(
-        self, overwrite: bool = False
-    ) -> list[tuple[Optional[str], TagListKeyable]]:
+    def retrieve(self, overwrite: bool = False) -> list[tuple[Optional[str], TagListKeyable]]:
         """Retrieve jobs from remote backend."""
 
 
@@ -100,9 +96,7 @@ class DummyRunner(Runner):
         )
         return []
 
-    def retrieve(
-        self, overwrite: bool = False
-    ) -> list[tuple[Optional[str], TagListKeyable]]:
+    def retrieve(self, overwrite: bool = False) -> list[tuple[Optional[str], TagListKeyable]]:
         """ATTENTION!! This method does not do anything.
 
         Args:

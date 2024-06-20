@@ -120,19 +120,12 @@ class IBMRunner(Runner):
 
         if self.backend is None:
             if backend is None:
-                raise ValueError(
-                    "At least one of backend and provider should be given."
-                )
-            print(
-                f"| Given backend and provider as {backend.name} and {backend.provider}."
-            )
+                raise ValueError("At least one of backend and provider should be given.")
+            print(f"| Given backend and provider as {backend.name} and {backend.provider}.")
             self.backend = backend
             self.provider = backend.provider
         else:
-            print(
-                "| Using backend and provider as "
-                + f"{self.backend.name} and {self.provider}."
-            )
+            print("| Using backend and provider as " + f"{self.backend.name} and {self.provider}.")
 
         for id_exec in qurry_progressbar(
             self.current_multimanager.beforewards.exps_config,
@@ -140,9 +133,7 @@ class IBMRunner(Runner):
             # leave=False,
         ):
             circ_serial_len = len(self.circwserial)
-            for idx, circ in enumerate(
-                self.experiment_container[id_exec].beforewards.circuit
-            ):
+            for idx, circ in enumerate(self.experiment_container[id_exec].beforewards.circuit):
                 self.current_multimanager.beforewards.circuits_map[id_exec].append(
                     idx + circ_serial_len
                 )
@@ -160,12 +151,10 @@ class IBMRunner(Runner):
 
                 else:
                     if pending_strategy != "onetime":
-                        warnings.warn(
-                            f"Unknown strategy '{pending_strategy}, use 'onetime'."
-                        )
-                    self.current_multimanager.beforewards.pending_pool[
-                        "_onetime"
-                    ].append(idx + circ_serial_len)
+                        warnings.warn(f"Unknown strategy '{pending_strategy}, use 'onetime'.")
+                    self.current_multimanager.beforewards.pending_pool["_onetime"].append(
+                        idx + circ_serial_len
+                    )
 
                 self.circwserial[idx + circ_serial_len] = circ
 
@@ -212,9 +201,7 @@ class IBMRunner(Runner):
             pendingpool_progressbar.set_description_str(
                 f"{pk}/{pending_job.job_id()}/{pending_job.tags()}"
             )
-            self.current_multimanager.beforewards.job_id.append(
-                (pending_job.job_id(), pk)
-            )
+            self.current_multimanager.beforewards.job_id.append((pending_job.job_id(), pk))
             self.reports[pending_job.job_id()] = {
                 "time": current,
                 "type": "pending",
@@ -223,9 +210,7 @@ class IBMRunner(Runner):
         for id_exec in self.current_multimanager.beforewards.exps_config:
             self.experiment_container[id_exec].commons.datetimes["pending"] = current
 
-        self.current_multimanager.multicommons.datetimes["pendingCompleted"] = (
-            current_time()
-        )
+        self.current_multimanager.multicommons.datetimes["pendingCompleted"] = current_time()
 
         return self.current_multimanager.beforewards.job_id
 
@@ -245,9 +230,7 @@ class IBMRunner(Runner):
         pending_map: dict[Hashable, Union[IBMCircuitJob, "IBMJob", None]] = {}
         couts_tmp_container: dict[int, dict[str, int]] = {}
 
-        retrieve_times = retrieve_counter(
-            self.current_multimanager.multicommons.datetimes
-        )
+        retrieve_times = retrieve_counter(self.current_multimanager.multicommons.datetimes)
         retrieve_times_name = retrieve_times_namer(retrieve_times + 1)
 
         if retrieve_times > 0 and not overwrite:
@@ -255,9 +238,7 @@ class IBMRunner(Runner):
             last_time_date = self.current_multimanager.multicommons.datetimes[
                 retrieve_times_namer(retrieve_times)
             ]
-            print(
-                f"| Last retrieve by: {retrieve_times_namer(retrieve_times)} at {last_time_date}"
-            )
+            print(f"| Last retrieve by: {retrieve_times_namer(retrieve_times)} at {last_time_date}")
             print("| Seems to there are some retrieves before.")
             print("| You can use `overwrite=True` to overwrite the previous retrieve.")
 
@@ -284,8 +265,7 @@ class IBMRunner(Runner):
         if self.provider is None:
             raise ValueError("provider should not be None.")
         assert isinstance(self.provider, IBMProvider), (
-            "provider should be IBMProvider, not "
-            + f"{type(self.provider)}: {self.provider}."
+            "provider should be IBMProvider, not " + f"{type(self.provider)}: {self.provider}."
         )
 
         retrieve_principal: Union["IBMQBackend", IBMProvider]
@@ -293,9 +273,7 @@ class IBMRunner(Runner):
             retrieve_principal = self.backend
         else:
             retrieve_principal = self.provider
-        assert hasattr(
-            retrieve_principal, "retrieve_job"
-        ), "retrieve_principal should not be None."
+        assert hasattr(retrieve_principal, "retrieve_job"), "retrieve_principal should not be None."
 
         for pending_id, pk in retrieve_progressbar:
             pending_tags = pk_from_list_to_tuple(pk)
@@ -306,9 +284,7 @@ class IBMRunner(Runner):
                 retrieve_progressbar.set_description_str(
                     f"{pending_tags}/{pending_id}", refresh=True
                 )
-                pending_map[pending_tags] = retrieve_principal.retrieve_job(
-                    job_id=pending_id
-                )
+                pending_map[pending_tags] = retrieve_principal.retrieve_job(job_id=pending_id)
             except IBMError as e:
                 retrieve_progressbar.set_description_str(
                     f"{pending_tags}/{pending_id} - Error: {e}", refresh=True
@@ -322,9 +298,7 @@ class IBMRunner(Runner):
 
         pendingpool_progressbar = qurry_progressbar(
             self.current_multimanager.beforewards.pending_pool.items(),
-            bar_format=(
-                "| {n_fmt}/{total_fmt} - get counts: {desc} - {elapsed} < {remaining}"
-            ),
+            bar_format=("| {n_fmt}/{total_fmt} - get counts: {desc} - {elapsed} < {remaining}"),
             # leave=False,
         )
 
@@ -337,8 +311,7 @@ class IBMRunner(Runner):
             tmp_pending_map = pending_map[pending_tags]
             if tmp_pending_map is not None:
                 pendingpool_progressbar.set_description_str(
-                    f"{pending_tags}/{tmp_pending_map.job_id()}"
-                    + f"/{tmp_pending_map.tags()}",
+                    f"{pending_tags}/{tmp_pending_map.job_id()}" + f"/{tmp_pending_map.tags()}",
                     refresh=True,
                 )
                 self.reports[tmp_pending_map.job_id()] = {
@@ -351,9 +324,7 @@ class IBMRunner(Runner):
                         result_idx_list=[rk - pcircs[0] for rk in pcircs],
                     )
                 except IBMError as e:
-                    counts, exceptions = [{} for _ in pcircs], {
-                        tmp_pending_map.job_id(): e
-                    }
+                    counts, exceptions = [{} for _ in pcircs], {tmp_pending_map.job_id(): e}
             else:
                 pendingpool_progressbar.set_description_str(
                     f"{pending_tags} failed - No available tags", refresh=True
@@ -379,15 +350,11 @@ class IBMRunner(Runner):
                 if "exceptions" not in self.current_multimanager.outfields:
                     self.current_multimanager.outfields["exceptions"] = {}
                 for result_id, exception_item in exceptions.items():
-                    self.current_multimanager.outfields["exceptions"][
-                        result_id
-                    ] = exception_item
+                    self.current_multimanager.outfields["exceptions"][result_id] = exception_item
 
         distributing_progressbar = qurry_progressbar(
             self.current_multimanager.beforewards.circuits_map.items(),
-            bar_format=(
-                "| {n_fmt}/{total_fmt} - Distributing {desc} - {elapsed} < {remaining}"
-            ),
+            bar_format=("| {n_fmt}/{total_fmt} - Distributing {desc} - {elapsed} < {remaining}"),
             # leave=False,
         )
         for current_id, idx_circs in distributing_progressbar:
@@ -401,11 +368,9 @@ class IBMRunner(Runner):
                 self.experiment_container[current_id].afterwards.counts.append(
                     couts_tmp_container[idx]
                 )
-            self.experiment_container[current_id].commons.datetimes[
-                retrieve_times_name
-            ] = current
-            self.current_multimanager.afterwards.allCounts[current_id] = (
-                self.experiment_container[current_id].afterwards.counts
-            )
+            self.experiment_container[current_id].commons.datetimes[retrieve_times_name] = current
+            self.current_multimanager.afterwards.allCounts[current_id] = self.experiment_container[
+                current_id
+            ].afterwards.counts
 
         return self.current_multimanager.beforewards.job_id

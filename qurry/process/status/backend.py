@@ -22,9 +22,7 @@ from ...version import __version__
 from ...capsule.hoshi import Hoshi
 
 
-def availability_status_print() -> (
-    tuple[Hoshi, dict[str, dict[str, dict[str, Union[bool, None]]]]]
-):
+def availability_status_print() -> tuple[Hoshi, dict[str, dict[str, dict[str, Union[bool, None]]]]]:
     """Print the availability status of the post-processing modules.
 
     Returns: tuple[Hoshi, dict[str, dict[str, dict[str, Union[bool, None]]]]]
@@ -72,10 +70,7 @@ def availability_status_print() -> (
                 "type": "itemize",
                 "description": f"{file1}",
                 "value": " ".join(
-                    [
-                        f"{availability_status[mod1][file1][bt]}".ljust(6)
-                        for bt in BACKEND_TYPES
-                    ]
+                    [f"{availability_status[mod1][file1][bt]}".ljust(6) for bt in BACKEND_TYPES]
                 ),
                 "listing_level": 2,
                 "ljust_description_filler": ".",

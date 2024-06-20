@@ -84,9 +84,7 @@ test_setup_core: list[
 
 @pytest.mark.parametrize("test_items", test_setup_core)
 def test_entangled_entropy_core(
-    test_items: tuple[
-        int, list[dict[str, int]], Union[int, tuple[int, int]], tuple[int, int]
-    ]
+    test_items: tuple[int, list[dict[str, int]], Union[int, tuple[int, int]], tuple[int, int]]
 ):
     """Test the entangled_entropy_core function."""
 
@@ -114,8 +112,7 @@ def test_entangled_entropy_core(
 
     assert (
         np.abs(
-            np.average(np.array(list(cy[0].values())))
-            - np.average(np.array(list(py[0].values())))
+            np.average(np.array(list(cy[0].values()))) - np.average(np.array(list(py[0].values())))
         )
         < 1e-10
     ), "Cython and Python results are not equal in entangled_entropy_core."
@@ -123,9 +120,7 @@ def test_entangled_entropy_core(
 
 @pytest.mark.parametrize("test_items", test_setup_core)
 def test_overlap_echo_core(
-    test_items: tuple[
-        int, list[dict[str, int]], Union[int, tuple[int, int]], tuple[int, int]
-    ]
+    test_items: tuple[int, list[dict[str, int]], Union[int, tuple[int, int]], tuple[int, int]]
 ):
     """Test the overlap_echo_core function."""
 
@@ -153,8 +148,7 @@ def test_overlap_echo_core(
 
     assert (
         np.abs(
-            np.average(np.array(list(cy[0].values())))
-            - np.average(np.array(list(py[0].values())))
+            np.average(np.array(list(cy[0].values()))) - np.average(np.array(list(py[0].values())))
         )
         < 1e-10
     ), "Cython and Python results are not equal in overlap_echo_core."

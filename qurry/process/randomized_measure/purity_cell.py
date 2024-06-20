@@ -76,9 +76,7 @@ BACKEND_AVAILABLE = availablility(
         ("Cython", CYTHON_AVAILABLE, FAILED_PYX_IMPORT),
     ],
 )
-DEFAULT_PROCESS_BACKEND = default_postprocessing_backend(
-    RUST_AVAILABLE, CYTHON_AVAILABLE
-)
+DEFAULT_PROCESS_BACKEND = default_postprocessing_backend(RUST_AVAILABLE, CYTHON_AVAILABLE)
 
 
 # Randomized measure
@@ -116,10 +114,7 @@ def purity_cell_py(
 
     else:
         single_counts_under_degree = dict.fromkeys(
-            [
-                cycling_slice_py(k, bitstring_range[0], bitstring_range[1], 1)
-                for k in single_counts
-            ],
+            [cycling_slice_py(k, bitstring_range[0], bitstring_range[1], 1) for k in single_counts],
             0,
         )
         for bitstring in list(single_counts):

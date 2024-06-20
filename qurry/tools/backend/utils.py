@@ -30,7 +30,7 @@ backendName: Callable[[Union[BackendV1, BackendV2, Backend]], str] = lambda back
 
 Args:
     back (Union[BackendV1, BackendV2, Backend]): The backend instance.
-    
+
 Returns:
     str: The name of backend.
 """

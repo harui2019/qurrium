@@ -122,7 +122,8 @@ def multiprocess_exporter_and_writer(
         encoding (str, optional): The encoding of writing. Defaults to "utf-8".
         jsonable (bool, optional): The jsonable of writing. Defaults to False.
         mute (bool, optional): The mute of writing. Defaults to True.
-        export_transpiled_circuit (bool, optional) : Export the transpiled circuit. Defaults to False.
+        export_transpiled_circuit (bool, optional):
+            Export the transpiled circuit. Defaults to False.
         _pbar (Optional[tqdm.tqdm], optional): The progress bar. Defaults to None.
 
     Returns:
@@ -147,4 +148,3 @@ def multiprocess_exporter_and_writer(
     del exps_export
     gc.collect()
     return qurryinfo_exp_id, qurryinfo_files
-

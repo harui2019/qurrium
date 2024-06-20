@@ -127,9 +127,7 @@ class QurryPrototype(ABC):
     @abstractmethod
     def params_control(
         self, wave_key: Hashable, **other_kwargs
-    ) -> tuple[
-        ExperimentPrototype.Arguments, ExperimentPrototype.Commonparams, dict[str, Any]
-    ]:
+    ) -> tuple[ExperimentPrototype.Arguments, ExperimentPrototype.Commonparams, dict[str, Any]]:
         """Control the experiment's parameters."""
         raise NotImplementedError
 
@@ -531,9 +529,7 @@ class QurryPrototype(ABC):
 
         if isinstance(_pbar, tqdm.tqdm):
             _pbar.set_description_str("Executing...")
-        assert hasattr(
-            current_exp.commons.backend, "run"
-        ), "Current backend is not runnable."
+        assert hasattr(current_exp.commons.backend, "run"), "Current backend is not runnable."
         execution: Job = current_exp.commons.backend.run(  # type: ignore
             current_exp.beforewards.circuit,
             shots=current_exp.commons.shots,
@@ -587,9 +583,7 @@ class QurryPrototype(ABC):
         """
 
         if len(args) > 0:
-            raise ValueError(
-                f"{self.__name__} can't be initialized with positional arguments."
-            )
+            raise ValueError(f"{self.__name__} can't be initialized with positional arguments.")
 
         # preparing
         id_now = self.run(
@@ -684,9 +678,7 @@ class QurryPrototype(ABC):
         """
 
         if len(args) > 0:
-            raise ValueError(
-                f"{self.__name__} can't be initialized with positional arguments."
-            )
+            raise ValueError(f"{self.__name__} can't be initialized with positional arguments.")
 
         id_now = self.result(
             save_location=save_location,
@@ -912,9 +904,7 @@ class QurryPrototype(ABC):
                 skip_export=True,  # export later for it's not efficient for one by one
                 _pbar=initial_config_list_progress,
             )
-            initial_config_list_progress.set_description_str(
-                "Loading data to multimanager..."
-            )
+            initial_config_list_progress.set_description_str("Loading data to multimanager...")
             current_multimanager.register(
                 current_id=current_id,
                 config=config,
@@ -995,9 +985,7 @@ class QurryPrototype(ABC):
         assert current_multimanager.summoner_id == besummonned
         circ_serial: list[int] = []
 
-        experiment_progress = qurry_progressbar(
-            current_multimanager.beforewards.exps_config
-        )
+        experiment_progress = qurry_progressbar(current_multimanager.beforewards.exps_config)
 
         for id_exec in experiment_progress:
             experiment_progress.set_description_str("Experiments running...")
@@ -1103,9 +1091,7 @@ class QurryPrototype(ABC):
         summoner_id: str,
         analysis_name: str = "report",
         no_serialize: bool = False,
-        specific_analysis_args: Optional[
-            dict[Hashable, Union[dict[str, Any], bool]]
-        ] = None,
+        specific_analysis_args: Optional[dict[Hashable, Union[dict[str, Any], bool]]] = None,
         compress: bool = False,
         write: bool = True,
         **analysis_args: Any,
@@ -1196,7 +1182,7 @@ class QurryPrototype(ABC):
             str: SummonerID (ID of multimanager).
         """
 
-        if not summoner_id in self.multimanagers:
+        if summoner_id not in self.multimanagers:
             raise ValueError("No such summoner_id in multimanagers.", summoner_id)
 
         current_multimanager = self.multimanagers[summoner_id]
@@ -1381,9 +1367,7 @@ class QurryPrototype(ABC):
             if overwrite:
                 print(f"| Retrieve {current_multimanager.summoner_name} overwrite.")
             else:
-                print(
-                    f"| Retrieve skip for {current_multimanager.summoner_name} existed."
-                )
+                print(f"| Retrieve skip for {current_multimanager.summoner_name} existed.")
                 return besummonned
         else:
             print(f"| Retrieve {current_multimanager.summoner_name} completed.")

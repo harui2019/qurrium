@@ -27,9 +27,7 @@ def acessibility() -> dict[PendingTargetProviderLiteral, bool]:
     Returns:
         dict[str, bool]: The acessibility of extra backend.
     """
-    result: dict[PendingTargetProviderLiteral, bool] = dict.fromkeys(
-        PENDING_TARGET_PROVIDER, False
-    )
+    result: dict[PendingTargetProviderLiteral, bool] = dict.fromkeys(PENDING_TARGET_PROVIDER, False)
 
     # pylint: disable=import-outside-toplevel, unused-import
     try:

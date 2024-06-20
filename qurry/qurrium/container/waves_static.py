@@ -33,8 +33,10 @@ class WaveContainer(dict[Hashable, QuantumCircuit]):
 
         Args:
             wave (QuantumCircuit): The wave circuit.
-            key (Optional[Hashable], optional): The key of wave in 'fict' `.waves`. Defaults to None.
-            replace (Literal[True, False, "duplicate"], optional): Replace the wave with same key or not. Defaults to False.
+            key (Optional[Hashable], optional):
+                The key of wave in 'fict' `.waves`. Defaults to None.
+            replace (Literal[True, False, "duplicate"], optional):
+                Replace the wave with same key or not. Defaults to False.
 
         Returns:
             Hashable: The key of wave in 'dict' `.waves`.
@@ -57,15 +59,11 @@ class WaveContainer(dict[Hashable, QuantumCircuit]):
         ...
 
     @overload
-    def get_wave(
-        self, wave: list[Hashable], run_by: Literal["operator"]
-    ) -> list[Operator]:
+    def get_wave(self, wave: list[Hashable], run_by: Literal["operator"]) -> list[Operator]:
         ...
 
     @overload
-    def get_wave(
-        self, wave: list[Hashable], run_by: Literal["instruction"]
-    ) -> list[Instruction]:
+    def get_wave(self, wave: list[Hashable], run_by: Literal["instruction"]) -> list[Instruction]:
         ...
 
     @overload
@@ -87,9 +85,7 @@ class WaveContainer(dict[Hashable, QuantumCircuit]):
         ...
 
     @overload
-    def get_wave(
-        self, wave: Hashable, run_by: Optional[Literal["copy", "call"]]
-    ) -> QuantumCircuit:
+    def get_wave(self, wave: Hashable, run_by: Optional[Literal["copy", "call"]]) -> QuantumCircuit:
         ...
 
     def get_wave(self, wave=None, run_by=None):
@@ -164,9 +160,7 @@ class WaveContainer(dict[Hashable, QuantumCircuit]):
     ) -> Union[list[QuantumCircuit], QuantumCircuit]:
         return self.call(wave=wave)
 
-    def operator(
-        self, wave: Union[list[Hashable], Hashable]
-    ) -> Union[list[Operator], Operator]:
+    def operator(self, wave: Union[list[Hashable], Hashable]) -> Union[list[Operator], Operator]:
         """Export wave function as `Operator`.
 
         Args:

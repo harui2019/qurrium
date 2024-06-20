@@ -1,25 +1,25 @@
 """
 ================================================================
-Qurry 🍛 - The Quantum Experiment Manager for Qiskit 
+Qurry 🍛 - The Quantum Experiment Manager for Qiskit
 and The Measuring Tool for Renyi Entropy, Loschmidt Echo, and More
 ================================================================
 
 ## Note for Rust acceleration
 
-### Module import 
+### Module import
 
 > Note that this does not define a package,
 > so this won’t allow Python code to directly import submodules
 > by using from parent_module import child_module.
-> For more information, 
-> see [#759](https://github.com/PyO3/pyo3/issues/759) 
+> For more information,
+> see [#759](https://github.com/PyO3/pyo3/issues/759)
 > and [#1517](https://github.com/PyO3/pyo3/issues/1517).
 from https://pyo3.rs/v0.21.2/module#python-submodules
 (Since PyO3 0.20.0)
 
 But Qiskit found a solution to this problem.
 You can find this implementation in the Qiskit source code.
-In their root __init__.py file, 
+In their root __init__.py file,
 they import the submodules and assign them to the sys.modules dictionary.
 
 Also, do not make .pyi for boorust modules.
@@ -31,7 +31,7 @@ For some platform or environment, there is not Rust acceleration
 due to limit to Rust platform support or you install from source without Rust complier
 More info see https://github.com/harui2019/qurry/issues/98
 
-So we use optional import here. if Rust is not available, 
+So we use optional import here. if Rust is not available,
 the functions used acceleration will run by Cython or Python instead of Rust.
 
 """

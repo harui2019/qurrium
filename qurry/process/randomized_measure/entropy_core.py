@@ -57,9 +57,7 @@ BACKEND_AVAILABLE = availablility(
         ("Cython", CYTHON_AVAILABLE, FAILED_PYX_IMPORT),
     ],
 )
-DEFAULT_PROCESS_BACKEND = default_postprocessing_backend(
-    RUST_AVAILABLE, CYTHON_AVAILABLE
-)
+DEFAULT_PROCESS_BACKEND = default_postprocessing_backend(RUST_AVAILABLE, CYTHON_AVAILABLE)
 
 
 def entangled_entropy_core_pycyrust(
@@ -109,9 +107,7 @@ def entangled_entropy_core_pycyrust(
 
     # check shots
     sample_shots = sum(counts[0].values())
-    assert (
-        sample_shots == shots
-    ), f"shots {shots} does not match sample_shots {sample_shots}"
+    assert sample_shots == shots, f"shots {shots} does not match sample_shots {sample_shots}"
 
     # Determine worker number
     launch_worker = workers_distribution(multiprocess_pool_size)
@@ -128,9 +124,7 @@ def entangled_entropy_core_pycyrust(
         "b > a": (bitstring_range[1] > bitstring_range[0]),
         "a >= -allsystemSize": bitstring_range[0] >= -allsystem_size,
         "b <= allsystemSize": bitstring_range[1] <= allsystem_size,
-        "b-a <= allsystemSize": (
-            (bitstring_range[1] - bitstring_range[0]) <= allsystem_size
-        ),
+        "b-a <= allsystemSize": ((bitstring_range[1] - bitstring_range[0]) <= allsystem_size),
     }
     if not all(bitstring_check.values()):
         raise ValueError(
@@ -143,9 +137,7 @@ def entangled_entropy_core_pycyrust(
         measure = qubit_selector(len(list(counts[0].keys())[0]))
 
     _dummy_string = "".join(str(ds) for ds in range(allsystem_size))
-    _dummy_string_slice = cycling_slice_py(
-        _dummy_string, bitstring_range[0], bitstring_range[1], 1
-    )
+    _dummy_string_slice = cycling_slice_py(_dummy_string, bitstring_range[0], bitstring_range[1], 1)
     is_avtive_cycling_slice = (
         _dummy_string[bitstring_range[0] : bitstring_range[1]] != _dummy_string_slice
     )
@@ -196,9 +188,7 @@ def entangled_entropy_core_pycyrust(
         msg += f", single process, {times} overlaps, it will take a lot of time."
         print(msg)
         for i, c in enumerate(counts):
-            purity_cell_items.append(
-                cell_calculation(i, c, bitstring_range, subsystem_size)
-            )
+            purity_cell_items.append(cell_calculation(i, c, bitstring_range, subsystem_size))
 
     else:
         msg += f", {launch_worker} workers, {times} overlaps."
@@ -221,13 +211,7 @@ def entangled_entropy_core_allrust(
     counts: list[dict[str, int]],
     degree: Optional[Union[tuple[int, int], int]],
     measure: Optional[tuple[int, int]] = None,
-) -> tuple[
-    dict[int, float],
-    tuple[int, int],
-    tuple[int, int],
-    str,
-    float,
-]:
+) -> tuple[dict[int, float], tuple[int, int], tuple[int, int], str, float,]:
     """The core function of entangled entropy by Rust.
 
     Args:
@@ -290,9 +274,7 @@ def entangled_entropy_core(
 
     if isinstance(measure, list):
         measure = tuple(measure)  # type: ignore
-    assert (
-        isinstance(measure, tuple) or measure is None
-    ), f"measure {measure} is not tuple or None."
+    assert isinstance(measure, tuple) or measure is None, f"measure {measure} is not tuple or None."
 
     if backend == "Rust":
         if RUST_AVAILABLE:

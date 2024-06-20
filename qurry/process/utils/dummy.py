@@ -109,9 +109,7 @@ def make_two_bit_str_32_py(
             return bits
         recursive_bits = generate_bits(num - 1, bits)
 
-        return ["0" + item for item in recursive_bits] + [
-            "1" + item for item in recursive_bits
-        ]
+        return ["0" + item for item in recursive_bits] + ["1" + item for item in recursive_bits]
 
     if bitlen <= logged_num:
         result = generate_bits(bitlen)
@@ -134,9 +132,7 @@ def make_two_bit_str_32_py(
     filler_h_or_e: Callable[[str, str], str] = lambda ff, item: (
         ff + item if np.random.rand() > 0.5 else item + ff
     )
-    num_fulfill_content = [
-        filler_h_or_e(first_filler[0], item) for item in raw_content
-    ] + [
+    num_fulfill_content = [filler_h_or_e(first_filler[0], item) for item in raw_content] + [
         filler_h_or_e(first_filler[1], item)
         for item in raw_content[: (real_num - len(raw_content))]
     ]
@@ -189,9 +185,7 @@ def make_two_bit_str_unlimit(
 
 
 # pylint: disable=unnecessary-direct-lambda-call
-makeTwoBitStrOneLiner: Callable[[int, list[str]], list[str]] = lambda bitlen, bits=[
-    ""
-]: (
+makeTwoBitStrOneLiner: Callable[[int, list[str]], list[str]] = lambda bitlen, bits=[""]: (
     (lambda bits: [*["0" + item for item in bits], *["1" + item for item in bits]])(
         makeTwoBitStrOneLiner(bitlen - 1, bits)
     )

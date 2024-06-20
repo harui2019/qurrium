@@ -59,9 +59,7 @@ def _minimal_ext_cmd(cmd: _Cmd) -> bytes:
         stdout, stderr = proc.communicate()
         if proc.returncode > 0:
             error_message = stderr.strip().decode("ascii")
-            raise OSError(
-                f"Command {cmd} exited with code {proc.returncode}: {error_message}"
-            )
+            raise OSError(f"Command {cmd} exited with code {proc.returncode}: {error_message}")
     return stdout
 
 

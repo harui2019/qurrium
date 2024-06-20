@@ -65,7 +65,8 @@
 #     if launch_worker == 1:
 #         magnetsqCellList: list[float] = []
 #         print(
-#             f"| Without multi-processing to calculate overlap of {length} counts. It will take a lot of time to complete."
+#             f"| Without multi-processing to calculate overlap of {length} counts."
+#             "It will take a lot of time to complete."
 #         )
 #         for i, c in enumerate(counts):
 #             magnetsqCell = 0

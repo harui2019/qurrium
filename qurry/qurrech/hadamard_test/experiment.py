@@ -61,7 +61,7 @@ class EchoHadamardExperiment(ExperimentPrototype):
         analysis = self.analysis_container(
             serial=serial,
             shots=shots,
-            **qs, # type: ignore
+            **qs,  # type: ignore
         )
 
         self.reports[serial] = analysis

@@ -20,9 +20,7 @@ PendingStrategyLiteral = Literal["onetime", "each", "tags"]
 """Type of pending strategy."""
 PENDING_STRATEGY: list[PendingStrategyLiteral] = ["onetime", "each", "tags"]
 """List of pending strategy."""
-PendingTargetProviderLiteral = Literal[
-    "local", "IBMQ", "IBM", "Qulacs", "AWS_Bracket", "Azure_Q"
-]
+PendingTargetProviderLiteral = Literal["local", "IBMQ", "IBM", "Qulacs", "AWS_Bracket", "Azure_Q"]
 """Type of backend provider."""
 PENDING_TARGET_PROVIDER: list[PendingTargetProviderLiteral] = [
     "IBMQ",
@@ -124,7 +122,7 @@ class MultiCommonparams(NamedTuple):
         rawread_multiconfig["save_location"] = save_location
         rawread_multiconfig["export_location"] = export_location
 
-        ## v6 jobstype data
+        # v6 jobstype data
         if "jobstype" in rawread_multiconfig:
             v6jobstype = rawread_multiconfig["jobstype"].split(".")
             if len(v6jobstype) == 2:
@@ -194,12 +192,8 @@ class Before(NamedTuple):
                 "jobID": "jobID.json",
             }
         else:
-            assert isinstance(
-                file_location["exps_config"], Path
-            ), "ExpsConfig must be Path"
-            assert isinstance(
-                file_location["circuits_num"], Path
-            ), "circuitsNum must be Path"
+            assert isinstance(file_location["exps_config"], Path), "ExpsConfig must be Path"
+            assert isinstance(file_location["circuits_num"], Path), "circuitsNum must be Path"
             assert isinstance(file_location["job_id"], Path), "job_id must be Path"
             real_file_location = {
                 "exps_config": Path(file_location["exps_config"]).name,
@@ -216,12 +210,8 @@ class Before(NamedTuple):
                 filename=(real_file_location["circuits_num"]),
                 save_location=export_location,
             ),
-            circuits_map=TagList.read(
-                save_location=export_location, taglist_name="circuitsMap"
-            ),
-            pending_pool=TagList.read(
-                save_location=export_location, taglist_name="pendingPools"
-            ),
+            circuits_map=TagList.read(save_location=export_location, taglist_name="circuitsMap"),
+            pending_pool=TagList.read(save_location=export_location, taglist_name="pendingPools"),
             job_id=quickRead(
                 filename=(real_file_location["jobID"]),
                 save_location=export_location,

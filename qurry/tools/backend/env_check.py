@@ -115,9 +115,7 @@ def _version_check():
     check_msg.newline(
         {
             "type": "itemize",
-            "description": (
-                real_default_source if real_default_source else "qiskit_ibm_provider"
-            ),
+            "description": (real_default_source if real_default_source else "qiskit_ibm_provider"),
             "value": (
                 real_version_infos[real_default_source]
                 if real_default_source

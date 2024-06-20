@@ -103,8 +103,7 @@ class EchoHadamardTest(QurryPrototype):
             wave_key_2 = "-".join([str(i) for i in wave_key_2])
 
         exp_name = (
-            f"w={wave_key}+{wave_key_2}.overlap="
-            + f"from{degree[0]}to{degree[1]}.{self.shortName}"
+            f"w={wave_key}+{wave_key_2}.overlap=" + f"from{degree[0]}to{degree[1]}.{self.shortName}"
         )
 
         return self.experiment.filter(

@@ -146,18 +146,13 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
             counts = [self.afterwards.counts[i] for i in counts_used]
         else:
             if counts_used is not None:
-                raise ValueError(
-                    f"counts_used should be Iterable, but get {type(counts_used)}."
-                )
+                raise ValueError(f"counts_used should be Iterable, but get {type(counts_used)}.")
             counts = self.afterwards.counts
 
         available_all_system_source = [
             k
             for k, v in self.reports.items()
-            if (
-                v.content.allSystemSource == "independent"
-                and v.content.counts_used == counts_used
-            )
+            if (v.content.allSystemSource == "independent" and v.content.counts_used == counts_used)
         ]
 
         if len(available_all_system_source) > 0 and not independent_all_system:

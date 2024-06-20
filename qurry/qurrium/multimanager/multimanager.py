@@ -34,7 +34,7 @@ from ...exceptions import (
 
 class MultiManager:
     """The manager of multiple experiments."""
-    
+
     __name__ = "MultiManager"
 
     MultiCommonparams = MultiCommonparams
@@ -55,14 +55,10 @@ class MultiManager:
         """
 
         if len(args) > 0:
-            raise ValueError(
-                f"{self.__name__} can't be reset with positional arguments."
-            )
+            raise ValueError(f"{self.__name__} can't be reset with positional arguments.")
 
         if security and isinstance(security, bool):
-            self.afterwards = self.afterwards._replace(
-                retrievedResult=TagList(), allCounts={}
-            )
+            self.afterwards = self.afterwards._replace(retrievedResult=TagList(), allCounts={})
             gc.collect()
             if not mute_warning:
                 warnings.warn("Afterwards reset accomplished.", QurryResetAccomplished)
@@ -183,9 +179,7 @@ class MultiManager:
         """
 
         if len(args) > 0:
-            raise ValueError(
-                f"{self.__name__} can't be initialized with positional arguments."
-            )
+            raise ValueError(f"{self.__name__} can't be initialized with positional arguments.")
         try:
             if summoner_id is not None:
                 UUID(summoner_id, version=4)
@@ -210,8 +204,7 @@ class MultiManager:
 
         is_tarfile_existed = os.path.exists(self.naming_complex.tarLocation)
         multiconfig_name_v5 = (
-            self.naming_complex.export_location
-            / f"{self.naming_complex.expsName}.multiConfig.json"
+            self.naming_complex.export_location / f"{self.naming_complex.expsName}.multiConfig.json"
         )
         multiconfig_name_v7 = self.naming_complex.export_location / "multi.config.json"
         old_files: dict[str, Union[str, dict[str, str]]] = {}
@@ -221,9 +214,7 @@ class MultiManager:
                 f"| Found the tarfile '{self.naming_complex.tarName}' "
                 + f"in '{self.naming_complex.save_location}', decompressing is available."
             )
-            if (not multiconfig_name_v5.exists()) and (
-                not multiconfig_name_v7.exists()
-            ):
+            if (not multiconfig_name_v5.exists()) and (not multiconfig_name_v7.exists()):
                 print(
                     "| No multi.config file found, "
                     + f"decompressing all files in the tarfile '{self.naming_complex.tarName}'."
@@ -344,9 +335,7 @@ class MultiManager:
             multicommons["datetimes"]["bulid"] = current_time()
 
         if is_tarfile_existed:
-            if (not multiconfig_name_v5.exists()) and (
-                not multiconfig_name_v7.exists()
-            ):
+            if (not multiconfig_name_v5.exists()) and (not multiconfig_name_v7.exists()):
                 multicommons["datetimes"].add_serial("decompress")
             elif read_from_tarfile:
                 multicommons["datetimes"].add_serial("decompressOverwrite")
@@ -406,9 +395,7 @@ class MultiManager:
             + f"current_id: {current_id}."
         )
         self.beforewards.exps_config[current_id] = config
-        self.beforewards.circuits_num[current_id] = len(
-            exps_instance.beforewards.circuit
-        )
+        self.beforewards.circuits_num[current_id] = len(exps_instance.beforewards.circuit)
         self.beforewards.job_taglist[exps_instance.commons.tags].append(current_id)
         assert isinstance(exps_instance.commons.serial, int), (
             f"Serial is not int, exp_id: {exps_instance.commons.exp_id} and "
@@ -529,9 +516,7 @@ class MultiManager:
         # beforewards amd afterwards
         for i, k in enumerate(export_progress):
             if _only_quantity or (k in self._unexports):
-                export_progress.set_description_str(
-                    f"{k} as {exporting_name[k]} - skip"
-                )
+                export_progress.set_description_str(f"{k} as {exporting_name[k]} - skip")
             elif isinstance(self[k], TagList):
                 export_progress.set_description_str(f"{k} as {exporting_name[k]}")
                 tmp: TagList = self[k]
@@ -552,12 +537,9 @@ class MultiManager:
 
             elif isinstance(self[k], (dict, list)):
                 export_progress.set_description_str(f"{k} as {exporting_name[k]}")
-                filename = (
-                    Path(self.multicommons.export_location)
-                    / f"{exporting_name[k]}.json"
-                )
+                filename = Path(self.multicommons.export_location) / f"{exporting_name[k]}.json"
                 self.multicommons.files[exporting_name[k]] = str(filename)
-                if not k in self._syncPrevent:
+                if k not in self._syncPrevent:
                     self.gitignore.sync(f"{exporting_name[k]}.json")
                 quickJSON(
                     content=self[k],
@@ -570,9 +552,7 @@ class MultiManager:
                 )
 
             else:
-                warnings.warn(
-                    f"'{k}' is type '{type(self[k])}' which is not supported to export."
-                )
+                warnings.warn(f"'{k}' is type '{type(self[k])}' which is not supported to export.")
 
             if i == len(export_progress) - 1:
                 export_progress.set_description_str("exporting done")
@@ -636,9 +616,7 @@ class MultiManager:
 
             # for id_exec, files in all_qurryinfo_items:
             for id_exec, files in all_qurryinfo.items():
-                self.beforewards.files_taglist[
-                    exps_container[id_exec].commons.tags
-                ].append(files)
+                self.beforewards.files_taglist[exps_container[id_exec].commons.tags].append(files)
             self.beforewards.files_taglist.export(
                 save_location=self.multicommons.export_location,
                 taglist_name=f"{exporting_name['files_taglist']}",
@@ -688,9 +666,7 @@ class MultiManager:
             self.multicommons.datetimes.add_serial("uncompressedRemove")
         _multiconfig = self._write_multiconfig()
 
-        print(
-            f"| Compress multimanager of '{self.naming_complex.expsName}'...", end="\r"
-        )
+        print(f"| Compress multimanager of '{self.naming_complex.expsName}'...", end="\r")
         loc = self.easycompress(overwrite=compress_overwrite)
         print(f"| Compress multimanager of '{self.naming_complex.expsName}'...done")
 
@@ -700,9 +676,7 @@ class MultiManager:
                 end="\r",
             )
             shutil.rmtree(self.multicommons.export_location)
-            print(
-                f"| Remove uncompressed files in '{self.naming_complex.export_location}' ...done"
-            )
+            print(f"| Remove uncompressed files in '{self.naming_complex.export_location}' ...done")
 
         return loc
 
@@ -711,9 +685,7 @@ class MultiManager:
         wave_continer: ExperimentContainer,
         analysis_name: str = "report",
         no_serialize: bool = False,
-        specific_analysis_args: Optional[
-            dict[Hashable, Union[dict[str, Any], bool]]
-        ] = None,
+        specific_analysis_args: Optional[dict[Hashable, Union[dict[str, Any], bool]]] = None,
         **analysis_args: Any,
     ) -> str:
         """Run the analysis for multiple experiments.
@@ -744,16 +716,13 @@ class MultiManager:
         name = (
             analysis_name
             if no_serialize
-            else f"{analysis_name}."
-            + f"{idx_tagmap_quantities+1}".rjust(RJUST_LEN, "0")
+            else f"{analysis_name}." + f"{idx_tagmap_quantities+1}".rjust(RJUST_LEN, "0")
         )
         self.quantity_container[name] = TagList()
 
         all_counts_progress = qurry_progressbar(
             self.afterwards.allCounts.keys(),
-            bar_format=(
-                "| {n_fmt}/{total_fmt} - Analysis: {desc} - {elapsed} < {remaining}"
-            ),
+            bar_format=("| {n_fmt}/{total_fmt} - Analysis: {desc} - {elapsed} < {remaining}"),
         )
         for k in all_counts_progress:
             tqdm_handleable = wave_continer[k].tqdm_handleable

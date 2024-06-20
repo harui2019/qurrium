@@ -60,9 +60,7 @@ class AnalysisPrototype:
             tuple[AnalysisInput, dict[str, Any]]: The filtered input and unused arguments.
         """
         if len(args) > 0:
-            raise ValueError(
-                "analysis filter can't be initialized with positional arguments."
-            )
+            raise ValueError("analysis filter can't be initialized with positional arguments.")
         infields = {}
         outfields = {}
 
@@ -118,9 +116,7 @@ class AnalysisPrototype:
         self.input, outfields = self.input_filter(**otherArgs)
         self.content, self.outfields = self.content_filter(**outfields)
 
-        duplicate_fields = set(self.AnalysisInput._fields) & set(
-            self.AnalysisContent._fields
-        )
+        duplicate_fields = set(self.AnalysisInput._fields) & set(self.AnalysisContent._fields)
         if len(duplicate_fields) > 0:
             raise QurryInvalidInherition(
                 f"{self.__name__}.AnalysisInput and {self.__name__}"

@@ -84,23 +84,23 @@ class RandomizedEntangledEntropyMitigatedComplex(TypedDict):
     """The number of qubits of this syystem."""
     measure: tuple[str, Union[list[int], tuple[int, int]]]
     """The qubit range of the measurement and text description.
-    
+
     - The first element is the text description.
     - The second element is the qubit range of the measurement.
-    
+
     ---
     - When the measurement is specified, it will be:
-    
+
     >>> ("measure range:", (0, 3))
-    
+
     - When the measurement is not specified, it will be:
-    
+
     >>> ("not specified, use all qubits", (0, 3))
-    
+
     - When null counts exist, it will be:
-    
+
     >>> ("The following is the index of null counts.", [0, 1, 2, 3])
-    
+
     """
     measureActually: tuple[int, int]
     """The range of partition refer to all qubits."""
@@ -496,9 +496,7 @@ def randomized_entangled_entropy_mitigated(
         taken_allsys = 0
 
     if isinstance(pbar, tqdm.tqdm):
-        pbar.set_description_str(
-            f"Preparing error mitigation of {bitstring_range} on {measure}"
-        )
+        pbar.set_description_str(f"Preparing error mitigation of {bitstring_range} on {measure}")
 
     # pylance cannot recognize the type
     purity: np.float64 = np.mean(purity_cell_list, dtype=np.float64)  # type: ignore

@@ -124,9 +124,7 @@ class EchoRandomizedExperiment(ExperimentPrototype):
             ]
         else:
             if counts_used is not None:
-                raise ValueError(
-                    f"counts_used should be Iterable, but get {type(counts_used)}."
-                )
+                raise ValueError(f"counts_used should be Iterable, but get {type(counts_used)}.")
             counts = self.afterwards.counts
 
         if isinstance(pbar, tqdm.tqdm):

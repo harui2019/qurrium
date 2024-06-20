@@ -99,9 +99,7 @@ def _statesheet_preparings(
                 {
                     "type": "itemize",
                     "description": "Fake Provider by",
-                    "value": (
-                        "FakeProviderV2" if fake_version == "v2" else "FakeProvider"
-                    ),
+                    "value": ("FakeProviderV2" if fake_version == "v2" else "FakeProvider"),
                     "ljust_description_filler": ".",
                 }
             )
@@ -206,7 +204,7 @@ class BackendWrapper:
 
     @staticmethod
     def _hint_ibmq_sim(name: str) -> str:
-        return "ibm" + name if not "ibm" in name else name
+        return "ibm" + name if "ibm" not in name else name
 
     def __init__(
         self,
@@ -241,8 +239,7 @@ class BackendWrapper:
                 "state": "statevector",
             }
             self.backend_dict["sim"] = {
-                shorten_name(backend_name_getter(b), ["_simulator"]): b
-                for b in _sim_backends
+                shorten_name(backend_name_getter(b), ["_simulator"]): b for b in _sim_backends
             }
         else:
             if hasattr(_sim_backends[0], "available_devices"):
@@ -416,22 +413,19 @@ class BackendWrapper:
         """
 
         if not isinstance(backend, Backend):
-            raise TypeError(
-                "The backend should be a instance of 'qiskit.providers.Backend'"
-            )
+            raise TypeError("The backend should be a instance of 'qiskit.providers.Backend'")
 
         if name in self.backend_dict["extra"]:
             raise ValueError(f"'{name}' backend already exists.")
 
         self.backend_dict["extra"][name] = backend
-        if not callsign is None:
+        if callsign is not None:
             self.backend_callsign_dict["extra"][callsign] = name
 
     def __call__(
         self,
         backend_name: str,
     ) -> Union[Backend, GeneralBackend]:
-
         for avaiable_type in ["real", "sim", "fake", "extra"]:
             if backend_name in self.backend_dict[avaiable_type]:
                 return self.backend_dict[avaiable_type][backend_name]
@@ -464,9 +458,7 @@ class BackendManager(BackendWrapper):
         else:
             for name in [hub, group, project]:
                 if name is None:
-                    raise ValueError(
-                        "Please provide either instance or hub, group, project."
-                    )
+                    raise ValueError("Please provide either instance or hub, group, project.")
             self.instance = f"{hub}/{group}/{project}"
             self.hub = hub
             self.group = group
@@ -608,9 +600,7 @@ class BackendManager(BackendWrapper):
             try:
                 from qiskit_ibm_runtime import QiskitRuntimeService
 
-                QiskitRuntimeService.save_account(
-                    token=token, overwrite=overwrite, **kwargs
-                )
+                QiskitRuntimeService.save_account(token=token, overwrite=overwrite, **kwargs)
 
             except ImportError as err:
                 raise ImportError(

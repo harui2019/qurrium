@@ -103,7 +103,4 @@ def local_random_unitary_pauli_coeff(
     Returns:
         dict[int, list[tuple[float, float]]]: The list of pauli coefficients.
     """
-    return {
-        i: qubit_operator_to_pauli_coeff(unitary_op_list[i])
-        for i in range(*unitary_loc)
-    }
+    return {i: qubit_operator_to_pauli_coeff(unitary_op_list[i]) for i in range(*unitary_loc)}
