@@ -117,7 +117,7 @@ class EchoRandomizedExperiment(ExperimentPrototype):
             if max(counts_used) >= len_counts_half:
                 raise ValueError(
                     "counts_used should be less than "
-                    f"{len_counts_half }, but get {max(counts_used)}."
+                    f"{len_counts_half}, but get {max(counts_used)}."
                 )
             counts = [self.afterwards.counts[i] for i in counts_used] + [
                 self.afterwards.counts[i + len_counts_half] for i in counts_used
