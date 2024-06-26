@@ -108,6 +108,9 @@ jobs:
       - build_wheels_macos_x86
       # - build_wheels_windows_x86
     runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://test.pypi.org/p/qurrium
     permissions:
       id-token: write # IMPORTANT: mandatory for trusted publishing
     steps:
@@ -200,6 +203,9 @@ jobs:
       - build_wheels_macos_arm
       # - build_wheels_linux_aarch64
     runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://test.pypi.org/p/qurrium
     permissions:
       id-token: write # IMPORTANT: mandatory for trusted publishing
     steps:
