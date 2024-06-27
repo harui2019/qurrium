@@ -54,6 +54,7 @@ if __name__ == "__main__":
         else:
             print(f"| Stable print, version: '{VERSION}', rewrite VERSION.txt")
             os.system(f'echo "{VERSION}" > ./qurry/VERSION.txt')
+            os.system("""sed -i 's/name = "qurry"/name = "qurrium"/g' ./qurry/pyproject.toml""")
     else:
         VERSION = raw_version_txt
         print(f"| Nightly print, version: '{VERSION}'")
