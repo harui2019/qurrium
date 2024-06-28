@@ -5,6 +5,7 @@ Get the version number from the VERSION.txt file and pass it to the environment 
 import os
 import argparse
 from typing import Literal
+import toml
 
 with open(os.path.join("qurry", "VERSION.txt"), encoding="utf-8") as version_file:
     raw_version_txt = version_file.read().strip()
@@ -52,9 +53,14 @@ if __name__ == "__main__":
         if args.test:
             print(f"| Stable print, version: '{VERSION}'")
         else:
-            print(f"| Stable print, version: '{VERSION}', rewrite VERSION.txt")
+            print(f"| Stable print, version: '{VERSION}', rewrite VERSION.txt and pyproject.toml")
             os.system(f'echo "{VERSION}" > ./qurry/VERSION.txt')
-            os.system("""sed -i 's/name = "qurry"/name = "qurrium"/g' ./pyproject.toml""")
+
+            with open(os.path.join("pyproject.toml"), "r", encoding="utf8") as f:
+                data = toml.load(f)
+            data["project"]["name"] = "qurrium"
+            with open(os.path.join("pyproject.toml"), "w", encoding="utf8") as f:
+                toml.dump(data, f)
     else:
         VERSION = raw_version_txt
         print(f"| Nightly print, version: '{VERSION}'")
