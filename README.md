@@ -8,13 +8,13 @@ This is a tool to measure the Renyi entropy, Wave Function Overlap, and Magnetiz
 
 _It's a great thanks for [National Chengchi University](https://www.nccu.edu.tw/), [NSTC-Quantum Virtual Machine project](https://www.nstc.gov.tw/), and [National Center for Theoretical Sciences, Physics Division](https://phys.ncts.ntu.edu.tw/) located [National Taiwan University](https://www.ntu.edu.tw/), which funded the development of this tool during the author [@harui2019](https://github.com/harui2019/) worked at this institution as Research Assistiant, and i also a great thanks for [IBM Quantum Hub at National Taiwan University](https://quantum.ntu.edu.tw/) providing the access right of [IBM Quantum](https://quantum-computing.ibm.com/), let us can fully test this tool and execute our experiments._
 
-<p><img src="https://raw.githubusercontent.com/harui2019/harui2019/main/docs/image/logo/NCCU_Physics_Logo.png" href="https://phys.nccu.edu.tw/" alt="National Chengchi University" width="500" ></p>
+<p><img src="https://raw.githubusercontent.com/harui2019/harui2019/main/docs/image/logo/NCCU_Physics_Logo.png" href="https://phys.nccu.edu.tw/" alt="National Chengchi University" width="400" ></p>
 
-<p><img src="https://raw.githubusercontent.com/harui2019/harui2019/main/docs/image/logo/NSTC_Logo.png" href="https://www.nstc.gov.tw/" alt="NSTC" width="500" ></p>
+<p><img src="https://raw.githubusercontent.com/harui2019/harui2019/main/docs/image/logo/NSTC_Logo.png" href="https://www.nstc.gov.tw/" alt="NSTC" width="400" ></p>
 
-<p><img src="https://raw.githubusercontent.com/harui2019/harui2019/main/docs/image/logo/NCTS_Phys_Logo.png" href="https://phys.ncts.ntu.edu.tw/" alt="National Center for Theoretical Sciences, Physics Division" width="500" ></p>
+<p><img src="https://raw.githubusercontent.com/harui2019/harui2019/main/docs/image/logo/NCTS_Phys_Logo.png" href="https://phys.ncts.ntu.edu.tw/" alt="National Center for Theoretical Sciences, Physics Division" width="400" ></p>
 
-<p><img src="https://raw.githubusercontent.com/harui2019/harui2019/main/docs/image/logo/NTU_IBM_Q_Hub_Logo.png" href="https://quantum.ntu.edu.tw/" alt="IBM Quantum Hub at National Taiwan University" width="500"></p>
+<p><img src="https://raw.githubusercontent.com/harui2019/harui2019/main/docs/image/logo/NTU_IBM_Q_Hub_Logo.png" href="https://quantum.ntu.edu.tw/" alt="IBM Quantum Hub at National Taiwan University" width="400"></p>
 
 ---
 
@@ -74,6 +74,25 @@ After you finish the installation and want to comfirm the installation.
 
 ---
 
+## Citation
+
+If you use this tool in your research, please cite the following paper in the file `CITATION.bib`:
+
+```bibtex
+@misc{chang2024probingentanglementdynamicstopological,
+  title         = {Probing entanglement dynamics and topological transitions on noisy intermediate-scale quantum computers},
+  author        = {Huai-Chun Chang and Hsiu-Chuan Hsu and Yu-Cheng Lin},
+  year          = {2024},
+  eprint        = {2406.10159},
+  archiveprefix = {arXiv},
+  primaryclass  = {quant-ph},
+  url           = {https://arxiv.org/abs/2406.10159}
+}
+
+```
+
+---
+
 ## Environment
 
 **We currently <ins>SUPPORT qiskit 0.46.0+ and qiskit 1.0.0+</ins>, other lower version is no longer available.**
@@ -110,6 +129,7 @@ The main function to measure the entropy.
 The following is the methods used to measure.
 
 - Hadamard Test
+
   - Used in:
     **Entanglement spectroscopy on a quantum computer** - Sonika Johri, Damian S. Steiger, and Matthias Troyer, [PhysRevB.96.195136](https://doi.org/10.1103/PhysRevB.96.195136)
 
@@ -122,6 +142,7 @@ The following is the methods used to measure.
 It's similar to `qurrent`.
 
 - Hadamard Test
+
   - Used in:
     **Entanglement spectroscopy on a quantum computer** - Sonika Johri, Damian S. Steiger, and Matthias Troyer, [PhysRevB.96.195136](https://doi.org/10.1103/PhysRevB.96.195136)
 
