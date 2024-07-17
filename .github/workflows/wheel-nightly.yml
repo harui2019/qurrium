@@ -12,7 +12,7 @@ jobs:
   build_wheels_linux_x86:
     if: github.repository == 'harui2019/qurry'
     name: Build wheels on Linux-x86
-    runs-on: ubuntu-latest
+    runs-on: [ubuntu-latest, X64]
     strategy:
       fail-fast: false
     steps:
@@ -42,7 +42,7 @@ jobs:
   build_wheels_macos_x86:
     if: github.repository == 'harui2019/qurry'
     name: Build wheels on MacOS of x86 series
-    runs-on: macos-11
+    runs-on: [macos-13, x64]
     strategy:
       fail-fast: false
     steps:
@@ -131,7 +131,7 @@ jobs:
   build_wheels_macos_arm:
     if: github.repository == 'harui2019/qurry'
     name: Build wheels on MacOS of arm64
-    runs-on: macos-11
+    runs-on: [macos-latest, ARM64]
     strategy:
       fail-fast: false
     steps:
