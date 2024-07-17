@@ -12,7 +12,7 @@ jobs:
   build_wheels_linux_x86:
     if: github.repository == 'harui2019/qurry'
     name: Build wheels on Linux-x86
-    runs-on: ubuntu-latest
+    runs-on: [ubuntu-latest, X64]
     strategy:
       fail-fast: false
     steps:
@@ -42,7 +42,7 @@ jobs:
   build_wheels_macos_x86:
     if: github.repository == 'harui2019/qurry'
     name: Build wheels on MacOS of x86 series
-    runs-on: macos-11
+    runs-on: [macos-13, x64]
     strategy:
       fail-fast: false
     steps:
@@ -69,37 +69,37 @@ jobs:
           path: ./wheelhouse/*.whl
           name: shared-wheel-builds-x86
 
-  build_wheels_windows_x86:
-    if: github.repository == 'harui2019/qurry'
-    name: Build wheels on Windows of x86 series
-    runs-on: windows-latest
-    strategy:
-      fail-fast: false
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.CI_TOKEN }}
-          submodules: true
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.11"
-      - name: Update Pip
-        run: |
-          pip install --upgrade pipenv wheel pip
-          pip install setuptools_rust setuptools toml
-          pip install .
-      - name: Reversion
-        run: python get_version.py --release stable
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-      - name: Build wheels
-        uses: pypa/cibuildwheel@v2.16.2
-        env:
-          CIBW_PLATFORM: windows
-      - uses: actions/upload-artifact@v3
-        with:
-          path: ./wheelhouse/*.whl
-          name: shared-wheel-builds-x86
+  # build_wheels_windows_x86:
+  #   if: github.repository == 'harui2019/qurry'
+  #   name: Build wheels on Windows of x86 series
+  #   runs-on: windows-latest
+  #   strategy:
+  #     fail-fast: false
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #       with:
+  #         token: ${{ secrets.CI_TOKEN }}
+  #         submodules: true
+  #     - uses: actions/setup-python@v4
+  #       with:
+  #         python-version: "3.11"
+  #     - name: Update Pip
+  #       run: |
+  #         pip install --upgrade pipenv wheel pip
+  #         pip install setuptools_rust setuptools toml
+  #         pip install .
+  #     - name: Reversion
+  #       run: python get_version.py --release stable
+  #     - name: Install Rust
+  #       uses: dtolnay/rust-toolchain@stable
+  #     - name: Build wheels
+  #       uses: pypa/cibuildwheel@v2.16.2
+  #       env:
+  #         CIBW_PLATFORM: windows
+  #     - uses: actions/upload-artifact@v3
+  #       with:
+  #         path: ./wheelhouse/*.whl
+  #         name: shared-wheel-builds-x86
 
   publish_to_pypi_x86:
     if: github.repository == 'harui2019/qurry'
@@ -130,7 +130,7 @@ jobs:
   build_wheels_macos_arm:
     if: github.repository == 'harui2019/qurry'
     name: Build wheels on MacOS of arm64
-    runs-on: macos-11
+    runs-on: [macos-latest, ARM64]
     strategy:
       fail-fast: false
     steps:
