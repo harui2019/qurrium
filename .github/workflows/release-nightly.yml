@@ -3,9 +3,13 @@
 
 name: Release Nightly
 on:
-  push:
+  pull_request:
     branches:
       - pre-release
+      - pre-release-*
+    types:
+      - closed
+
 env:
   CARGO_TERM_COLOR: always
 
