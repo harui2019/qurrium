@@ -3,9 +3,12 @@
 
 name: Release Stable
 on:
-  push:
+  pull_request:
     branches:
       - main
+      - main-*
+    types:
+      - closed
 env:
   CARGO_TERM_COLOR: always
 
@@ -21,6 +24,10 @@ jobs:
         run: |
           git config --global user.name ${{ github.repository_owner }}_action_bot
           git config --global user.email ${{ github.repository_owner }}@users.noreply.github.com
+      - name: Update Pip
+        run: |
+          pip install --upgrade pipenv pip
+          pip install toml
       - name: Read Version File
         run: python get_version.py --release stable
       - name: Check out Version
