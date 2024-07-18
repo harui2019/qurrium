@@ -1,12 +1,12 @@
 ---
-name: Wheel Builds
+name: Wheel Builds Nightly
 on:
   push:
     branches:
-      - main
-      - main-*
+      - pre-release
+      - pre-release-*
     tags:
-      - "*.[0-9]+.[0-9]"
+      - "*.[0-9]+.[0-9]+.dev[0-9]+"
 
 jobs:
   build_wheels_linux_x86:
@@ -29,11 +29,11 @@ jobs:
           pip install setuptools_rust setuptools toml
           pip install .
       - name: Reversion
-        run: python get_version.py --release stable
+        run: python get_version.py --release nightly
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.19.2
+        uses: pypa/cibuildwheel@v2.16.2
       - uses: actions/upload-artifact@v3
         with:
           path: ./wheelhouse/*.whl
@@ -59,59 +59,59 @@ jobs:
           pip install setuptools_rust setuptools toml
           pip install .
       - name: Reversion
-        run: python get_version.py --release stable
+        run: python get_version.py --release nightly
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.19.2
+        uses: pypa/cibuildwheel@v2.16.2
       - uses: actions/upload-artifact@v3
         with:
           path: ./wheelhouse/*.whl
           name: shared-wheel-builds-x86
 
-  build_wheels_windows_x86:
-    if: github.repository == 'harui2019/qurry'
-    name: Build wheels on Windows of x86 series
-    runs-on: windows-latest
-    strategy:
-      fail-fast: false
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.CI_TOKEN }}
-          submodules: true
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.11"
-      - name: Update Pip
-        run: |
-          pip install --upgrade pipenv wheel pip
-          pip install setuptools_rust setuptools toml
-          pip install .
-      - name: Reversion
-        run: python get_version.py --release stable
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-      - name: Build wheels
-        uses: pypa/cibuildwheel@v2.19.2
-        env:
-          CIBW_PLATFORM: windows
-      - uses: actions/upload-artifact@v3
-        with:
-          path: ./wheelhouse/*.whl
-          name: shared-wheel-builds-x86
+  # build_wheels_windows_x86:
+  #   if: github.repository == 'harui2019/qurry'
+  #   name: Build wheels on Windows of x86 series
+  #   runs-on: windows-latest
+  #   strategy:
+  #     fail-fast: false
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #       with:
+  #         token: ${{ secrets.CI_TOKEN }}
+  #         submodules: true
+  #     - uses: actions/setup-python@v4
+  #       with:
+  #         python-version: "3.11"
+  #     - name: Update Pip
+  #       run: |
+  #         pip install --upgrade pipenv wheel pip
+  #         pip install setuptools_rust setuptools toml
+  #         pip install .
+  #     - name: Reversion
+  #       run: python get_version.py --release nightly
+  #     - name: Install Rust
+  #       uses: dtolnay/rust-toolchain@stable
+  #     - name: Build wheels
+  #       uses: pypa/cibuildwheel@v2.16.2
+  #       env:
+  #         CIBW_PLATFORM: windows
+  #     - uses: actions/upload-artifact@v3
+  #       with:
+  #         path: ./wheelhouse/*.whl
+  #         name: shared-wheel-builds-x86
 
-  publish_to_pypi_x86:
+  publish_to_testpypi_x86:
     if: github.repository == 'harui2019/qurry'
-    name: Publish Python 🐍 distribution 📦 to PyPI (Common Distro)
+    name: Publish Python 🐍 distribution 📦 to TestPyPI (x86 Distro)
     needs:
       - build_wheels_linux_x86
       - build_wheels_macos_x86
-      - build_wheels_windows_x86
+      # - build_wheels_windows_x86
     runs-on: ubuntu-latest
     environment:
-      name: pypi
-      url: https://test.pypi.org/p/qurrium
+      name: testpypi
+      url: https://test.pypi.org/p/qurry
     permissions:
       id-token: write # IMPORTANT: mandatory for trusted publishing
     steps:
@@ -120,10 +120,11 @@ jobs:
         with:
           name: shared-wheel-builds-x86
           path: deploy
-      - name: Publish distribution 📦 to PyPI
+      - name: Publish distribution 📦 to TestPyPI (x86 Distro)
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: deploy
+          repository-url: https://test.pypi.org/legacy/
 
   # ---
 
@@ -141,17 +142,17 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: "3.11"
-      - name: Reversion
-        run: python get_version.py --release stable
-      - name: Install Python and Update Pip
+      - name: Update Pip
         run: |
           pip install --upgrade pipenv wheel pip
-          pip install setuptools_rust setuptools
+          pip install setuptools_rust setuptools toml
           pip install .
+      - name: Reversion
+        run: python get_version.py --release nightly
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.19.2
+        uses: pypa/cibuildwheel@v2.16.2
         env:
           CIBW_BEFORE_ALL: rustup target add aarch64-apple-darwin
           CIBW_ARCHS_MACOS: arm64 universal2
@@ -163,7 +164,7 @@ jobs:
           path: ./wheelhouse/*.whl
           name: shared-wheel-builds-arm
 
-  # build_wheels_aarch64:
+  # build_wheels_linux_aarch64:
   #   if: github.repository == 'harui2019/qurry'
   #   name: Build wheels on Linux of aarch64
   #   runs-on: ubuntu-latest
@@ -185,7 +186,7 @@ jobs:
   #         pip install setuptools_rust setuptools toml
   #         pip install .
   #     - name: Reversion
-  #       run: python get_version.py --release stable
+  #       run: python get_version.py --release nightly
   #     - name: Install Rust
   #       uses: dtolnay/rust-toolchain@stable
   #     - name: Set up QEMU
@@ -193,7 +194,7 @@ jobs:
   #       with:
   #         platforms: all
   #     - name: Build wheels
-  #       uses: pypa/cibuildwheel@v2.19.2
+  #       uses: pypa/cibuildwheel@v2.16.2
   #       env:
   #         CIBW_ARCHS_LINUX: aarch64
   #     - uses: actions/upload-artifact@v3
@@ -201,16 +202,16 @@ jobs:
   #         path: ./wheelhouse/*.whl
   #         name: shared-wheel-builds-arm
 
-  publish-to-pypi-arm:
+  publish-to-testpypi-arm:
     if: github.repository == 'harui2019/qurry'
-    name: Publish Python 🐍 distribution 📦 to PyPI (aarch64/ARM)
+    name: Publish Python 🐍 distribution 📦 to TestPyPI (aarch64/ARM)
     needs:
       - build_wheels_macos_arm
       # - build_wheels_linux_aarch64
     runs-on: ubuntu-latest
     environment:
-      name: pypi
-      url: https://test.pypi.org/p/qurrium
+      name: testpypi
+      url: https://test.pypi.org/p/qurry
     permissions:
       id-token: write # IMPORTANT: mandatory for trusted publishing
     steps:
@@ -219,10 +220,11 @@ jobs:
         with:
           name: shared-wheel-builds-arm
           path: deploy
-      - name: Publish distribution 📦 to PyPI
+      - name: Publish distribution 📦 to TestPyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: deploy
+          repository-url: https://test.pypi.org/legacy/
 
   # ---
 
@@ -230,6 +232,9 @@ jobs:
   #   if: github.repository == 'harui2019/qurry'
   #   name: Build and publish sdist
   #   runs-on: ubuntu-latest
+  #   environment:
+  #     name: testpypi
+  #     url: https://test.pypi.org/p/qurry
   #   permissions:
   #     id-token: write
   #   strategy:
@@ -244,10 +249,12 @@ jobs:
   #       with:
   #         python-version: "3.11"
   #     - name: Reversion
-  #       run: python get_version.py --release stable
+  #       run: python get_version.py --release nightly
   #     - name: Install deps
   #       run: pip install -U build
   #     - name: Build sdist
   #       run: python -m build . --sdist
-  #     - name: Publish distribution 📦 to PyPI
+  #     - name: Publish distribution 📦 to TestPyPI
   #       uses: pypa/gh-action-pypi-publish@release/v1
+  #       with:
+  #         repository-url: https://test.pypi.org/legacy/
