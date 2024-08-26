@@ -45,14 +45,17 @@ def backend_name_getter(back: Union[BackendV1, BackendV2, Backend]) -> str:
     Returns:
         str: The name of backend.
     """
-    if hasattr(back, "configuration"):
-        config: QasmBackendConfiguration = back.configuration()  # type: ignore
-        assert isinstance(config, QasmBackendConfiguration), "Invalid configuration"
-        return config.backend_name
     if isinstance(back, BackendV2):
         return back.name
     if isinstance(back, BackendV1):
         return back.name()
+    if hasattr(back, "configuration"):
+        test_call = back.configuration()  # type: ignore
+        if isinstance(test_call, QasmBackendConfiguration):
+            assert isinstance(
+                test_call, QasmBackendConfiguration
+            ), f"Invalid configuration: {test_call}"
+            return test_call.backend_name
     return "unknown_backend"
 
 
