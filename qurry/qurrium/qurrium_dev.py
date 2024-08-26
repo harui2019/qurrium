@@ -3,31 +3,25 @@
 Qurry - A Qiskit Macro
 (:mod:`qurry.qurry.qurrium.qurrium`)
 
-Refactoring from :mod:`qurry.qurrium.qurryV5`.
 ===========================================================
 """
 
 import gc
-import inspect
 import warnings
 from abc import abstractmethod, ABC
-from typing import Literal, Union, Optional, Hashable, Any, overload, TypeVar, Type
+from typing import Literal, Union, Optional, Hashable, Any, TypeVar, Type
 from pathlib import Path
 import tqdm
 
-from qiskit import transpile, QuantumCircuit
-from qiskit.providers import Backend, JobV1 as Job
+from qiskit import QuantumCircuit
+from qiskit.providers import Backend
+from qiskit.transpiler.passmanager import PassManager
 
-from ..tools import qurry_progressbar, ParallelManager
+from ..tools import qurry_progressbar
 from ..tools.backend import GeneralSimulator
-from ..tools.datetime import current_time, DatetimeDict
-from ..declare.default import (
-    transpileConfig,
-    runConfig,
-    managerRunConfig,
-    contain_checker,
-)
-from .experiment import ExperimentPrototype
+from ..tools.datetime import DatetimeDict
+from ..declare.default import managerRunConfig, contain_checker
+from .experiment.experiment_dev import ExperimentPrototype
 from .container import WaveContainer, ExperimentContainer
 from .multimanager import (
     MultiManager,
@@ -35,19 +29,15 @@ from .multimanager import (
     PendingStrategyLiteral,
 )
 from .runner import ExtraBackendAccessor, retrieve_counter
-
-
-from .utils import get_counts_and_exceptions, qasm_drawer
-from .utils.inputfixer import outfields_check, outfields_hint
+from .utils import get_counts_and_exceptions
 from ..exceptions import QurryResetAccomplished, QurryResetSecurityActivated
 
 
 ExpsT = TypeVar("ExpsT", bound=ExperimentPrototype)
 
 
-class QurryPrototype(ABC):
-    """Qurry
-    A qiskit Macro.
+class QurriumPrototype(ABC):
+    """Qurrium, A qiskit Macro.
     ~Create countless adventure, legacy and tales.~
     """
 
@@ -124,429 +114,101 @@ class QurryPrototype(ABC):
         It will be None if no extra backend is loaded.
         """
 
-    @abstractmethod
-    def params_control(
-        self, wave_key: Hashable, **other_kwargs
-    ) -> tuple[ExperimentPrototype.Arguments, ExperimentPrototype.Commonparams, dict[str, Any]]:
-        """Control the experiment's parameters."""
-        raise NotImplementedError
-
-    def _params_control_core(
-        self,
-        *,
-        wave: Union[QuantumCircuit, Hashable],
-        exp_id: Optional[str],
-        shots: int = 1024,
-        backend: Optional[Backend] = None,
-        # provider: Optional[AccountProvider] = None,
-        run_args: Optional[dict[str, Any]] = None,
-        transpile_args: Optional[dict[str, Any]] = None,
-        tags: tuple = (),
-        default_analysis: Optional[list[dict[str, Any]]] = None,
-        serial: Optional[int] = None,
-        summoner_id: Optional[Hashable] = None,
-        summoner_name: Optional[str] = None,
-        mute_outfields_warning: bool = False,
-        _pbar: Optional[tqdm.tqdm] = None,
-        **other_kwargs: Any,
-    ) -> str:
-        """Control the experiment's general parameters.
-
-        Args:
-            wave (Union[QuantumCircuit, Hashable]):
-                The index of the wave function in `self.waves` or add new one to calaculation,
-                then choose one of waves as the experiment material.
-                If input is `QuantumCircuit`, then add and use it.
-                If input is the key in `.waves`, then use it.
-                If input is `None` or something illegal, then use `.lastWave'.
-                Defaults to None.
-            exp_id (str):
-                If input is `None`, then create an new experiment.
-                If input is a existed experiment ID, then use it.
-                Otherwise, use the experiment with given specific ID.
-                Defaults to None.
-            shots (int, optional):
-                Shots of the job. Defaults to `1024`.
-            backend (Backend, optional):
-                The quantum backend. Defaults to AerSimulator().
-            run_args (dict, optional):
-                defaultConfig of :func:`qiskit.execute`. Defaults to `{}`.
-            runBy (Literal[&#39;gate&#39;, &#39;operator&#39;], optional):
-                Construct wave function via :cls:`Operater`
-                for "operator" or :cls:`Gate` for "gate".
-                When use 'IBMQBackend' only allowed to use wave function
-                as `Gate` instead of `Operator`.
-                Defaults to "gate".
-            transpile_args (dict, optional):
-                defaultConfig of :func:`qiskit.transpile`. Defaults to `{}`.
-            decompose (Optional[int], optional):
-                Running `QuantumCircuit` which be decomposed given times. Defaults to 2.
-            tags (tuple, optional):
-                Given the experiment multiple tags to make a dictionary for recongnizing it.
-                Defaults to ().
-            default_analysis (list[dict[str, Any]], optional):
-                The analysis methods will be excuted after counts has been computed.
-                Defaults to [].
-            serial (Optional[int], optional):
-                Index of experiment in a multiOutput.
-                **!!ATTENTION, this should only be used by `Multimanager`!!**
-                Defaults to None.
-            summoner_id (Optional[Hashable], optional):
-                ID of experiment of the multiManager.
-                **!!ATTENTION, this should only be used by `Multimanager`!!**
-                Defaults to None.
-            summoner_name (Optional[str], optional):
-                Name of experiment of the multiManager.
-                **!!ATTENTION, this should only be used by `Multimanager`!!**
-                _description_. Defaults to None.
-            mute_outfields_warning (bool, optional):
-                Mute the warning when there are unused arguments detected and stored in outfields.
-                Defaults to False.
-
-        Raises:
-            KeyError: Giving an not existed wave key.
-            TypeError:
-                Neither `QuantumCircuit` for directly adding new wave
-                nor `Hashable` for key is given.
-            TypeError: One of default_analysis is not a dict.
-            ValueError: One of default_analysis is invalid.
-
-        Returns:
-            Hashable: The ID of the experiment.
-        """
-        if run_args is None:
-            run_args = {}
-        if transpile_args is None:
-            transpile_args = {}
-        if default_analysis is None:
-            default_analysis = []
-        if backend is None:
-            backend = GeneralSimulator()
-
-        # wave
-        if isinstance(wave, QuantumCircuit):
-            wave_key = self.add(wave)
-        elif isinstance(wave, Hashable):
-            if "waves" in other_kwargs:
-                ...
-            elif not self.has(wave):
-                raise KeyError(f"Wave '{wave}' not found in '.waves'")
-            wave_key = wave
-        else:
-            raise TypeError(
-                f"'{wave}' is a '{type(wave)}' instead of 'QuantumCircuit' or 'Hashable'"
-            )
-
-        arguments: ExperimentPrototype.Arguments
-        commonparams: ExperimentPrototype.Commonparams
-        outfields: dict[str, Any]
-        # Given parameters and default parameters
-        if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str("Prepaing parameters...")
-        arguments, commonparams, outfields = self.params_control(
-            wave_key=wave_key,
-            exp_id=exp_id,
-            shots=shots,
-            backend=backend,
-            run_args=run_args,
-            transpile_args=transpile_args,
-            tags=tags,
-            default_analysis=default_analysis,
-            save_location=Path("./"),
-            filename="",
-            files={},
-            serial=serial,
-            summoner_id=summoner_id,
-            summoner_name=summoner_name,
-            datetimes=DatetimeDict(),
-            **other_kwargs,
-        )
-
-        outfield_maybe, outfields_unknown = outfields_check(
-            outfields, arguments._fields + commonparams._fields
-        )
-        outfields_hint(outfield_maybe, outfields_unknown, mute_outfields_warning)
-
-        if len(commonparams.default_analysis) > 0:
-            for index, analyze_input in enumerate(commonparams.default_analysis):
-                if not isinstance(analyze_input, dict):
-                    raise TypeError(
-                        "Each element of 'default_analysis' must be a dict, "
-                        + f"not {type(analyze_input)}, for index {index} in 'default_analysis'"
-                    )
-                try:
-                    self.experiment.analysis_container.input_filter(**analyze_input)
-                except TypeError as e:
-                    raise ValueError(
-                        f'analysis input filter found index {index} in "default_analysis"'
-                    ) from e
-
-        # config check
-        if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str("| Checking parameters... ")
-        contain_checker(commonparams.transpile_args, transpileConfig)
-        contain_checker(commonparams.run_args, runConfig)
-
-        if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str("| Create experiment instance... ")
-        new_exps = self.experiment(
-            **arguments._asdict(),
-            **commonparams._asdict(),
-            **outfields,
-        )
-
-        self.exps[new_exps.commons.exp_id] = new_exps
-        assert isinstance(self.exps[new_exps.commons.exp_id].commons.backend, Backend)
-        assert len(self.exps[new_exps.commons.exp_id].beforewards.circuit) == 0
-        assert len(self.exps[new_exps.commons.exp_id].beforewards.fig_original) == 0
-        assert len(self.exps[new_exps.commons.exp_id].beforewards.circuit_qasm) == 0
-        assert len(self.exps[new_exps.commons.exp_id].afterwards.result) == 0
-        assert len(self.exps[new_exps.commons.exp_id].afterwards.counts) == 0
-
-        return new_exps.commons.exp_id
-
-    # Circuit
-    @abstractmethod
-    @overload
-    def method(
-        self,
-        exp_id: str,
-        _pbar: Optional[tqdm.tqdm] = None,
-    ) -> list[QuantumCircuit]:
-        """The method to construct circuit.
-        Where should be overwritten by each construction of new measurement.
-
-        Returns:
-            Union[QuantumCircuit, list[QuantumCircuit]]:
-                The quantum circuit of experiment.
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    @overload
-    def method(
-        self,
-        exp_id: str,
-    ) -> list[QuantumCircuit]:
-        """The method to construct circuit.
-        Where should be overwritten by each construction of new measurement.
-
-        Returns:
-            Union[QuantumCircuit, list[QuantumCircuit]]:
-                The quantum circuit of experiment.
-        """
-        raise NotImplementedError
+        self.passmanagers: dict[str, PassManager] = {}
+        """The collection of pass managers."""
 
     def build(
         self,
-        *,
-        exp_id: Optional[str] = None,
+        circuits: list[Union[QuantumCircuit, Hashable]],
         backend: Optional[Backend] = None,
+        passmanager: Optional[Union[str, PassManager, tuple[str, PassManager]]] = None,
+        export: bool = False,
         save_location: Optional[Union[Path, str]] = None,
         mode: str = "w+",
         indent: int = 2,
         encoding: str = "utf-8",
-        jsonablize: bool = False,
-        skip_export: bool = False,
-        _pbar: Optional[tqdm.tqdm] = None,
-        **other_kwargs: Any,
+        jsonable: bool = False,
+        pbar: Optional[tqdm.tqdm] = None,
+        **custom_and_main_kwargs: Any,
     ) -> str:
-        """Construct the quantum circuit of experiment.
-        ## The first finishing point.
+        """Build the experiment.
 
         Args:
-            exp_id (str):
-                If input is `None`, then create an new experiment.
-                If input is a existed experiment ID, then use it.
-                Otherwise, use the experiment with given specific ID.
-                Defaults to None.
-            backend (Backend, optional):
-                The quantum backend. Defaults to AerSimulator().
+            circuits (list[Union[QuantumCircuit, Hashable]]):
+                The circuits or keys of circuits in `.waves`.
+            backend (Optional[Backend], optional):
+                The quantum backend. Defaults to None.
+            passmanager (Optional[Union[str, PassManager, tuple[str, PassManager]]], optional):
+                The passmanager. Defaults to None.
+            export (bool, optional):
+                Whether to export the experiment. Defaults to False.
             save_location (Optional[Union[Path, str]], optional):
-                The location to save the experiment. If None, will not save.
-                Defaults to None.
+                The location to save the experiment. Defaults to None.
             mode (str, optional):
                 The mode to open the file. Defaults to 'w+'.
             indent (int, optional):
                 The indent of json file. Defaults to 2.
             encoding (str, optional):
                 The encoding of json file. Defaults to 'utf-8'.
-            jsonablize (bool, optional):
+            jsonable (bool, optional):
                 Whether to jsonablize the experiment output. Defaults to False.
-
-            other_kwargs:
-                all arguments will handle by `self.paramsControl()` and export as specific format.
+            pbar (Optional[tqdm.tqdm], optional):
+                The progress bar for showing the progress of the experiment.
+                Defaults to None.
+            custom_and_main_kwargs (Any):
+                Other custom arguments.
 
         Returns:
-            Hashable: The ID of the experiment.
+            ExperimentPrototype: The experiment.
         """
-
-        # preparing
-        if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str("| Parameter loading...")
-
-        if exp_id in self.exps and exp_id is not None:
-            id_now = exp_id
+        if isinstance(passmanager, str):
+            if passmanager not in self.passmanagers:
+                raise KeyError(f"Passmanager {passmanager} not found in {self.passmanagers}")
+            passmanager_pair = passmanager, self.passmanagers[passmanager]
+        elif isinstance(passmanager, PassManager):
+            passmanager_pair = f"pass_{len(self.passmanagers)}", passmanager
+            self.passmanagers[passmanager_pair[0]] = passmanager_pair[1]
+        elif isinstance(passmanager, tuple):
+            if len(passmanager) != 2:
+                raise ValueError(f"Invalid passmanager: {passmanager}")
+            if not isinstance(passmanager[1], PassManager) or not isinstance(passmanager[0], str):
+                raise ValueError(f"Invalid passmanager: {passmanager}")
+            passmanager_pair = passmanager
+            self.passmanagers[passmanager_pair[0]] = passmanager_pair[1]
+        elif passmanager is None:
+            passmanager_pair = None
         else:
-            id_now = self._params_control_core(
-                **other_kwargs, exp_id=exp_id, backend=backend, _pbar=_pbar
-            )
-        assert self.exps[id_now].commons.exp_id == id_now
-        if len(self.exps[id_now].beforewards.circuit) > 0 and isinstance(
-            self.exps[id_now].beforewards.circuit[0], QuantumCircuit
-        ):
-            return id_now
+            raise ValueError(f"Invalid passmanager: {passmanager}")
 
-        current_exp = self.exps[id_now]
-        if not isinstance(current_exp.commons.backend, Backend):
-            if isinstance(backend, Backend):
-                if isinstance(_pbar, tqdm.tqdm):
-                    _pbar.set_description_str("| Backend replacing...")
-                current_exp.replace_backend(backend)
-            else:
-                raise ValueError(
-                    "No vaild backend to run, exisited backend: "
-                    + f"{current_exp.commons.backend} as type "
-                    + f"{type(current_exp.commons.backend)}, "
-                    + f"given backend: {backend} as type {type(backend)}."
-                )
-
-        assert isinstance(current_exp.commons.backend, Backend), (
-            f"Invalid backend: {current_exp.commons.backend} as "
-            + f"type {type(current_exp.commons.backend)}."
-        )
-
-        is_revive = False
-        # circuit
-        if (
-            len(current_exp.beforewards.circuit_qasm) > 0
-            and "build" in current_exp.commons.datetimes
-        ):
-            is_revive = True
-            if isinstance(_pbar, tqdm.tqdm):
-                _pbar.set_description_str("| Circuit reviving from existed qasm...")
-            cirqs = current_exp.beforewards.revive_circuit(True)
-
-        else:
-            if isinstance(_pbar, tqdm.tqdm):
-                _pbar.set_description_str("| Circuit creating...")
-            how_the_method_get_args = inspect.signature(self.method).parameters
-            if "_pbar" in how_the_method_get_args:
-                if how_the_method_get_args["_pbar"].annotation == Optional[tqdm.tqdm]:
-                    cirqs = self.method(id_now, _pbar=_pbar)
+        circuits_maps = {}
+        for _circuit in circuits:
+            if isinstance(_circuit, QuantumCircuit):
+                key = self.add(wave=_circuit)
+                circuits_maps[key] = self.waves[key]
+            elif isinstance(_circuit, Hashable):
+                if self.has(_circuit):
+                    circuits_maps[_circuit] = self.waves[_circuit]
                 else:
-                    cirqs = self.method(id_now)
+                    raise KeyError(f"Wave {_circuit} not found in {self.waves}")
             else:
-                cirqs = self.method(id_now)
+                raise ValueError(f"Invalid type of circuit: {_circuit}, type: {type(_circuit)}")
 
-            pool = ParallelManager()
-            # qasm
-            if isinstance(_pbar, tqdm.tqdm):
-                _pbar.set_description_str("| Exporting OpenQASM string...")
-            tmp_qasm = pool.map(qasm_drawer, cirqs)
-            for qasm_str in tmp_qasm:
-                current_exp.beforewards.circuit_qasm.append(qasm_str)
-
-        # transpile
-        if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str("| Circuit transpiling...")
-        transpiled_circs: list[QuantumCircuit] = transpile(
-            cirqs,
-            backend=current_exp.commons.backend,
-            **current_exp.commons.transpile_args,
-        )
-        if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str("| Circuit loading...")
-        for _w in transpiled_circs:
-            current_exp.beforewards.circuit.append(_w)
-
-        # commons
-        if is_revive:
-            datenote, date = current_exp.commons.datetimes.add_serial("revive")
-            if isinstance(_pbar, tqdm.tqdm):
-                _pbar.set_description_str(
-                    f"| Reviving Completed, denoted '{datenote}' date: {date}..."
-                )
-        else:
-            datenote, date = current_exp.commons.datetimes.add_only("build")
-            if isinstance(_pbar, tqdm.tqdm):
-                _pbar.set_description_str(
-                    f"| Building Completed, denoted '{datenote}' date: {date}..."
-                )
-
-        if not skip_export:
-            if isinstance(_pbar, tqdm.tqdm):
-                _pbar.set_description_str("| Setup data exporting...")
-            # export may be slow, consider export at finish or something
-            if isinstance(save_location, (Path, str)):
-                current_exp.write(
-                    save_location=save_location,
-                    mode=mode,
-                    indent=indent,
-                    encoding=encoding,
-                    jsonable=jsonablize,
-                )
-
-        return id_now
-
-    def run(
-        self,
-        *,
-        save_location: Optional[Union[Path, str]] = None,
-        _pbar: Optional[tqdm.tqdm] = None,
-        **other_kwargs: Any,
-    ) -> str:
-        """Export the result after running the job.
-
-        Args:
-            save_location (Optional[Union[Path, str]], optional):
-                The location to save the experiment. If None, will not save.
-                Defaults to None.
-            mode (str, optional):
-                The mode to open the file. Defaults to 'w+'.
-            indent (int, optional):
-                The indent of json file. Defaults to 2.
-            encoding (str, optional):
-                The encoding of json file. Defaults to 'utf-8'.
-            jsonablize (bool, optional):
-                Whether to jsonablize the experiment output. Defaults to False.
-
-            allArgs:
-                all arguments will handle by `self.paramsControl()` and export as specific format.
-
-        Returns:
-            Hashable: The ID of the experiment.
-        """
-        # preparing
-        id_now = self.build(save_location=save_location, _pbar=_pbar, **other_kwargs)
-        assert self.exps[id_now].commons.exp_id == id_now
-        current_exp = self.exps[id_now]
-        assert isinstance(current_exp.commons.backend, Backend), (
-            f"Current backend {current_exp.commons.backend} needs to be backend not "
-            + f"{type({current_exp.commons.backend})}."
+        new_exps = self.experiment.build(
+            circuits_maps=circuits_maps,
+            backend=backend,
+            passmanager_pair=passmanager_pair,
+            export=export,
+            save_location=save_location,
+            mode=mode,
+            indent=indent,
+            encoding=encoding,
+            jsonable=jsonable,
+            pbar=pbar,
+            **custom_and_main_kwargs,
         )
 
-        if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str("Executing...")
-        assert hasattr(current_exp.commons.backend, "run"), "Current backend is not runnable."
-        execution: Job = current_exp.commons.backend.run(  # type: ignore
-            current_exp.beforewards.circuit,
-            shots=current_exp.commons.shots,
-            **current_exp.commons.run_args,
-        )
-        # commons
-        date = current_time()
-        current_exp.commons.datetimes["run"] = date
-        if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str(f"Running Completed, denoted date: {date}...")
-        # beforewards
-        current_exp["job_id"] = execution.job_id()
-        # afterwards
-        result = execution.result()
-        current_exp.unlock_afterward(mute_auto_lock=True)
-        current_exp["result"].append(result)
-
-        return id_now
+        self.exps[new_exps.commons.exp_id] = new_exps
+        return new_exps.commons.exp_id
 
     def result(
         self,
@@ -744,7 +406,7 @@ class QurryPrototype(ABC):
                     'max_experiments_per_job': 200,
                 }`.
             jobstype (Literal[
-                'local', 'IBMQ', 'AWS_Bracket', '''Azure_Q'
+                'local', 'IBMQ', 'AWS_Bracket', 'Azure_Q'
             ], optional):
                 What types of the backend will run on. Defaults to "local".
             is_retrieve (bool, optional):
@@ -898,17 +560,18 @@ class QurryPrototype(ABC):
 
         initial_config_list_progress.set_description_str("MultiManager building...")
         for config in initial_config_list_progress:
-            current_id = self.build(
+            new_exps = self.experiment.build(
                 **config,
-                skip_export=True,  # export later for it's not efficient for one by one
-                _pbar=initial_config_list_progress,
+                export=False,  # export later for it's not efficient for one by one
+                pbar=initial_config_list_progress,
             )
             initial_config_list_progress.set_description_str("Loading data to multimanager...")
             current_multimanager.register(
-                current_id=current_id,
+                current_id=new_exps.commons.exp_id,
                 config=config,
-                exps_instance=self.exps[current_id],
+                exps_instance=new_exps,  # type: ignore # TODO: remove when complete
             )
+            self.exps[new_exps.commons.exp_id] = new_exps
         initial_config_list_progress.set_description_str("MultiManager writing...")
         current_multimanager.write(
             exps_container=self.exps,
