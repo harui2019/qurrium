@@ -1,9 +1,6 @@
 ---
 name: Wheel Builds Nightly
 on:
-  push:
-    tags:
-      - "*.[0-9]+.[0-9]+.dev[0-9]+"
   pull_request:
     branches:
       - pre-release
@@ -13,7 +10,7 @@ on:
 
 jobs:
   build_wheels:
-    if: github.repository == 'harui2019/qurry'
+    if: github.repository == 'harui2019/qurry' || contains(github.event.pull_request.title, ':publish')
     name: Build wheels on ${{ matrix.os }} - ${{ matrix.archs }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -102,7 +99,7 @@ jobs:
           name: shared-wheel-builds-arm
 
   publish-to-testpypi:
-    if: github.repository == 'harui2019/qurry'
+    if: github.repository == 'harui2019/qurry' || contains(github.event.pull_request.title, ':publish')
     name: Publish Python 🐍 distribution 📦 to TestPyPI ${{ matrix.archs }}
     runs-on: ubuntu-latest
     needs:
