@@ -95,34 +95,27 @@ The package has been tested on the following systems.**
 
 ---
 
-## Measurement 
+## Measurement -- made randomized measurement easy. 
 
-### `qurrent` - The Renyi Entropy Measurement
+### `qurrent` - The Quantum Renyi Entropy Measurement
 
-The main function to measure the entropy.
-The following is the methods used to measure.
+The major function of this module is to measure the quantum Renyi entropy to quantify entanglement.
 
-- Hadamard Test
-
-  - Used in:
-    **Entanglement spectroscopy on a quantum computer** - Sonika Johri, Damian S. Steiger, and Matthias Troyer, [PhysRevB.96.195136](https://doi.org/10.1103/PhysRevB.96.195136)
-
-- Haar Randomized Measure
-  - From:
-    **Statistical correlations between locally randomized measurements: A toolbox for probing entanglement in many-body quantum states** - A. Elben, B. Vermersch, C. F. Roos, and P. Zoller, [PhysRevA.99.052323](https://doi.org/10.1103/PhysRevA.99.052323)
 
 ### `qurrech` - The Wave Function Overlap Measurement
+This module evaluates the overlap between any two given quantum states. 
 
-It's similar to `qurrent`.
-
+In each of the modules, two methods are implemented to perform the measurements:
 - Hadamard Test
-
-  - Used in:
+  - Ref:
     **Entanglement spectroscopy on a quantum computer** - Sonika Johri, Damian S. Steiger, and Matthias Troyer, [PhysRevB.96.195136](https://doi.org/10.1103/PhysRevB.96.195136)
 
 - Haar Randomized Measure
-  - From:
+  - Ref:
     **Statistical correlations between locally randomized measurements: A toolbox for probing entanglement in many-body quantum states** - A. Elben, B. Vermersch, C. F. Roos, and P. Zoller, [PhysRevA.99.052323](https://doi.org/10.1103/PhysRevA.99.052323)
+
+
+
 
 <!-- ### `qurmagsq` - The Magnetization Squared
 
