@@ -18,7 +18,7 @@ Avoiding the import error occurs on different parts of Qurry.
 from typing import Union, Callable, Optional
 
 from qiskit.providers import BackendV1, BackendV2, Backend
-from qiskit.providers.models import QasmBackendConfiguration
+from qiskit.providers.models.backendconfiguration import QasmBackendConfiguration
 
 
 backendName: Callable[[Union[BackendV1, BackendV2, Backend]], str] = lambda back: (
@@ -36,15 +36,18 @@ Returns:
 """
 
 
-def backend_name_getter(back: Union[BackendV1, BackendV2, Backend]) -> str:
+def backend_name_getter(back: Union[BackendV1, BackendV2, Backend, str]) -> str:
     """Get the name of backend.
 
     Args:
-        back (Union[BackendV1, BackendV2, Backend]): The backend instance.
+        back (Union[BackendV1, BackendV2, Backend, str]): The backend instance.
 
     Returns:
         str: The name of backend.
     """
+
+    if isinstance(back, str):
+        return back
     if isinstance(back, BackendV2):
         return back.name
     if isinstance(back, BackendV1):
@@ -56,6 +59,8 @@ def backend_name_getter(back: Union[BackendV1, BackendV2, Backend]) -> str:
                 test_call, QasmBackendConfiguration
             ), f"Invalid configuration: {test_call}"
             return test_call.backend_name
+    if isinstance(back, Backend):
+        return str(back)
     return "unknown_backend"
 
 

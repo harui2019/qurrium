@@ -3,22 +3,21 @@
 Import Simulator (:mod:`qurry.tools.backend.import_simulator`)
 ================================================================
 
-For qiskit-aer has been divided into two packages since qiskit some version,
-So it needs to be imported differently by trying to import qiskit-aer first.
-
-And qiskit-ibmq-provider has been deprecated, 
-but for some user may still need to use it,
-so it needs to be imported also differently by trying to import qiskit-ibm-provider first.
-
-So this file is used to unify the import point of AerProvider, IBMProvider/IBMQProvider.
-Avoiding the import error occurs on different parts of Qurry.
+This module provides the default simulator for Qurry.
+For the simulator, the following sources are considered:
+    * qiskit_aer
+    * qiskit.providers.aer
+    * qiskit.providers.basicaer
+    * qiskit.providers.basic_provider
+which are used in different qiskit, qiskit-aer version,
+and ordered by priority.
 """
 
 from typing import Literal, Type, Optional
-
 from qiskit.providers import BackendV1, BackendV2, Backend, Provider
 
 from ..qiskit_version import QISKIT_VERSION
+from .utils import backend_name_getter
 
 # pylint: disable=ungrouped-imports
 ImportPointType = Literal[
@@ -47,7 +46,8 @@ try:
     SIM_VERSION_INFOS["qiskit_aer"] = get_version_info_aer()
     SIMULATOR_SOURCES["qiskit_aer"] = AerSimulator
     SIM_BACKEND_SOURCES["qiskit_aer"] = AerBackend
-    SIM_PROVIDER_SOURCES["qiskit_aer"] = AerProvider
+    SIM_PROVIDER_SOURCES["qiskit_aer"] = AerProvider  # type: ignore
+    # wtf, AerProvider is not inherited from Provider for qiskit-aer 0.15.0
 except ImportError as err:
     SIM_IMPORT_ERROR_INFOS["qiskit_aer"] = err
 
@@ -69,7 +69,7 @@ except ImportError as err:
     SIM_IMPORT_ERROR_INFOS["qiskit.providers.aer"] = err
 
 try:
-    from qiskit.providers.basicaer.basicaerprovider import (
+    from qiskit.providers.basicaer.basicaerprovider import (  # type: ignore
         BasicAerProvider,
         QasmSimulatorPy,
     )
@@ -117,12 +117,12 @@ class GeneralSimulator(SIMULATOR_SOURCES[SIM_DEFAULT_SOURCE]):
 
     def __repr__(self):
         if SIM_DEFAULT_SOURCE == "qiskit.providers.basicaer":
-            return f"<QasmSimulatorPy('{self.name()}')>"
+            return f"<QasmSimulatorPy('{backend_name_getter(self)}')>"
         if SIM_DEFAULT_SOURCE == "qiskit.providers.basic_provider":
-            return f"<BasicSimulator('{self.name}')>"
+            return f"<BasicSimulator('{backend_name_getter(self)}')>"
         if isinstance(self, BackendV1):
             return f"<AerSimulator('{self.name()}')>"
-        return f"<AerSimulator('{self.name}')>"
+        return f"<UnknownSimulator('{backend_name_getter(self)}')>"
 
 
 class GeneralBackend(SIM_BACKEND_SOURCES[SIM_DEFAULT_SOURCE]):
