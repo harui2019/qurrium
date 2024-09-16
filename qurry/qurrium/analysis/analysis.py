@@ -125,10 +125,41 @@ class AnalysisPrototype:
 
     def __repr__(self) -> str:
         return (
-            f"<{self.__name__} with serial={self.header.serial}, "
+            f"<{self.__name__}("
+            + f"serial={self.header.serial}, "
             + f"{self.input.__repr__()}, "
-            + f"{self.content.__repr__()}, "
-            + f"{len(self.outfields)} unused arguments>"
+            + f"{self.content.__repr__()}), "
+            + f"unused_args_num={len(self.outfields)}>"
+        )
+
+    def _repr_pretty_(self, p, cycle):
+        if cycle:
+            p.text(
+                f"<{self.__name__}("
+                + f"serial={self.header.serial}, "
+                + f"{self.input}, "
+                + f"{self.content}), "
+                + f"unused_args_num={len(self.outfields)}>"
+            )
+        else:
+            with p.group(2, f"<{self.__name__}("):
+                p.breakable()
+                p.text(f"serial={self.header.serial},")
+                p.breakable()
+                p.text(f"{self.input},")
+                p.breakable()
+                p.text(f"{self.content}),")
+                p.breakable()
+                p.text(f"unused_args_num={len(self.outfields)}")
+                p.breakable()
+                p.text(")>")
+
+    def __str__(self) -> str:
+        return (
+            f"{self.__name__} with serial={self.header.serial}, "
+            + f"{self.input.__str__()}, "
+            + f"{self.content.__str__()}, "
+            + f"{len(self.outfields)} unused arguments"
         )
 
     def statesheet(
