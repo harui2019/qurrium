@@ -117,3 +117,7 @@ class QurryDependenciesNotWorking(QurryWarning):
 
 class QurryTranspileConfigurationIgnored(QurryWarning):
     """Transpile configuration ignored warning."""
+
+
+class QurryPendingTagTooMany(QurryWarning):
+    """Pending tag too many warning."""
