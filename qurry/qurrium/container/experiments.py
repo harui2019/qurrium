@@ -5,12 +5,15 @@ ExperimentContainer
 ================================================================
 
 """
-from typing import Union, Optional, Hashable, TypeVar
 
-ExperimentInstance = TypeVar("ExperimentInstance")
+from typing import TypeVar
+
+from ..experiment import ExperimentPrototype
+
+_ExpInst = TypeVar("_ExpInst", bound=ExperimentPrototype)
 
 
-class ExperimentContainer(dict[Hashable, ExperimentInstance]):
+class ExperimentContainer(dict[str, _ExpInst]):
     """A customized dictionary for storing `ExperimentPrototype` objects."""
 
     __name__ = "ExperimentContainer"
@@ -20,8 +23,8 @@ class ExperimentContainer(dict[Hashable, ExperimentInstance]):
 
     def call(
         self,
-        exp_id: Optional[Hashable] = None,
-    ) -> ExperimentInstance:
+        exp_id: str,
+    ) -> _ExpInst:
         """Call an experiment by its id.
 
         Args:
@@ -33,18 +36,34 @@ class ExperimentContainer(dict[Hashable, ExperimentInstance]):
 
         if exp_id in self:
             return self[exp_id]
-        raise KeyError(f'Experiment id: "{exp_id}" not found in {self}')
+        raise KeyError(f"Experiment id: '{exp_id}' not found.")
 
     def __call__(
         self,
-        exp_id: Union[Hashable, None] = None,
-    ) -> ExperimentInstance:
+        exp_id: str,
+    ) -> _ExpInst:
         return self.call(exp_id=exp_id)
 
     def __repr__(self):
-        inner_lines = "\n".join(f"    {k}: ..." for k in self.keys())
-        inner_lines2 = "{\n%s\n}" % inner_lines
-        return (
-            f"<{self.__name__}={inner_lines2} with {len(self)} "
-            + "experiments load, a customized dictionary>"
-        )
+        original_repr = repr({k: v._repr_no_id() for k, v in self.items()})
+        return f"{type(self).__name__}({original_repr}, num={len(self)})"
+
+    def _repr_pretty_(self, p, cycle):
+        # pylint: disable=protected-access
+        original_repr = repr({k: v._repr_no_id() for k, v in self.items()})
+        # pylint: enable=protected-access
+        original_repr_split = original_repr[1:-1].split(", ")
+        length = len(original_repr_split)
+
+        if cycle:
+            p.text(f"{type(self).__name__}(" + "{...}" + f", num={length})")
+        else:
+            with p.group(2, f"{type(self).__name__}(num={length}" + ", {", "})"):
+                for i, item in enumerate(original_repr_split):
+                    p.breakable()
+                    p.text(item)
+                    if i < length - 1:
+                        p.text(",")
+
+    def __str__(self):
+        return super().__repr__()
