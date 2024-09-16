@@ -1,7 +1,8 @@
 """
 ================================================================
-The experiment prototype which is the basic class of all experiments.
-(:mod:`qurry.qurrium.experiment`)
+The experiment prototype 
+which is the basic class of all experiments.
+(:mod:`qurry.qurrium.experiment.experiment`)
 ================================================================
 
 """
@@ -11,35 +12,41 @@ import os
 import json
 import warnings
 from abc import abstractmethod, ABC
-from uuid import uuid4, UUID
-from typing import Union, Optional, Hashable, Any
+from typing import Union, Optional, Any
+from collections.abc import Hashable
 from pathlib import Path
 import tqdm
 
-from qiskit.providers import Backend
+from qiskit import transpile, QuantumCircuit
+from qiskit.providers import Backend, JobV1 as Job
+from qiskit.transpiler.passmanager import PassManager
 
 from ...tools import ParallelManager, DEFAULT_POOL_SIZE
-from ...tools.datetime import current_time, DatetimeDict
+from ...tools.datetime import DatetimeDict
+from ...tools.backend import GeneralSimulator
+from ...tools.backend.utils import backend_name_getter
 from ...capsule import jsonablize, quickJSON
 from ...capsule.hoshi import Hoshi
+from ...declare.run import BaseRunArgs
+from ...declare.transpile import TranspileArgs
 from ...exceptions import (
     QurryInvalidInherition,
     QurryResetSecurityActivated,
     QurryResetAccomplished,
     QurryProtectContent,
     QurrySummonerInfoIncompletion,
-    QurryHashIDInvalid,
+    QurryTranspileConfigurationIgnored,
 )
+from ..utils import get_counts_and_exceptions, qasm_drawer
 from ..utils.iocontrol import RJUST_LEN
+from ..utils.inputfixer import outfields_check, outfields_hint
 from ..analysis import AnalysisPrototype
-from .container import (
-    ArgumentsPrototype,
-    Commonparams as ExperimentCommonparams,
-    Before as ExperimentBefore,
-    After as ExperimentAfter,
-)
+from .arguments import ArgumentsPrototype, Commonparams as ExperimentCommonparams
+from .beforewards import Before as ExperimentBefore
+from .afterwards import After as ExperimentAfter
 from .analyses import AnalysesContainer
 from .export import Export
+from .utils import commons_dealing, exp_id_process, DEPRECATED_PROPERTIES, EXPERIMENT_UNEXPORTS
 
 
 class ExperimentPrototype(ABC):
@@ -59,17 +66,10 @@ class ExperimentPrototype(ABC):
     After = ExperimentAfter
     """After experiment."""
 
-    _unexports = ["side_product", "result", "circuits"]
-    """Unexports properties."""
-    _deprecated = ["figTranspiled", "fig_original"]
-    """Deprecated properties.
-        - `figTranspiled` is deprecated since v0.6.0.
-        - `fig_original` is deprecated since v0.6.10.
-    """
-    tqdm_handleable = False
-    """Whether the method :meth:`execute` can handle the processing bar from :module:`tqdm`."""
+    # analysis
+    analysis_container = AnalysisPrototype
+    """Analysis container of experiment."""
 
-    # Analysis Property
     @classmethod
     def filter(cls, *args, **kwargs) -> tuple[Any, Commonparams, dict[str, Any]]:
         """Filter the arguments of experiment.
@@ -78,7 +78,7 @@ class ExperimentPrototype(ABC):
             ValueError: When input arguments are not positional arguments.
 
         Returns:
-            tuple[argsCore, dict[str, Any]]: argsCore, outfields for other unused arguments.
+            tuple[Any, Commonparams, dict[str, Any]]: The filtered arguments.
         """
         if len(args) > 0:
             raise ValueError("args filter can't be initialized with positional arguments.")
@@ -98,41 +98,8 @@ class ExperimentPrototype(ABC):
 
         return cls.Arguments(**infields), cls.Commonparams(**commonsinput), outfields
 
-    # analysis
-    analysis_container = AnalysisPrototype
-
-    def __init__(
-        self,
-        exp_id: Optional[str],
-        wave_key: Hashable,
-        *args,
-        serial: Optional[int] = None,
-        summoner_id: Optional[str] = None,
-        summoner_name: Optional[str] = None,
-        beforewards: Optional[ExperimentBefore] = None,
-        afterwards: Optional[ExperimentAfter] = None,
-        reports: Optional[AnalysesContainer] = None,
-        **kwargs,
-    ) -> None:
-        """Initialize the experiment."""
-
-        if len(args) > 0:
-            raise ValueError(f"{self.__name__} can't be initialized with positional arguments.")
-        try:
-            if exp_id is not None:
-                UUID(exp_id, version=4)
-        except ValueError as e:
-            exp_id = None
-            warnings.warn(
-                f"exp_id is not a valid UUID, it will be generated automatically.\n{e}",
-                category=QurryHashIDInvalid,
-            )
-        finally:
-            if exp_id is None:
-                exp_id = str(uuid4())
-            else:
-                ...
-
+    def _implementation_check(self):
+        """Check whether the experiment is implemented correctly."""
         if self.Arguments is ArgumentsPrototype:
             raise NotImplementedError(f"{self.__name__}.Arguments should be overwritten.")
         duplicate_fields = set(self.Arguments._fields) & set(self.Commonparams._fields)
@@ -142,57 +109,55 @@ class ExperimentPrototype(ABC):
                 f"should not have same fields: {duplicate_fields}."
             )
 
-        params = {}
-        commons = {}
-        outfields = {}
-        for k, v in kwargs.items():
-            if k in self.Arguments._fields:
-                params[k] = v
-            elif k in self.Commonparams._fields:
-                commons[k] = v
-            else:
-                outfields[k] = v
+    def __init__(
+        self,
+        arguments: Union[ArgumentsPrototype, dict[str, Any]],
+        commonparams: Union[Commonparams, dict[str, Any]],
+        outfields: dict[str, Any],
+        beforewards: Optional[ExperimentBefore] = None,
+        afterwards: Optional[ExperimentAfter] = None,
+        reports: Optional[AnalysesContainer] = None,
+    ) -> None:
+        """Initialize the experiment.
 
-        # Dealing special arguments
-        if "datetimes" not in commons:
-            commons["datetimes"] = DatetimeDict({"bulid": current_time()})
-        else:
-            commons["datetimes"] = DatetimeDict(commons["datetimes"])
-        if "default_analysis" in commons:
-            filted_analysis = []
-            for raw_input_analysis in commons["default_analysis"]:
-                if isinstance(raw_input_analysis, dict):
-                    filted_analysis.append(
-                        self.analysis_container.input_filter(**raw_input_analysis)[0]._asdict()
-                    )
-                elif isinstance(raw_input_analysis, self.analysis_container.AnalysisInput):
-                    filted_analysis.append(raw_input_analysis._asdict())
-                else:
-                    warnings.warn(
-                        f"Analysis input {raw_input_analysis} is not a 'dict' or "
-                        "'.analysis_container.AnalysisInput', it will be ignored."
-                    )
-            commons["default_analysis"] = filted_analysis
-        else:
-            commons["default_analysis"] = []
-        if "tags" in commons:
-            if isinstance(commons["tags"], list):
-                commons["tags"] = tuple(commons["tags"])
+        Args:
+            arguments (Optional[Union[ArgumentsPrototype, dict[str, Any]]], optional):
+                The arguments of the experiment.
+                Defaults to None.
+            commonparams (Optional[Union[Commonparams, dict[str, Any]]], optional):
+                The common parameters of the experiment.
+                Defaults to None.
+            outfields (Optional[dict[str, Any]], optional):
+                The outfields of the experiment.
+                Defaults to None.
+            beforewards (Optional[ExperimentBefore], optional):
+                The beforewards of the experiment.
+                Defaults to None.
+            afterwards (Optional[ExperimentAfter], optional):
+                The afterwards of the experiment.
+                Defaults to None.
+            reports (Optional[AnalysesContainer], optional):
+                The reports of the experiment.
+                Defaults to None.
+        """
+        self._implementation_check()
 
-        self.args = self.Arguments(**params)
-        self.commons = self.Commonparams(
-            exp_id=exp_id,
-            serial=serial,
-            wave_key=wave_key,
-            summoner_id=summoner_id,
-            summoner_name=summoner_name,
-            **commons,
+        self.args = (
+            arguments if isinstance(arguments, self.Arguments) else self.Arguments(**arguments)
         )
-        self.outfields: dict[str, Any] = outfields
+
+        self.commons = (
+            commonparams
+            if isinstance(commonparams, self.Commonparams)
+            else self.Commonparams(**commons_dealing(commonparams, self.analysis_container))
+        )
+        self.outfields = outfields
         self.beforewards = (
             beforewards
             if isinstance(beforewards, self.Before)
             else self.Before(
+                target={},
+                target_qasm={},
                 circuit=[],
                 circuit_qasm=[],
                 fig_original=[],
@@ -240,6 +205,552 @@ class ExperimentPrototype(ABC):
         self.mute_auto_lock = False
         """Whether mute the auto-lock message."""
 
+    @abstractmethod
+    @classmethod
+    def params_control(
+        cls, targets: dict[Hashable, QuantumCircuit], **custom_kwargs: Any
+    ) -> tuple[Arguments, Commonparams, dict[str, Any]]:
+        """Control the experiment's parameters.
+
+        Args:
+            targets (dict[Hashable, QuantumCircuit]):
+                The circuits of the experiment.
+            custom_kwargs (Any):
+                Other custom arguments.
+
+        Raises:
+            NotImplementedError: This method should be implemented.
+        """
+        raise NotImplementedError
+
+    @classmethod
+    def _params_control_core(
+        cls,
+        targets: dict[Hashable, QuantumCircuit],
+        exp_id: Optional[str],
+        shots: int = 1024,
+        backend: Optional[Backend] = None,
+        run_args: Optional[Union[BaseRunArgs, dict[str, Any]]] = None,
+        transpile_args: Optional[TranspileArgs] = None,
+        # multimanager
+        tags: tuple = (),
+        default_analysis: Optional[list[dict[str, Any]]] = None,
+        serial: Optional[int] = None,
+        summoner_id: Optional[Hashable] = None,
+        summoner_name: Optional[str] = None,
+        # process tool
+        mute_outfields_warning: bool = False,
+        pbar: Optional[tqdm.tqdm] = None,
+        **custom_kwargs: Any,
+    ):
+        """Control the experiment's general parameters.
+
+        Args:
+            targets (dict[Hashable, QuantumCircuit]):
+                The circuits of the experiment.
+            exp_id (str):
+                If input is `None`, then create an new experiment.
+                If input is a existed experiment ID, then use it.
+                Otherwise, use the experiment with given specific ID.
+                Defaults to None.
+            shots (int, optional):
+                Shots of the job. Defaults to `1024`.
+            backend (Backend, optional):
+                The quantum backend. Defaults to AerSimulator().
+            run_args (Optional[Union[BaseRunArgs, dict[str, Any]]], optional):
+                defaultConfig of :func:`qiskit.execute`. Defaults to `{}`.
+            transpile_args (Optional[TranspileArgs], optional):
+                defaultConfig of :func:`qiskit.transpile`. Defaults to `{}`.
+            tags (tuple, optional):
+                Given the experiment multiple tags to make a dictionary for recongnizing it.
+                Defaults to ().
+            default_analysis (list[dict[str, Any]], optional):
+                The analysis methods will be excuted after counts has been computed.
+                Defaults to [].
+            serial (Optional[int], optional):
+                Index of experiment in a multiOutput.
+                **!!ATTENTION, this should only be used by `Multimanager`!!**
+                Defaults to None.
+            summoner_id (Optional[Hashable], optional):
+                ID of experiment of the multiManager.
+                **!!ATTENTION, this should only be used by `Multimanager`!!**
+                Defaults to None.
+            summoner_name (Optional[str], optional):
+                Name of experiment of the multiManager.
+                **!!ATTENTION, this should only be used by `Multimanager`!!**
+                _description_. Defaults to None.
+            mute_outfields_warning (bool, optional):
+                Mute the warning when there are unused arguments detected and stored in outfields.
+                Defaults to False.
+            pbar (Optional[tqdm.tqdm], optional):
+                The progress bar for showing the progress of the experiment.
+                Defaults to None.
+            custom_kwargs (Any):
+                Other custom arguments.
+
+        Raises:
+            TypeError: One of default_analysis is not a dict.
+            ValueError: One of default_analysis is invalid.
+
+        Returns:
+            ExperimentPrototype: The experiment.
+        """
+        if run_args is None:
+            run_args = {}
+        if transpile_args is None:
+            transpile_args = {}
+        if default_analysis is None:
+            default_analysis = []
+        if backend is None:
+            backend = GeneralSimulator()
+
+        arguments: ExperimentPrototype.Arguments
+        commonparams: ExperimentPrototype.Commonparams
+        outfields: dict[str, Any]
+        # Given parameters and default parameters
+        if isinstance(pbar, tqdm.tqdm):
+            pbar.set_description_str("Prepaing parameters...")
+
+        checked_exp_id = exp_id_process(exp_id)
+        arguments, commonparams, outfields = cls.params_control(
+            targets=targets,
+            exp_id=checked_exp_id,
+            shots=shots,
+            backend=backend,
+            run_args=run_args,
+            transpile_args=transpile_args,
+            tags=tags,
+            default_analysis=default_analysis,
+            save_location=Path("./"),
+            filename="",
+            files={},
+            serial=serial,
+            summoner_id=summoner_id,
+            summoner_name=summoner_name,
+            datetimes=DatetimeDict(),
+            **custom_kwargs,
+        )
+
+        outfield_maybe, outfields_unknown = outfields_check(
+            outfields, arguments._fields + commonparams._fields
+        )
+        outfields_hint(outfield_maybe, outfields_unknown, mute_outfields_warning)
+
+        if len(commonparams.default_analysis) > 0:
+            for index, analyze_input in enumerate(commonparams.default_analysis):
+                if not isinstance(analyze_input, dict):
+                    raise TypeError(
+                        "Each element of 'default_analysis' must be a dict, "
+                        + f"not {type(analyze_input)}, for index {index} in 'default_analysis'"
+                    )
+                try:
+                    cls.analysis_container.input_filter(**analyze_input)
+                except TypeError as e:
+                    raise ValueError(
+                        f'analysis input filter found index {index} in "default_analysis"'
+                    ) from e
+
+        if isinstance(pbar, tqdm.tqdm):
+            pbar.set_description_str("Create experiment instance... ")
+        new_exps = cls(arguments, commonparams, outfields)
+
+        assert isinstance(new_exps.commons.backend, Backend), "Require a valid backend."
+        assert len(new_exps.beforewards.circuit) == 0, "New experiment should have no circuit."
+        assert len(new_exps.beforewards.fig_original) == 0, "New experiment should have no figure."
+        assert len(new_exps.beforewards.circuit_qasm) == 0, "New experiment should have no qasm."
+        assert len(new_exps.afterwards.result) == 0, "New experiment should have no result."
+        assert len(new_exps.afterwards.counts) == 0, "New experiment should have no counts."
+
+        return new_exps
+
+    @abstractmethod
+    @classmethod
+    def method(
+        cls,
+        targets: dict[Hashable, QuantumCircuit],
+        pbar: Optional[tqdm.tqdm] = None,
+    ) -> list[QuantumCircuit]:
+        """The method to construct circuit.
+        Where should be overwritten by each construction of new measurement.
+
+        Args:
+            targets (dict[Hashable, QuantumCircuit]):
+                The circuits of the experiment.
+            pbar (Optional[tqdm.tqdm], optional):
+                The progress bar for showing the progress of the experiment.
+                Defaults to None.
+
+        Returns:
+            list[QuantumCircuit]: The circuits of the experiment.
+        """
+        raise NotImplementedError
+
+    @classmethod
+    def build(
+        cls,
+        targets: dict[Hashable, QuantumCircuit],
+        shots: int = 1024,
+        backend: Optional[Backend] = None,
+        run_args: Optional[Union[BaseRunArgs, dict[str, Any]]] = None,
+        transpile_args: Optional[TranspileArgs] = None,
+        passmanager_pair: Optional[tuple[str, PassManager]] = None,
+        # multimanager
+        tags: tuple = (),
+        default_analysis: Optional[list[dict[str, Any]]] = None,
+        serial: Optional[int] = None,
+        summoner_id: Optional[Hashable] = None,
+        summoner_name: Optional[str] = None,
+        # process tool
+        export: bool = False,
+        save_location: Optional[Union[Path, str]] = None,
+        mode: str = "w+",
+        indent: int = 2,
+        encoding: str = "utf-8",
+        jsonable: bool = False,
+        pbar: Optional[tqdm.tqdm] = None,
+        **custom_and_main_kwargs: Any,
+    ):
+        """Construct the experiment.
+
+        Args:
+            targets (dict[Hashable, QuantumCircuit]):
+                The circuits of the experiment.
+            shots (int, optional):
+                Shots of the job. Defaults to `1024`.
+            backend (Optional[Backend], optional):
+                The quantum backend. Defaults to None.
+            run_args (Optional[Union[BaseRunArgs, dict[str, Any]]], optional):
+                defaultConfig of :func:`qiskit.execute`. Defaults to `{}`.
+            transpile_args (Optional[TranspileArgs], optional):
+                defaultConfig of :func:`qiskit.transpile`. Defaults to `{}`.
+            passmanager_pair (Optional[tuple[str, PassManager]], optional):
+                The passmanager pair for transpile. Defaults to None.
+            tags (tuple, optional):
+                Given the experiment multiple tags to make a dictionary for recongnizing it.
+                Defaults to ().
+            default_analysis (list[dict[str, Any]], optional):
+                The analysis methods will be excuted after counts has been computed.
+                Defaults to [].
+            serial (Optional[int], optional):
+                Index of experiment in a multiOutput.
+                **!!ATTENTION, this should only be used by `Multimanager`!!**
+                Defaults to None.
+            summoner_id (Optional[Hashable], optional):
+                ID of experiment of the multiManager.
+                **!!ATTENTION, this should only be used by `Multimanager`!!**
+                Defaults to None.
+            summoner_name (Optional[str], optional):
+                Name of experiment of the multiManager.
+                **!!ATTENTION, this should only be used by `Multimanager`!!**
+                _description_. Defaults to None.
+            export (bool, optional):
+                Whether to export the experiment. Defaults to False.
+            save_location (Optional[Union[Path, str]], optional):
+                The location to save the experiment. Defaults to None.
+            mode (str, optional):
+                The mode to open the file. Defaults to 'w+'.
+            indent (int, optional):
+                The indent of json file. Defaults to 2.
+            encoding (str, optional):
+                The encoding of json file. Defaults to 'utf-8'.
+            jsonable (bool, optional):
+                Whether to jsonablize the experiment output. Defaults to False.
+            pbar (Optional[tqdm.tqdm], optional):
+                The progress bar for showing the progress of the experiment.
+                Defaults to None.
+            custom_and_main_kwargs (Any):
+                Other custom arguments.
+
+        Returns:
+            ExperimentPrototype: The experiment.
+        """
+
+        # preparing
+        if isinstance(pbar, tqdm.tqdm):
+            pbar.set_description_str("Parameter loading...")
+
+        current_exp = cls._params_control_core(
+            targets=targets,
+            shots=shots,
+            backend=backend,
+            run_args=run_args,
+            transpile_args=transpile_args,
+            tags=tags,
+            default_analysis=default_analysis,
+            serial=serial,
+            summoner_id=summoner_id,
+            summoner_name=summoner_name,
+            pbar=pbar,
+            **custom_and_main_kwargs,
+        )
+        if not isinstance(current_exp.commons.backend, Backend):
+            if isinstance(backend, Backend):
+                if isinstance(pbar, tqdm.tqdm):
+                    pbar.set_description_str("Backend replacing...")
+                current_exp.replace_backend(backend)
+            else:
+                raise ValueError(
+                    "No vaild backend to run, exisited backend: "
+                    + f"{current_exp.commons.backend} as type "
+                    + f"{type(current_exp.commons.backend)}, "
+                    + f"given backend: {backend} as type {type(backend)}."
+                )
+        assert isinstance(current_exp.commons.backend, Backend), (
+            f"Invalid backend: {current_exp.commons.backend} as "
+            + f"type {type(current_exp.commons.backend)}."
+        )
+
+        # circuit
+        if isinstance(pbar, tqdm.tqdm):
+            pbar.set_description_str("Circuit creating...")
+
+        for tk, tv in targets.items():
+            current_exp.beforewards.target[tk] = tv
+        cirqs = cls.method(targets, pbar)
+
+        # qasm
+        pool = ParallelManager()
+        if isinstance(pbar, tqdm.tqdm):
+            pbar.set_description_str("Exporting OpenQASM string...")
+        tmp_qasm = pool.map(qasm_drawer, cirqs)
+        for qasm_str in tmp_qasm:
+            current_exp.beforewards.circuit_qasm.append(qasm_str)
+        tmp_target_qasm = dict(zip(targets.keys(), pool.map(qasm_drawer, targets.values())))
+        for tk, qasm_str in tmp_target_qasm.items():
+            current_exp.beforewards.target_qasm[str(tk)] = qasm_str
+
+        # transpile
+        if passmanager_pair is not None:
+            passmanager_name, passmanager = passmanager_pair
+            if isinstance(pbar, tqdm.tqdm):
+                pbar.set_description_str(
+                    f"Circuit transpiling by passmanager '{passmanager_name}'..."
+                )
+            transpiled_circs = passmanager.run(circuits=cirqs)  # type: ignore
+            if len(current_exp.commons.transpile_args) > 0:
+                warnings.warn(
+                    f"Passmanager '{passmanager_name}' is given, "
+                    + f"the transpile_args will be ignored in '{current_exp.exp_id}'",
+                    category=QurryTranspileConfigurationIgnored,
+                )
+        else:
+            if isinstance(pbar, tqdm.tqdm):
+                pbar.set_description_str("Circuit transpiling...")
+            transpiled_circs: list[QuantumCircuit] = transpile(
+                cirqs,
+                backend=current_exp.commons.backend,
+                **current_exp.commons.transpile_args,
+            )
+
+        if isinstance(pbar, tqdm.tqdm):
+            pbar.set_description_str("Circuit loading...")
+        for _w in transpiled_circs:
+            current_exp.beforewards.circuit.append(_w)
+
+        # commons
+        datenote, date = current_exp.commons.datetimes.add_only("build")
+        if isinstance(pbar, tqdm.tqdm):
+            pbar.set_description_str(f"Building Completed, denoted '{datenote}' date: {date}...")
+
+        if export:
+            # export may be slow, consider export at finish or something
+            if isinstance(save_location, (Path, str)):
+                if isinstance(pbar, tqdm.tqdm):
+                    pbar.set_description_str("Setup data exporting...")
+                current_exp.write(
+                    save_location=save_location,
+                    mode=mode,
+                    indent=indent,
+                    encoding=encoding,
+                    jsonable=jsonable,
+                )
+
+        return current_exp
+
+    # local execution
+    def run(
+        self,
+        new_backend: Optional[Backend] = None,
+        revive: bool = False,
+        replace_circuits: bool = False,
+        pbar: Optional[tqdm.tqdm] = None,
+    ) -> str:
+        """Export the result after running the job.
+
+        Args:
+            new_backend (Optional[Backend], optional):
+                The new backend for running the job. Defaults to None.
+            revive (bool, optional):
+                Whether to revive the circuit. Defaults to False.
+            replace_circuits (bool, optional):
+                Whether to replace the circuits during revive. Defaults to False.
+            pbar (Optional[tqdm.tqdm], optional):
+                The progress bar for showing the progress of the experiment.
+                Defaults to None.
+
+        Raises:
+            ValueError: No circuit ready.
+            ValueError: The circuit has not been constructed yet.
+
+        Returns:
+            str: The ID of the experiment.
+        """
+        if new_backend is not None:
+            if isinstance(pbar, tqdm.tqdm):
+                pbar.set_description_str(
+                    f"Backend replacing from {self.commons.backend} to {new_backend}..."
+                )
+            self.replace_backend(new_backend)
+
+        if revive:
+            datenote, date = self.commons.datetimes.add_serial("revive")
+            if isinstance(pbar, tqdm.tqdm):
+                pbar.set_description_str(
+                    f"Reviving Completed, denoted '{datenote}' date: {date}..."
+                )
+            self.beforewards.revive_circuit(replace_circuits)
+
+        if len(self.beforewards.circuit) == 0:
+            if len(self.beforewards.circuit_qasm) > 0:
+                raise ValueError("No circuit ready, please revive the circuit first.")
+            raise ValueError("The circuit has not been constructed yet.")
+
+        assert isinstance(self.commons.backend, Backend), (
+            f"Current backend {self.commons.backend} needs to be backend not "
+            + f"{type({self.commons.backend})}."
+        )
+        assert hasattr(self.commons.backend, "run"), "Current backend is not runnable."
+
+        if isinstance(pbar, tqdm.tqdm):
+            pbar.set_description_str("Executing...")
+        event_name, date = self.commons.datetimes.add_serial("run")
+        execution: Job = self.commons.backend.run(  # type: ignore
+            self.beforewards.circuit,
+            shots=self.commons.shots,
+            **self.commons.run_args,
+        )
+        # commons
+        if isinstance(pbar, tqdm.tqdm):
+            pbar.set_description_str(f"Executing completed '{event_name}', denoted date: {date}...")
+        # beforewards
+        self["job_id"] = execution.job_id()
+        # afterwards
+        result = execution.result()
+        self.afterwards.result.append(result)
+
+        return self.exp_id
+
+    def result(
+        self,
+        export: bool = False,
+        save_location: Optional[Union[Path, str]] = None,
+        mode: str = "w+",
+        indent: int = 2,
+        encoding: str = "utf-8",
+        jsonable: bool = False,
+        pbar: Optional[tqdm.tqdm] = None,
+    ) -> str:
+        """Export the result of the experiment.
+
+        Args:
+            export (bool, optional):
+                Whether to export the experiment. Defaults to False.
+            save_location (Optional[Union[Path, str]], optional):
+                The location to save the experiment. Defaults to None.
+            mode (str, optional):
+                The mode to open the file. Defaults to 'w+'.
+            indent (int, optional):
+                The indent of json file. Defaults to 2.
+            encoding (str, optional):
+                The encoding of json file. Defaults to 'utf-8'.
+            jsonable (bool, optional):
+                Whether to jsonablize the experiment output. Defaults to False.
+            pbar (Optional[tqdm.tqdm], optional):
+                The progress bar for showing the progress of the experiment.
+                Defaults to None.
+
+        Returns:
+            str: The ID of the experiment.
+        """
+
+        if len(self.afterwards.result) == 0:
+            raise ValueError("The job has not been executed yet.")
+        assert len(self.afterwards.result) == 1, "The job has been executed more than once."
+
+        if isinstance(pbar, tqdm.tqdm):
+            pbar.set_description_str("Result loading...")
+        num = len(self.beforewards.circuit)
+        counts, exceptions = get_counts_and_exceptions(
+            result=self.afterwards.result[0],
+            num=num,
+        )
+        if len(exceptions) > 0:
+            if "exceptions" not in self.outfields:
+                self.outfields["exceptions"] = {}
+            for result_id, exception_item in exceptions.items():
+                self.outfields["exceptions"][result_id] = exception_item
+
+        if isinstance(pbar, tqdm.tqdm):
+            pbar.set_description_str("Counts loading...")
+        for _c in counts:
+            self.afterwards.counts.append(_c)
+
+        if len(self.commons.default_analysis) > 0:
+            for i, _analysis in enumerate(self.commons.default_analysis):
+                if isinstance(pbar, tqdm.tqdm):
+                    pbar.set_description_str(
+                        f"Default Analysis executing {i}/{len(self.commons.default_analysis)}..."
+                    )
+                self.analyze(**_analysis)
+
+        if export:
+            # export may be slow, consider export at finish or something
+            if isinstance(save_location, (Path, str)):
+                if isinstance(pbar, tqdm.tqdm):
+                    pbar.set_description_str("Exporting data... ")
+                self.write(
+                    save_location=save_location,
+                    mode=mode,
+                    indent=indent,
+                    encoding=encoding,
+                    jsonable=jsonable,
+                )
+
+        return self.exp_id
+
+    # remote execution
+    def _remote_result_taking(
+        self,
+        counts_tmp_container: dict[int, dict[str, int]],
+        summoner_id: str,
+        idx_circs: list[int],
+        retrieve_times_name: str,
+    ) -> list[dict[str, int]]:
+        """Take the result from remote execution.
+
+        Args:
+            counts_tmp_container (dict[int, dict[str, int]]):
+                The counts temporary container.
+            summoner_id (str):
+                The summoner ID.
+            idx_circs (list[int]):
+                The index of circuits.
+            retrieve_times_name (str):
+                The retrieve times name.
+            current (str):
+                The current time.
+
+        Returns:
+            list[dict[str, int]]: The counts.
+        """
+
+        self.reset_counts(summoner_id=summoner_id)
+        for idx in idx_circs:
+            self.afterwards.counts.append(counts_tmp_container[idx])
+        self.commons.datetimes.add_only(retrieve_times_name)
+        return self.afterwards.counts
+
+    # afterwards manual control
     def reset_counts(self, summoner_id: str) -> None:
         """Reset the counts of the experiment."""
         if summoner_id == self.commons.summoner_id:
@@ -257,11 +768,21 @@ class ExperimentPrototype(ABC):
 
         Args:
             backend (Backend): The new backend.
+
+        Raises:
+            ValueError: If the new backend is not a valid backend.
+            ValueError: If the new backend is not a runnable backend.
         """
-        if isinstance(backend, Backend):
-            self.commons = self.commons._replace(backend=backend)
-        else:
-            raise ValueError("backend must be a valid Backend object.")
+        if not isinstance(backend, Backend):
+            raise ValueError(f"Require a valid backend, but new backend: {backend} does not.")
+        if not hasattr(backend, "run"):
+            raise ValueError(f"Require a runnable backend, but new backend: {backend} does not.")
+
+        old_backend = self.commons.backend
+        old_backend_name = backend_name_getter(old_backend)
+        new_backend_name = backend_name_getter(backend)
+        self.commons.datetimes.add_serial(f"replace-{old_backend_name}-to-{new_backend_name}")
+        self.commons = self.commons._replace(backend=backend)
 
     def unlock_afterward(self, mute_auto_lock: bool = False):
         """Unlock the :cls:`afterward` content to be overwritten.
@@ -276,7 +797,6 @@ class ExperimentPrototype(ABC):
     def __setitem__(self, key, value) -> None:
         if key in self.beforewards._fields:
             self.beforewards = self.beforewards._replace(**{key: value})
-
         elif key in self.afterwards._fields:
             if self.after_lock and isinstance(self.after_lock, bool):
                 self.afterwards = self.afterwards._replace(**{key: value})
@@ -286,11 +806,8 @@ class ExperimentPrototype(ABC):
                     + "because it's locked, use `.unlock_afterward()` "
                     + "to unlock before setting item ."
                 )
-
-        elif key in self._deprecated:
-            ...
-            # print(f"| Warning: {key} is deprecated.")
-
+        elif key in DEPRECATED_PROPERTIES:
+            raise DeprecationWarning(f"{key} is deprecated.")
         else:
             raise ValueError(
                 f"{key} is not a valid field of "
@@ -312,7 +829,7 @@ class ExperimentPrototype(ABC):
             return getattr(self.beforewards, key)
         if key in self.afterwards._fields:
             return getattr(self.afterwards, key)
-        if key in self._deprecated:
+        if key in DEPRECATED_PROPERTIES:
             warnings.warn("This property is deprecated.", DeprecationWarning)
             return "Deprecated"
         raise ValueError(
@@ -374,25 +891,49 @@ class ExperimentPrototype(ABC):
     def __hash__(self) -> int:
         return hash(self.commons.exp_id)
 
-    # pylint: disable=invalid-name
-
     @property
     def exp_id(self) -> str:
         """ID of experiment."""
         return self.commons.exp_id
 
-    # pylint: enable=invalid-name
-
     def __repr__(self) -> str:
         return (
-            f"<{self.__name__} with exp_id={self.commons.exp_id}, "
+            f"<{self.__name__}(exp_id={self.commons.exp_id}, "
             + f"{self.args.__repr__()}, "
             + f"{self.commons.__repr__()}, "
-            + f"{len(self.outfields)} unused arguments, "
-            + f"{len(self.Before._fields)} preparing dates, "
-            + f"{len(self.After._fields)} experiment result datasets, "
-            + f"and {len(self.reports)} analysis>"
+            + f"unused_args_num={len(self.outfields)}, "
+            + f"analysis_num={len(self.reports)})>"
         )
+
+    def _repr_no_id(self) -> str:
+        return (
+            f"<{self.__name__}("
+            + f"{self.args}, "
+            + f"{self.commons}, "
+            + f"unused_args_num={len(self.outfields)}, "
+            + f"analysis_num={len(self.reports)})>"
+        )
+
+    def _repr_pretty_(self, p, cycle):
+        if cycle:
+            p.text(
+                f"<{self.__name__}(exp_id={self.commons.exp_id}, "
+                + f"{self.args}, "
+                + f"{self.commons}, "
+                + f"unused_args_num={len(self.outfields)}, "
+                + f"analysis_num={len(self.reports)})>"
+            )
+        else:
+            with p.group(2, f"<{self.__name__}(", ")>"):
+                p.text(f"exp_id={self.commons.exp_id}, ")
+                p.breakable()
+                p.text(f"{self.args},")
+                p.breakable()
+                p.text(f"{self.commons},")
+                p.breakable()
+                p.text(f"unused_args_num={len(self.outfields)},")
+                p.breakable()
+                p.text(f"analysis_num={len(self.reports)})")
 
     def statesheet(
         self,
@@ -607,10 +1148,10 @@ class ExperimentPrototype(ABC):
             self.commons = self.commons._replace(save_location=save_location)
 
         adventures, tales = self.beforewards.export(
-            unexports=self._unexports,
+            unexports=EXPERIMENT_UNEXPORTS,
             export_transpiled_circuit=export_transpiled_circuit,
         )
-        legacy = self.afterwards.export(unexports=self._unexports)
+        legacy = self.afterwards.export(unexports=EXPERIMENT_UNEXPORTS)
         reports, tales_reports = self.reports.export()
 
         # filename
@@ -844,9 +1385,9 @@ class ExperimentPrototype(ABC):
             encoding=encoding,
         )
         exp_instance = cls(
-            **export_material_set["commonparams"],
-            **export_material_set["arguments"],
-            **export_material_set["outfields"],
+            export_material_set["commonparams"],
+            export_material_set["arguments"],
+            export_material_set["outfields"],
             beforewards=cls.Before.read(
                 file_index=file_index, save_location=save_location, encoding=encoding
             ),
@@ -889,7 +1430,7 @@ class ExperimentPrototype(ABC):
         save_location: Union[Path, str] = Path("./"),
         encoding: str = "utf-8",
         workers_num: Optional[int] = None,
-    ) -> list["ExperimentPrototype"]:
+    ) -> list:
         """Read the experiment from file.
         Replacement of :func:`QurryV4().readLegacy`
 
@@ -908,6 +1449,8 @@ class ExperimentPrototype(ABC):
             ValueError: 'save_location' needs to be the type of 'str' or 'Path'.
             FileNotFoundError: When `save_location` is not available.
 
+        Returns:
+            list: The list of the experiments to be read.
         """
 
         if isinstance(save_location, (Path, str)):

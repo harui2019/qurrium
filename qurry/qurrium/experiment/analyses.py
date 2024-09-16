@@ -5,7 +5,9 @@ AnalysisContainer
 ================================================================
 
 """
-from typing import Hashable, Any
+
+from typing import Any
+from collections.abc import Hashable
 
 from ..analysis import AnalysisPrototype
 
@@ -43,9 +45,18 @@ class AnalysesContainer(dict[Hashable, AnalysisPrototype]):
         return reports, tales_reports
 
     def __repr__(self):
-        inner_lines = "\n".join(f"    {k}: ..." for k in self.keys())
-        inner_lines2 = "{\n%s\n}" % inner_lines
-        return (
-            f"<{self.__name__}={inner_lines2} with {len(self)} "
-            + "analysis load, a customized dictionary>"
-        )
+        inner_lines = ", ".join(f"{k}" + "{...}" for k in self.keys())
+        return f"{self.__name__}(length={len(self)}, " + "{" + f"{inner_lines}" + "})"
+
+    def _repr_pretty_(self, p, cycle):
+        if cycle:
+            p.text(f"{self.__name__}(length={len(self)}, ...)")
+        else:
+            with p.group(2, f"{self.__name__}(length={len(self)}" + ", {"):
+                p.breakable()
+                for i, (k, v) in enumerate(self.items()):
+                    if i:
+                        p.text(",")
+                        p.breakable()
+                    p.text(f"{k}: {v}")
+                p.text("})")
