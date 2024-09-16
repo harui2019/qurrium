@@ -9,13 +9,12 @@ So it needs to be imported differently by trying to import qiskit-aer first,
 """
 
 from random import random
-from typing import Optional, Union, Literal, TypedDict
+from typing import Optional, Union, Literal, TypedDict, Any
 
 from qiskit.providers import Backend, Provider
 
 from .utils import backend_name_getter, shorten_name
 from .import_simulator import (
-    GeneralBackend,
     GeneralProvider,
     SIM_DEFAULT_SOURCE as sim_default_source,
 )
@@ -31,7 +30,7 @@ from ...capsule.hoshi import Hoshi
 
 BackendDict = dict[
     Union[Literal["real", "sim", "fake", "extra"], str],
-    dict[str, Union[Backend, GeneralBackend, any]],
+    dict[str, Backend],
 ]
 """The dict of backend."""
 
@@ -47,7 +46,7 @@ class ProviderDict(TypedDict):
     """The dict of provider."""
 
     real: Union[Provider, None]
-    sim: GeneralProvider
+    sim: Union[Provider, None]
     fake: Union[Provider, None]
 
 
@@ -208,7 +207,7 @@ class BackendWrapper:
 
     def __init__(
         self,
-        real_provider: Optional[Provider] = None,
+        real_provider: Union[Provider, Any, None] = None,
         fake_version: Union[Literal["v1", "v2"], None] = None,
     ) -> None:
         self.is_aer_gpu = False
@@ -232,7 +231,7 @@ class BackendWrapper:
         }
 
         assert self._providers["sim"] is not None
-        _sim_backends: list[GeneralBackend] = self._providers["sim"].backends()
+        _sim_backends = self._providers["sim"].backends()  # type: ignore
 
         if sim_default_source == "qiskit.providers.basicaer":
             self.backend_callsign_dict["sim"] = {
@@ -425,7 +424,7 @@ class BackendWrapper:
     def __call__(
         self,
         backend_name: str,
-    ) -> Union[Backend, GeneralBackend]:
+    ) -> Backend:
         for avaiable_type in ["real", "sim", "fake", "extra"]:
             if backend_name in self.backend_dict[avaiable_type]:
                 return self.backend_dict[avaiable_type][backend_name]

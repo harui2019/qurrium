@@ -14,7 +14,7 @@ So this file is used to unify the import point of AerProvider, IBMProvider/IBMQP
 Avoiding the import error occurs on different parts of Qurry.
 """
 
-from typing import Literal, Optional, Type, overload
+from typing import Literal, Optional, Type, overload, Union
 from qiskit.providers import Backend, Provider
 
 from .utils import backend_name_getter, shorten_name
@@ -70,17 +70,19 @@ class DummyProvider(Provider):
 
 # pylint: disable=ungrouped-imports
 ImportPointType = Literal[
+    "qiskit_ibm_runtime",
     "qiskit_ibm_provider",
     "qiskit_ibmq_provider",
-    "qiskit_ibm_runtime",
 ]
 ImportPointOrder: list[ImportPointType] = [
+    "qiskit_ibm_runtime",
     "qiskit_ibm_provider",
     "qiskit_ibmq_provider",
-    "qiskit_ibm_runtime",
 ]
 REAL_BACKEND_SOURCES: dict[ImportPointType, Optional[Type[Backend]]] = {}
-REAL_PROVIDER_SOURCES: dict[ImportPointType, Optional[Type[Provider]]] = {}
+REAL_PROVIDER_SOURCES: dict[
+    ImportPointType, Optional[Union[Type[Provider], Type["QiskitRuntimeService"]]]
+] = {}
 REAL_VERSION_INFOS: dict[ImportPointType, Optional[str]] = {}
 REAL_IMPORT_ERROR_INFOS: dict[ImportPointType, ImportError] = {}
 REAL_SOURCE_AVAILABLE: dict[ImportPointType, bool] = {}
@@ -159,15 +161,13 @@ REAL_DEFAULT_SOURCE: Optional[ImportPointType] = get_default_real_source()
 @overload
 def real_backend_loader(
     real_provider=None,
-) -> tuple[dict[str, str], dict[str, Backend], None]:
-    ...
+) -> tuple[dict[str, str], dict[str, Backend], None]: ...
 
 
 @overload
 def real_backend_loader(
     real_provider: Provider,
-) -> tuple[dict[str, str], dict[str, Backend], Provider]:
-    ...
+) -> tuple[dict[str, str], dict[str, Backend], Provider]: ...
 
 
 def real_backend_loader(real_provider=None):
