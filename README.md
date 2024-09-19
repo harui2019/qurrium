@@ -1,7 +1,7 @@
 # Qurry 🍛 - The python package for measuring quantum entanglement entropy and wave function overlap. 
-##*The python package that makes the randomized measurement easy.*
+## *The python package that makes the randomized measurement easy.*
 
-The major function includes the measurement of quantum Renyi Entropy and Wave Function Overlap based on randomized measurement protocol. 
+The major function includes the measurement of quantum Renyi Entropy and Wave Function Overlap based on the randomized measurement protocol. 
 When interfaced with **IBM Qiskit**, the package automates the workflow from creating experiment objects, job submission and recall and postprocessing.  
 There are several additional features, such as measurement of magnetization and error mitigation. Please check them out!
 
@@ -16,7 +16,7 @@ There are several additional features, such as measurement of magnetization and 
 ### By PyPI - Stable Release
 
 - The package can be found in `pip list` as `qurrium-x.y.z`
-- Pip downloads the most stable release, but may not the latest version.
+- Pip downloads the most stable release, but not necessarily the latest version.
 
 ```bash
 pip install qurrium
@@ -67,7 +67,7 @@ pytest
 
 ## Environment
 
-**We currently <ins>SUPPORT qiskit 0.46.0+ and qiskit 1.0.0+</ins>, other lower versions are no longer available. 
+**Qurry currently <ins>SUPPORT qiskit 0.46.0+ and qiskit 1.0.0+</ins>, other lower versions are no longer available. 
 The package has been tested on the following systems.**
 
 - **Ubuntu 18.04+ LTS (All ManyLinux 2014 compatible distro)**
