@@ -4,8 +4,10 @@ Multiprocess component for multimanager
 (:mod:`qurry.qurry.qurrium.multimanager.process`)
 ================================================================
 """
+
 from pathlib import Path
-from typing import Union, Hashable, Optional
+from typing import Union, Optional
+from collections.abc import Hashable
 import gc
 import tqdm
 
@@ -100,7 +102,7 @@ def writer_wrapper(
 
 
 def multiprocess_exporter_and_writer(
-    id_exec: Hashable,
+    id_exec: str,
     exps: ExperimentPrototype,
     save_location: Union[Path, str],
     mode: str = "w+",
@@ -110,7 +112,7 @@ def multiprocess_exporter_and_writer(
     mute: bool = True,
     export_transpiled_circuit: bool = False,
     _pbar: Optional[tqdm.tqdm] = None,
-) -> tuple[Hashable, dict[str, str]]:
+) -> tuple[str, dict[str, str]]:
     """Multiprocess exporter and writer for experiment.
 
     Args:

@@ -1,6 +1,7 @@
 """
 ================================================================
-MultiManager for Qurry (:mod:`qurry.qurrium.multimanager`)
+MultiManager - The manager of multiple experiments.
+(:mod:`qurry.qurry.qurrium.multimanager`)
 ================================================================
 
 """
@@ -10,25 +11,30 @@ import gc
 import shutil
 import tarfile
 import warnings
-
 from pathlib import Path
-from typing import Union, Optional, Hashable, Any
-from uuid import uuid4, UUID
+from typing import Union, Optional, Any, Type
+from collections.abc import Hashable
+from uuid import uuid4
 
-from .container import MultiCommonparams, Before, After
+from qiskit.providers import Backend
+
+from .arguments import MultiCommonparams, PendingStrategyLiteral, PendingTargetProviderLiteral
+from .beforewards import Before
+from .afterwards import After
 from .process import multiprocess_exporter_and_writer
 from ..experiment import ExperimentPrototype
-from ..container import ExperimentContainer, QuantityContainer
-from ..utils.iocontrol import naming, RJUST_LEN
-from ...tools import qurry_progressbar, current_time, DatetimeDict
-from ...declare.multimanager import multicommonConfig
+from ..container import ExperimentContainer, QuantityContainer, _ExpInst
+from ..utils.iocontrol import naming, RJUST_LEN, IOComplex
+from ...tools import qurry_progressbar
+from ...tools.backend import GeneralSimulator
+from ...tools.datetime import DatetimeDict
 from ...capsule import quickJSON
 from ...capsule.mori import TagList, GitSyncControl
+from ...declare import BaseRunArgs
 from ...exceptions import (
     QurryProtectContent,
     QurryResetAccomplished,
     QurryResetSecurityActivated,
-    QurryHashIDInvalid,
 )
 
 
@@ -37,9 +43,23 @@ class MultiManager:
 
     __name__ = "MultiManager"
 
-    MultiCommonparams = MultiCommonparams
-    Before = Before
-    After = After
+    multicommons: MultiCommonparams
+    beforewards: Before
+    afterwards: After
+
+    quantity_container: QuantityContainer
+    """The container of quantity."""
+
+    _unexports: list[str] = ["retrievedResult"]
+    """The content would not be exported."""
+    _not_sync = ["allCounts", "retrievedResult"]
+    """The content would not be synchronized."""
+    after_lock: bool = False
+    """Protect the :cls:`afterward` content to be overwritten. 
+    When setitem is called and completed, it will be setted as `False` automatically.
+    """
+    mute_auto_lock: bool = False
+    """Whether mute the auto-lock message."""
 
     def reset_afterwards(
         self,
@@ -69,18 +89,6 @@ class MultiManager:
                 QurryResetSecurityActivated,
             )
 
-    _unexports: list[str] = ["retrievedResult"]
-    """The content would not be exported."""
-    _syncPrevent = ["allCounts", "retrievedResult"]
-    """The content would not be synchronized."""
-
-    after_lock: bool = False
-    """Protect the :cls:`afterward` content to be overwritten. 
-    When setitem is called and completed, it will be setted as `False` automatically.
-    """
-    mute_auto_lock: bool = False
-    """Whether mute the auto-lock message."""
-
     def unlock_afterward(self, mute_auto_lock: bool = False):
         """Unlock the :cls:`afterward` content to be overwritten.
 
@@ -92,10 +100,10 @@ class MultiManager:
         self.mute_auto_lock = mute_auto_lock
 
     def __setitem__(self, key, value) -> None:
-        if key in self.Before._fields:
+        if key in self.beforewards._fields:
             self.beforewards = self.beforewards._replace(**{key: value})
 
-        elif key in self.After._fields:
+        elif key in self.afterwards._fields:
             if self.after_lock and isinstance(self.after_lock, bool):
                 self.afterwards = self.afterwards._replace(**{key: value})
             else:
@@ -107,8 +115,7 @@ class MultiManager:
 
         else:
             raise ValueError(
-                f"{key} is not a valid field of "
-                + f"'{self.Before.__name__}' and '{self.After.__name__}'."
+                f"{key} is not a valid field of '{Before.__name__}' and '{After.__name__}'."
             )
 
         gc.collect()
@@ -123,18 +130,21 @@ class MultiManager:
             self.mute_auto_lock = False
 
     def __getitem__(self, key) -> Any:
-        if key in self.Before._fields:
+        if key in self.beforewards._fields:
             return getattr(self.beforewards, key)
-        if key in self.After._fields:
+        if key in self.afterwards._fields:
             return getattr(self.afterwards, key)
         raise ValueError(
-            f"{key} is not a valid field of '{self.Before.__name__}' and '{self.After.__name__}'."
+            f"{key} is not a valid field of '{Before.__name__}' and '{After.__name__}'."
         )
-
-    # pylint: disable=invalid-name
 
     @property
     def summoner_id(self) -> str:
+        """ID of experiment of the MultiManager."""
+        return self.multicommons.summoner_id
+
+    @property
+    def id(self) -> str:
         """ID of experiment of the MultiManager."""
         return self.multicommons.summoner_id
 
@@ -143,238 +153,99 @@ class MultiManager:
         """Name of experiment of the MultiManager."""
         return self.multicommons.summoner_name
 
-    # pylint: enable=invalid-name
-
-    quantity_container: QuantityContainer
-    """The container of quantity."""
+    @property
+    def name(self) -> str:
+        """Name of experiment of the MultiManager."""
+        return self.multicommons.summoner_name
 
     def __init__(
         self,
-        *args,
-        summoner_id: Optional[str],
-        summoner_name: str,
-        save_location: Union[Path, str] = Path("./"),
-        is_read: bool = False,
-        encoding: str = "utf-8",
-        read_from_tarfile: bool = False,
-        **kwargs,
-    ) -> None:
-        """Initialize the multi-experiment.
-        (The replacement of `QurryV4._multiDataGenOrRead` in V4 format.)
+        naming_complex: IOComplex,
+        multicommons: MultiCommonparams,
+        beforewards: Before,
+        afterwards: After,
+        quantity_container: QuantityContainer,
+        outfields: dict[str, Any],
+        gitignore: Optional[Union[GitSyncControl, list[str]]] = None,
+    ):
+        """Initialize the multi-experiment."""
 
-        Args:
-            summoner_id (Hashable): ID of experiment of the MultiManager.
-            summoner_name (str): Name of experiment of the MultiManager.
-            save_location (Union[Path, str]): Location of saving experiment.
-            is_read (bool, optional): Whether read the experiment. Defaults to False.
-            encoding (str, optional): The encoding of json file. Defaults to "utf-8".
-            read_from_tarfile (bool, optional): Whether read from tarfile. Defaults to False.
-            filetype (TagList._availableFileType, optional):
-                The filetype of json file. Defaults to "json".
-            **kwargs (Any): The other arguments of multi-experiment.
+        if gitignore is None:
+            self.gitignore = GitSyncControl()
+        elif isinstance(gitignore, list):
+            self.gitignore = GitSyncControl(gitignore)
+        elif isinstance(gitignore, GitSyncControl):
+            self.gitignore = gitignore
+        else:
+            raise ValueError(f"gitignore must be list or GitSyncControl, not {type(gitignore)}.")
 
-        Raises:
-            ValueError: Can't be initialized with positional arguments.
-            FileNotFoundError: Can't find the multi.config file.
-        """
+        self.naming_complex = naming_complex
+        self.multicommons = multicommons
+        self.beforewards = beforewards
+        self.afterwards = afterwards
+        self.quantity_container = quantity_container
+        self.outfields = outfields
 
-        if len(args) > 0:
-            raise ValueError(f"{self.__name__} can't be initialized with positional arguments.")
-        try:
-            if summoner_id is not None:
-                UUID(summoner_id, version=4)
-        except ValueError as e:
-            summoner_id = None
-            warnings.warn(
-                f"summoner_id is not a valid UUID, it will be generated automatically.\n{e}",
-                category=QurryHashIDInvalid,
-            )
-        finally:
-            if summoner_id is None:
-                summoner_id = "" if is_read else str(uuid4())
-            else:
-                ...
-
-        self.gitignore = GitSyncControl()
-        self.naming_complex = naming(
-            is_read=is_read,
-            exps_name=summoner_name,
-            save_location=save_location,
+    def __repr__(self):
+        return (
+            f"<{self.__name__}("
+            + f"id={self.multicommons.summoner_id}, "
+            + f"name={self.multicommons.summoner_name}, "
+            + f"tags={self.multicommons.tags}, "
+            + f"jobstype={self.multicommons.jobstype}, "
+            + f"pending_strategy={self.multicommons.pending_strategy}, "
+            + f"last_events={dict(self.multicommons.datetimes.last_events(3))}, "
+            + f"exps_num={len(self.beforewards.exps_config)})>"
         )
 
-        is_tarfile_existed = os.path.exists(self.naming_complex.tarLocation)
-        multiconfig_name_v5 = (
-            self.naming_complex.export_location / f"{self.naming_complex.expsName}.multiConfig.json"
+    def _repr_oneline(self):
+        return (
+            f"<{self.__name__}("
+            + f"id={self.multicommons.summoner_id}, "
+            + f"name={self.multicommons.summoner_name}, "
+            + f"jobstype={self.multicommons.jobstype}, "
+            + "...)>"
         )
-        multiconfig_name_v7 = self.naming_complex.export_location / "multi.config.json"
-        old_files: dict[str, Union[str, dict[str, str]]] = {}
 
-        if is_tarfile_existed:
-            print(
-                f"| Found the tarfile '{self.naming_complex.tarName}' "
-                + f"in '{self.naming_complex.save_location}', decompressing is available."
+    def _repr_oneline_no_id(self):
+        return (
+            f"<{self.__name__}("
+            + f"name={self.multicommons.summoner_name}, "
+            + f"jobstype={self.multicommons.jobstype}, "
+            + "...)>"
+        )
+
+    def _repr_pretty_(self, p, cycle):
+        if cycle:
+            p.text(
+                f"<{self.__name__}("
+                + f"id={self.multicommons.summoner_id}, "
+                + f"name={self.multicommons.summoner_name}, ...)>"
             )
-            if (not multiconfig_name_v5.exists()) and (not multiconfig_name_v7.exists()):
-                print(
-                    "| No multi.config file found, "
-                    + f"decompressing all files in the tarfile '{self.naming_complex.tarName}'."
-                )
-                self.easydecompress()
-            elif read_from_tarfile:
-                print(
-                    f"| Decompressing all files in the tarfile '{self.naming_complex.tarName}'"
-                    + f", replace all files in '{self.naming_complex.export_location}'."
-                )
-                self.easydecompress()
-
-        if is_read:
-            if multiconfig_name_v5.exists():
-                print("| Found the multiConfig.json, reading in 'v5' file structure.")
-                rawread_multiconfig = self.MultiCommonparams._read_as_dict(
-                    mutlticonfig_name=multiconfig_name_v5,
-                    save_location=self.naming_complex.save_location,
-                    export_location=self.naming_complex.export_location,
-                    encoding=encoding,
-                )
-                files = rawread_multiconfig["files"]
-                old_files = rawread_multiconfig["files"].copy()
-
-                self.beforewards = self.Before._read(
-                    export_location=self.naming_complex.export_location,
-                    file_location=files,
-                    version="v5",
-                )
-                self.afterwards = self.After._read(
-                    export_location=self.naming_complex.export_location,
-                    file_location=files,
-                    version="v5",
-                )
-                self.quantity_container = QuantityContainer()
-                for qk in files["tagMapQuantity"].keys():
-                    self.quantity_container.read(
-                        key=qk,
-                        save_location=self.naming_complex.export_location,
-                        taglist_name="tagMapQuantity",
-                        name=f"{self.naming_complex.expsName}.{qk}",
-                    )
-
-            elif multiconfig_name_v7.exists():
-                rawread_multiconfig = self.MultiCommonparams._read_as_dict(
-                    mutlticonfig_name=multiconfig_name_v7,
-                    save_location=self.naming_complex.save_location,
-                    export_location=self.naming_complex.export_location,
-                    encoding=encoding,
-                )
-                files = rawread_multiconfig["files"]
-
-                self.beforewards = self.Before._read(
-                    export_location=self.naming_complex.export_location, version="v7"
-                )
-                self.afterwards = self.After._read(
-                    export_location=self.naming_complex.export_location, version="v7"
-                )
-                self.quantity_container = QuantityContainer()
-                for qk in files["quantity"].keys():
-                    self.quantity_container.read(
-                        key=qk,
-                        save_location=self.naming_complex.export_location,
-                        taglist_name="quantity",
-                        name=f"{qk}",
-                    )
-            else:
-                print(f"| v5: {multiconfig_name_v5}")
-                print(f"| v7: {multiconfig_name_v7}")
-                raise FileNotFoundError(
-                    f"Can't find the multi.config file in '{self.naming_complex.expsName}'."
-                )
-
         else:
-            files = {}
-            rawread_multiconfig = {
-                "tags": [],
-                **kwargs,
-                "summoner_id": summoner_id,
-                "summoner_name": self.naming_complex.expsName,
-                "save_location": self.naming_complex.save_location,
-                "export_location": self.naming_complex.export_location,
-            }
-            self.beforewards = self.Before(
-                exps_config={},
-                circuits_num={},
-                circuits_map=TagList(),
-                pending_pool=TagList(),
-                job_id=[],
-                job_taglist=TagList(),
-                files_taglist=TagList(),
-                index_taglist=TagList(),
-            )
-            self.afterwards = self.After(
-                retrievedResult=TagList(),
-                allCounts={},
-            )
-            self.quantity_container = QuantityContainer()
-
-        # multicommon prepare
-        multicommons = multicommonConfig.make()
-        outfields = {}
-        for k in rawread_multiconfig:
-            if k in self.MultiCommonparams._fields:
-                multicommons[k] = rawread_multiconfig[k]
-            elif k == "outfields":
-                outfields = {**rawread_multiconfig[k]}
-            else:
-                outfields[k] = rawread_multiconfig[k]
-
-        # datetimes
-        if "datetimes" not in multicommons:
-            multicommons["datetimes"] = DatetimeDict()
-        else:
-            multicommons["datetimes"] = DatetimeDict(**multicommons["datetimes"])
-
-        if "build" not in multicommons["datetimes"] and not is_read:
-            multicommons["datetimes"]["bulid"] = current_time()
-
-        if is_tarfile_existed:
-            if (not multiconfig_name_v5.exists()) and (not multiconfig_name_v7.exists()):
-                multicommons["datetimes"].add_serial("decompress")
-            elif read_from_tarfile:
-                multicommons["datetimes"].add_serial("decompressOverwrite")
-
-        # readV5 files re-export
-        if multiconfig_name_v5.exists():
-            multicommons["datetimes"]["v7Read"] = current_time()
-            for k, pathstr in old_files.items():
-                multicommons["files"].pop(k, None)
-
-        self.multicommons = self.MultiCommonparams(**multicommons)
-        self.outfields: dict[str, Any] = outfields
-        assert (
-            self.naming_complex.save_location == self.multicommons.save_location
-        ), "| save_location is not consistent with namingCpx.save_location."
-
-        # readV5 files re-export
-        if multiconfig_name_v5.exists():
-            print(
-                f"| {self.naming_complex.expsName} auto-export "
-                + 'in "v7" format and remove "v5" format.'
-            )
-            self.write()
-            remove_v5_progress = qurry_progressbar(
-                old_files.items(),
-                bar_format="| {percentage:3.0f}%[{bar}] - remove v5 - {desc} - {elapsed}",
-            )
-            for k, pathstr in remove_v5_progress:
-                if isinstance(pathstr, str):
-                    remove_v5_progress.set_description_str(f"{k}")
-                    path = Path(pathstr)
-                    if path.exists():
-                        path.unlink()
-                elif isinstance(pathstr, dict):
-                    for k2, pathstr2 in pathstr.items():
-                        remove_v5_progress.set_description_str(f"{k} - {k2}")
-                        path = Path(pathstr2)
-                        if path.exists():
-                            path.unlink()
+            with p.group(2, f"<{type(self).__name__}(", ")>"):
+                p.text(f"id={self.multicommons.summoner_id}")
+                p.breakable()
+                p.text(f"name={self.multicommons.summoner_name}")
+                p.breakable()
+                p.text(f"tags={self.multicommons.tags}")
+                p.breakable()
+                p.text(f"jobstype={self.multicommons.jobstype}")
+                p.breakable()
+                p.text(f"pending_strategy={self.multicommons.pending_strategy}")
+                p.breakable()
+                p.text("last_events={")
+                for i, (k, v) in enumerate(
+                    dict(self.multicommons.datetimes.last_events(5)).items()
+                ):
+                    p.breakable()
+                    p.text(f"  '{k}': '{v}'")
+                    if i < 4:
+                        p.text(",")
+                    else:
+                        p.text("},")
+                p.breakable()
+                p.text(f"exps_num={len(self.beforewards.exps_config)}")
 
     def register(
         self,
@@ -405,6 +276,315 @@ class MultiManager:
         self.beforewards.index_taglist[exps_instance.commons.tags].append(
             exps_instance.commons.serial
         )
+
+    @classmethod
+    def build(
+        cls,
+        config_list: list[dict[str, Any]],
+        experiment_instance: Type[_ExpInst],
+        summoner_name: Optional[str] = None,
+        shots: Optional[int] = None,
+        backend: Backend = GeneralSimulator(),
+        tags: Optional[list[str]] = None,
+        manager_run_args: Optional[Union[BaseRunArgs, dict[str, Any]]] = None,
+        jobstype: PendingTargetProviderLiteral = "local",
+        pending_strategy: PendingStrategyLiteral = "tags",
+        # save parameters
+        save_location: Union[Path, str] = Path("./"),
+    ) -> tuple[ExperimentContainer[_ExpInst], "MultiManager"]:
+        """Build the multi-experiment.
+
+        Args:
+            config_list (list[dict[str, Any]]): The list of config of experiments.
+            experiment_instance (ExperimentPrototype): The instance of experiment.
+            summoner_name (Optional[str], optional): Name of experiment of the MultiManager.
+                Defaults to None.
+            shots (Optional[int], optional): The shots of experiments. Defaults to None.
+            backend (Backend, optional): The backend of experiments. Defaults to GeneralSimulator().
+            tags (Optional[list[str]], optional): The tags of experiments. Defaults to None.
+            manager_run_args (Optional[Union[BaseRunArgs, dict[str, Any]]], optional):
+                The arguments of manager run. Defaults to None.
+            jobstype (PendingTargetProviderLiteral, optional):
+                The jobstype of experiments. Defaults to "local".
+            pending_strategy (PendingStrategyLiteral, optional):
+                The pending strategy of experiments. Defaults to "tags".
+            save_location (Union[Path, str], optional):
+                Location of saving experiment. Defaults to Path("./").
+
+        Returns:
+            tuple[ExperimentContainer[_ExpInst], MultiManager]:
+                The container of experiments and multi-experiment.
+        """
+
+        if summoner_name is None:
+            summoner_name = "multiexps"
+        if tags is None:
+            tags = []
+        if manager_run_args is None:
+            manager_run_args = {}
+
+        naming_complex = naming(
+            exps_name=summoner_name,
+            save_location=save_location,
+        )
+
+        multicommons, outfields = MultiCommonparams.build(
+            {
+                "summoner_id": str(uuid4()),
+                "summoner_name": naming_complex.expsName,
+                "tags": tags,
+                "shots": shots,
+                "backend": backend,
+                "save_location": naming_complex.save_location,
+                "export_location": naming_complex.export_location,
+                "files": {},
+                "jobstype": jobstype,
+                "pending_strategy": pending_strategy,
+                "manager_run_args": manager_run_args,
+                "filetype": "json",
+                "datetimes": DatetimeDict(),
+                "outfields": {},
+            }
+        )
+
+        assert (
+            naming_complex.save_location == multicommons.save_location
+        ), "| save_location is not consistent with namingCpx.save_location."
+
+        current_multimanager = cls(
+            naming_complex=naming_complex,
+            multicommons=multicommons,
+            beforewards=Before(
+                exps_config={},
+                circuits_num={},
+                circuits_map=TagList(),
+                pending_pool=TagList(),
+                job_id=[],
+                job_taglist=TagList(),
+                files_taglist=TagList(),
+                index_taglist=TagList(),
+            ),
+            afterwards=After(
+                retrievedResult=TagList(),
+                allCounts={},
+            ),
+            quantity_container=QuantityContainer(),
+            outfields=outfields,
+        )
+
+        initial_config_list: list[dict[str, Any]] = []
+        for serial, config in enumerate(config_list):
+            initial_config_list.append(
+                {
+                    **config,
+                    "shots": shots,
+                    "backend": backend,
+                    "exp_name": current_multimanager.multicommons.summoner_name,
+                    "save_location": current_multimanager.multicommons.save_location,
+                    "serial": serial,
+                    "summoner_id": current_multimanager.multicommons.summoner_id,
+                    "summoner_name": current_multimanager.multicommons.summoner_name,
+                }
+            )
+
+        initial_config_list_progress = qurry_progressbar(initial_config_list)
+        initial_config_list_progress.set_description_str("MultiManager building...")
+        tmp_exps_container: ExperimentContainer[_ExpInst] = ExperimentContainer()
+
+        for config in initial_config_list_progress:
+            new_exps = experiment_instance.build(
+                **config,
+                export=False,  # export later for it's not efficient for one by one
+                pbar=initial_config_list_progress,
+            )
+            initial_config_list_progress.set_description_str("Loading data to multimanager...")
+            current_multimanager.register(
+                current_id=new_exps.commons.exp_id,
+                config=config,
+                exps_instance=new_exps,
+            )
+            tmp_exps_container[new_exps.commons.exp_id] = new_exps
+
+        initial_config_list_progress.set_description_str("MultiManager writing...")
+        current_multimanager.write(exps_container=tmp_exps_container)
+
+        return tmp_exps_container, current_multimanager
+
+    @classmethod
+    def read(
+        cls,
+        summoner_name: str,
+        experiment_instance: Type[_ExpInst],
+        save_location: Union[Path, str] = Path("./"),
+        is_read_or_retrieve: bool = False,
+        read_from_tarfile: bool = False,
+        encoding: str = "utf-8",
+    ) -> tuple[ExperimentContainer[_ExpInst], "MultiManager"]:
+        """Read the multi-experiment.
+
+        Args:
+            experiment_instance (ExperimentPrototype): The instance of experiment.
+            summoner_name (Optional[str], optional): Name of experiment of the MultiManager.
+                Defaults to None.
+            save_location (Union[Path, str], optional):
+                Location of saving experiment. Defaults to Path("./").
+            is_read_or_retrieve (bool, optional): Whether read or retrieve. Defaults to False.
+            read_from_tarfile (bool, optional): Whether read from tarfile. Defaults to False.
+
+        Returns:
+            tuple[ExperimentContainer[_ExpInst], MultiManager]:
+                The container of experiments and multi-experiment.
+        """
+        naming_complex = naming(
+            is_read=is_read_or_retrieve,
+            exps_name=summoner_name,
+            save_location=save_location,
+        )
+        gitignore = GitSyncControl()
+        gitignore.read(naming_complex.export_location)
+
+        multiconfig_name_v5 = (
+            naming_complex.export_location / f"{naming_complex.expsName}.multiConfig.json"
+        )
+        multiconfig_name_v7 = naming_complex.export_location / "multi.config.json"
+
+        if naming_complex.tarLocation.exists():
+            print(
+                f"| Found the tarfile '{naming_complex.tarName}' "
+                + f"in '{naming_complex.save_location}', decompressing is available."
+            )
+            if (not multiconfig_name_v5.exists()) and (not multiconfig_name_v7.exists()):
+                print(
+                    "| No multi.config file found, "
+                    + f"decompressing all files in the tarfile '{naming_complex.tarName}'."
+                )
+                cls.easydecompress(naming_complex)
+            elif read_from_tarfile:
+                print(
+                    f"| Decompressing all files in the tarfile '{naming_complex.tarName}'"
+                    + f", replace all files in '{naming_complex.export_location}'."
+                )
+                cls.easydecompress(naming_complex)
+
+        if multiconfig_name_v5.exists():
+            print("| Found the multiConfig.json, reading in 'v5' file structure.")
+            raw_multiconfig = MultiCommonparams.rawread(
+                mutlticonfig_name=multiconfig_name_v5,
+                save_location=naming_complex.save_location,
+                export_location=naming_complex.export_location,
+                encoding=encoding,
+            )
+            files: dict[str, Union[str, dict[str, str]]] = raw_multiconfig["files"]
+            old_files = raw_multiconfig["files"].copy()
+            beforewards = Before.read(
+                export_location=naming_complex.export_location,
+                file_location=files,
+                version="v5",
+            )
+            afterwards = After.read(
+                export_location=naming_complex.export_location,
+                file_location=files,
+                version="v5",
+            )
+            quantity_container = QuantityContainer()
+            assert isinstance(files["tagMapQuantity"], dict), "Quantity must be dict."
+            for qk in files["tagMapQuantity"].keys():
+                quantity_container.read(
+                    key=qk,
+                    save_location=naming_complex.export_location,
+                    taglist_name="tagMapQuantity",
+                    name=f"{naming_complex.expsName}.{qk}",
+                )
+
+        elif multiconfig_name_v7.exists():
+            raw_multiconfig = MultiCommonparams.rawread(
+                mutlticonfig_name=multiconfig_name_v7,
+                save_location=naming_complex.save_location,
+                export_location=naming_complex.export_location,
+                encoding=encoding,
+            )
+            files = raw_multiconfig["files"]
+            beforewards = Before.read(export_location=naming_complex.export_location, version="v7")
+            afterwards = After.read(export_location=naming_complex.export_location, version="v7")
+            quantity_container = QuantityContainer()
+            assert isinstance(files["quantity"], dict), "Quantity must be dict."
+            for qk in files["quantity"].keys():
+                quantity_container.read(
+                    key=qk,
+                    save_location=naming_complex.export_location,
+                    taglist_name="quantity",
+                    name=f"{qk}",
+                )
+        else:
+            print(f"| v5: {multiconfig_name_v5}")
+            print(f"| v7: {multiconfig_name_v7}")
+            raise FileNotFoundError(
+                f"Can't find the multi.config file in '{naming_complex.expsName}'."
+            )
+
+        multicommons, outfields = MultiCommonparams.build(raw_multiconfig)
+
+        if "build" not in multicommons.datetimes and not is_read_or_retrieve:
+            multicommons.datetimes.add_only("build")
+
+        if naming_complex.tarLocation.exists():
+            if (not multiconfig_name_v5.exists()) and (not multiconfig_name_v7.exists()):
+                multicommons.datetimes.add_serial("decompress")
+            elif read_from_tarfile:
+                multicommons.datetimes.add_serial("decompressOverwrite")
+
+        # readV5 files re-export
+        if multiconfig_name_v5.exists():
+            multicommons.datetimes.add_only("readV7")
+            for k in old_files.keys():
+                multicommons.files.pop(k, None)
+
+        assert (
+            naming_complex.save_location == multicommons.save_location
+        ), "| save_location is not consistent with namingCpx.save_location."
+
+        current_multimanager = cls(
+            naming_complex=naming_complex,
+            multicommons=multicommons,
+            beforewards=beforewards,
+            afterwards=afterwards,
+            quantity_container=quantity_container,
+            outfields=outfields,
+            gitignore=gitignore,
+        )
+
+        if multiconfig_name_v5.exists():
+            print(
+                f"| {current_multimanager.naming_complex.expsName} auto-export "
+                + 'in "v7" format and remove "v5" format.'
+            )
+            current_multimanager.write()
+            remove_v5_progress = qurry_progressbar(
+                old_files.items(),
+                bar_format="| {percentage:3.0f}%[{bar}] - remove v5 - {desc} - {elapsed}",
+            )
+            for k, pathstr in remove_v5_progress:
+                if isinstance(pathstr, str):
+                    remove_v5_progress.set_description_str(f"{k}")
+                    path = Path(pathstr)
+                    if path.exists():
+                        path.unlink()
+                elif isinstance(pathstr, dict):
+                    for k2, pathstr2 in pathstr.items():
+                        remove_v5_progress.set_description_str(f"{k} - {k2}")
+                        path = Path(pathstr2)
+                        if path.exists():
+                            path.unlink()
+
+        reading_results: list[_ExpInst] = experiment_instance.read(
+            save_location=current_multimanager.multicommons.save_location,
+            name_or_id=current_multimanager.multicommons.summoner_name,
+        )
+        tmp_exps_container: ExperimentContainer[_ExpInst] = ExperimentContainer()
+        for read_exps in reading_results:
+            tmp_exps_container[read_exps.commons.exp_id] = read_exps
+
+        return tmp_exps_container, current_multimanager
 
     def update_save_location(
         self,
@@ -459,8 +639,8 @@ class MultiManager:
 
     def write(
         self,
+        exps_container: Optional[ExperimentContainer[_ExpInst]] = None,
         save_location: Optional[Union[Path, str]] = None,
-        exps_container: Optional[ExperimentContainer] = None,
         indent: int = 2,
         encoding: str = "utf-8",
         export_transpiled_circuit: bool = False,
@@ -469,9 +649,9 @@ class MultiManager:
         """Export the multi-experiment.
 
         Args:
+            exps_container (Optional[ExperimentContainer], optional):
+                The container of experiments. Defaults to None.
             save_location (Union[Path, str], optional): Location of saving experiment.
-                Defaults to None.
-            wave_container (Optional[ExperimentContainer], optional): The container of experiments.
                 Defaults to None.
             indent (int, optional): The indent of json file. Defaults to 2.
             encoding (str, optional): The encoding of json file. Defaults to "utf-8".
@@ -497,18 +677,20 @@ class MultiManager:
             os.makedirs(self.multicommons.export_location)
         self.gitignore.export(self.multicommons.export_location)
 
+        # pylint: disable=protected-access
         exporting_name = {
-            **self.After.exporting_name(),
-            **self.Before.exporting_name(),
+            **self.afterwards._exporting_name(),
+            **self.beforewards._exporting_name(),
         }
+        # pylint: enable=protected-access
 
         export_progress = qurry_progressbar(
             [
                 fname
-                for fname in self.Before._fields
+                for fname in self.afterwards._fields
                 if fname != "files_taglist" or exps_container is None
             ]
-            + list(self.After._fields),
+            + list(self.beforewards._fields),
             desc="exporting",
             bar_format="qurry-barless",
         )
@@ -539,7 +721,7 @@ class MultiManager:
                 export_progress.set_description_str(f"{k} as {exporting_name[k]}")
                 filename = Path(self.multicommons.export_location) / f"{exporting_name[k]}.json"
                 self.multicommons.files[exporting_name[k]] = str(filename)
-                if k not in self._syncPrevent:
+                if k not in self._not_sync:
                     self.gitignore.sync(f"{exporting_name[k]}.json")
                 quickJSON(
                     content=self[k],
@@ -572,26 +754,8 @@ class MultiManager:
         self.gitignore.export(self.multicommons.export_location)
 
         if exps_container is not None:
-            # pool = ProcessManager(6)
             all_qurryinfo_loc = self.multicommons.export_location / "qurryinfo.json"
 
-            # all_qurryinfo_items = pool.process_map(
-            #     multiprocess_exporter_and_writer_wrapper,
-            #     [
-            #         (
-            #             id_exec,
-            #             exps_container[id_exec],
-            #             self.multicommons.save_location,
-            #             "w+",
-            #             indent,
-            #             encoding,
-            #             True,
-            #             True,
-            #         )
-            #         for id_exec in self.beforewards.exps_config
-            #     ],
-            #     desc="Exporting and writring...",
-            # )
             exps_export_progress = qurry_progressbar(
                 self.beforewards.exps_config,
                 desc="Exporting and writring...",
@@ -599,7 +763,7 @@ class MultiManager:
             )
             all_qurryinfo = {}
             for id_exec in exps_export_progress:
-                tmp_id, tmp_qurryinfo = multiprocess_exporter_and_writer(
+                tmp_id, tmp_qurryinfo_content = multiprocess_exporter_and_writer(
                     id_exec=id_exec,
                     exps=exps_container[id_exec],
                     save_location=self.multicommons.save_location,
@@ -612,7 +776,7 @@ class MultiManager:
                     _pbar=None,
                 )
                 assert id_exec == tmp_id, "ID is not consistent."
-                all_qurryinfo[id_exec] = tmp_qurryinfo
+                all_qurryinfo[id_exec] = tmp_qurryinfo_content
 
             # for id_exec, files in all_qurryinfo_items:
             for id_exec, files in all_qurryinfo.items():
@@ -629,8 +793,6 @@ class MultiManager:
                     "indent": indent,
                 },
             )
-
-            # all_qurryinfo = dict(all_qurryinfo_items)
 
             quickJSON(
                 content=all_qurryinfo,
@@ -682,30 +844,28 @@ class MultiManager:
 
     def analyze(
         self,
-        wave_continer: ExperimentContainer,
+        exps_container: ExperimentContainer[_ExpInst],
         analysis_name: str = "report",
         no_serialize: bool = False,
         specific_analysis_args: Optional[dict[Hashable, Union[dict[str, Any], bool]]] = None,
-        **analysis_args: Any,
+        **analysis_args: dict[str, Any],
     ) -> str:
-        """Run the analysis for multiple experiments.
+        """Analyze the experiments.
 
         Args:
-            analysisName (str, optional):
-                The name of the analysis.
-                Defaults to 'report'.
-            specificAnalysisArgs (dict[Hashable, dict[str, Any]], optional):
-                Specific some experiment to run the analysis arguments for each experiment.
-                Defaults to {}.
-
-        Raises:
-            ValueError: No positional arguments allowed except `summoner_id`.
-            ValueError: summoner_id not in multimanagers.
-            ValueError: No counts in multimanagers, which experiments are not ready.
+            exps_container (ExperimentContainer[_ExpInst]): The container of experiments.
+            analysis_name (str, optional): The name of analysis. Defaults to "report".
+            no_serialize (bool, optional): Whether serialize the analysis. Defaults to False.
+            specific_analysis_args (
+                Optional[dict[Hashable, Union[dict[str, Any], bool]]], optional
+            ):
+                The specific analysis arguments. Defaults to None.
+            **analysis_args (dict[str, Any]): The arguments of analysis.
 
         Returns:
-            Hashable: SummonerID (ID of multimanager).
+            str: The name of analysis.
         """
+
         if specific_analysis_args is None:
             specific_analysis_args = {}
 
@@ -716,7 +876,7 @@ class MultiManager:
         name = (
             analysis_name
             if no_serialize
-            else f"{analysis_name}." + f"{idx_tagmap_quantities+1}".rjust(RJUST_LEN, "0")
+            else f"{analysis_name}." + f"{idx_tagmap_quantities + 1}".rjust(RJUST_LEN, "0")
         )
         self.quantity_container[name] = TagList()
 
@@ -725,7 +885,6 @@ class MultiManager:
             bar_format=("| {n_fmt}/{total_fmt} - Analysis: {desc} - {elapsed} < {remaining}"),
         )
         for k in all_counts_progress:
-            tqdm_handleable = wave_continer[k].tqdm_handleable
 
             if k in specific_analysis_args:
                 v_args = specific_analysis_args[k]
@@ -735,24 +894,24 @@ class MultiManager:
                             f"Skipped {k} in {self.summoner_id}."
                         )
                         continue
-                    report = wave_continer[k].analyze(
+                    report = exps_container[k].analyze(
                         **analysis_args,
-                        **({"pbar": all_counts_progress} if tqdm_handleable else {}),
+                        **({"pbar": all_counts_progress}),
                     )
                 else:
-                    report = wave_continer[k].analyze(
+                    report = exps_container[k].analyze(
                         **v_args,
-                        **({"pbar": all_counts_progress} if tqdm_handleable else {}),
+                        **({"pbar": all_counts_progress}),
                     )
             else:
-                report = wave_continer[k].analyze(
+                report = exps_container[k].analyze(
                     **analysis_args,
-                    **({"pbar": all_counts_progress} if tqdm_handleable else {}),
+                    **({"pbar": all_counts_progress}),
                 )
 
-            wave_continer[k].write()
+            exps_container[k].write()
             main, _tales = report.export()
-            self.quantity_container[name][wave_continer[k].commons.tags].append(main)
+            self.quantity_container[name][exps_container[k].commons.tags].append(main)
 
         self.multicommons.datetimes.add_only(name)
 
@@ -802,19 +961,21 @@ class MultiManager:
 
         return self.naming_complex.tarLocation
 
-    def easydecompress(self) -> Path:
+    @classmethod
+    def easydecompress(
+        cls,
+        naming_complex: IOComplex,
+    ) -> Path:
         """Decompress the tar.xz file of experiment.
+
+        Args:
+            naming_complex (IOComplex): The naming complex of experiment.
 
         Returns:
             Path: Path of the decompressed file.
         """
 
-        with tarfile.open(self.naming_complex.tarLocation, "r:xz") as tar:
-            tar.extractall(self.naming_complex.save_location)
+        with tarfile.open(naming_complex.tarLocation, "r:xz") as tar:
+            tar.extractall(naming_complex.save_location)
 
-        return self.naming_complex.tarLocation
-
-    @property
-    def name(self) -> Hashable:
-        """Name of experiment of the MultiManager."""
-        return self.multicommons.summoner_name
+        return naming_complex.tarLocation
