@@ -1,6 +1,7 @@
 """
 ================================================================
-Waves Qurry (:mod:`qurry.qurrium.wavesqurry`)
+Waves Qurry - Qurry
+(:mod:`qurry.qurrium.wavesqurry.qurry`)
 ================================================================
 
 It is only for pendings and retrieve to remote backend.
@@ -15,14 +16,11 @@ from qiskit import QuantumCircuit
 from qiskit.providers import Backend
 from qiskit.transpiler.passmanager import PassManager
 
+from .arguments import WaveQurryOutputArgs
 from .experiment import WavesQurryExperiment
 from ..qurrium import QurriumPrototype
 from ..container import ExperimentContainer
-from ...declare import BaseRunArgs, TranspileArgs, BasicOutputArgs
-
-
-class WaveQurryOutputArgs(BasicOutputArgs):
-    """Output arguments for :meth:`output`."""
+from ...declare import BaseRunArgs, TranspileArgs
 
 
 class WavesExecuter(QurriumPrototype):
@@ -101,7 +99,7 @@ class WavesExecuter(QurriumPrototype):
                 Defaults to None.
 
         Returns:
-            str: The experiment ID.
+            WaveQurryOutputArgs: The output arguments.
         """
         if waves is None:
             raise ValueError("The `waves` must be provided.")

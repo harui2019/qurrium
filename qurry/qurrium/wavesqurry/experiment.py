@@ -1,6 +1,7 @@
 """
 ================================================================
-Waves Qurry (:mod:`qurry.qurrium.wavesqurry`)
+Waves Qurry - Experiment
+(:mod:`qurry.qurrium.wavesqurry.experiment`)
 ================================================================
 
 It is only for pendings and retrieve to remote backend.
@@ -12,14 +13,10 @@ import tqdm
 
 from qiskit import QuantumCircuit
 
+from .arguments import WavesQurryArguments
 from .analysis import WavesQurryAnalysis
-from ..experiment import ExperimentPrototype, Commonparams, ArgumentsPrototype
+from ..experiment import ExperimentPrototype, Commonparams
 from ...exceptions import QurryExperimentCountsNotCompleted
-
-
-class WavesQurryArguments(ArgumentsPrototype):
-    """Construct the experiment's parameters for specific options,
-    which is overwritable by the inherition class."""
 
 
 class WavesQurryExperiment(ExperimentPrototype):
@@ -58,6 +55,7 @@ class WavesQurryExperiment(ExperimentPrototype):
         Returns:
             dict: The export will be processed in `.paramsControlCore`
         """
+        exp_name = f"{exp_name}.wavesqurry"
 
         # pylint: disable=protected-access
         return WavesQurryArguments._filter(
@@ -71,25 +69,39 @@ class WavesQurryExperiment(ExperimentPrototype):
     def method(
         cls,
         targets: dict[Hashable, QuantumCircuit],
-        /,
+        arugments: WavesQurryArguments,
         pbar: Optional[tqdm.tqdm] = None,
-    ) -> list[QuantumCircuit]:
+    ) -> tuple[list[QuantumCircuit], dict[str, Any]]:
         """The method to construct circuit.
-        Where should be overwritten by each construction of new measurement.
 
         Args:
             targets (dict[Hashable, QuantumCircuit]):
                 The circuits of the experiment.
+            arugments (ArgumentsPrototype):
+                The arguments of the experiment.
             pbar (Optional[tqdm.tqdm], optional):
                 The progress bar for showing the progress of the experiment.
                 Defaults to None.
 
         Returns:
-            list[QuantumCircuit]: The circuits of the experiment.
+            tuple[list[QuantumCircuit], dict[str, Any]]:
+                The circuits of the experiment and the outfields.
         """
+        cirqs = []
         if pbar is not None:
             pbar.set_description("| Loading circuits")
-        return list(targets.values())
+        for i, (k, q) in enumerate(targets.items()):
+            q_copy = q.copy()
+            old_name = "" if isinstance(q.name, str) else q.name
+            old_name = "" if len(old_name) < 1 else old_name
+            q_copy.name = (
+                f"{arugments.exp_name}-{i}.{k}"
+                if len(old_name) < 1
+                else f"{arugments.exp_name}-{i}.{k}.{old_name}"
+            )
+            cirqs.append(q_copy)
+
+        return cirqs, {}
 
     @classmethod
     def quantities(

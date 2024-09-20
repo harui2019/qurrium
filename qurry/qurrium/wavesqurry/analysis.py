@@ -1,6 +1,7 @@
 """
 ================================================================
-Waves Qurry Analysis (:mod:`qurry.qurrium.wavesqurry.analysis`)
+Waves Qurry - Analysis
+(:mod:`qurry.qurrium.wavesqurry.analysis`)
 ================================================================
 
 It is only for pendings and retrieve to remote backend.
