@@ -46,7 +46,10 @@ class ExperimentContainer(dict[str, _ExpInst]):
 
     def __repr__(self):
         original_repr = repr({k: v._repr_no_id() for k, v in self.items()})
-        return f"{type(self).__name__}({original_repr}, num={len(self)})"
+        return f"{self.__name__}({original_repr}, num={len(self)})"
+
+    def _repr_oneline(self):
+        return f"{self.__name__}(" + "{...}" + f", num={len(self)})"
 
     def _repr_pretty_(self, p, cycle):
         # pylint: disable=protected-access
@@ -56,9 +59,9 @@ class ExperimentContainer(dict[str, _ExpInst]):
         length = len(original_repr_split)
 
         if cycle:
-            p.text(f"{type(self).__name__}(" + "{...}" + f", num={length})")
+            p.text(f"{self.__name__}(" + "{...}" + f", num={length})")
         else:
-            with p.group(2, f"{type(self).__name__}(num={length}" + ", {", "})"):
+            with p.group(2, f"{self.__name__}(num={length}" + ", {", "})"):
                 for i, item in enumerate(original_repr_split):
                     p.breakable()
                     p.text(item)

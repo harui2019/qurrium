@@ -237,6 +237,9 @@ def wave_container_maker(
     def __repr__(self):
         return f"{type(self).__name__}({super(self).__repr__()})"
 
+    def _repr_oneline(self):
+        return f"{self.__name__}(" + "{...}" + f", num={len(self)})"
+
     def _repr_pretty_(self, p, cycle):
         if cycle:
             p.text(f"{type(self).__name__}(" + "{...}" + f", num={len(self)})")
@@ -267,6 +270,7 @@ def wave_container_maker(
         "instruction": instruction,
         "has": has,
         "__repr__": __repr__,
+        "_repr_oneline": _repr_oneline,
         "_repr_pretty_": _repr_pretty_,
         "__str__": __str__,
     }

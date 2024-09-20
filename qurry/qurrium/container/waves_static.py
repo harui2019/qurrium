@@ -235,16 +235,19 @@ class WaveContainer(dict[Hashable, QuantumCircuit]):
         return wavename in self
 
     def __repr__(self):
-        return f"{type(self).__name__}({super().__repr__()})"
+        return f"{self.__name__}({super().__repr__()})"
+
+    def _repr_oneline(self):
+        return f"{self.__name__}(" + "{...}" + f", num={len(self)})"
 
     def _repr_pretty_(self, p, cycle):
         if cycle:
-            p.text(f"{type(self).__name__}(" + "{...}" + f", num={len(self)})")
+            p.text(f"{self.__name__}(" + "{...}" + f", num={len(self)})")
         else:
             original_repr = super().__repr__()
             original_repr_split = original_repr[1:-1].split(", ")
             length = len(original_repr_split)
-            with p.group(2, f"{type(self).__name__}(" + "{", "})"):
+            with p.group(2, f"{self.__name__}(" + "{", "})"):
                 for i, item in enumerate(original_repr_split):
                     p.breakable()
                     p.text(item)
