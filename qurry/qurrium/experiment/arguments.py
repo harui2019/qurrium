@@ -8,13 +8,13 @@ The experiment container - arguments and common parameters
 
 import json
 from typing import Union, Optional, NamedTuple, TypedDict, Any
-from collections.abc import Hashable
+from collections.abc import Hashable, Iterable
+from dataclasses import dataclass, fields
 from pathlib import Path
 
 from qiskit.providers import Backend
 
-from ...declare.run import BaseRunArgs
-from ...declare.transpile import TranspileArgs
+from ...declare import BaseRunArgs, TranspileArgs
 from ...tools.backend import backend_name_getter
 from ...tools.datetime import DatetimeDict
 from ...capsule import jsonablize
@@ -81,12 +81,63 @@ def v7_to_v9_field_transpose(data_args: dict[str, dict[str, Any]]) -> dict[str, 
     return data_args
 
 
-class ArgumentsPrototype(NamedTuple):
+@dataclass(frozen=True)
+class ArgumentsPrototype:
     """Construct the experiment's parameters for specific options,
     which is overwritable by the inherition class."""
 
     exp_name: str
     """Name of experiment."""
+
+    @property
+    def _fields(self) -> tuple[str, ...]:
+        """The fields of arguments."""
+        return tuple(self.__dict__.keys())
+
+    def _asdict(self) -> dict[str, Any]:
+        """The arguments as dictionary."""
+        return self.__dict__
+
+    @classmethod
+    def _dataclass_fields(cls) -> tuple[str, ...]:
+        """The fields of arguments."""
+        return tuple(f.name for f in fields(cls))
+
+    @classmethod
+    def _make(cls, iterable: Iterable):
+        """Make the arguments."""
+        return cls(*iterable)
+
+    @classmethod
+    def _filter(cls, *args, **kwargs):
+        """Filter the arguments of the experiment.
+
+        Args:
+            *args: The arguments of the experiment.
+            **kwargs: The keyword arguments of the experiment.
+
+        Returns:
+            tuple[ArgumentsPrototype, Commonparams, dict[str, Any]]:
+                The arguments of the experiment,
+                the common parameters of the experiment,
+                and the side product of the experiment.
+        """
+        if len(args) > 0:
+            raise ValueError("args filter can't be initialized with positional arguments.")
+        infields = {}
+        commonsinput = {}
+        outfields = {}
+        for k, v in kwargs.items():
+            # pylint: disable=protected-access
+            if k in cls._dataclass_fields():
+                # pylint: enable=protected-access
+                infields[k] = v
+            elif k in Commonparams._fields:
+                commonsinput[k] = v
+            else:
+                outfields[k] = v
+
+        return (cls(**infields), Commonparams(**commonsinput), outfields)  # type: ignore
 
 
 class CommonparamsDict(TypedDict):
