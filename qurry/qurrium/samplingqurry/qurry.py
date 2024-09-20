@@ -1,159 +1,215 @@
 """
 ================================================================
-Sampling Qurry (:mod:`qurry.qurrium.samplingqurry.qurry`)
+QurryV9
+(:mod:`qurry.qurrium.samplingqurry.qurry`)
 ================================================================
 
 It is only for pendings and retrieve to remote backend.
 """
 
-from typing import Union, Optional, Hashable, Any, Type
+from typing import Union, Optional, Any, Type
+from collections.abc import Hashable
 from pathlib import Path
-import warnings
 import tqdm
 
 from qiskit import QuantumCircuit
+from qiskit.providers import Backend
+from qiskit.transpiler.passmanager import PassManager
 
+from .arguments import QurryOutputArgs
 from .experiment import QurryExperiment
+from ..qurrium import QurriumPrototype
 from ..container import ExperimentContainer
-from ..qurrium import QurryPrototype
+from ...declare import BaseRunArgs, TranspileArgs
 
 
-class QurryV5(QurryPrototype):
-    """A QurryV5 instance is a container of experiments."""
+class QurryV9(QurriumPrototype):
+    """Executing one quantum circuit in multiple times."""
 
     @property
-    def experiment(self) -> Type[QurryExperiment]:
-        """The container class responding to this QurryV5 class."""
+    def experiment_instance(self) -> Type[QurryExperiment]:
+        """The container class responding to this QurryV9 class."""
         return QurryExperiment
 
     exps: ExperimentContainer[QurryExperiment]
 
-    def params_control(
+    def measure_to_output(
         self,
-        wave_key: Hashable = None,
-        exp_name: str = "exps",
+        wave: Optional[Union[QuantumCircuit, Hashable]] = None,
         sampling: int = 1,
-        **other_kwargs: Any,
-    ) -> tuple[QurryExperiment.Arguments, QurryExperiment.Commonparams, dict[str, Any]]:
-        """Handling all arguments and initializing a single experiment.
-
-        Args:
-            wave_key (Union[QuantumCircuit, int, None], optional):
-                The index of the wave function in `self.waves` or add new one to calaculation,
-                then choose one of waves as the experiment material.
-                If input is `QuantumCircuit`, then add and use it.
-                If input is the key in `.waves`, then use it.
-                If input is `None` or something illegal, then use `.lastWave'.
-                Defaults to None.
-            exp_name (str, optional):
-                Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
-                This name is also used for creating a folder to store the exports.
-                Defaults to `'exps'`.
-            other_kwargs (Any):
-                Other arguments.
-
-        Returns:
-            dict: The export will be processed in `.paramsControlCore`
-        """
-
-        if isinstance(sampling, int):
-            ...
-        else:
-            sampling = 1
-            warnings.warn(f"'{sampling}' is not an integer, use 1 as default")
-
-        return self.experiment.filter(
-            exp_name=exp_name,
-            wave_key=wave_key,
-            sampling=sampling,
-            **other_kwargs,
-        )
-
-    def method(
-        self,
-        exp_id: Hashable,
-        _pbar: Optional[tqdm.tqdm] = None,
-    ) -> list[QuantumCircuit]:
-        assert exp_id in self.exps
-        assert self.exps[exp_id].commons.exp_id == exp_id
-        current_exp = self.exps[exp_id]
-        args = current_exp.args
-        commons = current_exp.commons
-        circuit = self.waves[commons.wave_key]
-
-        current_exp["exp_name"] = f"{args.exp_name}-{current_exp.commons.wave_key}-x{args.sampling}"
-        print(
-            f"| Directly call: {current_exp.commons.wave_key} with sampling {args.sampling} times."
-        )
-
-        return [circuit for i in range(args.sampling)]
-
-    def measure(
-        self,
-        wave: Union[QuantumCircuit, Any, None] = None,
-        exp_name: str = "exps",
-        sampling: int = 1,
+        shots: int = 1024,
+        backend: Optional[Backend] = None,
+        exp_name: str = "experiment",
+        run_args: Optional[Union[BaseRunArgs, dict[str, Any]]] = None,
+        transpile_args: Optional[TranspileArgs] = None,
+        passmanager: Optional[Union[str, PassManager, tuple[str, PassManager]]] = None,
+        # process tool
+        export: bool = False,
         save_location: Optional[Union[Path, str]] = None,
         mode: str = "w+",
         indent: int = 2,
         encoding: str = "utf-8",
-        jsonablize: bool = False,
-        **other_kwargs: Any,
-    ):
-        """The main function to measure the wave function,
-        which is the :meth:`result` with dedicated arguments.
+        jsonable: bool = False,
+        pbar: Optional[tqdm.tqdm] = None,
+    ) -> QurryOutputArgs:
+        """Trasnform :meth:`measure` arguments form into :meth:`output` form.
 
         Args:
-            wave (Union[QuantumCircuit, int, None], optional):
-                The index of the wave function in `self.waves` or add new one to calaculation,
-                then choose one of waves as the experiment material.
-                If input is `QuantumCircuit`, then add and use it.
-                If input is the key in `.waves`, then use it.
-                If input is `None` or something illegal, then use `.lastWave'.
-                Defaults to None.
+            wave (Union[QuantumCircuit, Hashable]):
+                The circuit to execute.
+            sampling (int, optional):
+                The number of sampling. Defaults to 1.
+            shots (int, optional):
+                Shots of the job. Defaults to `1024`.
+            backend (Optional[Backend], optional):
+                The quantum backend. Defaults to None.
             exp_name (str, optional):
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
                 This name is also used for creating a folder to store the exports.
-                Defaults to `'exps'`.
-            sampling (int, optional):
-                The number of sampling. Defaults to 1.
+                Defaults to `'experiment'`.
+            run_args (Optional[Union[BaseRunArgs, dict[str, Any]]], optional):
+                defaultConfig of :func:`qiskit.execute`. Defaults to `{}`.
+            transpile_args (Optional[TranspileArgs], optional):
+                defaultConfig of :func:`qiskit.transpile`. Defaults to `{}`.
+            passmanager (Optional[Union[str, PassManager, tuple[str, PassManager]], optional):
+                The passmanager. Defaults to None.
+
+            exp_id (Optional[str], optional):
+                The ID of experiment. Defaults to None.
+            new_backend (Optional[Backend], optional):
+                The new backend. Defaults to None.
+            revive (bool, optional):
+                Whether to revive the circuit. Defaults to False.
+            replace_circuits (bool, optional):
+                Whether to replace the circuits during revive. Defaults to False.
+
+            export (bool, optional):
+                Whether to export the experiment. Defaults to False.
             save_location (Optional[Union[Path, str]], optional):
-                The location to save the experiment. If None, will not save.
-                Defaults to None.
+                The location to save the experiment. Defaults to None.
             mode (str, optional):
                 The mode to open the file. Defaults to 'w+'.
             indent (int, optional):
                 The indent of json file. Defaults to 2.
             encoding (str, optional):
                 The encoding of json file. Defaults to 'utf-8'.
-            jsonablize (bool, optional):
+            jsonable (bool, optional):
                 Whether to jsonablize the experiment output. Defaults to False.
-
-            other_kwargs (Any):
-                Other arguments in :meth:`result`.
+            pbar (Optional[tqdm.tqdm], optional):
+                The progress bar for showing the progress of the experiment.
+                Defaults to None.
 
         Returns:
-            dict: The output.
+            QurryOutputArgs: The output arguments.
+        """
+        if wave is None:
+            raise ValueError("The `wave` must be provided.")
+
+        return {
+            "circuits": [wave],
+            "sampling": sampling,
+            "shots": shots,
+            "backend": backend,
+            "exp_name": exp_name,
+            "run_args": run_args,
+            "transpile_args": transpile_args,
+            "passmanager": passmanager,
+            "export": export,
+            "save_location": save_location,
+            "mode": mode,
+            "indent": indent,
+            "encoding": encoding,
+            "jsonable": jsonable,
+            "pbar": pbar,
+        }
+
+    def measure(
+        self,
+        wave: Optional[Union[QuantumCircuit, Hashable]] = None,
+        sampling: int = 1,
+        shots: int = 1024,
+        backend: Optional[Backend] = None,
+        exp_name: str = "experiment",
+        run_args: Optional[Union[BaseRunArgs, dict[str, Any]]] = None,
+        transpile_args: Optional[TranspileArgs] = None,
+        passmanager: Optional[Union[str, PassManager, tuple[str, PassManager]]] = None,
+        # process tool
+        export: bool = False,
+        save_location: Optional[Union[Path, str]] = None,
+        mode: str = "w+",
+        indent: int = 2,
+        encoding: str = "utf-8",
+        jsonable: bool = False,
+        pbar: Optional[tqdm.tqdm] = None,
+    ):
+        """Execute the experiment.
+
+        Args:
+            wave (Union[QuantumCircuit, Hashable]):
+                The circuit to execute.
+            sampling (int, optional):
+                The number of sampling. Defaults to 1.
+            shots (int, optional):
+                Shots of the job. Defaults to `1024`.
+            backend (Optional[Backend], optional):
+                The quantum backend. Defaults to None.
+            exp_name (str, optional):
+                Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
+                This name is also used for creating a folder to store the exports.
+                Defaults to `'experiment'`.
+            run_args (Optional[Union[BaseRunArgs, dict[str, Any]]], optional):
+                defaultConfig of :func:`qiskit.execute`. Defaults to `{}`.
+            transpile_args (Optional[TranspileArgs], optional):
+                defaultConfig of :func:`qiskit.transpile`. Defaults to `{}`.
+            passmanager (Optional[Union[str, PassManager, tuple[str, PassManager]], optional):
+                The passmanager. Defaults to None.
+
+            exp_id (Optional[str], optional):
+                The ID of experiment. Defaults to None.
+            new_backend (Optional[Backend], optional):
+                The new backend. Defaults to None.
+            revive (bool, optional):
+                Whether to revive the circuit. Defaults to False.
+            replace_circuits (bool, optional):
+                Whether to replace the circuits during revive. Defaults to False.
+
+            export (bool, optional):
+                Whether to export the experiment. Defaults to False.
+            save_location (Optional[Union[Path, str]], optional):
+                The location to save the experiment. Defaults to None.
+            mode (str, optional):
+                The mode to open the file. Defaults to 'w+'.
+            indent (int, optional):
+                The indent of json file. Defaults to 2.
+            encoding (str, optional):
+                The encoding of json file. Defaults to 'utf-8'.
+            jsonable (bool, optional):
+                Whether to jsonablize the experiment output. Defaults to False.
+            pbar (Optional[tqdm.tqdm], optional):
+                The progress bar for showing the progress of the experiment.
+                Defaults to None.
+
+        Returns:
+            str: The experiment ID.
         """
 
-        id_now = self.result(
+        output_args = self.measure_to_output(
             wave=wave,
-            exp_name=exp_name,
             sampling=sampling,
-            save_location=None,
-            **other_kwargs,
+            shots=shots,
+            backend=backend,
+            exp_name=exp_name,
+            run_args=run_args,
+            transpile_args=transpile_args,
+            passmanager=passmanager,
+            export=export,
+            save_location=save_location,
+            mode=mode,
+            indent=indent,
+            encoding=encoding,
+            jsonable=jsonable,
+            pbar=pbar,
         )
-        assert id_now in self.exps, f"ID {id_now} not found."
-        assert self.exps[id_now].commons.exp_id == id_now
-        current_exp = self.exps[id_now]
 
-        if isinstance(save_location, (Path, str)):
-            current_exp.write(
-                save_location=save_location,
-                mode=mode,
-                indent=indent,
-                encoding=encoding,
-                jsonable=jsonablize,
-            )
-
-        return id_now
+        result_exp_id = self.output(**output_args)
+        return result_exp_id

@@ -1,48 +1,130 @@
 """
 ================================================================
-Sampling Qurry Experiment (:mod:`qurry.qurrium.samplingqurry.experiment`)
+Sampling Qurry - Experiment
+(:mod:`qurry.qurrium.samplingqurry.experiment`)
 ================================================================
 
 It is only for pendings and retrieve to remote backend.
 """
 
-from typing import Optional, NamedTuple
+from typing import Union, Optional, Type, Any
+from collections.abc import Hashable
+import tqdm
 
+from qiskit import QuantumCircuit
+
+from .arguments import QurryArguments
 from .analysis import QurryAnalysis
-from ..experiment import ExperimentPrototype
+from ..experiment import ExperimentPrototype, Commonparams
 from ...exceptions import QurryExperimentCountsNotCompleted
 
 
-class QurryArguments(NamedTuple):
-    """Construct the experiment's parameters for specific options,
-    which is overwritable by the inherition class.
-    """
-
-    exp_name: str = "exps"
-    sampling: int = 1
-
-
 class QurryExperiment(ExperimentPrototype):
-    """Experiment instance for QurryV5."""
+    """Experiment instance for QurryV9."""
 
     __name__ = "QurryExperiment"
 
-    Arguments = QurryArguments
+    @property
+    def arguments_instance(self) -> Type[QurryArguments]:
+        """The arguments instance for this experiment."""
+        return QurryArguments
+
     args: QurryArguments
 
-    analysis_container = QurryAnalysis
+    @property
+    def analysis_container(self) -> Type[QurryAnalysis]:
+        """The analysis instance for this experiment."""
+        return QurryAnalysis
+
+    @classmethod
+    def params_control(
+        cls,
+        targets: dict[Hashable, QuantumCircuit],
+        exp_name: str = "exps",
+        sampling: int = 1,
+        **custom_kwargs: Any,
+    ) -> tuple[QurryArguments, Commonparams, dict[str, Any]]:
+        """Control the experiment's parameters.
+
+        Args:
+            targets (dict[Hashable, QuantumCircuit]):
+                The circuits of the experiment.
+            exp_name (str):
+                Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
+                This name is also used for creating a folder to store the exports.
+
+        Returns:
+            dict: The export will be processed in `.paramsControlCore`
+        """
+        exp_name = f"{exp_name}.times_{sampling}.qurryv9"
+
+        if len(targets) > 1:
+            raise ValueError("The number of targets should be only one.")
+
+        # pylint: disable=protected-access
+        return QurryArguments._filter(
+            exp_name=exp_name,
+            target_keys=list(targets.keys()),
+            sampling=sampling,
+            **custom_kwargs,
+        )
+        # pylint: enable=protected-access
+
+    @classmethod
+    def method(
+        cls,
+        targets: dict[Hashable, QuantumCircuit],
+        arugments: QurryArguments,
+        pbar: Optional[tqdm.tqdm] = None,
+    ) -> tuple[list[QuantumCircuit], dict[str, Any]]:
+        """The method to construct circuit.
+
+        Args:
+            targets (dict[Hashable, QuantumCircuit]):
+                The circuits of the experiment.
+            arugments (ArgumentsPrototype):
+                The arguments of the experiment.
+            pbar (Optional[tqdm.tqdm], optional):
+                The progress bar for showing the progress of the experiment.
+                Defaults to None.
+
+        Returns:
+            tuple[list[QuantumCircuit], dict[str, Any]]:
+                The circuits of the experiment and the outfields.
+        """
+
+        if pbar is not None:
+            pbar.set_description("| Loading circuits")
+
+        cirqs_items = list(targets.items())
+        the_chosen_key, q = cirqs_items[0]
+        q_copy = q.copy()
+        old_name = "" if isinstance(q.name, str) else q.name
+        old_name = "" if len(old_name) < 1 else old_name
+        q_copy.name = (
+            f"{arugments.exp_name}.{the_chosen_key}"
+            if len(old_name) < 1
+            else f"{arugments.exp_name}.{the_chosen_key}.{old_name}"
+        )
+
+        return [q_copy.copy() for _ in range(arugments.sampling)], {}
 
     @classmethod
     def quantities(
         cls,
         shots: Optional[int] = None,
         counts: Optional[list[dict[str, int]]] = None,
-    ) -> dict[str, float]:
+    ) -> dict[str, Union[float, int]]:
         """Computing specific squantity.
-        Where should be overwritten by each construction of new measurement.
+
+        Args:
+            shots (Optional[int], optional):
+                The number of shots.
+            counts (Optional[list[dict[str, int]]], optional):
+                The counts of the experiment.
 
         Returns:
-            dict[str, float]: Counts, purity, entropy of experiment.
+            dict[str, Union[float, int]]: Counts, purity, entropy of experiment.
         """
 
         if shots is None or counts is None:
@@ -60,9 +142,17 @@ class QurryExperiment(ExperimentPrototype):
         self,
         ultimate_question: str = "",
         shots: Optional[int] = None,
-    ):
+    ) -> QurryAnalysis:
         """Analysis of the experiment.
-        Where should be overwritten by each construction of new measurement.
+
+        Args:
+            ultimate_question (str, optional):
+                The ultimate question of the universe.
+            shots (Optional[int], optional):
+                The number of shots.
+
+        Returns:
+            QurryAnalysis: The analysis of the experiment.
         """
 
         if shots is None:

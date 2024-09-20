@@ -1,6 +1,7 @@
 """
 ================================================================
-Sampling Qurry Analysis (:mod:`qurry.qurrium.samplingqurry.analysis`)
+Sampling Qurry - Analysis
+(:mod:`qurry.qurrium.samplingqurry.analysis`)
 ================================================================
 
 It is only for pendings and retrieve to remote backend.
