@@ -16,6 +16,7 @@ Avoiding the import error occurs on different parts of Qurry.
 
 """
 
+from typing import Any
 from importlib.metadata import distributions
 import requests
 
@@ -32,7 +33,7 @@ from ..command import pytorch_cuda_check
 from ...capsule.hoshi import Hoshi
 
 
-def _local_version() -> dict[str, dict[str, any]]:
+def _local_version() -> dict[str, dict[str, Any]]:
     """Get the local version of qiskit and qiskit-aer-gpu."""
     # pylint: disable=protected-access
     basic = {}
