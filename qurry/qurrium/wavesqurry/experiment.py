@@ -6,19 +6,20 @@ Waves Qurry (:mod:`qurry.qurrium.wavesqurry`)
 It is only for pendings and retrieve to remote backend.
 """
 
-from typing import Union, Optional, Hashable, NamedTuple
+from typing import Union, Optional, Type, Any
+from collections.abc import Hashable
+import tqdm
+
+from qiskit import QuantumCircuit
 
 from .analysis import WavesQurryAnalysis
-from ..experiment import ExperimentPrototype
+from ..experiment import ExperimentPrototype, Commonparams, ArgumentsPrototype
 from ...exceptions import QurryExperimentCountsNotCompleted
 
 
-class WavesQurryArguments(NamedTuple):
+class WavesQurryArguments(ArgumentsPrototype):
     """Construct the experiment's parameters for specific options,
     which is overwritable by the inherition class."""
-
-    exp_name: str = "exps"
-    waves: list[Hashable] = []
 
 
 class WavesQurryExperiment(ExperimentPrototype):
@@ -26,10 +27,69 @@ class WavesQurryExperiment(ExperimentPrototype):
 
     __name__ = "WavesQurryExperiment"
 
-    Arguments = WavesQurryArguments
+    @property
+    def arguments_instance(self) -> Type[WavesQurryArguments]:
+        """The arguments instance for this experiment."""
+        return WavesQurryArguments
+
     args: WavesQurryArguments
 
-    analysis_container = WavesQurryAnalysis
+    @property
+    def analysis_container(self) -> Type[WavesQurryAnalysis]:
+        """The analysis instance for this experiment."""
+        return WavesQurryAnalysis
+
+    @classmethod
+    def params_control(
+        cls,
+        targets: dict[Hashable, QuantumCircuit],
+        exp_name: str = "exps",
+        **custom_kwargs: Any,
+    ) -> tuple[WavesQurryArguments, Commonparams, dict[str, Any]]:
+        """Control the experiment's parameters.
+
+        Args:
+            targets (dict[Hashable, QuantumCircuit]):
+                The circuits of the experiment.
+            exp_name (str):
+                Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
+                This name is also used for creating a folder to store the exports.
+
+        Returns:
+            dict: The export will be processed in `.paramsControlCore`
+        """
+
+        # pylint: disable=protected-access
+        return WavesQurryArguments._filter(
+            exp_name=exp_name,
+            target_keys=list(targets.keys()),
+            **custom_kwargs,
+        )
+        # pylint: enable=protected-access
+
+    @classmethod
+    def method(
+        cls,
+        targets: dict[Hashable, QuantumCircuit],
+        /,
+        pbar: Optional[tqdm.tqdm] = None,
+    ) -> list[QuantumCircuit]:
+        """The method to construct circuit.
+        Where should be overwritten by each construction of new measurement.
+
+        Args:
+            targets (dict[Hashable, QuantumCircuit]):
+                The circuits of the experiment.
+            pbar (Optional[tqdm.tqdm], optional):
+                The progress bar for showing the progress of the experiment.
+                Defaults to None.
+
+        Returns:
+            list[QuantumCircuit]: The circuits of the experiment.
+        """
+        if pbar is not None:
+            pbar.set_description("| Loading circuits")
+        return list(targets.values())
 
     @classmethod
     def quantities(
