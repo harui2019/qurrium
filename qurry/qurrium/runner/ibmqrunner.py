@@ -1,13 +1,20 @@
 """
 ================================================================
-Runner for IBMQ
+Runner for qiskit-ibmq-provider
 (:mod:`qurry.qurrium.runner.ibmqrunner`)
+
+Qutoes:
+> For those who still use IBMQ backend...
+> UPDATE YOUR CODE BASE AND QISKIT TO LATEST VERSION!!!
+> This package is deprecated for years.
 ================================================================
 
 """
 
 import warnings
-from typing import Literal, Optional, NamedTuple, Hashable, Any
+from typing import Literal, Optional, NamedTuple, Any
+from collections.abc import Hashable
+
 from qiskit import QuantumCircuit
 
 from ...exceptions import QurryExtraPackageRequired
@@ -25,9 +32,11 @@ except ImportError as exception:
         + "`qiskit-ibmq-provider`, please intall it then restart kernel."
     ) from exception
 
-from .utils import retrieve_times_namer
-from .runner import Runner, retrieve_counter
-from ..multimanager import MultiManager, PendingStrategyLiteral, TagListKeyable
+from .utils import retrieve_times_namer, retrieve_counter
+from .runner import Runner
+from ..multimanager import MultiManager
+from ..multimanager.beforewards import TagListKeyable
+from ..multimanager.arguments import PendingStrategyLiteral
 from ..container import ExperimentContainer
 from ..utils import get_counts_and_exceptions
 from ...tools import qurry_progressbar, current_time
@@ -54,6 +63,8 @@ class QurryIBMQBackendIO(NamedTuple):
 class IBMQRunner(Runner):
     """Pending and Retrieve Jobs from IBMQ backend."""
 
+    __name__ = "IBMQRunner"
+
     current_multimanager: MultiManager
     backend: Optional[IBMQBackend]
     provider: AccountProvider
@@ -71,6 +82,11 @@ class IBMQRunner(Runner):
         backend: Optional[IBMQBackend] = None,
         provider: Optional[AccountProvider] = None,
     ):
+        warnings.warn(
+            "The 'IBMQ' backend is deprecated, please use 'IBM' backend instead.",
+            DeprecationWarning,
+        )
+
         assert multimanager.summoner_id == besummonned, (
             "Summoner ID not match, multimanager.summoner_id: "
             + f"{multimanager.summoner_id}, besummonned: {besummonned}"
@@ -124,6 +140,11 @@ class IBMQRunner(Runner):
         Returns:
             list[tuple[str, str]]: The pending job IDs storation.
         """
+        warnings.warn(
+            "The 'IBMQ' backend is deprecated, please use 'IBM' backend instead.",
+            DeprecationWarning,
+        )
+
         if self.backend is None:
             if backend is None:
                 raise ValueError("At least one of backend and provider should be given.")
@@ -204,7 +225,9 @@ class IBMQRunner(Runner):
                     backend=self.backend,
                     shots=self.current_multimanager.multicommons.shots,
                     name=pending_name,
-                    manager_run_args=self.current_multimanager.multicommons.manager_run_args,
+                    manager_run_args=(
+                        self.current_multimanager.multicommons.manager_run_args  # type: ignore
+                    ),
                 )
                 pendingpool_progressbar.set_description_str(
                     f"{pk}/{pending_job.jobID}/{pending_job.name}"
@@ -232,6 +255,22 @@ class IBMQRunner(Runner):
         overwrite: bool = False,
         refresh: bool = False,
     ) -> list[tuple[Optional[str], TagListKeyable]]:
+        """Retrieve jobs from remote backend.
+
+        Args:
+            overwrite (bool, optional):
+                If `True`, overwrite the previous retrieve. Defaults to False.
+            refresh (bool, optional):
+                If `True`, re-query the server for the job set information. Defaults to False.
+
+        Returns:
+            list[tuple[str, str]]: The retrieved job IDs storation.
+        """
+        warnings.warn(
+            "The 'IBMQ' backend is deprecated, please use 'IBM' backend instead.",
+            DeprecationWarning,
+        )
+
         pending_map: dict[Hashable, QurryIBMQBackendIO] = {}
         counts_tmp_container: dict[int, dict[str, int]] = {}
 

@@ -1,20 +1,22 @@
 """
 ================================================================
-Extra backend accessor (:mod:`qurry.qurrium.runner.accesor`)
+Extra backend accessor 
+(:mod:`qurry.qurrium.runner.accesor`)
 ================================================================
 
 """
 
-from typing import Union, Optional
+from typing import Union, Optional, Any
+
 from qiskit.providers import Backend
 
 from .runner import DummyRunner
-from ..multimanager import (
-    MultiManager,
+from ..multimanager import MultiManager
+from ..multimanager.beforewards import TagListKeyable
+from ..multimanager.arguments import (
     PendingTargetProviderLiteral,
     PENDING_TARGET_PROVIDER,
     PendingStrategyLiteral,
-    TagListKeyable,
 )
 from ..container import ExperimentContainer
 from ...capsule.hoshi import Hoshi
@@ -38,18 +40,18 @@ def acessibility() -> dict[PendingTargetProviderLiteral, bool]:
         result["IBMQ"] = False
 
     try:
-        from .ibmrunner import IBMRunner
+        from .ibmprovider_runer import IBMProviderRunner
 
         result["IBM"] = True
     except QurryExtraPackageRequired:
         result["IBM"] = False
 
-    # try:
-    #     from .qulacsrunner import QulacsRunner
-    #     result['Qulacs'] = True
-    # except QurryExtraPackageRequired:
-    #     ...
-    # pylint: enable=import-outside-toplevel, unused-import
+    try:
+        from .ibmruntime_runner import IBMRuntimeRunner
+
+        result["IBMRuntime"] = True
+    except QurryExtraPackageRequired:
+        result["IBMRuntime"] = False
 
     return result
 
@@ -84,8 +86,10 @@ BACKEND_AVAILABLE_MESSAGE = Hoshi(
 )
 
 
-class ExtraBackendAccessor:
+class RemoteAccessor:
     """Accessor for extra backend."""
+
+    __name__ = "RemoteAccessor"
 
     # """The excutor of extra backend."""
     jobs: list[tuple[Optional[str], TagListKeyable]]
@@ -102,6 +106,7 @@ class ExtraBackendAccessor:
         experiment_container: ExperimentContainer,
         backend: Backend,
         backend_type: Union[PendingTargetProviderLiteral, str],
+        provider: Optional[Any] = None,
     ):
         # pylint: disable=import-outside-toplevel
         if backend_type == "IBMQ":
@@ -132,9 +137,9 @@ class ExtraBackendAccessor:
                 raise QurryExtraPackageRequired(
                     "Backend 'IBM' is not available, please install 'qiskit_ibm_provider' first."
                 )
-            from .ibmrunner import IBMRunner, IBMBackend
+            from .ibmprovider_runer import IBMProviderRunner, IBMBackend as IBMProviderBackend
 
-            if not isinstance(backend, IBMBackend):
+            if not isinstance(backend, IBMProviderBackend):
                 raise TypeError(
                     "You must use 'IBMBackend' from 'qiskit_ibm_provider' "
                     + "which imports from 'qiskit.providers.ibm' for 'IBM' jobstype. "
@@ -143,11 +148,46 @@ class ExtraBackendAccessor:
                     + "which is different from 'IBMBackend'."
                 )
 
-            self.multirunner = IBMRunner(
+            self.multirunner = IBMProviderRunner(
                 besummonned=multimanager.summoner_id,
                 multimanager=multimanager,
                 backend=backend,
                 experimental_container=experiment_container,
+            )
+
+        elif backend_type == "IBMRuntime":
+            if not BACKEND_AVAILABLE["IBMRuntime"]:
+                raise QurryExtraPackageRequired(
+                    "Backend 'IBMRuntime' is not available, "
+                    + "please install 'qiskit_ibm_runtime' first."
+                )
+            from .ibmruntime_runner import (
+                IBMRuntimeRunner,
+                IBMBackend as IBMRuntimeBackend,
+                QiskitRuntimeService,
+            )
+
+            if not isinstance(backend, IBMRuntimeBackend):
+                raise TypeError(
+                    "You must use 'IBMRuntimeBackend' from 'qiskit_ibm_runtime' "
+                    + "which imports from 'qiskit_ibm_runtime' for 'IBMRuntime' jobstype. "
+                    + "If you import backend or provider from 'qiskit_ibm_provider', "
+                    + "it used 'IBMBackend' for 'IBM' jobstype, "
+                    + "which is different from 'IBMRuntimeBackend'."
+                )
+            if provider is None:
+                raise QurryInvalidArgument(
+                    "You must provide `QiskitRuntimeService` from 'qiskit_ibm_runtime' "
+                    + "as the provider for 'IBMRuntime' jobstype."
+                )
+            assert isinstance(provider, QiskitRuntimeService)
+
+            self.multirunner = IBMRuntimeRunner(
+                besummonned=multimanager.summoner_id,
+                multimanager=multimanager,
+                experimental_container=experiment_container,
+                provider=provider,
+                backend=backend,
             )
 
         else:
@@ -191,7 +231,7 @@ class ExtraBackendAccessor:
         return self.multirunner.current_multimanager.summoner_id, self.jobs
 
     def retrieve(
-        self, overwrite: bool = False, **other_kwargs: any
+        self, overwrite: bool = False, **other_kwargs: Any
     ) -> tuple[str, list[tuple[Optional[str], TagListKeyable]]]:
         """Retrieve jobs from remote backend."""
 
@@ -213,3 +253,12 @@ class ExtraBackendAccessor:
             self.jobs_info.newline(("txt", "No pending job."))
 
         return self.multirunner.current_multimanager.summoner_id, self.jobs
+
+    def __repr__(self):
+        return (
+            f"<{self.__name__}("
+            + f"backend_type={self.backend_type}, "
+            + f"current_multimanager={self.multirunner.current_multimanager._repr_oneline()}, "
+            + f"runner={self.multirunner._repr_oneline()}, "
+            + f"jobs={self.jobs}, "
+        )
