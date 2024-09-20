@@ -366,21 +366,24 @@ class ExperimentPrototype(ABC):
     def method(
         cls,
         targets: dict[Hashable, QuantumCircuit],
-        /,
+        arugments: ArgumentsPrototype,
         pbar: Optional[tqdm.tqdm] = None,
-    ) -> list[QuantumCircuit]:
+    ) -> tuple[list[QuantumCircuit], dict[str, Any]]:
         """The method to construct circuit.
         Where should be overwritten by each construction of new measurement.
 
         Args:
             targets (dict[Hashable, QuantumCircuit]):
                 The circuits of the experiment.
+            arugments (ArgumentsPrototype):
+                The arguments of the experiment.
             pbar (Optional[tqdm.tqdm], optional):
                 The progress bar for showing the progress of the experiment.
                 Defaults to None.
 
         Returns:
-            list[QuantumCircuit]: The circuits of the experiment.
+            tuple[list[QuantumCircuit], dict[str, Any]]:
+                The circuits of the experiment and the outfields.
         """
         raise NotImplementedError
 
@@ -511,7 +514,10 @@ class ExperimentPrototype(ABC):
 
         for tk, tv in targets.items():
             current_exp.beforewards.target[tk] = tv
-        cirqs = cls.method(targets, pbar=pbar)
+        cirqs, beforewards_outfields = current_exp.method(
+            targets=targets, arugments=current_exp.args, pbar=pbar
+        )
+        current_exp.outfields.update(beforewards_outfields)
 
         # qasm
         pool = ParallelManager()
@@ -851,6 +857,7 @@ class ExperimentPrototype(ABC):
     @abstractmethod
     def analyze(self) -> AnalysisPrototype:
         """Analyzing the example circuit results in specific method.
+        Where should be overwritten by each construction of new measurement.
 
         Args:
             allArgs: all arguments will pass to `.quantities`.
