@@ -1,6 +1,6 @@
 """
 ================================================================
-Waves Qurry - Qurry
+WavesExecuter - Qurry
 (:mod:`qurry.qurrium.wavesqurry.qurry`)
 ================================================================
 
@@ -16,8 +16,8 @@ from qiskit import QuantumCircuit
 from qiskit.providers import Backend
 from qiskit.transpiler.passmanager import PassManager
 
-from .arguments import WaveQurryOutputArgs
-from .experiment import WavesQurryExperiment
+from .arguments import WavesExecuterOutputArgs, SHORT_NAME
+from .experiment import WavesExecuterExperiment
 from ..qurrium import QurriumPrototype
 from ..container import ExperimentContainer
 from ...declare import BaseRunArgs, TranspileArgs
@@ -27,13 +27,14 @@ class WavesExecuter(QurriumPrototype):
     """The pending and retrieve executer for waves."""
 
     __name__ = "WavesExecuter"
+    short_name = SHORT_NAME
 
     @property
-    def experiment_instance(self) -> Type[WavesQurryExperiment]:
-        """The container class responding to this QurryV5 class."""
-        return WavesQurryExperiment
+    def experiment_instance(self) -> Type[WavesExecuterExperiment]:
+        """The container class responding to this Qurrium class."""
+        return WavesExecuterExperiment
 
-    exps: ExperimentContainer[WavesQurryExperiment]
+    exps: ExperimentContainer[WavesExecuterExperiment]
 
     def measure_to_output(
         self,
@@ -52,7 +53,7 @@ class WavesExecuter(QurriumPrototype):
         encoding: str = "utf-8",
         jsonable: bool = False,
         pbar: Optional[tqdm.tqdm] = None,
-    ) -> WaveQurryOutputArgs:
+    ) -> WavesExecuterOutputArgs:
         """Trasnform :meth:`measure` arguments form into :meth:`output` form.
 
         Args:
@@ -63,13 +64,14 @@ class WavesExecuter(QurriumPrototype):
             backend (Optional[Backend], optional):
                 The quantum backend. Defaults to None.
             exp_name (str, optional):
+                The name of the experiment.
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
                 This name is also used for creating a folder to store the exports.
                 Defaults to `'experiment'`.
             run_args (Optional[Union[BaseRunArgs, dict[str, Any]]], optional):
-                defaultConfig of :func:`qiskit.execute`. Defaults to `{}`.
+                Arguments for :func:`qiskit.execute`. Defaults to `{}`.
             transpile_args (Optional[TranspileArgs], optional):
-                defaultConfig of :func:`qiskit.transpile`. Defaults to `{}`.
+                Arguments for :func:`qiskit.transpile`. Defaults to `{}`.
             passmanager (Optional[Union[str, PassManager, tuple[str, PassManager]], optional):
                 The passmanager. Defaults to None.
 
@@ -149,13 +151,14 @@ class WavesExecuter(QurriumPrototype):
             backend (Optional[Backend], optional):
                 The quantum backend. Defaults to None.
             exp_name (str, optional):
+                The name of the experiment.
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
                 This name is also used for creating a folder to store the exports.
                 Defaults to `'experiment'`.
             run_args (Optional[Union[BaseRunArgs, dict[str, Any]]], optional):
-                defaultConfig of :func:`qiskit.execute`. Defaults to `{}`.
+                Arguments for :func:`qiskit.execute`. Defaults to `{}`.
             transpile_args (Optional[TranspileArgs], optional):
-                defaultConfig of :func:`qiskit.transpile`. Defaults to `{}`.
+                Arguments for :func:`qiskit.transpile`. Defaults to `{}`.
             passmanager (Optional[Union[str, PassManager, tuple[str, PassManager]], optional):
                 The passmanager. Defaults to None.
 
@@ -205,5 +208,4 @@ class WavesExecuter(QurriumPrototype):
             pbar=pbar,
         )
 
-        result_exp_id = self.output(**output_args)
-        return result_exp_id
+        return self.output(**output_args)

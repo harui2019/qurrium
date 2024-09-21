@@ -1,6 +1,6 @@
 """
 ================================================================
-Waves Qurry - Experiment
+WavesExecuter - Experiment
 (:mod:`qurry.qurrium.wavesqurry.experiment`)
 ================================================================
 
@@ -13,28 +13,28 @@ import tqdm
 
 from qiskit import QuantumCircuit
 
-from .arguments import WavesQurryArguments
-from .analysis import WavesQurryAnalysis
+from .arguments import WavesExecuterArguments, SHORT_NAME
+from .analysis import WavesExecuterAnalysis
 from ..experiment import ExperimentPrototype, Commonparams
 from ...exceptions import QurryExperimentCountsNotCompleted
 
 
-class WavesQurryExperiment(ExperimentPrototype):
+class WavesExecuterExperiment(ExperimentPrototype):
     """The instance of experiment."""
 
-    __name__ = "WavesQurryExperiment"
+    __name__ = "WavesExecuterExperiment"
 
     @property
-    def arguments_instance(self) -> Type[WavesQurryArguments]:
+    def arguments_instance(self) -> Type[WavesExecuterArguments]:
         """The arguments instance for this experiment."""
-        return WavesQurryArguments
+        return WavesExecuterArguments
 
-    args: WavesQurryArguments
+    args: WavesExecuterArguments
 
     @property
-    def analysis_container(self) -> Type[WavesQurryAnalysis]:
+    def analysis_container(self) -> Type[WavesExecuterAnalysis]:
         """The analysis instance for this experiment."""
-        return WavesQurryAnalysis
+        return WavesExecuterAnalysis
 
     @classmethod
     def params_control(
@@ -42,23 +42,28 @@ class WavesQurryExperiment(ExperimentPrototype):
         targets: dict[Hashable, QuantumCircuit],
         exp_name: str = "exps",
         **custom_kwargs: Any,
-    ) -> tuple[WavesQurryArguments, Commonparams, dict[str, Any]]:
+    ) -> tuple[WavesExecuterArguments, Commonparams, dict[str, Any]]:
         """Control the experiment's parameters.
 
         Args:
             targets (dict[Hashable, QuantumCircuit]):
                 The circuits of the experiment.
-            exp_name (str):
+            exp_name (str, optional):
+                The name of the experiment.
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
                 This name is also used for creating a folder to store the exports.
+                Defaults to `'experiment'`.
+            custom_kwargs (Any):
+                The custom parameters.
 
         Returns:
-            dict: The export will be processed in `.paramsControlCore`
+            tuple[WavesExecuterArguments, Commonparams, dict[str, Any]]:
+                The arguments of the experiment, the common parameters, and the custom parameters.
         """
-        exp_name = f"{exp_name}.wavesqurry"
+        exp_name = f"{exp_name}.{SHORT_NAME}"
 
         # pylint: disable=protected-access
-        return WavesQurryArguments._filter(
+        return WavesExecuterArguments._filter(
             exp_name=exp_name,
             target_keys=list(targets.keys()),
             **custom_kwargs,
@@ -69,7 +74,7 @@ class WavesQurryExperiment(ExperimentPrototype):
     def method(
         cls,
         targets: dict[Hashable, QuantumCircuit],
-        arugments: WavesQurryArguments,
+        arguments: WavesExecuterArguments,
         pbar: Optional[tqdm.tqdm] = None,
     ) -> tuple[list[QuantumCircuit], dict[str, Any]]:
         """The method to construct circuit.
@@ -85,19 +90,18 @@ class WavesQurryExperiment(ExperimentPrototype):
 
         Returns:
             tuple[list[QuantumCircuit], dict[str, Any]]:
-                The circuits of the experiment and the outfields.
+                The circuits of the experiment and the side products.
         """
         cirqs = []
         if pbar is not None:
             pbar.set_description("| Loading circuits")
         for i, (k, q) in enumerate(targets.items()):
             q_copy = q.copy()
+            chosen_key = "" if isinstance(k, int) else k
             old_name = "" if isinstance(q.name, str) else q.name
             old_name = "" if len(old_name) < 1 else old_name
-            q_copy.name = (
-                f"{arugments.exp_name}-{i}.{k}"
-                if len(old_name) < 1
-                else f"{arugments.exp_name}-{i}.{k}.{old_name}"
+            q_copy.name = ".".join(
+                [n for n in [f"{arguments.exp_name}_{i}", chosen_key, old_name] if len(n) > 0]
             )
             cirqs.append(q_copy)
 

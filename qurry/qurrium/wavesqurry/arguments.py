@@ -1,6 +1,6 @@
 """
 ================================================================
-Waves Qurry - Arguments 
+WavesExecuter - Arguments 
 (:mod:`qurry.qurrium.wavesqurry.arguments`)
 ================================================================
 
@@ -11,10 +11,14 @@ from ..experiment import ArgumentsPrototype
 from ...declare import BasicOutputArgs
 
 
-class WavesQurryArguments(ArgumentsPrototype):
+class WavesExecuterArguments(ArgumentsPrototype):
     """Construct the experiment's parameters for specific options,
     which is overwritable by the inherition class."""
 
 
-class WaveQurryOutputArgs(BasicOutputArgs):
+class WavesExecuterOutputArgs(BasicOutputArgs):
     """Output arguments for :meth:`output`."""
+
+
+SHORT_NAME = "waves_executer"
+"""The short name for this qurry instance."""

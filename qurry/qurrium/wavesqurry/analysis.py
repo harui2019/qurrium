@@ -1,6 +1,6 @@
 """
 ================================================================
-Waves Qurry - Analysis
+WavesExecuter - Analysis
 (:mod:`qurry.qurrium.wavesqurry.analysis`)
 ================================================================
 
@@ -12,7 +12,7 @@ from typing import NamedTuple, Iterable
 from ..analysis import AnalysisPrototype
 
 
-class WavesQurryAnalysis(AnalysisPrototype):
+class WavesExecuterAnalysis(AnalysisPrototype):
     """The analysis of the experiment."""
 
     __name__ = "WavesQurryAnalysis"
