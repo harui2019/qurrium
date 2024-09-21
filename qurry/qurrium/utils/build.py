@@ -78,4 +78,7 @@ def circuits_processor(
                 raise KeyError(f"Wave {_circuit} not found in {wave_container}")
         else:
             raise ValueError(f"Invalid type of circuit: {_circuit}, type: {type(_circuit)}")
+
+    if len(circuits_maps) != len(circuits):
+        raise ValueError(f"Lost some circuits: {circuits_maps.keys()}, {circuits}")
     return circuits_maps
