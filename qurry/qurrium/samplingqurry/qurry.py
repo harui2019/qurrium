@@ -16,7 +16,7 @@ from qiskit import QuantumCircuit
 from qiskit.providers import Backend
 from qiskit.transpiler.passmanager import PassManager
 
-from .arguments import QurryOutputArgs
+from .arguments import QurryOutputArgs, SHORT_NAME
 from .experiment import QurryExperiment
 from ..qurrium import QurriumPrototype
 from ..container import ExperimentContainer
@@ -25,6 +25,9 @@ from ...declare import BaseRunArgs, TranspileArgs
 
 class QurryV9(QurriumPrototype):
     """Executing one quantum circuit in multiple times."""
+
+    __name__ = "QurryV9"
+    short_name = SHORT_NAME
 
     @property
     def experiment_instance(self) -> Type[QurryExperiment]:
@@ -56,7 +59,7 @@ class QurryV9(QurriumPrototype):
 
         Args:
             wave (Union[QuantumCircuit, Hashable]):
-                The circuit to execute.
+                The key or the circuit to execute.
             sampling (int, optional):
                 The number of sampling. Defaults to 1.
             shots (int, optional):
@@ -64,13 +67,14 @@ class QurryV9(QurriumPrototype):
             backend (Optional[Backend], optional):
                 The quantum backend. Defaults to None.
             exp_name (str, optional):
+                The name of the experiment.
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
                 This name is also used for creating a folder to store the exports.
                 Defaults to `'experiment'`.
             run_args (Optional[Union[BaseRunArgs, dict[str, Any]]], optional):
-                defaultConfig of :func:`qiskit.execute`. Defaults to `{}`.
+                Arguments for :func:`qiskit.execute`. Defaults to `{}`.
             transpile_args (Optional[TranspileArgs], optional):
-                defaultConfig of :func:`qiskit.transpile`. Defaults to `{}`.
+                Arguments for :func:`qiskit.transpile`. Defaults to `{}`.
             passmanager (Optional[Union[str, PassManager, tuple[str, PassManager]], optional):
                 The passmanager. Defaults to None.
 
@@ -141,7 +145,7 @@ class QurryV9(QurriumPrototype):
         encoding: str = "utf-8",
         jsonable: bool = False,
         pbar: Optional[tqdm.tqdm] = None,
-    ):
+    ) -> str:
         """Execute the experiment.
 
         Args:
@@ -154,13 +158,14 @@ class QurryV9(QurriumPrototype):
             backend (Optional[Backend], optional):
                 The quantum backend. Defaults to None.
             exp_name (str, optional):
+                The name of the experiment.
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
                 This name is also used for creating a folder to store the exports.
                 Defaults to `'experiment'`.
             run_args (Optional[Union[BaseRunArgs, dict[str, Any]]], optional):
-                defaultConfig of :func:`qiskit.execute`. Defaults to `{}`.
+                Arguments for :func:`qiskit.execute`. Defaults to `{}`.
             transpile_args (Optional[TranspileArgs], optional):
-                defaultConfig of :func:`qiskit.transpile`. Defaults to `{}`.
+                Arguments for :func:`qiskit.transpile`. Defaults to `{}`.
             passmanager (Optional[Union[str, PassManager, tuple[str, PassManager]], optional):
                 The passmanager. Defaults to None.
 
@@ -211,5 +216,4 @@ class QurryV9(QurriumPrototype):
             pbar=pbar,
         )
 
-        result_exp_id = self.output(**output_args)
-        return result_exp_id
+        return self.output(**output_args)

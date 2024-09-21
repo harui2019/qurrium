@@ -1,6 +1,6 @@
 """
 ================================================================
-Sampling Qurry - Experiment
+SamplingExecuter - Experiment
 (:mod:`qurry.qurrium.samplingqurry.experiment`)
 ================================================================
 
@@ -13,7 +13,7 @@ import tqdm
 
 from qiskit import QuantumCircuit
 
-from .arguments import QurryArguments
+from .arguments import QurryArguments, SHORT_NAME
 from .analysis import QurryAnalysis
 from ..experiment import ExperimentPrototype, Commonparams
 from ...exceptions import QurryExperimentCountsNotCompleted
@@ -50,13 +50,17 @@ class QurryExperiment(ExperimentPrototype):
             targets (dict[Hashable, QuantumCircuit]):
                 The circuits of the experiment.
             exp_name (str):
-                Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
-                This name is also used for creating a folder to store the exports.
+                The name of the experiment. Defaults to "exps".
+            sampling (int, optional):
+                The number of sampling. Defaults to 1.
+            custom_kwargs (Any):
+                The custom parameters.
 
         Returns:
-            dict: The export will be processed in `.paramsControlCore`
+            tuple[QurryArguments, Commonparams, dict[str, Any]]:
+                The arguments of the experiment, the common parameters, and the custom parameters
         """
-        exp_name = f"{exp_name}.times_{sampling}.qurryv9"
+        exp_name = f"{exp_name}.times_{sampling}.{SHORT_NAME}"
 
         if len(targets) > 1:
             raise ValueError("The number of targets should be only one.")
@@ -74,7 +78,7 @@ class QurryExperiment(ExperimentPrototype):
     def method(
         cls,
         targets: dict[Hashable, QuantumCircuit],
-        arugments: QurryArguments,
+        arguments: QurryArguments,
         pbar: Optional[tqdm.tqdm] = None,
     ) -> tuple[list[QuantumCircuit], dict[str, Any]]:
         """The method to construct circuit.
@@ -90,7 +94,7 @@ class QurryExperiment(ExperimentPrototype):
 
         Returns:
             tuple[list[QuantumCircuit], dict[str, Any]]:
-                The circuits of the experiment and the outfields.
+                The circuits of the experiment and the side products.
         """
 
         if pbar is not None:
@@ -98,16 +102,15 @@ class QurryExperiment(ExperimentPrototype):
 
         cirqs_items = list(targets.items())
         the_chosen_key, q = cirqs_items[0]
-        q_copy = q.copy()
+        the_chosen_key = "" if isinstance(the_chosen_key, int) else the_chosen_key
         old_name = "" if isinstance(q.name, str) else q.name
         old_name = "" if len(old_name) < 1 else old_name
-        q_copy.name = (
-            f"{arugments.exp_name}.{the_chosen_key}"
-            if len(old_name) < 1
-            else f"{arugments.exp_name}.{the_chosen_key}.{old_name}"
+        q_copy = q.copy()
+        q_copy.name = ".".join(
+            [n for n in [arguments.exp_name, the_chosen_key, old_name] if len(n) > 0]
         )
 
-        return [q_copy.copy() for _ in range(arugments.sampling)], {}
+        return [q_copy.copy() for _ in range(arguments.sampling)], {}
 
     @classmethod
     def quantities(

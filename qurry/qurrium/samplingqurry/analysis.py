@@ -1,6 +1,6 @@
 """
 ================================================================
-Sampling Qurry - Analysis
+SamplingExecuter - Analysis
 (:mod:`qurry.qurrium.samplingqurry.analysis`)
 ================================================================
 

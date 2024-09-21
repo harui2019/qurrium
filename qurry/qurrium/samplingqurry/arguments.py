@@ -1,6 +1,6 @@
 """
 ================================================================
-Sampling Qurry - Arguments
+SamplingExecuter - Arguments
 (:mod:`qurry.qurrium.samplingqurry.arguments`)
 ================================================================
 
@@ -22,3 +22,7 @@ class QurryOutputArgs(BasicOutputArgs):
     """Output arguments for :meth:`output`."""
 
     sampling: int
+
+
+SHORT_NAME = "sampling_executer"
+"""The short name for this qurry instance."""
