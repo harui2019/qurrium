@@ -252,13 +252,14 @@ class ExperimentPrototype(ABC):
             backend (Backend, optional):
                 The quantum backend. Defaults to AerSimulator().
             exp_name (str, optional):
+                The name of the experiment.
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
                 This name is also used for creating a folder to store the exports.
                 Defaults to `'experiment'`.
             run_args (Optional[Union[BaseRunArgs, dict[str, Any]]], optional):
-                defaultConfig of :func:`qiskit.execute`. Defaults to `{}`.
+                Arguments for :func:`qiskit.execute`. Defaults to `{}`.
             transpile_args (Optional[TranspileArgs], optional):
-                defaultConfig of :func:`qiskit.transpile`. Defaults to `{}`.
+                Arguments for :func:`qiskit.transpile`. Defaults to `{}`.
             tags (Optional[tuple[str, ...]], optional):
                 Given the experiment multiple tags to make a dictionary for recongnizing it.
                 Defaults to None.
@@ -366,7 +367,7 @@ class ExperimentPrototype(ABC):
     def method(
         cls,
         targets: dict[Hashable, QuantumCircuit],
-        arugments: ArgumentsPrototype,
+        arguments: ArgumentsPrototype,
         pbar: Optional[tqdm.tqdm] = None,
     ) -> tuple[list[QuantumCircuit], dict[str, Any]]:
         """The method to construct circuit.
@@ -375,7 +376,7 @@ class ExperimentPrototype(ABC):
         Args:
             targets (dict[Hashable, QuantumCircuit]):
                 The circuits of the experiment.
-            arugments (ArgumentsPrototype):
+            arguments (ArgumentsPrototype):
                 The arguments of the experiment.
             pbar (Optional[tqdm.tqdm], optional):
                 The progress bar for showing the progress of the experiment.
@@ -423,13 +424,14 @@ class ExperimentPrototype(ABC):
             backend (Optional[Backend], optional):
                 The quantum backend. Defaults to None.
             exp_name (str, optional):
+                The name of the experiment.
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
                 This name is also used for creating a folder to store the exports.
                 Defaults to `'experiment'`.
             run_args (Optional[Union[BaseRunArgs, dict[str, Any]]], optional):
-                defaultConfig of :func:`qiskit.execute`. Defaults to `{}`.
+                Arguments for :func:`qiskit.execute`. Defaults to `{}`.
             transpile_args (Optional[TranspileArgs], optional):
-                defaultConfig of :func:`qiskit.transpile`. Defaults to `{}`.
+                Arguments for :func:`qiskit.transpile`. Defaults to `{}`.
             passmanager_pair (Optional[tuple[str, PassManager]], optional):
                 The passmanager pair for transpile. Defaults to None.
             tags (Optional[tuple[str, ...]], optional):
@@ -514,10 +516,10 @@ class ExperimentPrototype(ABC):
 
         for tk, tv in targets.items():
             current_exp.beforewards.target[tk] = tv
-        cirqs, beforewards_outfields = current_exp.method(
-            targets=targets, arugments=current_exp.args, pbar=pbar
+        cirqs, side_prodict = current_exp.method(
+            targets=targets, arguments=current_exp.args, pbar=pbar
         )
-        current_exp.outfields.update(beforewards_outfields)
+        current_exp.beforewards.side_product.update(side_prodict)
 
         # qasm
         pool = ParallelManager()
