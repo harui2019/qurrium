@@ -47,6 +47,9 @@ class WaveContainer(dict[Hashable, QuantumCircuit]):
         """
         return _add(_wave_container=self, wave=wave, key=key, replace=replace)
 
+    def __setitem__(self, key, value) -> None:
+        self.add(value, key, replace=True)
+
     def remove(self, key: Hashable) -> None:
         """Remove wave from container.
 

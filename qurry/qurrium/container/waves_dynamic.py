@@ -52,6 +52,9 @@ def wave_container_maker(
     ) -> Hashable:
         return _add(self, wave, key, replace)
 
+    def __setitem__(self, key, value) -> None:
+        self.add(value, key, replace=True)
+
     def remove(self, key: Hashable):
         return _remove(self, key)
 
@@ -261,6 +264,7 @@ def wave_container_maker(
         "__init__": constructor,
         "__call__": __call__,
         "add": add,
+        "__setitem__": __setitem__,
         "remove": remove,
         "get_wave": get_wave,
         "call": call,
@@ -315,6 +319,8 @@ def _add(
 
     if not isinstance(wave, QuantumCircuit):
         raise TypeError(f"waveCircuit should be a QuantumCircuit, not {type(wave)}")
+    if isinstance(key, int):
+        raise ValueError("Number key is only for internal use, not for user.")
 
     if key is None:
         key = len(_wave_container)
