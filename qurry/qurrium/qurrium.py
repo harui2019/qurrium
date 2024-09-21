@@ -43,7 +43,9 @@ class QurriumPrototype(ABC):
     """
 
     __name__ = "QurriumPrototype"
-    shortName = "qurrium"
+    """The name of Qurrium."""
+    short_name = "qurrium"
+    """The short name of Qurrium."""
 
     # Wave
     def add(
@@ -146,6 +148,7 @@ class QurriumPrototype(ABC):
             backend (Backend, optional):
                 The quantum backend. Defaults to AerSimulator().
             exp_name (str, optional):
+                The name of the experiment.
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
                 This name is also used for creating a folder to store the exports.
                 Defaults to `'experiment'`.
@@ -153,7 +156,7 @@ class QurriumPrototype(ABC):
                 The extra arguments for running the job.
                 For :meth:`backend.run()` from :cls:`qiskit.providers.backend`. Defaults to `{}`.
             transpile_args (Optional[TranspileArgs], optional):
-                defaultConfig of :func:`qiskit.transpile`. Defaults to `{}`.
+                Arguments for :func:`qiskit.transpile`. Defaults to `{}`.
             passmanager (Optional[Union[str, PassManager, tuple[str, PassManager]]], optional):
                 The passmanager. Defaults to None.
             export (bool, optional):
@@ -246,9 +249,9 @@ class QurriumPrototype(ABC):
                 This name is also used for creating a folder to store the exports.
                 Defaults to `'experiment'`.
             run_args (Optional[Union[BaseRunArgs, dict[str, Any]]], optional):
-                defaultConfig of :func:`qiskit.execute`. Defaults to `{}`.
+                Arguments for :func:`qiskit.execute`. Defaults to `{}`.
             transpile_args (Optional[TranspileArgs], optional):
-                defaultConfig of :func:`qiskit.transpile`. Defaults to `{}`.
+                Arguments for :func:`qiskit.transpile`. Defaults to `{}`.
             passmanager (Optional[Union[str, PassManager, tuple[str, PassManager]], optional):
                 The passmanager. Defaults to None.
 
