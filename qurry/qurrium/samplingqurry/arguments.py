@@ -10,7 +10,7 @@ It is only for pendings and retrieve to remote backend.
 from dataclasses import dataclass
 
 from ..experiment import ArgumentsPrototype
-from ...declare import BasicOutputArgs
+from ...declare import BasicArgs
 
 
 @dataclass(frozen=True)
@@ -21,7 +21,7 @@ class QurryArguments(ArgumentsPrototype):
     sampling: int = 1
 
 
-class QurryOutputArgs(BasicOutputArgs):
+class QurryOutputArgs(BasicArgs):
     """Output arguments for :meth:`output`."""
 
     sampling: int

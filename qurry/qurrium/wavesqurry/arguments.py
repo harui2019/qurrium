@@ -10,7 +10,7 @@ It is only for pendings and retrieve to remote backend.
 from dataclasses import dataclass
 
 from ..experiment import ArgumentsPrototype
-from ...declare import BasicOutputArgs
+from ...declare import BasicArgs
 
 
 @dataclass(frozen=True)
@@ -19,7 +19,7 @@ class WavesExecuterArguments(ArgumentsPrototype):
     which is overwritable by the inherition class."""
 
 
-class WavesExecuterOutputArgs(BasicOutputArgs):
+class WavesExecuterOutputArgs(BasicArgs):
     """Output arguments for :meth:`output`."""
 
 

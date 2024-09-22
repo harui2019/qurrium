@@ -16,11 +16,11 @@ from qiskit import QuantumCircuit
 from qiskit.providers import Backend
 from qiskit.transpiler.passmanager import PassManager
 
-from .arguments import QurryOutputArgs, SHORT_NAME
+from .arguments import SHORT_NAME
 from .experiment import QurryExperiment
 from ..qurrium import QurriumPrototype
 from ..container import ExperimentContainer
-from ...declare import BaseRunArgs, TranspileArgs
+from ...declare import BaseRunArgs, TranspileArgs, OutputArgs
 
 
 class QurryV9(QurriumPrototype):
@@ -54,7 +54,7 @@ class QurryV9(QurriumPrototype):
         encoding: str = "utf-8",
         jsonable: bool = False,
         pbar: Optional[tqdm.tqdm] = None,
-    ) -> QurryOutputArgs:
+    ) -> OutputArgs:
         """Trasnform :meth:`measure` arguments form into :meth:`output` form.
 
         Args:
@@ -104,7 +104,7 @@ class QurryV9(QurriumPrototype):
                 Defaults to None.
 
         Returns:
-            QurryOutputArgs: The output arguments.
+            OutputArgs: The output arguments.
         """
         if wave is None:
             raise ValueError("The `wave` must be provided.")

@@ -10,7 +10,7 @@ from typing import Optional
 from dataclasses import dataclass
 
 from ...qurrium.experiment import ArgumentsPrototype
-from ...declare import BasicOutputArgs
+from ...declare import BasicArgs
 from ...tools import DEFAULT_POOL_SIZE
 
 
@@ -34,7 +34,7 @@ class EchoListenRandomizedArguments(ArgumentsPrototype):
     """The number of workers for multiprocessing."""
 
 
-class EchoListenRandomizedOutputArgs(BasicOutputArgs):
+class EchoListenRandomizedOutputArgs(BasicArgs):
     """Output arguments for :meth:`output`."""
 
     exp_name: str

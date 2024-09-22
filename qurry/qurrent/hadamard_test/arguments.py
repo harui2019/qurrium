@@ -10,7 +10,7 @@ from typing import Optional
 from dataclasses import dataclass
 
 from ...qurrium.experiment import ArgumentsPrototype
-from ...declare import BasicOutputArgs
+from ...declare import BasicArgs
 
 
 @dataclass(frozen=True)
@@ -26,7 +26,7 @@ class EntropyMeasureHadamardArguments(ArgumentsPrototype):
     """The degree range."""
 
 
-class EntropyMeasureHadamardOutputArgs(BasicOutputArgs):
+class EntropyMeasureHadamardOutputArgs(BasicArgs):
     """Output arguments for :meth:`output`."""
 
     exp_name: str

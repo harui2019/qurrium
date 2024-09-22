@@ -10,7 +10,7 @@ from typing import Optional
 from dataclasses import dataclass
 
 from ...qurrium.experiment import ArgumentsPrototype
-from ...declare import BasicOutputArgs
+from ...declare import BasicArgs
 
 
 @dataclass(frozen=True)
@@ -26,7 +26,7 @@ class EchoListenHadamardArguments(ArgumentsPrototype):
     """The degree range."""
 
 
-class EchoListenHadamardOutputArgs(BasicOutputArgs):
+class EchoListenHadamardOutputArgs(BasicArgs):
     """Output arguments for :meth:`output`."""
 
     exp_name: str

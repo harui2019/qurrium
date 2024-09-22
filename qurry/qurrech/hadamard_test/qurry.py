@@ -15,11 +15,11 @@ from qiskit import QuantumCircuit
 from qiskit.providers import Backend
 from qiskit.transpiler.passmanager import PassManager
 
-from .arguments import EchoListenHadamardOutputArgs, SHORT_NAME
+from .arguments import SHORT_NAME
 from .experiment import EchoListenHadamardExperiment
 from ...qurrium.qurrium import QurriumPrototype
 from ...qurrium.container import ExperimentContainer
-from ...declare import BaseRunArgs, TranspileArgs
+from ...declare import BaseRunArgs, TranspileArgs, OutputArgs
 
 
 class EchoListenHadamard(QurriumPrototype):
@@ -54,7 +54,7 @@ class EchoListenHadamard(QurriumPrototype):
         encoding: str = "utf-8",
         jsonable: bool = False,
         pbar: Optional[tqdm.tqdm] = None,
-    ) -> EchoListenHadamardOutputArgs:
+    ) -> OutputArgs:
         """Trasnform :meth:`measure` arguments form into :meth:`output` form.
 
         Args:
@@ -107,31 +107,30 @@ class EchoListenHadamard(QurriumPrototype):
                 Defaults to None.
 
         Returns:
-            EchoListenHadamardOutputArgs: The output arguments.
+            OutputArgs: The output arguments.
         """
         if wave1 is None:
             raise ValueError("The `wave` must be provided.")
         if wave2 is None:
             raise ValueError("The `wave2` must be provided.")
 
-        return EchoListenHadamardOutputArgs(
-            wave=wave1,
-            wave2=wave2,
-            degree=degree,
-            shots=shots,
-            backend=backend,
-            exp_name=exp_name,
-            run_args=run_args,
-            transpile_args=transpile_args,
-            passmanager=passmanager,
-            export=export,
-            save_location=save_location,
-            mode=mode,
-            indent=indent,
-            encoding=encoding,
-            jsonable=jsonable,
-            pbar=pbar,
-        )
+        return {
+            "circuits": [wave1, wave2],
+            "degree": degree,
+            "shots": shots,
+            "backend": backend,
+            "exp_name": exp_name,
+            "run_args": run_args,
+            "transpile_args": transpile_args,
+            "passmanager": passmanager,
+            "export": export,
+            "save_location": save_location,
+            "mode": mode,
+            "indent": indent,
+            "encoding": encoding,
+            "jsonable": jsonable,
+            "pbar": pbar,
+        }
 
     def measure(
         self,
