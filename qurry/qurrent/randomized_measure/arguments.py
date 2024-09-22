@@ -6,8 +6,11 @@ EntropyMeasureRandomized - Arguments
 
 """
 
-from typing import Optional
+from typing import Optional, Union
+from collections.abc import Hashable
 from dataclasses import dataclass
+
+from qiskit import QuantumCircuit
 
 from ...qurrium.experiment import ArgumentsPrototype
 from ...declare import BasicArgs
@@ -37,11 +40,8 @@ class EntropyMeasureRandomizedArguments(ArgumentsPrototype):
 class EntropyMeasureRandomizedMeasureArgs(BasicArgs):
     """Output arguments for :meth:`output`."""
 
-    exp_name: str
-    """The name of the experiment.
-    Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
-    This name is also used for creating a folder to store the exports.
-    Defaults to `'experiment'`."""
+    wave: Optional[Union[QuantumCircuit, Hashable]]
+    """The key or the circuit to execute."""
     times: int
     """The number of random unitary operator. 
     It will denote as `N_U` in the experiment name."""

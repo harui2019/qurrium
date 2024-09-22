@@ -59,7 +59,7 @@ class QurryV9(QurriumPrototype):
 
         Args:
             wave (Union[QuantumCircuit, Hashable]):
-                The key or the circuit to execute.
+                The key or The key or the circuit to execute.
             sampling (int, optional):
                 The number of sampling. Defaults to 1.
             shots (int, optional):
@@ -150,7 +150,7 @@ class QurryV9(QurriumPrototype):
 
         Args:
             wave (Union[QuantumCircuit, Hashable]):
-                The circuit to execute.
+                The key or the circuit to execute.
             sampling (int, optional):
                 The number of sampling. Defaults to 1.
             shots (int, optional):

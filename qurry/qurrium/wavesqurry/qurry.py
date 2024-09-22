@@ -58,7 +58,7 @@ class WavesExecuter(QurriumPrototype):
 
         Args:
             waves (list[Union[QuantumCircuit, Hashable]]):
-                The circuits to execute.
+                The key or the circuit to execute.
             shots (int, optional):
                 Shots of the job. Defaults to `1024`.
             backend (Optional[Backend], optional):
@@ -145,7 +145,7 @@ class WavesExecuter(QurriumPrototype):
 
         Args:
             waves (list[Union[QuantumCircuit, Hashable]]):
-                The circuits to execute.
+                The key or the circuit to execute.
             shots (int, optional):
                 Shots of the job. Defaults to `1024`.
             backend (Optional[Backend], optional):
