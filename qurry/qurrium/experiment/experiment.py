@@ -514,7 +514,7 @@ class ExperimentPrototype(ABC):
         if isinstance(pbar, tqdm.tqdm):
             pbar.set_description_str("Circuit creating...")
 
-        for tk, tv in targets.items():
+        for tk, tv in targets:
             current_exp.beforewards.target[tk] = tv
         cirqs, side_prodict = current_exp.method(
             targets=targets, arguments=current_exp.args, pbar=pbar
