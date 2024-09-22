@@ -52,9 +52,6 @@ def wave_container_maker(
     ) -> Hashable:
         return _add(self, wave, key, replace)
 
-    def __setitem__(self, key, value) -> None:
-        _add(self, value, key, replace=True)
-
     def process(
         self, circuits: list[Union[QuantumCircuit, Hashable]]
     ) -> dict[Hashable, QuantumCircuit]:
@@ -269,7 +266,6 @@ def wave_container_maker(
         "__init__": constructor,
         "__call__": __call__,
         "add": add,
-        "__setitem__": __setitem__,
         "remove": remove,
         "get_wave": get_wave,
         "call": call,
@@ -307,7 +303,8 @@ def _add(
     """Add new wave function to measure.
 
     Args:
-        waveCircuit (QuantumCircuit): The wave functions or circuits want to measure.
+        _wave_container (WaveContainer): The container of waves.
+        wave (QuantumCircuit): The wave function or circuit to add.
         key (Optional[Hashable], optional):
             Given a specific key to add to the wave function or circuit,
             if `key == None`, then generate a number as key.
