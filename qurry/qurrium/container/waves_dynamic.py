@@ -55,6 +55,11 @@ def wave_container_maker(
     def __setitem__(self, key, value) -> None:
         _add(self, value, key, replace=True)
 
+    def process(
+        self, circuits: list[Union[QuantumCircuit, Hashable]]
+    ) -> dict[Hashable, QuantumCircuit]:
+        return _process(self, circuits)
+
     def remove(self, key: Hashable):
         return _remove(self, key)
 
@@ -273,6 +278,7 @@ def wave_container_maker(
         "copy_circuit": copy_circuit,
         "instruction": instruction,
         "has": has,
+        "process": process,
         "__repr__": __repr__,
         "_repr_oneline": _repr_oneline,
         "_repr_pretty_": _repr_pretty_,
@@ -351,3 +357,38 @@ def _remove(
     key: Optional[Hashable] = None,
 ) -> None:
     del _wave_container[key]
+
+
+def _process(
+    _wave_container: MutableMapping[Hashable, QuantumCircuit],
+    circuits: list[Union[QuantumCircuit, Hashable]],
+) -> dict[Hashable, QuantumCircuit]:
+    """Process the circuits for Qurrium.
+
+    Args:
+        _wave_container (WaveContainer): The container of waves.
+        circuits (list[Union[QuantumCircuit, Hashable]]): The circuits.
+
+    Raises:
+        KeyError: If the wave not found in the container.
+        ValueError: If the circuit is invalid.
+
+    Returns:
+        dict[Hashable, QuantumCircuit]: The circuits maps.
+    """
+    circuits_maps = {}
+    for _circuit in circuits:
+        if isinstance(_circuit, QuantumCircuit):
+            key = _add(_wave_container, wave=_circuit)
+            circuits_maps[key] = _wave_container[key]
+        elif isinstance(_circuit, Hashable):
+            if _circuit in _wave_container:
+                circuits_maps[_circuit] = _wave_container[_circuit]
+            else:
+                raise KeyError(f"Wave {_circuit} not found in {_wave_container}")
+        else:
+            raise ValueError(f"Invalid type of circuit: {_circuit}, type: {type(_circuit)}")
+
+    if len(circuits_maps) != len(circuits):
+        raise ValueError(f"Lost some circuits: {circuits_maps.keys()}, {circuits}")
+    return circuits_maps

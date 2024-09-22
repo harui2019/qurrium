@@ -12,8 +12,7 @@ from qiskit import QuantumCircuit
 from qiskit.quantum_info import Operator
 from qiskit.circuit import Gate, Instruction
 
-
-from .waves_dynamic import _add, _remove
+from .waves_dynamic import _add, _remove, _process
 
 
 class WaveContainer(dict[Hashable, QuantumCircuit]):
@@ -49,6 +48,20 @@ class WaveContainer(dict[Hashable, QuantumCircuit]):
 
     def __setitem__(self, key, value) -> None:
         _add(_wave_container=self, wave=value, key=key, replace=True)
+
+    def process(
+        self, circuits: list[Union[QuantumCircuit, Hashable]]
+    ) -> dict[Hashable, QuantumCircuit]:
+        """Process the circuits in container.
+
+        Args:
+            circuits (list[Union[QuantumCircuit, Hashable]]):
+                The circuits or keys of circuits in container.
+
+        Returns:
+            dict[Hashable, QuantumCircuit]: The processed circuits.
+        """
+        return _process(self, circuits)
 
     def remove(self, key: Hashable) -> None:
         """Remove wave from container.

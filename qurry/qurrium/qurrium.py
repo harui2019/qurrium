@@ -18,7 +18,7 @@ from qiskit.providers import Backend
 from qiskit.transpiler.passmanager import PassManager
 
 from .runner import RemoteAccessor, retrieve_counter
-from .utils import passmanager_processor, circuits_processor
+from .utils import passmanager_processor
 from .experiment import ExperimentPrototype
 from .container import (
     WaveContainer,
@@ -183,10 +183,7 @@ class QurriumPrototype(ABC):
         passmanager_pair = passmanager_processor(
             passmanager=passmanager, passmanager_container=self.passmanagers
         )
-        targets = circuits_processor(
-            circuits=circuits,
-            wave_container=self.waves,
-        )
+        targets = self.waves.process(circuits)
 
         new_exps = self.experiment_instance.build(
             targets=targets,

@@ -9,6 +9,7 @@ from typing import Union, Optional
 from collections.abc import Hashable
 from qiskit import QuantumCircuit
 from qiskit.transpiler.passmanager import PassManager
+
 from ..container.waves_static import WaveContainer
 
 
@@ -46,39 +47,3 @@ def passmanager_processor(
     else:
         raise ValueError(f"Invalid passmanager: {passmanager}")
     return passmanager_pair
-
-
-def circuits_processor(
-    circuits: list[Union[QuantumCircuit, Hashable]],
-    wave_container: WaveContainer,
-) -> dict[Hashable, QuantumCircuit]:
-    """Process the circuits for Qurrium.
-
-    Args:
-        circuits (list[Union[QuantumCircuit, Hashable]]): The circuits.
-        wave_container (WaveContainer): The container of waves.
-
-    Raises:
-        KeyError: If the wave not found in the container.
-        ValueError: If the circuit is invalid.
-
-    Returns:
-        dict[Hashable, QuantumCircuit]: The circuits maps.
-    """
-
-    circuits_maps = {}
-    for _circuit in circuits:
-        if isinstance(_circuit, QuantumCircuit):
-            key = wave_container.add(wave=_circuit)
-            circuits_maps[key] = wave_container[key]
-        elif isinstance(_circuit, Hashable):
-            if wave_container.has(_circuit):
-                circuits_maps[_circuit] = wave_container[_circuit]
-            else:
-                raise KeyError(f"Wave {_circuit} not found in {wave_container}")
-        else:
-            raise ValueError(f"Invalid type of circuit: {_circuit}, type: {type(_circuit)}")
-
-    if len(circuits_maps) != len(circuits):
-        raise ValueError(f"Lost some circuits: {circuits_maps.keys()}, {circuits}")
-    return circuits_maps
