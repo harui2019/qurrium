@@ -63,7 +63,7 @@ class QurryExperiment(ExperimentPrototype):
         exp_name = f"{exp_name}.times_{sampling}.{SHORT_NAME}"
 
         if len(targets) > 1:
-            raise ValueError("The number of targets should be only one.")
+            raise ValueError("The number of target circuits should be only one.")
 
         # pylint: disable=protected-access
         return QurryArguments._filter(
