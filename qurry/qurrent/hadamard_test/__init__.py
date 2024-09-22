@@ -1,11 +1,12 @@
 """
 ================================================================
-Second Renyi Entropy - Hadamard Test
+EntropyMeasureHadamard - 
+The Second Order Renyi Entropy by Hadamard Test
 (:mod:`qurry.qurrent.hadamard_test`)
 ================================================================
 
 """
 
-from .analysis import EntropyHadamardAnalysis
-from .experiment import EntropyHadamardExperiment
-from .qurry import EntropyHadamardTest
+from .analysis import EntropyMeasureHadamardAnalysis
+from .experiment import EntropyMeasureHadamardExperiment
+from .qurry import EntropyMeasureHadamard
