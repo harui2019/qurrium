@@ -7,10 +7,13 @@ WavesExecuter - Arguments
 It is only for pendings and retrieve to remote backend.
 """
 
+from dataclasses import dataclass
+
 from ..experiment import ArgumentsPrototype
 from ...declare import BasicOutputArgs
 
 
+@dataclass(frozen=True)
 class WavesExecuterArguments(ArgumentsPrototype):
     """Construct the experiment's parameters for specific options,
     which is overwritable by the inherition class."""

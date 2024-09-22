@@ -7,12 +7,14 @@ EntropyMeasureRandomized - Arguments
 """
 
 from typing import Optional
+from dataclasses import dataclass
 
 from ...qurrium.experiment import ArgumentsPrototype
 from ...declare import BasicOutputArgs
 from ...tools import DEFAULT_POOL_SIZE
 
 
+@dataclass(frozen=True)
 class EntropyMeasureRandomizedArguments(ArgumentsPrototype):
     """Arguments for the experiment."""
 

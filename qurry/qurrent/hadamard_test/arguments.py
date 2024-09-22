@@ -7,11 +7,13 @@ EntropyMeasureHadamard - Arguments
 """
 
 from typing import Optional
+from dataclasses import dataclass
 
 from ...qurrium.experiment import ArgumentsPrototype
 from ...declare import BasicOutputArgs
 
 
+@dataclass(frozen=True)
 class EntropyMeasureHadamardArguments(ArgumentsPrototype):
     """Arguments for the experiment."""
 
@@ -32,7 +34,7 @@ class EntropyMeasureHadamardOutputArgs(BasicOutputArgs):
     Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
     This name is also used for creating a folder to store the exports.
     Defaults to `'experiment'`."""
-    degree: Optional[tuple[int, int]] = None
+    degree: Optional[tuple[int, int]]
     """The degree range."""
 
 

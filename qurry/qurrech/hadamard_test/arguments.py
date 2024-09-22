@@ -7,11 +7,13 @@ EchoListenHadamard - Arguments
 """
 
 from typing import Optional
+from dataclasses import dataclass
 
 from ...qurrium.experiment import ArgumentsPrototype
 from ...declare import BasicOutputArgs
 
 
+@dataclass(frozen=True)
 class EchoListenHadamardArguments(ArgumentsPrototype):
     """Arguments for the experiment."""
 
