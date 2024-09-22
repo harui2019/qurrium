@@ -33,7 +33,7 @@ from .multimanager.multimanager import (
 )
 from ..tools import qurry_progressbar
 from ..tools.backend import GeneralSimulator
-from ..declare import BaseRunArgs, TranspileArgs
+from ..declare import BaseRunArgs, TranspileArgs, BasicOutputArgs
 from ..exceptions import QurryResetAccomplished, QurryResetSecurityActivated
 
 
@@ -332,7 +332,7 @@ class QurriumPrototype(ABC):
         return resulted_exp_id
 
     @abstractmethod
-    def measure_to_output(self):
+    def measure_to_output(self) -> BasicOutputArgs:
         """Trasnform :meth:`measure` arguments form into :meth:`output` form."""
         raise NotImplementedError("The method is not defined.")
 
