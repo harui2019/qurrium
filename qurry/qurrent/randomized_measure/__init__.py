@@ -1,8 +1,7 @@
 """
 ===========================================================
 EntropyMeasureRandomized -
-The Second Order Renyi Entropy
-by Randomized Measurement
+The Second Order Renyi Entropy by Randomized Measurement
 (:mod:`qurry.qurrent.randomized_measure`)
 ===========================================================
 
@@ -10,4 +9,4 @@ by Randomized Measurement
 
 from .experiment import EntropyMeasureRandomizedExperiment
 from .analysis import EntropyMeasureRandomizedAnalysis
-from .qurry import EntropyRandomizedMeasure
+from .qurry import EntropyMeasureRandomized

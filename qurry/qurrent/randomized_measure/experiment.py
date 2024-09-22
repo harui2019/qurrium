@@ -1,7 +1,7 @@
 """
 ===========================================================
 EntropyMeasureRandomized - Experiment
-(:mod:`qurry.qurrent.randomized_measure`)
+(:mod:`qurry.qurrent.randomized_measure.experiment`)
 ===========================================================
 
 """
@@ -10,7 +10,6 @@ from typing import Union, Optional, Type, Any
 from collections.abc import Iterable, Hashable
 import warnings
 import tqdm
-
 
 from qiskit import QuantumCircuit
 
@@ -92,7 +91,7 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
                 The arguments of the experiment, the common parameters, and the custom parameters.
         """
         if len(targets) > 1:
-            raise ValueError("The number of targets should be only one.")
+            raise ValueError("The number of target circuits should be only one.")
         if not isinstance(times, int):
             raise TypeError(f"times should be an integer, but got {times}.")
 
@@ -153,7 +152,8 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
                 f"Preparing {arguments.times} random unitary with {arguments.workers_num} workers."
             )
 
-        _target_key, target_circuit = list(targets.items())[0]
+        target_key, target_circuit = list(targets.items())[0]
+        target_key = "" if isinstance(target_key, int) else str(target_key)
         num_qubits = target_circuit.num_qubits
 
         if arguments.unitary_loc is None:
@@ -180,6 +180,7 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
                 (
                     i,
                     target_circuit,
+                    target_key,
                     arguments.exp_name,
                     arguments.unitary_loc,
                     unitary_dict[i],
@@ -191,9 +192,10 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
 
         if isinstance(pbar, tqdm.tqdm):
             pbar.set_description_str(f"Writing 'unitaryOP' with {arguments.workers_num} workers.")
-        # side_product["unitaryOP"]= {
+        # side_product["unitaryOP"] = {
         #     k: {i: np.array(v[i]).tolist() for i in range(*arguments.unitary_loc)}
-        #     for k, v in unitary_dict.items()}
+        #     for k, v in unitary_dict.items()
+        # }
         unitary_operator_list = pool.starmap(
             local_random_unitary_operators,
             [(arguments.unitary_loc, unitary_dict[i]) for i in range(arguments.times)],
@@ -202,11 +204,10 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
 
         if isinstance(pbar, tqdm.tqdm):
             pbar.set_description_str(f"Writing 'randomized' with {arguments.workers_num} workers.")
-        # side_product['randomized'] = {i: {
-        #     j: qubitOpToPauliCoeff(
-        #         unitary_dict[i][j])
-        #     for j in range(*arguments.unitary_loc)
-        # } for i in range(arguments.times)}
+        # side_product["randomized"] = {
+        #     i: {j: qubitOpToPauliCoeff(unitary_dict[i][j]) for j in range(*arguments.unitary_loc)}
+        #     for i in range(arguments.times)
+        # }
         randomized_list = pool.starmap(
             local_random_unitary_pauli_coeff,
             [(arguments.unitary_loc, unitary_operator_list[i]) for i in range(arguments.times)],

@@ -1,7 +1,7 @@
 """
 ===========================================================
 EntropyMeasureRandomized - Qurry
-(:mod:`qurry.qurrent.randomized_measure`)
+(:mod:`qurry.qurrent.randomized_measure.qurry`)
 ===========================================================
 
 """
@@ -22,7 +22,7 @@ from ...qurrium.container import ExperimentContainer
 from ...declare import BaseRunArgs, TranspileArgs
 
 
-class EntropyRandomizedMeasure(QurriumPrototype):
+class EntropyMeasureRandomized(QurriumPrototype):
     """Randomized Measure Experiment.
 
     - Which entropy:
