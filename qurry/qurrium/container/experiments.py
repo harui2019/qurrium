@@ -52,19 +52,16 @@ class ExperimentContainer(dict[str, _ExpInst]):
         return f"{self.__name__}(" + "{...}" + f", num={len(self)})"
 
     def _repr_pretty_(self, p, cycle):
-        # pylint: disable=protected-access
-        original_repr = repr({k: v._repr_no_id() for k, v in self.items()})
-        # pylint: enable=protected-access
-        original_repr_split = original_repr[1:-1].split(", ")
-        length = len(original_repr_split)
-
+        length = len(self)
         if cycle:
             p.text(f"{self.__name__}(" + "{...}" + f", num={length})")
         else:
             with p.group(2, f"{self.__name__}(num={length}" + ", {", "})"):
-                for i, item in enumerate(original_repr_split):
+                for i, (k, v) in enumerate(self.items()):
                     p.breakable()
-                    p.text(item)
+                    # pylint: disable=protected-access
+                    p.text(f"'{k}': {v._repr_no_id()}")
+                    # pylint: enable=protected-access
                     if i < length - 1:
                         p.text(",")
 
