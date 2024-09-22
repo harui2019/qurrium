@@ -12,7 +12,7 @@ from ...qurrium.analysis import AnalysisPrototype
 from ...process.hadamard_test import hadamard_overlap_echo as overlap_echo
 
 
-class EchoHadamardAnalysis(AnalysisPrototype):
+class EchoListenHadamardAnalysis(AnalysisPrototype):
     """The analysis for calculating entangled entropy with more information combined."""
 
     __name__ = "qurrechHadamard.Analysis"
