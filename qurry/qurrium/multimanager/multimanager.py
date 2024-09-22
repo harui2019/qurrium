@@ -392,6 +392,8 @@ class MultiManager:
         tmp_exps_container: ExperimentContainer[_ExpInst] = ExperimentContainer()
 
         for config in initial_config_list_progress:
+            config.pop("export", None)
+            config.pop("pbar", None)
             new_exps = experiment_instance.build(
                 **config,
                 export=False,  # export later for it's not efficient for one by one

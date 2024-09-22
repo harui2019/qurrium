@@ -395,10 +395,20 @@ class QurriumPrototype(ABC):
             raise ValueError("Unknow summoner_id in multimanagers.")
 
         output_allow_config_list = [self.measure_to_output(**config) for config in config_list]
+        ready_config_list = []
+        for config in output_allow_config_list:
+            config_targets = {
+                "targets": self.waves.process(config.pop("circuits")),
+                "passmanager_pair": passmanager_processor(
+                    passmanager=config.pop("passmanager"), passmanager_container=self.passmanagers
+                ),
+            }
+            config_targets.update(config)
+            ready_config_list.append(config_targets)
 
         print("| MultiManager building...")
         tmp_exps_container, current_multimanager = MultiManager.build(
-            config_list=output_allow_config_list,
+            config_list=ready_config_list,
             experiment_instance=self.experiment_instance,
             summoner_name=summoner_name,
             shots=shots,
