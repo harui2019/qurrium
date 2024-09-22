@@ -120,8 +120,6 @@ class ExperimentPrototype(ABC):
                 The reports of the experiment.
                 Defaults to None.
         """
-        self._implementation_check()
-
         if isinstance(arguments, self.arguments_instance):
             self.args = arguments
         elif isinstance(arguments, dict):
@@ -139,6 +137,8 @@ class ExperimentPrototype(ABC):
             raise TypeError(
                 f"commonparams should be {Commonparams} or dict, not {type(commonparams)}"
             )
+
+        self._implementation_check()
 
         self.outfields = outfields
         self.beforewards = (
