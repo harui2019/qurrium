@@ -197,12 +197,12 @@ class ExperimentPrototype(ABC):
     @classmethod
     @abstractmethod
     def params_control(
-        cls, targets: dict[Hashable, QuantumCircuit], exp_name: str, **custom_kwargs: Any
+        cls, targets: list[tuple[Hashable, QuantumCircuit]], exp_name: str, **custom_kwargs: Any
     ) -> tuple[ArgumentsPrototype, Commonparams, dict[str, Any]]:
         """Control the experiment's parameters.
 
         Args:
-            targets (dict[Hashable, QuantumCircuit]):
+            targets (list[tuple[Hashable, QuantumCircuit]]):
                 The circuits of the experiment.
             exp_name (str):
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
@@ -219,7 +219,7 @@ class ExperimentPrototype(ABC):
     @classmethod
     def _params_control_core(
         cls,
-        targets: dict[Hashable, QuantumCircuit],
+        targets: list[tuple[Hashable, QuantumCircuit]],
         exp_id: Optional[str] = None,
         shots: int = 1024,
         backend: Optional[Backend] = None,
@@ -240,7 +240,7 @@ class ExperimentPrototype(ABC):
         """Control the experiment's general parameters.
 
         Args:
-            targets (dict[Hashable, QuantumCircuit]):
+            targets (list[tuple[Hashable, QuantumCircuit]]):
                 The circuits of the experiment.
             exp_id (Optional[str], optional):
                 If input is `None`, then create an new experiment.
@@ -366,7 +366,7 @@ class ExperimentPrototype(ABC):
     @abstractmethod
     def method(
         cls,
-        targets: dict[Hashable, QuantumCircuit],
+        targets: list[tuple[Hashable, QuantumCircuit]],
         arguments: ArgumentsPrototype,
         pbar: Optional[tqdm.tqdm] = None,
     ) -> tuple[list[QuantumCircuit], dict[str, Any]]:
@@ -374,7 +374,7 @@ class ExperimentPrototype(ABC):
         Where should be overwritten by each construction of new measurement.
 
         Args:
-            targets (dict[Hashable, QuantumCircuit]):
+            targets (list[tuple[Hashable, QuantumCircuit]]):
                 The circuits of the experiment.
             arguments (ArgumentsPrototype):
                 The arguments of the experiment.
@@ -391,7 +391,7 @@ class ExperimentPrototype(ABC):
     @classmethod
     def build(
         cls,
-        targets: dict[Hashable, QuantumCircuit],
+        targets: list[tuple[Hashable, QuantumCircuit]],
         shots: int = 1024,
         backend: Optional[Backend] = None,
         exp_name: str = "experiment",
@@ -417,7 +417,7 @@ class ExperimentPrototype(ABC):
         """Construct the experiment.
 
         Args:
-            targets (dict[Hashable, QuantumCircuit]):
+            targets (list[tuple[Hashable, QuantumCircuit]]):
                 The circuits of the experiment.
             shots (int, optional):
                 Shots of the job. Defaults to `1024`.

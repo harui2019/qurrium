@@ -39,7 +39,7 @@ class EntropyMeasureHadamardExperiment(ExperimentPrototype):
     @classmethod
     def params_control(
         cls,
-        targets: dict[Hashable, QuantumCircuit],
+        targets: list[tuple[Hashable, QuantumCircuit]],
         exp_name: str = "exps",
         degree: Optional[tuple[int, int]] = None,
         **custom_kwargs: Any,
@@ -47,7 +47,7 @@ class EntropyMeasureHadamardExperiment(ExperimentPrototype):
         """Handling all arguments and initializing a single experiment.
 
         Args:
-            targets (dict[Hashable, QuantumCircuit]):
+            targets (list[tuple[Hashable, QuantumCircuit]]):
                 The circuits of the experiment.
             exp_name (str, optional):
                 The name of the experiment.
@@ -70,7 +70,7 @@ class EntropyMeasureHadamardExperiment(ExperimentPrototype):
         if len(targets) != 1:
             raise ValueError("The number of target circuits should be 1.")
 
-        _target_key, target_circuit = list(targets.items())[0]
+        target_key, target_circuit = targets[0]
         num_qubits = target_circuit.num_qubits
         degree = qubit_selector(num_qubits, degree=degree)
 
@@ -79,7 +79,7 @@ class EntropyMeasureHadamardExperiment(ExperimentPrototype):
         # pylint: disable=protected-access
         return EntropyMeasureHadamardArguments._filter(
             exp_name=exp_name,
-            target_keys=list(targets.keys()),
+            target_keys=[target_key],
             degree=degree,
             **custom_kwargs,
         )
@@ -88,14 +88,14 @@ class EntropyMeasureHadamardExperiment(ExperimentPrototype):
     @classmethod
     def method(
         cls,
-        targets: dict[Hashable, QuantumCircuit],
+        targets: list[tuple[Hashable, QuantumCircuit]],
         arguments: EntropyMeasureHadamardArguments,
         pbar: Optional[tqdm.tqdm] = None,
     ) -> tuple[list[QuantumCircuit], dict[str, Any]]:
         """The method to construct circuit.
 
         Args:
-            targets (dict[Hashable, QuantumCircuit]):
+            targets (list[tuple[Hashable, QuantumCircuit]]):
                 The circuits of the experiment.
             arguments (EntropyMeasureHadamardArguments):
                 The arguments of the experiment.
@@ -107,7 +107,7 @@ class EntropyMeasureHadamardExperiment(ExperimentPrototype):
                 The circuits of the experiment and the arguments of the experiment.
         """
 
-        target_key, target_circuit = list(targets.items())[0]
+        target_key, target_circuit = targets[0]
         target_key = "" if isinstance(target_key, int) else str(target_key)
         num_qubits = target_circuit.num_qubits
         old_name = "" if isinstance(target_circuit.name, str) else target_circuit.name

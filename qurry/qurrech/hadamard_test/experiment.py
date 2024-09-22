@@ -39,7 +39,7 @@ class EchoListenHadamardExperiment(ExperimentPrototype):
     @classmethod
     def params_control(
         cls,
-        targets: dict[Hashable, QuantumCircuit],
+        targets: list[tuple[Hashable, QuantumCircuit]],
         exp_name: str = "exps",
         degree: Optional[tuple[int, int]] = None,
         **custom_kwargs: Any,
@@ -47,7 +47,7 @@ class EchoListenHadamardExperiment(ExperimentPrototype):
         """Handling all arguments and initializing a single experiment.
 
         Args:
-            targets (dict[Hashable, QuantumCircuit]):
+            targets (list[tuple[Hashable, QuantumCircuit]]):
                 The circuits of the experiment.
             exp_name (str, optional):
                 The name of the experiment.
@@ -71,9 +71,9 @@ class EchoListenHadamardExperiment(ExperimentPrototype):
         if len(targets) != 2:
             raise ValueError("The number of target circuits should be 2.")
 
-        target_key_01, target_circuit_01 = list(targets.items())[0]
+        target_key_01, target_circuit_01 = targets[0]
         num_qubits_01 = target_circuit_01.num_qubits
-        target_key_02, target_circuit_02 = list(targets.items())[1]
+        target_key_02, target_circuit_02 = targets[1]
         num_qubits_02 = target_circuit_02.num_qubits
 
         if num_qubits_01 != num_qubits_02:
@@ -89,7 +89,7 @@ class EchoListenHadamardExperiment(ExperimentPrototype):
         # pylint: disable=protected-access
         return EchoListenHadamardArguments._filter(
             exp_name=exp_name,
-            target_keys=list(targets.keys()),
+            target_keys=[target_key_01, target_key_02],
             degree=degree,
             **custom_kwargs,
         )
@@ -98,14 +98,14 @@ class EchoListenHadamardExperiment(ExperimentPrototype):
     @classmethod
     def method(
         cls,
-        targets: dict[Hashable, QuantumCircuit],
+        targets: list[tuple[Hashable, QuantumCircuit]],
         arguments: EchoListenHadamardArguments,
         pbar: Optional[tqdm.tqdm] = None,
     ) -> tuple[list[QuantumCircuit], dict[str, Any]]:
         """The method to construct circuit.
 
         Args:
-            targets (dict[Hashable, QuantumCircuit]):
+            targets (list[tuple[Hashable, QuantumCircuit]]):
                 The circuits of the experiment.
             arguments (EchoListenHadamardArguments):
                 The arguments of the experiment.
@@ -118,11 +118,11 @@ class EchoListenHadamardExperiment(ExperimentPrototype):
                 The circuits of the experiment and the arguments of the experiment.
         """
 
-        target_key_01, target_circuit_01 = list(targets.items())[0]
+        target_key_01, target_circuit_01 = targets[0]
         target_key_01 = "" if isinstance(target_key_01, int) else str(target_key_01)
         num_qubits_01 = target_circuit_01.num_qubits
         old_name_01 = "" if isinstance(target_circuit_01.name, str) else target_circuit_01.name
-        target_key_02, target_circuit_02 = list(targets.items())[1]
+        target_key_02, target_circuit_02 = targets[1]
         target_key_02 = "" if isinstance(target_key_02, int) else str(target_key_02)
         num_qubits_02 = target_circuit_02.num_qubits
         old_name_02 = "" if isinstance(target_circuit_02.name, str) else target_circuit_02.name

@@ -39,7 +39,7 @@ class QurryExperiment(ExperimentPrototype):
     @classmethod
     def params_control(
         cls,
-        targets: dict[Hashable, QuantumCircuit],
+        targets: list[tuple[Hashable, QuantumCircuit]],
         exp_name: str = "exps",
         sampling: int = 1,
         **custom_kwargs: Any,
@@ -47,7 +47,7 @@ class QurryExperiment(ExperimentPrototype):
         """Control the experiment's parameters.
 
         Args:
-            targets (dict[Hashable, QuantumCircuit]):
+            targets (list[tuple[Hashable, QuantumCircuit]]):
                 The circuits of the experiment.
             exp_name (str):
                 The name of the experiment. Defaults to "exps".
@@ -56,19 +56,22 @@ class QurryExperiment(ExperimentPrototype):
             custom_kwargs (Any):
                 The custom parameters.
 
+        Raises:
+            ValueError: The number of target circuits should be only one.
+
         Returns:
             tuple[QurryArguments, Commonparams, dict[str, Any]]:
                 The arguments of the experiment, the common parameters, and the custom parameters
         """
-        exp_name = f"{exp_name}.times_{sampling}.{SHORT_NAME}"
-
-        if len(targets) > 1:
+        if len(targets) != 1:
             raise ValueError("The number of target circuits should be only one.")
+
+        exp_name = f"{exp_name}.times_{sampling}.{SHORT_NAME}"
 
         # pylint: disable=protected-access
         return QurryArguments._filter(
             exp_name=exp_name,
-            target_keys=list(targets.keys()),
+            target_keys=[targets[0][0]],
             sampling=sampling,
             **custom_kwargs,
         )
@@ -77,14 +80,14 @@ class QurryExperiment(ExperimentPrototype):
     @classmethod
     def method(
         cls,
-        targets: dict[Hashable, QuantumCircuit],
+        targets: list[tuple[Hashable, QuantumCircuit]],
         arguments: QurryArguments,
         pbar: Optional[tqdm.tqdm] = None,
     ) -> tuple[list[QuantumCircuit], dict[str, Any]]:
         """The method to construct circuit.
 
         Args:
-            targets (dict[Hashable, QuantumCircuit]):
+            targets (list[tuple[Hashable, QuantumCircuit]]):
                 The circuits of the experiment.
             arugments (ArgumentsPrototype):
                 The arguments of the experiment.
@@ -100,8 +103,7 @@ class QurryExperiment(ExperimentPrototype):
         if pbar is not None:
             pbar.set_description("| Loading circuits")
 
-        cirqs_items = list(targets.items())
-        the_chosen_key, q = cirqs_items[0]
+        the_chosen_key, q = targets[0]
         the_chosen_key = "" if isinstance(the_chosen_key, int) else str(the_chosen_key)
         old_name = "" if isinstance(q.name, str) else q.name
         old_name = "" if len(old_name) < 1 else old_name

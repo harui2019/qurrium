@@ -54,7 +54,7 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
     @classmethod
     def params_control(
         cls,
-        targets: dict[Hashable, QuantumCircuit],
+        targets: list[tuple[Hashable, QuantumCircuit]],
         exp_name: str = "exps",
         times: int = 100,
         measure: Optional[Union[tuple[int, int], int]] = None,
@@ -64,7 +64,7 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
         """Handling all arguments and initializing a single experiment.
 
         Args:
-            targets (dict[Hashable, QuantumCircuit]):
+            targets (list[tuple[Hashable, QuantumCircuit]]):
                 The circuits of the experiment.
             exp_name (str, optional):
                 The name of the experiment.
@@ -95,7 +95,7 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
         if not isinstance(times, int):
             raise TypeError(f"times should be an integer, but got {times}.")
 
-        _target_key, target_circuit = list(targets.items())[0]
+        target_key, target_circuit = targets[0]
         num_qubits = target_circuit.num_qubits
 
         if measure is None:
@@ -115,7 +115,7 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
         # pylint: disable=protected-access
         return EntropyMeasureRandomizedArguments._filter(
             exp_name=exp_name,
-            target_keys=list(targets.keys()),
+            target_keys=[target_key],
             times=times,
             measure=measure,
             unitary_loc=unitary_loc,
@@ -126,14 +126,14 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
     @classmethod
     def method(
         cls,
-        targets: dict[Hashable, QuantumCircuit],
+        targets: list[tuple[Hashable, QuantumCircuit]],
         arguments: EntropyMeasureRandomizedArguments,
         pbar: Optional[tqdm.tqdm] = None,
     ) -> tuple[list[QuantumCircuit], dict[str, Any]]:
         """The method to construct circuit.
 
         Args:
-            targets (dict[Hashable, QuantumCircuit]):
+            targets (list[tuple[Hashable, QuantumCircuit]]):
                 The circuits of the experiment.
             arguments (EntropyMeasureRandomizedArguments):
                 The arguments of the experiment.
@@ -153,7 +153,7 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
                 f"Preparing {arguments.times} random unitary with {arguments.workers_num} workers."
             )
 
-        target_key, target_circuit = list(targets.items())[0]
+        target_key, target_circuit = targets[0]
         target_key = "" if isinstance(target_key, int) else str(target_key)
         num_qubits = target_circuit.num_qubits
 

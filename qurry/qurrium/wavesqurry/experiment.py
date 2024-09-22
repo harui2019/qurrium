@@ -39,14 +39,14 @@ class WavesExecuterExperiment(ExperimentPrototype):
     @classmethod
     def params_control(
         cls,
-        targets: dict[Hashable, QuantumCircuit],
+        targets: list[tuple[Hashable, QuantumCircuit]],
         exp_name: str = "exps",
         **custom_kwargs: Any,
     ) -> tuple[WavesExecuterArguments, Commonparams, dict[str, Any]]:
         """Control the experiment's parameters.
 
         Args:
-            targets (dict[Hashable, QuantumCircuit]):
+            targets (list[tuple[Hashable, QuantumCircuit]]):
                 The circuits of the experiment.
             exp_name (str, optional):
                 The name of the experiment.
@@ -65,7 +65,7 @@ class WavesExecuterExperiment(ExperimentPrototype):
         # pylint: disable=protected-access
         return WavesExecuterArguments._filter(
             exp_name=exp_name,
-            target_keys=list(targets.keys()),
+            target_keys=[k for k, _ in targets],
             **custom_kwargs,
         )
         # pylint: enable=protected-access
@@ -73,14 +73,14 @@ class WavesExecuterExperiment(ExperimentPrototype):
     @classmethod
     def method(
         cls,
-        targets: dict[Hashable, QuantumCircuit],
+        targets: list[tuple[Hashable, QuantumCircuit]],
         arguments: WavesExecuterArguments,
         pbar: Optional[tqdm.tqdm] = None,
     ) -> tuple[list[QuantumCircuit], dict[str, Any]]:
         """The method to construct circuit.
 
         Args:
-            targets (dict[Hashable, QuantumCircuit]):
+            targets (list[tuple[Hashable, QuantumCircuit]]):
                 The circuits of the experiment.
             arugments (ArgumentsPrototype):
                 The arguments of the experiment.
@@ -95,7 +95,7 @@ class WavesExecuterExperiment(ExperimentPrototype):
         cirqs = []
         if pbar is not None:
             pbar.set_description("| Loading circuits")
-        for i, (k, q) in enumerate(targets.items()):
+        for i, (k, q) in enumerate(targets):
             q_copy = q.copy()
             chosen_key = "" if isinstance(k, int) else str(k)
             old_name = "" if isinstance(q.name, str) else q.name

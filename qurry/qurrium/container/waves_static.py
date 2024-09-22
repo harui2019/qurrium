@@ -48,7 +48,7 @@ class WaveContainer(dict[Hashable, QuantumCircuit]):
 
     def process(
         self, circuits: list[Union[QuantumCircuit, Hashable]]
-    ) -> dict[Hashable, QuantumCircuit]:
+    ) -> list[tuple[Hashable, QuantumCircuit]]:
         """Process the circuits in container.
 
         Args:
@@ -56,7 +56,7 @@ class WaveContainer(dict[Hashable, QuantumCircuit]):
                 The circuits or keys of circuits in container.
 
         Returns:
-            dict[Hashable, QuantumCircuit]: The processed circuits.
+            list[tuple[Hashable, QuantumCircuit]]: The processed circuits.
         """
         return _process(self, circuits)
 

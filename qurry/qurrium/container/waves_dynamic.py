@@ -54,7 +54,7 @@ def wave_container_maker(
 
     def process(
         self, circuits: list[Union[QuantumCircuit, Hashable]]
-    ) -> dict[Hashable, QuantumCircuit]:
+    ) -> list[tuple[Hashable, QuantumCircuit]]:
         return _process(self, circuits)
 
     def remove(self, key: Hashable):
@@ -359,7 +359,7 @@ def _remove(
 def _process(
     _wave_container: MutableMapping[Hashable, QuantumCircuit],
     circuits: list[Union[QuantumCircuit, Hashable]],
-) -> dict[Hashable, QuantumCircuit]:
+) -> list[tuple[Hashable, QuantumCircuit]]:
     """Process the circuits for Qurrium.
 
     Args:
@@ -373,19 +373,19 @@ def _process(
     Returns:
         dict[Hashable, QuantumCircuit]: The circuits maps.
     """
-    circuits_maps = {}
+    circuits_items: list[tuple[Hashable, QuantumCircuit]] = []
     for _circuit in circuits:
         if isinstance(_circuit, QuantumCircuit):
             key = _add(_wave_container, wave=_circuit)
-            circuits_maps[key] = _wave_container[key]
+            circuits_items.append((key, _wave_container[key]))
         elif isinstance(_circuit, Hashable):
             if _circuit in _wave_container:
-                circuits_maps[_circuit] = _wave_container[_circuit]
+                circuits_items.append((_circuit, _wave_container[_circuit]))
             else:
                 raise KeyError(f"Wave {_circuit} not found in {_wave_container}")
         else:
             raise ValueError(f"Invalid type of circuit: {_circuit}, type: {type(_circuit)}")
 
-    if len(circuits_maps) != len(circuits):
-        raise ValueError(f"Lost some circuits: {circuits_maps.keys()}, {circuits}")
-    return circuits_maps
+    if len(circuits_items) != len(circuits):
+        raise ValueError(f"Lost some circuits: {[k for k, _ in circuits_items]}, {circuits}")
+    return circuits_items

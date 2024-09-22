@@ -80,7 +80,7 @@ class EchoListenRandomizedExperiment(ExperimentPrototype):
     @classmethod
     def params_control(
         cls,
-        targets: dict[Hashable, QuantumCircuit],
+        targets: list[tuple[Hashable, QuantumCircuit]],
         exp_name: str = "exps",
         times: int = 100,
         measure: Optional[Union[tuple[int, int], int]] = None,
@@ -90,7 +90,7 @@ class EchoListenRandomizedExperiment(ExperimentPrototype):
         """Handling all arguments and initializing a single experiment.
 
         Args:
-            targets (dict[Hashable, QuantumCircuit]):
+            targets (list[tuple[Hashable, QuantumCircuit]]):
                 The circuits of the experiment.
             exp_name (str, optional):
                 The name of the experiment.
@@ -121,9 +121,9 @@ class EchoListenRandomizedExperiment(ExperimentPrototype):
         if not isinstance(times, int):
             raise TypeError(f"times should be an integer, but got {times}.")
 
-        target_key_01, target_circuit_01 = list(targets.items())[0]
+        target_key_01, target_circuit_01 = targets[0]
         num_qubits_01 = target_circuit_01.num_qubits
-        target_key_02, target_circuit_02 = list(targets.items())[1]
+        target_key_02, target_circuit_02 = targets[1]
         num_qubits_02 = target_circuit_02.num_qubits
 
         if num_qubits_01 != num_qubits_02:
@@ -144,7 +144,7 @@ class EchoListenRandomizedExperiment(ExperimentPrototype):
         # pylint: disable=protected-access
         return EchoListenRandomizedArguments._filter(
             exp_name=exp_name,
-            target_keys=list(targets.keys()),
+            target_keys=[target_key_01, target_key_02],
             times=times,
             measure=measure,
             unitary_loc=unitary_loc,
@@ -155,14 +155,14 @@ class EchoListenRandomizedExperiment(ExperimentPrototype):
     @classmethod
     def method(
         cls,
-        targets: dict[Hashable, QuantumCircuit],
+        targets: list[tuple[Hashable, QuantumCircuit]],
         arguments: EchoListenRandomizedArguments,
         pbar: Optional[tqdm.tqdm] = None,
     ) -> tuple[list[QuantumCircuit], dict[str, Any]]:
         """The method to construct circuit.
 
         Args:
-            targets (dict[Hashable, QuantumCircuit]):
+            targets (list[tuple[Hashable, QuantumCircuit]]):
                 The circuits of the experiment.
             arguments (EchoListenRandomizedArguments):
                 The arguments of the experiment.
@@ -182,10 +182,10 @@ class EchoListenRandomizedExperiment(ExperimentPrototype):
                 f"Preparing {arguments.times} random unitary with {arguments.workers_num} workers."
             )
 
-        target_key_01, target_circuit_01 = list(targets.items())[0]
+        target_key_01, target_circuit_01 = targets[0]
         target_key_01 = "" if isinstance(target_key_01, int) else str(target_key_01)
         num_qubits_01 = target_circuit_01.num_qubits
-        target_key_02, target_circuit_02 = list(targets.items())[1]
+        target_key_02, target_circuit_02 = targets[1]
         target_key_02 = "" if isinstance(target_key_02, int) else str(target_key_02)
         num_qubits_02 = target_circuit_02.num_qubits
 
