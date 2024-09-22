@@ -73,7 +73,7 @@ class EchoListenRandomizedExperiment(ExperimentPrototype):
     args: EchoListenRandomizedArguments
 
     @property
-    def analysis_container(self) -> Type[EchoListenRandomizedAnalysis]:
+    def analysis_instance(self) -> Type[EchoListenRandomizedAnalysis]:
         """The analysis instance for this experiment."""
         return EchoListenRandomizedAnalysis
 

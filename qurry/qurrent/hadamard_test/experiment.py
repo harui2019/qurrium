@@ -32,7 +32,7 @@ class EntropyMeasureHadamardExperiment(ExperimentPrototype):
     args: EntropyMeasureHadamardArguments
 
     @property
-    def analysis_container(self) -> Type[EntropyMeasureHadamardAnalysis]:
+    def analysis_instance(self) -> Type[EntropyMeasureHadamardAnalysis]:
         """The analysis instance for this experiment."""
         return EntropyMeasureHadamardAnalysis
 

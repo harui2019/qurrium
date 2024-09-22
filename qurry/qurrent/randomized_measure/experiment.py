@@ -47,7 +47,7 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
     args: EntropyMeasureRandomizedArguments
 
     @property
-    def analysis_container(self) -> Type[EntropyMeasureRandomizedAnalysis]:
+    def analysis_instance(self) -> Type[EntropyMeasureRandomizedAnalysis]:
         """The analysis instance for this experiment."""
         return EntropyMeasureRandomizedAnalysis
 

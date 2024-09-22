@@ -32,7 +32,7 @@ class QurryExperiment(ExperimentPrototype):
     args: QurryArguments
 
     @property
-    def analysis_container(self) -> Type[QurryAnalysis]:
+    def analysis_instance(self) -> Type[QurryAnalysis]:
         """The analysis instance for this experiment."""
         return QurryAnalysis
 

@@ -32,7 +32,7 @@ class WavesExecuterExperiment(ExperimentPrototype):
     args: WavesExecuterArguments
 
     @property
-    def analysis_container(self) -> Type[WavesExecuterAnalysis]:
+    def analysis_instance(self) -> Type[WavesExecuterAnalysis]:
         """The analysis instance for this experiment."""
         return WavesExecuterAnalysis
 

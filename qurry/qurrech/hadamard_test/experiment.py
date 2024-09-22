@@ -32,7 +32,7 @@ class EchoListenHadamardExperiment(ExperimentPrototype):
     args: EchoListenHadamardArguments
 
     @property
-    def analysis_container(self) -> Type[EchoListenHadamardAnalysis]:
+    def analysis_instance(self) -> Type[EchoListenHadamardAnalysis]:
         """The analysis instance for this experiment."""
         return EchoListenHadamardAnalysis
 

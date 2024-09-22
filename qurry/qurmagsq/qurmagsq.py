@@ -168,7 +168,7 @@
 
 #     @classmethod
 #     @property
-#     def analysis_container(cls) -> Type[MagnetSquareAnalysis]:
+#     def analysis_instance(cls) -> Type[MagnetSquareAnalysis]:
 #         """The container class responding to this QurryV5 class."""
 #         return MagnetSquareAnalysis
 
