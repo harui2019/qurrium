@@ -21,7 +21,7 @@ class QurryArguments(ArgumentsPrototype):
     sampling: int = 1
 
 
-class QurryOutputArgs(BasicArgs):
+class QurryMeasureArgs(BasicArgs):
     """Output arguments for :meth:`output`."""
 
     sampling: int

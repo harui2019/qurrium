@@ -34,7 +34,7 @@ class EchoListenRandomizedArguments(ArgumentsPrototype):
     """The number of workers for multiprocessing."""
 
 
-class EchoListenRandomizedOutputArgs(BasicArgs):
+class EchoListenRandomizedMeasureArgs(BasicArgs):
     """Output arguments for :meth:`output`."""
 
     exp_name: str

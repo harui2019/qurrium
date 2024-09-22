@@ -26,7 +26,7 @@ class EchoListenHadamardArguments(ArgumentsPrototype):
     """The degree range."""
 
 
-class EchoListenHadamardOutputArgs(BasicArgs):
+class EchoListenHadamardMeasureArgs(BasicArgs):
     """Output arguments for :meth:`output`."""
 
     exp_name: str

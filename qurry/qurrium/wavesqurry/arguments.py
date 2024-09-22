@@ -19,7 +19,7 @@ class WavesExecuterArguments(ArgumentsPrototype):
     which is overwritable by the inherition class."""
 
 
-class WavesExecuterOutputArgs(BasicArgs):
+class WavesExecuterMeasureArgs(BasicArgs):
     """Output arguments for :meth:`output`."""
 
 

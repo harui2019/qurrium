@@ -34,7 +34,7 @@ class EntropyMeasureRandomizedArguments(ArgumentsPrototype):
     """The number of workers for multiprocessing."""
 
 
-class EntropyMeasureRandomizedOutputArgs(BasicArgs):
+class EntropyMeasureRandomizedMeasureArgs(BasicArgs):
     """Output arguments for :meth:`output`."""
 
     exp_name: str

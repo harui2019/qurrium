@@ -26,7 +26,7 @@ class EntropyMeasureHadamardArguments(ArgumentsPrototype):
     """The degree range."""
 
 
-class EntropyMeasureHadamardOutputArgs(BasicArgs):
+class EntropyMeasureHadamardMeasureArgs(BasicArgs):
     """Output arguments for :meth:`output`."""
 
     exp_name: str
