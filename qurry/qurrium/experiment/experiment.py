@@ -1401,8 +1401,8 @@ class ExperimentPrototype(ABC):
             encoding=encoding,
         )
         exp_instance = cls(
-            export_material_set["commonparams"],
             export_material_set["arguments"],
+            export_material_set["commonparams"],
             export_material_set["outfields"],
             beforewards=Before.read(
                 file_index=file_index, save_location=save_location, encoding=encoding
