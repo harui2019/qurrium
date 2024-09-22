@@ -97,7 +97,7 @@ class WavesExecuterExperiment(ExperimentPrototype):
             pbar.set_description("| Loading circuits")
         for i, (k, q) in enumerate(targets.items()):
             q_copy = q.copy()
-            chosen_key = "" if isinstance(k, int) else k
+            chosen_key = "" if isinstance(k, int) else str(k)
             old_name = "" if isinstance(q.name, str) else q.name
             old_name = "" if len(old_name) < 1 else old_name
             q_copy.name = ".".join(

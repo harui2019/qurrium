@@ -102,7 +102,7 @@ class QurryExperiment(ExperimentPrototype):
 
         cirqs_items = list(targets.items())
         the_chosen_key, q = cirqs_items[0]
-        the_chosen_key = "" if isinstance(the_chosen_key, int) else the_chosen_key
+        the_chosen_key = "" if isinstance(the_chosen_key, int) else str(the_chosen_key)
         old_name = "" if isinstance(q.name, str) else q.name
         old_name = "" if len(old_name) < 1 else old_name
         q_copy = q.copy()
