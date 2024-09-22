@@ -389,10 +389,10 @@ class QurriumPrototype(ABC):
             str: The summoner_id of multimanager.
         """
 
-        if summoner_id is None:
-            raise ValueError("No summoner_id given.")
         if summoner_id in self.multimanagers:
             return summoner_id
+        if summoner_id is not None:
+            raise ValueError("Unknow summoner_id in multimanagers.")
 
         output_allow_config_list = [self.measure_to_output(**config) for config in config_list]
 
