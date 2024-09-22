@@ -53,7 +53,7 @@ def wave_container_maker(
         return _add(self, wave, key, replace)
 
     def __setitem__(self, key, value) -> None:
-        self.add(value, key, replace=True)
+        _add(self, value, key, replace=True)
 
     def remove(self, key: Hashable):
         return _remove(self, key)
