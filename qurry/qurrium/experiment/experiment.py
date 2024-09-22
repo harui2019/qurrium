@@ -220,7 +220,7 @@ class ExperimentPrototype(ABC):
     def _params_control_core(
         cls,
         targets: dict[Hashable, QuantumCircuit],
-        exp_id: Optional[str],
+        exp_id: Optional[str] = None,
         shots: int = 1024,
         backend: Optional[Backend] = None,
         exp_name: str = "experiment",
@@ -242,7 +242,7 @@ class ExperimentPrototype(ABC):
         Args:
             targets (dict[Hashable, QuantumCircuit]):
                 The circuits of the experiment.
-            exp_id (str):
+            exp_id (Optional[str], optional):
                 If input is `None`, then create an new experiment.
                 If input is a existed experiment ID, then use it.
                 Otherwise, use the experiment with given specific ID.
