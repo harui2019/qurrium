@@ -528,8 +528,11 @@ class ExperimentPrototype(ABC):
         tmp_qasm = pool.map(qasm_drawer, cirqs)
         for qasm_str in tmp_qasm:
             current_exp.beforewards.circuit_qasm.append(qasm_str)
-        tmp_target_qasm = dict(zip(targets.keys(), pool.map(qasm_drawer, targets.values())))
-        for tk, qasm_str in tmp_target_qasm.items():
+        targets_keys, targets_values = zip(*targets)
+        targets_keys: tuple[Hashable, ...]
+        targets_values: tuple[QuantumCircuit, ...]
+        tmp_target_qasm_items = zip(targets_keys, pool.map(qasm_drawer, targets_values))
+        for tk, qasm_str in tmp_target_qasm_items:
             current_exp.beforewards.target_qasm[str(tk)] = qasm_str
 
         # transpile
