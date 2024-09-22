@@ -152,7 +152,7 @@ class WavesExecuterExperiment(ExperimentPrototype):
         )
 
         serial = len(self.reports)
-        analysis = self.analysis_container(
+        analysis = self.analysis_instance(
             ultimate_question=ultimate_question,
             serial=serial,
             **qs,  # type: ignore

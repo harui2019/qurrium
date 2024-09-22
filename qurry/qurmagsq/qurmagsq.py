@@ -191,7 +191,7 @@
 #         num_qubits = self.args.num_qubits
 #         counts = self.afterwards.counts
 
-#         qs = self.analysis_container.quantities(
+#         qs = self.analysis_instance.quantities(
 #             shots=shots,
 #             counts=counts,
 #             num_qubits=num_qubits,
@@ -199,7 +199,7 @@
 #         )
 
 #         serial = len(self.reports)
-#         analysis = self.analysis_container(
+#         analysis = self.analysis_instance(
 #             serial=serial,
 #             shots=shots,
 #             **qs,

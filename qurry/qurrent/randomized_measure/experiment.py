@@ -315,7 +315,7 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
                 pb_self.update()
 
         serial = len(self.reports)
-        analysis = self.analysis_container(
+        analysis = self.analysis_instance(
             serial=serial,
             shots=shots,
             unitary_loc=unitary_loc,

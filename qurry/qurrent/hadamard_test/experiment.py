@@ -168,7 +168,7 @@ class EntropyMeasureHadamardExperiment(ExperimentPrototype):
         )
 
         serial = len(self.reports)
-        analysis = self.analysis_container(
+        analysis = self.analysis_instance(
             serial=serial,
             shots=shots,
             **qs,  # type: ignore
