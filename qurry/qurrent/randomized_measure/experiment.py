@@ -115,6 +115,7 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
         # pylint: disable=protected-access
         return EntropyMeasureRandomizedArguments._filter(
             exp_name=exp_name,
+            target_keys=list(targets.keys()),
             times=times,
             measure=measure,
             unitary_loc=unitary_loc,

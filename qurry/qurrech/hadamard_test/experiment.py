@@ -89,6 +89,7 @@ class EchoListenHadamardExperiment(ExperimentPrototype):
         # pylint: disable=protected-access
         return EchoListenHadamardArguments._filter(
             exp_name=exp_name,
+            target_keys=list(targets.keys()),
             degree=degree,
             **custom_kwargs,
         )

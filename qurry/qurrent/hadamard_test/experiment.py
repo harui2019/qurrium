@@ -79,6 +79,7 @@ class EntropyMeasureHadamardExperiment(ExperimentPrototype):
         # pylint: disable=protected-access
         return EntropyMeasureHadamardArguments._filter(
             exp_name=exp_name,
+            target_keys=list(targets.keys()),
             degree=degree,
             **custom_kwargs,
         )

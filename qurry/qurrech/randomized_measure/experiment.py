@@ -144,6 +144,7 @@ class EchoListenRandomizedExperiment(ExperimentPrototype):
         # pylint: disable=protected-access
         return EchoListenRandomizedArguments._filter(
             exp_name=exp_name,
+            target_keys=list(targets.keys()),
             times=times,
             measure=measure,
             unitary_loc=unitary_loc,
