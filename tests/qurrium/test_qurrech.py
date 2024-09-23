@@ -9,11 +9,7 @@ import os
 import pytest
 import numpy as np
 
-# from qiskit import BasicAer
-
 from qurry.qurrech import EchoListen
-from qurry.qurrech.hadamard_test.arguments import EchoListenHadamardMeasureArgs
-from qurry.qurrech.randomized_measure.arguments import EchoListenRandomizedMeasureArgs
 from qurry.tools.backend import GeneralSimulator
 from qurry.capsule import mori, hoshi
 from qurry.recipe import TrivialParamagnet, GHZ, TopologicalParamagnet
@@ -39,7 +35,7 @@ for i in range(4, 7, 2):
 
 backend = GeneralSimulator()
 # backend = BasicAer.backends()[0]
-print(backend.configuration())
+print(backend.configuration())  # type: ignore
 
 
 @pytest.mark.parametrize("tgt", wave_adds_01)
@@ -69,8 +65,8 @@ def test_quantity_02(tgt):
         tgt (Hashable): The target wave key in Qurry.
     """
 
-    exp_id = exp_method_02.measure(tgt, tgt, times=10, backend=backend)
-    exp_method_02.exps[exp_id].analyze(2)
+    exp_id = exp_method_02.measure(tgt, tgt, 10, backend=backend)
+    exp_method_02.exps[exp_id].analyze((0, exp_method_02.waves[tgt].num_qubits - 1))
     quantity = exp_method_02.exps[exp_id].reports[0].content._asdict()
     assert all(
         ["echo" in quantity]
@@ -84,10 +80,11 @@ def test_multi_output_01():
         tgt (Hashable): The target wave key in Qurry.
     """
 
-    config_list: list[EchoListenHadamardMeasureArgs] = [
+    config_list = [
         {
             "wave1": k,
             "wave2": k,
+            "degree": (0, 2),
         }
         for k in wave_adds_01
     ]
@@ -98,13 +95,23 @@ def test_multi_output_01():
         save_location=os.path.join(os.path.dirname(__file__), "exports"),
     )
     summoner_id = exp_method_01.multiAnalysis(summoner_id)
-    quantities = exp_method_01.multimanagers[summoner_id].quantity_container
-    for k, quantity in quantities.items():
-        for kk, q in quantity.items():
-            for qqq in q:
+    quantity_container = exp_method_01.multimanagers[summoner_id].quantity_container
+    for rk, report in quantity_container.items():
+        for qk, quantities in report.items():
+            for quantity in quantities:
+                assert isinstance(quantity, dict), f"The quantity is not a dict: {quantity}."
                 assert all(
-                    ["echo" in qqq]
-                ), f"The necessary quantities 'echo' are not found: {q.keys()}."
+                    ["echo" in quantity]
+                ), f"The necessary quantities 'echo' are not found: {quantity.keys()}-{qk}-{rk}."
+
+    read_summoner_id = exp_method_01.multiRead(
+        summoner_name=exp_method_01.multimanagers[summoner_id].summoner_name,
+        save_location=os.path.join(os.path.dirname(__file__), "exports"),
+    )
+
+    assert (
+        read_summoner_id == summoner_id
+    ), f"The read summoner id is wrong: {read_summoner_id} != {summoner_id}."
 
 
 def test_multi_output_02():
@@ -114,7 +121,7 @@ def test_multi_output_02():
         tgt (Hashable): The target wave key in Qurry.
     """
 
-    config_list: list[EchoListenRandomizedMeasureArgs] = [
+    config_list = [
         {
             "wave1": k,
             "wave2": k,
@@ -127,11 +134,21 @@ def test_multi_output_02():
         summoner_name="qurrech_randomized",
         save_location=os.path.join(os.path.dirname(__file__), "exports"),
     )
-    summoner_id = exp_method_02.multiAnalysis(summoner_id)
-    quantities = exp_method_02.multimanagers[summoner_id].quantity_container
-    for k, quantity in quantities.items():
-        for kk, q in quantity.items():
-            for qqq in q:
+    summoner_id = exp_method_02.multiAnalysis(summoner_id, degree=(0, 2))
+    quantity_container = exp_method_02.multimanagers[summoner_id].quantity_container
+    for rk, report in quantity_container.items():
+        for qk, quantities in report.items():
+            for quantity in quantities:
+                assert isinstance(quantity, dict), f"The quantity is not a dict: {quantity}."
                 assert all(
-                    ["echo" in qqq]
-                ), f"The necessary quantities 'echo' are not found: {q.keys()}."
+                    ["echo" in quantity]
+                ), f"The necessary quantities 'echo' are not found: {quantity.keys()}-{qk}-{rk}."
+
+    read_summoner_id = exp_method_02.multiRead(
+        summoner_name=exp_method_02.multimanagers[summoner_id].summoner_name,
+        save_location=os.path.join(os.path.dirname(__file__), "exports"),
+    )
+
+    assert (
+        read_summoner_id == summoner_id
+    ), f"The read summoner id is wrong: {read_summoner_id} != {summoner_id}."
