@@ -3,10 +3,6 @@ name: General Test Unit
 on:
   workflow_call:
     inputs:
-      ci_token:
-        description: "CI token for submodules"
-        required: true
-        type: string
       python_version:
         description: "Python version to set up"
         required: true
@@ -15,10 +11,6 @@ jobs:
   test_unit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: true
-          token: ${{ inputs.ci_token }}
       - name: Set up Python ${{ inputs.python_version }}
         uses: actions/setup-python@v5
         with:
