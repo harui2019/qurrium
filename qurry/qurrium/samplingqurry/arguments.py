@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from qiskit import QuantumCircuit
 
 from ..experiment import ArgumentsPrototype
-from ...declare import BasicArgs
+from ...declare import BasicArgs, OutputArgs
 
 
 @dataclass(frozen=True)
@@ -31,6 +31,13 @@ class QurryMeasureArgs(BasicArgs):
 
     wave: Optional[Union[QuantumCircuit, Hashable]]
     """The key or the circuit to execute."""
+    sampling: int
+    """The number of sampling."""
+
+
+class QurryOutputArgs(OutputArgs):
+    """Output arguments for :meth:`output`."""
+
     sampling: int
     """The number of sampling."""
 

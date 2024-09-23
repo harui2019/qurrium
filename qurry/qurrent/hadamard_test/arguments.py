@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from qiskit import QuantumCircuit
 
 from ...qurrium.experiment import ArgumentsPrototype
-from ...declare import BasicArgs
+from ...declare import BasicArgs, OutputArgs
 
 
 @dataclass(frozen=True)
@@ -34,7 +34,14 @@ class EntropyMeasureHadamardMeasureArgs(BasicArgs):
 
     wave: Optional[Union[QuantumCircuit, Hashable]]
     """The key or the circuit to execute."""
-    degree: Optional[tuple[int, int]]
+    degree: Optional[Union[int, tuple[int, int]]]
+    """The degree range."""
+
+
+class EntropyMeasureHadamardOutputArgs(OutputArgs):
+    """Output arguments for :meth:`output`."""
+
+    degree: Optional[Union[int, tuple[int, int]]]
     """The degree range."""
 
 

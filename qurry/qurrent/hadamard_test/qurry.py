@@ -15,11 +15,11 @@ from qiskit import QuantumCircuit
 from qiskit.providers import Backend
 from qiskit.transpiler.passmanager import PassManager
 
-from .arguments import SHORT_NAME
+from .arguments import SHORT_NAME, EntropyMeasureHadamardOutputArgs
 from .experiment import EntropyMeasureHadamardExperiment
 from ...qurrium.qurrium import QurriumPrototype
 from ...qurrium.container import ExperimentContainer
-from ...declare import BaseRunArgs, TranspileArgs, OutputArgs
+from ...declare import BaseRunArgs, TranspileArgs
 
 
 class EntropyMeasureHadamard(QurriumPrototype):
@@ -59,7 +59,7 @@ class EntropyMeasureHadamard(QurriumPrototype):
         encoding: str = "utf-8",
         jsonable: bool = False,
         pbar: Optional[tqdm.tqdm] = None,
-    ) -> OutputArgs:
+    ) -> EntropyMeasureHadamardOutputArgs:
         """Trasnform :meth:`measure` arguments form into :meth:`output` form.
 
         Args:
@@ -110,7 +110,7 @@ class EntropyMeasureHadamard(QurriumPrototype):
                 Defaults to None.
 
         Returns:
-            OutputArgs: The output arguments.
+            EntropyMeasureHadamardOutputArgs: The output arguments.
         """
         if wave is None:
             raise ValueError("The `wave` must be provided.")

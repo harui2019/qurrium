@@ -15,11 +15,11 @@ from qiskit import QuantumCircuit
 from qiskit.providers import Backend
 from qiskit.transpiler.passmanager import PassManager
 
-from .arguments import SHORT_NAME
+from .arguments import SHORT_NAME, EchoListenHadamardOutputArgs
 from .experiment import EchoListenHadamardExperiment
 from ...qurrium.qurrium import QurriumPrototype
 from ...qurrium.container import ExperimentContainer
-from ...declare import BaseRunArgs, TranspileArgs, OutputArgs
+from ...declare import BaseRunArgs, TranspileArgs
 
 
 class EchoListenHadamard(QurriumPrototype):
@@ -54,7 +54,7 @@ class EchoListenHadamard(QurriumPrototype):
         encoding: str = "utf-8",
         jsonable: bool = False,
         pbar: Optional[tqdm.tqdm] = None,
-    ) -> OutputArgs:
+    ) -> EchoListenHadamardOutputArgs:
         """Trasnform :meth:`measure` arguments form into :meth:`output` form.
 
         Args:
@@ -107,7 +107,7 @@ class EchoListenHadamard(QurriumPrototype):
                 Defaults to None.
 
         Returns:
-            OutputArgs: The output arguments.
+            EchoListenHadamardOutputArgs: The output arguments.
         """
         if wave1 is None:
             raise ValueError("The `wave` must be provided.")

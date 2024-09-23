@@ -15,11 +15,11 @@ from qiskit import QuantumCircuit
 from qiskit.providers import Backend
 from qiskit.transpiler.passmanager import PassManager
 
-from .arguments import SHORT_NAME
+from .arguments import SHORT_NAME, EchoListenRandomizedOutputArgs
 from .experiment import EchoListenRandomizedExperiment
 from ...qurrium.qurrium import QurriumPrototype
 from ...qurrium.container import ExperimentContainer
-from ...declare import BaseRunArgs, TranspileArgs, OutputArgs
+from ...declare import BaseRunArgs, TranspileArgs
 
 
 class EchoListenRandomized(QurriumPrototype):
@@ -56,7 +56,7 @@ class EchoListenRandomized(QurriumPrototype):
         encoding: str = "utf-8",
         jsonable: bool = False,
         pbar: Optional[tqdm.tqdm] = None,
-    ) -> OutputArgs:
+    ) -> EchoListenRandomizedOutputArgs:
         """Trasnform :meth:`measure` arguments form into :meth:`output` form.
 
         Args:
@@ -114,7 +114,7 @@ class EchoListenRandomized(QurriumPrototype):
                 Defaults to None.
 
         Returns:
-            OutputArgs: The output arguments.
+            EchoListenRandomizedOutputArgs: The output arguments.
         """
         if wave1 is None:
             raise ValueError("The `wave` must be provided.")

@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from qiskit import QuantumCircuit
 
 from ...qurrium.experiment import ArgumentsPrototype
-from ...declare import BasicArgs
+from ...declare import BasicArgs, OutputArgs
 
 
 @dataclass(frozen=True)
@@ -36,7 +36,14 @@ class EchoListenHadamardMeasureArgs(BasicArgs):
     """The key or the circuit to execute."""
     wave2: Optional[Union[QuantumCircuit, Hashable]]
     """The key or the circuit to execute."""
-    degree: Optional[tuple[int, int]]
+    degree: Union[int, tuple[int, int], None]
+    """The degree range."""
+
+
+class EchoListenHadamardOutputArgs(OutputArgs):
+    """Output arguments for :meth:`output`."""
+
+    degree: Union[int, tuple[int, int], None]
     """The degree range."""
 
 

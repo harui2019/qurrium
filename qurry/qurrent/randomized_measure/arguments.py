@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from qiskit import QuantumCircuit
 
 from ...qurrium.experiment import ArgumentsPrototype
-from ...declare import BasicArgs
+from ...declare import BasicArgs, OutputArgs
 from ...tools import DEFAULT_POOL_SIZE
 
 
@@ -45,12 +45,22 @@ class EntropyMeasureRandomizedMeasureArgs(BasicArgs):
     times: int
     """The number of random unitary operator. 
     It will denote as `N_U` in the experiment name."""
-    measure: Optional[tuple[int, int]]
+    measure: Union[int, tuple[int, int], None]
     """The measure range."""
-    unitary_loc: Optional[tuple[int, int]]
+    unitary_loc: Union[int, tuple[int, int], None]
     """The range of the unitary operator."""
-    workers_num: int
-    """The number of workers for multiprocessing."""
+
+
+class EntropyMeasureRandomizedOutputArgs(OutputArgs):
+    """Output arguments for :meth:`output`."""
+
+    times: int
+    """The number of random unitary operator. 
+    It will denote as `N_U` in the experiment name."""
+    measure: Union[int, tuple[int, int], None]
+    """The measure range."""
+    unitary_loc: Union[int, tuple[int, int], None]
+    """The range of the unitary operator."""
 
 
 SHORT_NAME = "qurrent_randomized"
