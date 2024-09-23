@@ -8,7 +8,7 @@ For each IBM Quantum provider.
 
 """
 
-from typing import Optional, Union, Any, NotRequired
+from typing import Optional, Union, Any
 
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.pulse import LoConfig
@@ -18,7 +18,7 @@ from qiskit.qobj.utils import MeasLevel, MeasReturnType
 from .base_run import BaseRunArgs
 
 
-class IBMRuntimeBackendRunArgs(BaseRunArgs):
+class IBMRuntimeBackendRunArgs(BaseRunArgs, total=False):
     """Arguments for :meth:`backend.run` from :module:`qiskit.providers.backend`.
     For :cls:`IBMBackend` from :mod:`qiskit_ibm_runtime.ibm_backend`:
 
@@ -48,24 +48,24 @@ class IBMRuntimeBackendRunArgs(BaseRunArgs):
     ```
     """
 
-    dynamic: NotRequired[Optional[bool]]
-    job_tags: NotRequired[Optional[list[str]]]
-    init_circuit: NotRequired[Optional[QuantumCircuit]]
-    init_num_resets: NotRequired[Optional[int]]
-    header: NotRequired[Optional[dict]]
-    shots: NotRequired[Optional[Union[int, float]]]
-    memory: NotRequired[Optional[bool]]
-    meas_level: NotRequired[Optional[Union[int, MeasLevel]]]
-    meas_return: NotRequired[Optional[Union[str, MeasReturnType]]]
-    rep_delay: NotRequired[Optional[float]]
-    init_qubits: NotRequired[Optional[bool]]
-    use_measure_esp: NotRequired[Optional[bool]]
-    noise_model: NotRequired[Optional[Any]]
-    seed_simulator: NotRequired[Optional[int]]
-    run_config: NotRequired[dict]
+    dynamic: Optional[bool]
+    job_tags: Optional[list[str]]
+    init_circuit: Optional[QuantumCircuit]
+    init_num_resets: Optional[int]
+    header: Optional[dict]
+    shots: Optional[Union[int, float]]
+    memory: Optional[bool]
+    meas_level: Optional[Union[int, MeasLevel]]
+    meas_return: Optional[Union[str, MeasReturnType]]
+    rep_delay: Optional[float]
+    init_qubits: Optional[bool]
+    use_measure_esp: Optional[bool]
+    noise_model: Optional[Any]
+    seed_simulator: Optional[int]
+    run_config: dict
 
 
-class IBMProviderBackendRunArgs(BaseRunArgs):
+class IBMProviderBackendRunArgs(BaseRunArgs, total=False):
     """Arguments for :meth:`backend.run` from :module:`qiskit.providers.backend`.
     For :cls:`IBMBackend` from :mod:`qiskit_ibm_provider.ibm_backend`:
 
@@ -94,24 +94,24 @@ class IBMProviderBackendRunArgs(BaseRunArgs):
     ```
     """
 
-    dynamic: NotRequired[Optional[bool]]
-    job_tags: NotRequired[Optional[list[str]]]
-    init_circuit: NotRequired[Optional[QuantumCircuit]]
-    init_num_resets: NotRequired[Optional[int]]
-    header: NotRequired[Optional[dict]]
-    shots: NotRequired[Optional[Union[int, float]]]
-    memory: NotRequired[Optional[bool]]
-    meas_level: NotRequired[Optional[Union[int, MeasLevel]]]
-    meas_return: NotRequired[Optional[Union[str, MeasReturnType]]]
-    rep_delay: NotRequired[Optional[float]]
-    init_qubits: NotRequired[Optional[bool]]
-    use_measure_esp: NotRequired[Optional[bool]]
-    noise_model: NotRequired[Optional[Any]]
-    seed_simulator: NotRequired[Optional[int]]
-    run_config: NotRequired[dict]
+    dynamic: Optional[bool]
+    job_tags: Optional[list[str]]
+    init_circuit: Optional[QuantumCircuit]
+    init_num_resets: Optional[int]
+    header: Optional[dict]
+    shots: Optional[Union[int, float]]
+    memory: Optional[bool]
+    meas_level: Optional[Union[int, MeasLevel]]
+    meas_return: Optional[Union[str, MeasReturnType]]
+    rep_delay: Optional[float]
+    init_qubits: Optional[bool]
+    use_measure_esp: Optional[bool]
+    noise_model: Optional[Any]
+    seed_simulator: Optional[int]
+    run_config: dict
 
 
-class IBMQBackendRunArgs(BaseRunArgs):
+class IBMQBackendRunArgs(BaseRunArgs, total=False):
     """Arguments for :meth:`backend.run` from :module:`qiskit.providers.backend`.
     For :cls:`IBMQBackend` from :mod:`qiskit.providers.ibmq`:
 
@@ -148,31 +148,29 @@ class IBMQBackendRunArgs(BaseRunArgs):
     ```
     """
 
-    job_name: NotRequired[Optional[str]]
-    job_share_level: NotRequired[Optional[str]]
-    job_tags: NotRequired[Optional[list[str]]]
-    experiment_id: NotRequired[Optional[str]]
-    header: NotRequired[Optional[dict]]
-    shots: NotRequired[Optional[int]]
-    memory: NotRequired[Optional[bool]]
-    qubit_lo_freq: NotRequired[Optional[list[int]]]
-    meas_lo_freq: NotRequired[Optional[list[int]]]
-    schedule_los: NotRequired[
-        Optional[
-            Union[
-                list[Union[dict[PulseChannel, float], LoConfig]],
-                Union[dict[PulseChannel, float], LoConfig],
-            ]
+    job_name: Optional[str]
+    job_share_level: Optional[str]
+    job_tags: Optional[list[str]]
+    experiment_id: Optional[str]
+    header: Optional[dict]
+    shots: Optional[int]
+    memory: Optional[bool]
+    qubit_lo_freq: Optional[list[int]]
+    meas_lo_freq: Optional[list[int]]
+    schedule_los: Optional[
+        Union[
+            list[Union[dict[PulseChannel, float], LoConfig]],
+            Union[dict[PulseChannel, float], LoConfig],
         ]
     ]
-    meas_level: NotRequired[Optional[Union[int, MeasLevel]]]
-    meas_return: NotRequired[Optional[Union[str, MeasReturnType]]]
-    memory_slots: NotRequired[Optional[int]]
-    memory_slot_size: NotRequired[Optional[int]]
-    rep_time: NotRequired[Optional[int]]
-    rep_delay: NotRequired[Optional[float]]
-    init_qubits: NotRequired[Optional[bool]]
-    parameter_binds: NotRequired[Optional[list[dict[Parameter, float]]]]
-    use_measure_esp: NotRequired[Optional[bool]]
-    live_data_enabled: NotRequired[Optional[bool]]
-    run_config: NotRequired[dict]
+    meas_level: Optional[Union[int, MeasLevel]]
+    meas_return: Optional[Union[str, MeasReturnType]]
+    memory_slots: Optional[int]
+    memory_slot_size: Optional[int]
+    rep_time: Optional[int]
+    rep_delay: Optional[float]
+    init_qubits: Optional[bool]
+    parameter_binds: Optional[list[dict[Parameter, float]]]
+    use_measure_esp: Optional[bool]
+    live_data_enabled: Optional[bool]
+    run_config: dict

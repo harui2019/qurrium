@@ -8,7 +8,7 @@ For each qiskit simulator.
 
 """
 
-from typing import Optional, Union, NotRequired
+from typing import Optional, Union
 
 from qiskit.circuit import Parameter, Qubit
 from qiskit.pulse import LoConfig
@@ -19,7 +19,7 @@ from qiskit.qobj.utils import MeasLevel, MeasReturnType
 from .base_run import BaseRunArgs
 
 
-class BasicSimulatorRunArgs(BaseRunArgs):
+class BasicSimulatorRunArgs(BaseRunArgs, total=False):
     """Arguments for :meth:`backend.run` from :module:`qiskit.providers.backend`.
     For :cls:`BasicSimulator` from :mod:`qiskit.providers.basic_provider`:
 
@@ -65,36 +65,35 @@ class BasicSimulatorRunArgs(BaseRunArgs):
     ```
     """
 
-    qobj_id: NotRequired[Optional[str]]
-    qobj_header: NotRequired[Optional[Union[QobjHeader, dict]]]
-    shots: NotRequired[Optional[int]]
-    memory: NotRequired[Optional[bool]]
-    seed_simulator: NotRequired[Optional[int]]
-    qubit_lo_freq: NotRequired[Optional[list[float]]]
-    meas_lo_freq: NotRequired[Optional[list[float]]]
-    qubit_lo_range: NotRequired[Optional[list[float]]]
-    meas_lo_range: NotRequired[Optional[list[float]]]
-    schedule_los: NotRequired[
-        Optional[
-            Union[
-                list[Union[dict[PulseChannel, float], LoConfig]],
-                Union[dict[PulseChannel, float], LoConfig],
-            ]
+    qobj_id: Optional[str]
+    qobj_header: Optional[Union[QobjHeader, dict]]
+    shots: Optional[int]
+    memory: Optional[bool]
+    seed_simulator: Optional[int]
+    qubit_lo_freq: Optional[list[float]]
+    meas_lo_freq: Optional[list[float]]
+    qubit_lo_range: Optional[list[float]]
+    meas_lo_range: Optional[list[float]]
+    schedule_los: Optional[
+        Union[
+            list[Union[dict[PulseChannel, float], LoConfig]],
+            Union[dict[PulseChannel, float], LoConfig],
         ]
     ]
-    meas_level: NotRequired[Union[int, MeasLevel]]
-    meas_return: NotRequired[Union[str, MeasReturnType]]
-    meas_map: NotRequired[Optional[list[list[Qubit]]]]
-    memory_slot_size: NotRequired[int]
-    rep_time: NotRequired[Optional[int]]
-    rep_delay: NotRequired[Optional[float]]
-    parameter_binds: NotRequired[Optional[list[dict[Parameter, float]]]]
-    parametric_pulses: NotRequired[Optional[list[str]]]
-    init_qubits: NotRequired[bool]
-    run_config: NotRequired[dict]
+
+    meas_level: Union[int, MeasLevel]
+    meas_return: Union[str, MeasReturnType]
+    meas_map: Optional[list[list[Qubit]]]
+    memory_slot_size: int
+    rep_time: Optional[int]
+    rep_delay: Optional[float]
+    parameter_binds: Optional[list[dict[Parameter, float]]]
+    parametric_pulses: Optional[list[str]]
+    init_qubits: bool
+    run_config: dict
 
 
-class AerBackendRunArgs(BaseRunArgs):
+class AerBackendRunArgs(BaseRunArgs, total=False):
     """Arguments for :meth:`backend.run` from :module:`qiskit.providers.backend`.
     For :cls:`AerBackend` from :mod:`qiskit_aer.backends.aerbackend`
     or :cls:`AerBackend` from :mod:`qiskit.providers.aer.backends.aerbackend`,
@@ -157,11 +156,11 @@ class AerBackendRunArgs(BaseRunArgs):
     (Captured from qiskit-aer 0.15.0)
     """
 
-    parameter_binds: NotRequired[Optional[list[dict[Parameter, float]]]]
-    run_options: NotRequired[dict]
+    parameter_binds: Optional[list[dict[Parameter, float]]]
+    run_options: dict
 
 
-class BasicAerBackendRunArgs(BaseRunArgs):
+class BasicAerBackendRunArgs(BaseRunArgs, total=False):
     """Arguments for :meth:`backend.run` from :module:`qiskit.providers.backend`.
     For :cls:`QasmSimulatorPy` from :mod:`qiskit.providers.basicaer`:
 
@@ -178,7 +177,7 @@ class BasicAerBackendRunArgs(BaseRunArgs):
     ???
 
     I can't where the full content of `backend_options` is used in the source code.
-    So, `backend_options: NotRequired[dict]`
+    So, `backend_options: dict]`
     """
 
-    backend_options: NotRequired[dict]
+    backend_options: dict

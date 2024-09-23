@@ -7,7 +7,7 @@ from :module:`qiskit.compiler.transpiler`
 
 """
 
-from typing import Optional, Union, Callable, TypedDict, NotRequired, Any
+from typing import Optional, Union, Callable, TypedDict, Any
 
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.providers.models.backendproperties import BackendProperties
@@ -19,7 +19,7 @@ from qiskit.transpiler.passes.synthesis.high_level_synthesis import HLSConfig
 from qiskit.transpiler.target import Target
 
 
-class TranspileArgs(TypedDict):
+class TranspileArgs(TypedDict, total=False):
     """Transpile arguments for :func:`transpile` from :module:`qiskit.compiler.transpiler`.
 
     ```python
@@ -59,28 +59,28 @@ class TranspileArgs(TypedDict):
 
     """
 
-    basis_gates: NotRequired[Optional[list[str]]]
-    inst_map: NotRequired[Optional[list[InstructionScheduleMap]]]
-    coupling_map: NotRequired[Optional[Union[CouplingMap, list[list[int]]]]]
-    backend_properties: NotRequired[Optional[BackendProperties]]
-    initial_layout: NotRequired[Optional[Union[Layout, dict, list]]]
-    layout_method: NotRequired[Optional[str]]
-    routing_method: NotRequired[Optional[str]]
-    translation_method: NotRequired[Optional[str]]
-    scheduling_method: NotRequired[Optional[str]]
-    instruction_durations: NotRequired[Optional[InstructionDurationsType]]
-    dt: NotRequired[Optional[float]]
-    approximation_degree: NotRequired[Optional[float]]
-    timing_constraints: NotRequired[Optional[dict[str, int]]]
-    seed_transpiler: NotRequired[Optional[int]]
-    optimization_level: NotRequired[Optional[int]]
-    callback: NotRequired[Optional[Callable[[BasePass, DAGCircuit, float, PropertySet, int], Any]]]
-    output_name: NotRequired[Optional[Union[str, list[str]]]]
-    unitary_synthesis_method: NotRequired[str]
-    unitary_synthesis_plugin_config: NotRequired[Optional[dict]]
-    target: NotRequired[Optional[Target]]
-    hls_config: NotRequired[Optional[HLSConfig]]
-    init_method: NotRequired[Optional[str]]
-    optimization_method: NotRequired[Optional[str]]
-    ignore_backend_supplied_default_methods: NotRequired[bool]
-    num_processes: NotRequired[Optional[int]]
+    basis_gates: Optional[list[str]]
+    inst_map: Optional[list[InstructionScheduleMap]]
+    coupling_map: Optional[Union[CouplingMap, list[list[int]]]]
+    backend_properties: Optional[BackendProperties]
+    initial_layout: Optional[Union[Layout, dict, list]]
+    layout_method: Optional[str]
+    routing_method: Optional[str]
+    translation_method: Optional[str]
+    scheduling_method: Optional[str]
+    instruction_durations: Optional[InstructionDurationsType]
+    dt: Optional[float]
+    approximation_degree: Optional[float]
+    timing_constraints: Optional[dict[str, int]]
+    seed_transpiler: Optional[int]
+    optimization_level: Optional[int]
+    callback: Optional[Callable[[BasePass, DAGCircuit, float, PropertySet, int], Any]]
+    output_name: Optional[Union[str, list[str]]]
+    unitary_synthesis_method: str
+    unitary_synthesis_plugin_config: Optional[dict]
+    target: Optional[Target]
+    hls_config: Optional[HLSConfig]
+    init_method: Optional[str]
+    optimization_method: Optional[str]
+    ignore_backend_supplied_default_methods: bool
+    num_processes: Optional[int]

@@ -7,7 +7,7 @@ from :module:`QurriumPrototype`
 
 """
 
-from typing import Optional, Union, TypedDict, NotRequired, Any
+from typing import Optional, Union, TypedDict, Any
 from collections.abc import Hashable
 from pathlib import Path
 import tqdm
@@ -20,28 +20,28 @@ from .run import BaseRunArgs
 from .transpile import TranspileArgs
 
 
-class BasicArgs(TypedDict):
+class BasicArgs(TypedDict, total=False):
     """Basic output arguments for :meth:`output`."""
 
-    shots: NotRequired[int]
+    shots: int
     backend: Optional[Backend]
-    exp_name: NotRequired[str]
-    run_args: NotRequired[Optional[Union[BaseRunArgs, dict[str, Any]]]]
-    transpile_args: NotRequired[Optional[TranspileArgs]]
-    passmanager: NotRequired[Optional[Union[str, PassManager, tuple[str, PassManager]]]]
+    exp_name: str
+    run_args: Optional[Union[BaseRunArgs, dict[str, Any]]]
+    transpile_args: Optional[TranspileArgs]
+    passmanager: Optional[Union[str, PassManager, tuple[str, PassManager]]]
     # already built exp
-    exp_id: NotRequired[Optional[str]]
-    new_backend: NotRequired[Optional[Backend]]
-    revive: NotRequired[bool]
-    replace_circuits: NotRequired[bool]
+    exp_id: Optional[str]
+    new_backend: Optional[Backend]
+    revive: bool
+    replace_circuits: bool
     # process tool
-    export: NotRequired[bool]
-    save_location: NotRequired[Optional[Union[Path, str]]]
-    mode: NotRequired[str]
-    indent: NotRequired[int]
-    encoding: NotRequired[str]
-    jsonable: NotRequired[bool]
-    pbar: NotRequired[Optional[tqdm.tqdm]]
+    export: bool
+    save_location: Optional[Union[Path, str]]
+    mode: str
+    indent: int
+    encoding: str
+    jsonable: bool
+    pbar: Optional[tqdm.tqdm]
 
 
 class OutputArgs(BasicArgs):
