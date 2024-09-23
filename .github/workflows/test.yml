@@ -21,8 +21,8 @@ jobs:
       matrix:
         python-version: ["3.12"]
     steps:
-      - name: Run common tasks
-        uses: ./.github/workflows/common.yml
+      - name: Run General Test
+        uses: ./.github/workflows/test-unit.yml
         with:
           ci_token: ${{ secrets.CI_TOKEN }}
           python_version: ${{ matrix.python-version }}
@@ -36,8 +36,8 @@ jobs:
       matrix:
         python-version: ["3.9"]
     steps:
-      - name: Run common tasks
-        uses: ./.github/workflows/common.yml
+      - name: Run General Test
+        uses: ./.github/workflows/test-unit.yml
         with:
           ci_token: ${{ secrets.CI_TOKEN }}
           python_version: ${{ matrix.python-version }}
@@ -53,8 +53,8 @@ jobs:
       matrix:
         python-version: ["3.10", "3.11"]
     steps:
-      - name: Run common tasks
-        uses: ./.github/workflows/common.yml
+      - name: Run General Test
+        uses: ./.github/workflows/test-unit.yml
         with:
           ci_token: ${{ secrets.CI_TOKEN }}
           python_version: ${{ matrix.python-version }}
