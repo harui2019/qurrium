@@ -530,6 +530,7 @@ class QurriumPrototype(ABC):
         summoner_id: Optional[str] = None,
         shots: int = 1024,
         backend: Backend = GeneralSimulator(),
+        provider: Optional[Any] = None,
         tags: Optional[list[str]] = None,
         manager_run_args: Optional[dict[str, Any]] = None,
         save_location: Union[Path, str] = Path("./"),
@@ -548,7 +549,9 @@ class QurriumPrototype(ABC):
             shots (int, optional):
                 Shots of the job. Defaults to `1024`.
             backend (Backend, optional):
-                The quantum backend. Defaults to AerSimulator().
+                The quantum backend. Defaults to GeneralSimulator().
+            provider (Optional[Any], optional):
+                The provider. Defaults to None.
             tags (Optional[list[str]], optional):
                 Tags of experiment of the MultiManager. Defaults to None.
             manager_run_args (Optional[dict[str, Any]], optional):
@@ -601,6 +604,7 @@ class QurriumPrototype(ABC):
             experiment_container=tmp_exps_container,
             backend=backend,
             backend_type=jobstype,
+            provider=provider,
         )
         self.accessor.pending(
             pending_strategy=pending_strategy,
