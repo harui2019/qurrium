@@ -107,6 +107,10 @@ class EntropyMeasureHadamardExperiment(ExperimentPrototype):
                 The circuits of the experiment and the arguments of the experiment.
         """
 
+        assert isinstance(
+            arguments.degree, tuple
+        ), f"The degree should be a tuple, got {arguments.degree}."
+
         target_key, target_circuit = targets[0]
         target_key = "" if isinstance(target_key, int) else str(target_key)
         num_qubits = target_circuit.num_qubits
@@ -144,21 +148,24 @@ class EntropyMeasureHadamardExperiment(ExperimentPrototype):
 
         return [qc_exp1], {}
 
-    def analyze(self) -> EntropyMeasureHadamardAnalysis:
+    def analyze(
+        self,
+        pbar: Optional[tqdm.tqdm] = None,
+    ) -> EntropyMeasureHadamardAnalysis:
         """Calculate entangled entropy with more information combined.
 
         Args:
             degree (Union[tuple[int, int], int]): Degree of the subsystem.
-            workers_num (Optional[int], optional):
-                Number of multi-processing workers,
-                if sets to 1, then disable to using multi-processing;
-                if not specified, the use 3/4 of cpu counts by `round(cpu_count*3/4)`.
-                Defaults to None.
+            pbar (Optional[tqdm.tqdm], optional):
+                The progress bar. Defaults to None.
 
         Returns:
             dict[str, float]: A dictionary contains
                 purity, entropy.
         """
+
+        if pbar is not None:
+            pbar.set_description("Calculating entangled entropy")
 
         shots = self.commons.shots
         counts = self.afterwards.counts

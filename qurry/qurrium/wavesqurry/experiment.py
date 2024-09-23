@@ -133,10 +133,30 @@ class WavesExecuterExperiment(ExperimentPrototype):
             "utlmatic_answer": utlmatic_answer,
         }
 
-    def analyze(self, ultimate_question: str = "", shots: Optional[int] = None):
+    def analyze(
+        self,
+        ultimate_question: str = "",
+        shots: Optional[int] = None,
+        pbar: Optional[tqdm.tqdm] = None,
+    ) -> WavesExecuterAnalysis:
         """Analysis of the experiment.
-        Where should be overwritten by each construction of new measurement.
+
+        Args:
+            ultimate_question (str, optional):
+                The ultimate question of the universe.
+                Defaults to `''`.
+            shots (Optional[int], optional):
+                The number of shots.
+                Defaults to None.
+            pbar (Optional[tqdm.tqdm], optional):
+                The progress bar. Defaults to None.
+
+        Returns:
+            WavesExecuterAnalysis: The analysis of the experiment
         """
+
+        if pbar is not None:
+            pbar.set_description("What is the ultimate question of the universe?")
 
         if shots is None:
             shots = self.commons.shots

@@ -147,6 +147,7 @@ class QurryExperiment(ExperimentPrototype):
         self,
         ultimate_question: str = "",
         shots: Optional[int] = None,
+        pbar: Optional[tqdm.tqdm] = None,
     ) -> QurryAnalysis:
         """Analysis of the experiment.
 
@@ -155,10 +156,16 @@ class QurryExperiment(ExperimentPrototype):
                 The ultimate question of the universe.
             shots (Optional[int], optional):
                 The number of shots.
+            pbar (Optional[tqdm.tqdm], optional):
+                The progress bar for showing the progress of the experiment.
+                Defaults to None.
 
         Returns:
             QurryAnalysis: The analysis of the experiment.
         """
+
+        if pbar is not None:
+            pbar.set_description("What is the ultimate question of the universe?")
 
         if shots is None:
             shots = self.commons.shots
