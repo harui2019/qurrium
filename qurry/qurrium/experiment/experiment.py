@@ -145,8 +145,8 @@ class ExperimentPrototype(ABC):
             beforewards
             if isinstance(beforewards, Before)
             else Before(
-                target={},
-                target_qasm={},
+                target=[],
+                target_qasm=[],
                 circuit=[],
                 circuit_qasm=[],
                 fig_original=[],
@@ -515,7 +515,7 @@ class ExperimentPrototype(ABC):
             pbar.set_description_str("Circuit creating...")
 
         for tk, tv in targets:
-            current_exp.beforewards.target[tk] = tv
+            current_exp.beforewards.target.append((tk, tv))
         cirqs, side_prodict = current_exp.method(
             targets=targets, arguments=current_exp.args, pbar=pbar
         )
@@ -533,7 +533,7 @@ class ExperimentPrototype(ABC):
         targets_values: tuple[QuantumCircuit, ...]
         tmp_target_qasm_items = zip(targets_keys, pool.map(qasm_drawer, targets_values))
         for tk, qasm_str in tmp_target_qasm_items:
-            current_exp.beforewards.target_qasm[str(tk)] = qasm_str
+            current_exp.beforewards.target_qasm.append((str(tk), qasm_str))
 
         # transpile
         if passmanager_pair is not None:

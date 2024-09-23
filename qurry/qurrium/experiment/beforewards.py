@@ -35,9 +35,9 @@ class Before(NamedTuple):
     """
 
     # Experiment Preparation
-    target: dict[Hashable, Union[QuantumCircuit, str]]
+    target: list[tuple[Hashable, Union[QuantumCircuit, str]]]
     """The target circuits of experiment."""
-    target_qasm: dict[str, str]
+    target_qasm: list[tuple[str, str]]
     """The OpenQASM of target circuits."""
     circuit: list[QuantumCircuit]
     """The transpiled circuits of experiment."""
@@ -60,7 +60,8 @@ class Before(NamedTuple):
     def default_value():
         """These default value are used for autofill the missing value."""
         return {
-            "target": {},
+            "target": [],
+            "target_qasm": [],
             "circuit": [],
             "circuit_qasm": [],
             "job_id": None,
@@ -189,6 +190,6 @@ class Before(NamedTuple):
                 self.target.clear()
             else:
                 raise ValueError("The target is not empty.")
-        for key, qasm in self.target_qasm.items():
+        for key, qasm in self.target_qasm:
             revived_target[key] = QuantumCircuit.from_qasm_str(qasm)
         return revived_target
