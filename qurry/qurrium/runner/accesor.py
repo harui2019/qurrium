@@ -193,7 +193,8 @@ class RemoteAccessor:
         else:
             if backend is None:
                 raise QurryInvalidArgument(
-                    "You must provide the backend for the jobstype which is not 'IBMQ', 'IBM' or 'IBMRuntime'."
+                    "You must provide the backend for the jobstype "
+                    + "which is not 'IBMQ', 'IBM' or 'IBMRuntime'."
                 )
             self.multirunner = DummyRunner(
                 manager=multimanager,
