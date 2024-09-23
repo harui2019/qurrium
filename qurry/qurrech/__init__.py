@@ -5,6 +5,7 @@ Qurrech - Wave Function Overlap
 ================================================================
 
 """
+
 from typing import Literal, Union, overload
 
 from .hadamard_test import EchoListenHadamard
@@ -13,15 +14,13 @@ from .randomized_measure import EchoListenRandomized
 
 # pylint: disable=invalid-name
 @overload
-def EchoListen(*args, method: Literal["hadamard"], **kwargs) -> EchoListenHadamard:
-    ...
+def EchoListen(*args, method: Literal["hadamard"], **kwargs) -> EchoListenHadamard: ...
 
 
 @overload
 def EchoListen(
     *args, method: Union[Literal["randomized", "base"], str] = "randomized", **kwargs
-) -> EchoListenRandomized:
-    ...
+) -> EchoListenRandomized: ...
 
 
 def EchoListen(
@@ -47,15 +46,13 @@ def EchoListen(
 
 
 @overload
-def WaveFunctionOverlap(*args, method: Literal["hadamard"], **kwargs) -> EchoListenHadamard:
-    ...
+def WaveFunctionOverlap(*args, method: Literal["hadamard"], **kwargs) -> EchoListenHadamard: ...
 
 
 @overload
 def WaveFunctionOverlap(
     *args, method: Union[Literal["randomized", "base"], str] = "randomized", **kwargs
-) -> EchoListenRandomized:
-    ...
+) -> EchoListenRandomized: ...
 
 
 def WaveFunctionOverlap(
