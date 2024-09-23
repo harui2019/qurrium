@@ -25,10 +25,33 @@ jobs:
         with:
           submodules: true
           token: ${{ secrets.CI_TOKEN }}
-      - name: Run General Test
-        uses: ./.github/workflows/test-unit.yml
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
         with:
-          python_version: ${{ matrix.python-version }}
+          python-version: ${{ matrix.python-version }}
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pipenv wheel pip
+          python -m pip install flake8 pytest matplotlib pep440
+          pip install --upgrade urllib3
+          # A bug waiting for fixing, https://github.com/pypa/setuptools/issues/3278
+          pip install --upgrade --user setuptools setuptools_rust
+          python -c "print('### Preparing setup.py '.ljust(70, '.'))"
+          pip install -e .
+          # python -c "print('### Preparing requirements.txt '.ljust(70, '.'))
+          # if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          python -c "print('### Dependencies are ready to go '.ljust(70, '.'))"
+      - name: Lint with flake8
+        run: |
+          # stop the build if there are Python syntax errors or undefined names
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+      - name: Test with pytest
+        run: |
+          pytest
 
   test_py_oldest:
     name: Test on Python Other Versions
@@ -43,10 +66,33 @@ jobs:
         with:
           submodules: true
           token: ${{ secrets.CI_TOKEN }}
-      - name: Run General Test
-        uses: ./.github/workflows/test-unit.yml
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
         with:
-          python_version: ${{ matrix.python-version }}
+          python-version: ${{ matrix.python-version }}
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pipenv wheel pip
+          python -m pip install flake8 pytest matplotlib pep440
+          pip install --upgrade urllib3
+          # A bug waiting for fixing, https://github.com/pypa/setuptools/issues/3278
+          pip install --upgrade --user setuptools setuptools_rust
+          python -c "print('### Preparing setup.py '.ljust(70, '.'))"
+          pip install -e .
+          # python -c "print('### Preparing requirements.txt '.ljust(70, '.'))
+          # if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          python -c "print('### Dependencies are ready to go '.ljust(70, '.'))"
+      - name: Lint with flake8
+        run: |
+          # stop the build if there are Python syntax errors or undefined names
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+      - name: Test with pytest
+        run: |
+          pytest
 
   test_other:
     name: Test on Python Other Versions
@@ -63,7 +109,30 @@ jobs:
         with:
           submodules: true
           token: ${{ secrets.CI_TOKEN }}
-      - name: Run General Test
-        uses: ./.github/workflows/test-unit.yml
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
         with:
-          python_version: ${{ matrix.python-version }}
+          python-version: ${{ matrix.python-version }}
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pipenv wheel pip
+          python -m pip install flake8 pytest matplotlib pep440
+          pip install --upgrade urllib3
+          # A bug waiting for fixing, https://github.com/pypa/setuptools/issues/3278
+          pip install --upgrade --user setuptools setuptools_rust
+          python -c "print('### Preparing setup.py '.ljust(70, '.'))"
+          pip install -e .
+          # python -c "print('### Preparing requirements.txt '.ljust(70, '.'))
+          # if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          python -c "print('### Dependencies are ready to go '.ljust(70, '.'))"
+      - name: Lint with flake8
+        run: |
+          # stop the build if there are Python syntax errors or undefined names
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+      - name: Test with pytest
+        run: |
+          pytest
