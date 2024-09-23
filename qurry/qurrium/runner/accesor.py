@@ -116,7 +116,7 @@ class RemoteAccessor:
                 )
             from .ibmqrunner import IBMQRunner, IBMQBackend  # type: ignore
 
-            if not isinstance(backend, IBMQBackend):
+            if not isinstance(backend, IBMQBackend) and backend is not None:
                 raise ValueError(
                     "You must use 'IBMQBackend' from 'qiskit_ibmq_provider' "
                     + "which imports from 'qiskit.providers.ibmq' for 'IBMQ' jobstype. "
@@ -124,11 +124,17 @@ class RemoteAccessor:
                     + "it used 'IBMBackend' for 'IBM' jobstype, "
                     + "which is different from 'IBMQBackend'."
                 )
+            if not isinstance(provider, IBMQBackend) and provider is not None:
+                raise ValueError(
+                    "You must use 'IBMQBackend' from 'qiskit_ibmq_provider' "
+                    + "which imports from 'qiskit.providers.ibmq' for 'IBMQ' jobstype."
+                )
 
             self.multirunner = IBMQRunner(
                 besummonned=multimanager.summoner_id,
                 multimanager=multimanager,
                 backend=backend,
+                provider=provider,
                 experimental_container=experiment_container,
             )
 
@@ -137,9 +143,13 @@ class RemoteAccessor:
                 raise QurryExtraPackageRequired(
                     "Backend 'IBM' is not available, please install 'qiskit_ibm_provider' first."
                 )
-            from .ibmprovider_runer import IBMProviderRunner, IBMBackend as IBMProviderBackend
+            from .ibmprovider_runer import (
+                IBMProviderRunner,
+                IBMBackend as IBMProviderBackend,
+                IBMProvider,
+            )
 
-            if not isinstance(backend, IBMProviderBackend):
+            if not isinstance(backend, IBMProviderBackend) and backend is not None:
                 raise TypeError(
                     "You must use 'IBMBackend' from 'qiskit_ibm_provider' "
                     + "which imports from 'qiskit.providers.ibm' for 'IBM' jobstype. "
@@ -147,11 +157,17 @@ class RemoteAccessor:
                     + "it used 'IBMQBackend' for 'IBMQ' jobstype, "
                     + "which is different from 'IBMBackend'."
                 )
+            if not isinstance(provider, IBMProvider) and provider is not None:
+                raise TypeError(
+                    "You must use 'IBMProvider' from 'qiskit_ibm_provider' "
+                    + "which imports from 'qiskit.providers.ibm' for 'IBM' jobstype."
+                )
 
             self.multirunner = IBMProviderRunner(
                 besummonned=multimanager.summoner_id,
                 multimanager=multimanager,
                 backend=backend,
+                provider=provider,
                 experimental_container=experiment_container,
             )
 
@@ -167,7 +183,7 @@ class RemoteAccessor:
                 QiskitRuntimeService,
             )
 
-            if not isinstance(backend, IBMRuntimeBackend):
+            if not isinstance(backend, IBMRuntimeBackend) and backend is not None:
                 raise TypeError(
                     "You must use 'IBMRuntimeBackend' from 'qiskit_ibm_runtime' "
                     + "which imports from 'qiskit_ibm_runtime' for 'IBMRuntime' jobstype. "
