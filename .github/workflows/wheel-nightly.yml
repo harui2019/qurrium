@@ -112,8 +112,6 @@ jobs:
             folder: shared-wheel-builds-x86
           - archs: ARM64
             folder: shared-wheel-builds-arm
-    environment:
-      name: testpypi
     permissions:
       id-token: write # IMPORTANT: mandatory for trusted publishing
 
