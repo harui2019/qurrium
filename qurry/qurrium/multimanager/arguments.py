@@ -223,32 +223,21 @@ class MultiCommonparams(NamedTuple):
             if k in cls._fields:
                 if k == "datetimes":
                     multicommons[k].loads(raw_multiconfig[k])
-                multicommons[k] = raw_multiconfig[k]
+                else:
+                    multicommons[k] = raw_multiconfig[k]
             elif k == "outfields":
                 outfields = {**raw_multiconfig[k]}
             else:
                 outfields[k] = raw_multiconfig[k]
 
-        # datetimes
-        # if "build" not in multicommons["datetimes"] and not is_read:
-        #     multicommons["datetimes"].add_only("build")
-
-        # if is_tarfile_existed:
-        #     if (not v5_path_existed) and (not v7_path_existed):
-        #         multicommons["datetimes"].add_serial("decompress")
-        #     elif read_from_tarfile:
-        #         multicommons["datetimes"].add_serial("decompressOverwrite")
-
-        # # readV5 files re-export
-        # if v5_path_existed:
-        #     multicommons["datetimes"].add_only("readV7")
-        #     for k in old_files.keys():
-        #         multicommons["files"].pop(k, None)
-
         if isinstance(multicommons["save_location"], str):
             multicommons["save_location"] = Path(multicommons["save_location"])
         if isinstance(multicommons["export_location"], str):
             multicommons["export_location"] = Path(multicommons["export_location"])
+
+        assert isinstance(
+            multicommons["datetimes"], DatetimeDict
+        ), "datetimes should be DatetimeDict."
 
         return (
             cls(
