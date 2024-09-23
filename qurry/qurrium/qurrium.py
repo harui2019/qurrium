@@ -390,6 +390,7 @@ class QurriumPrototype(ABC):
         """
 
         if summoner_id in self.multimanagers:
+            assert isinstance(summoner_id, str), "summoner_id should be string here."
             return summoner_id
         if summoner_id is not None:
             raise ValueError("Unknow summoner_id in multimanagers.")
@@ -398,7 +399,7 @@ class QurriumPrototype(ABC):
         ready_config_list = []
         for config in output_allow_config_list:
             config_targets = {
-                "targets": self.waves.process(config.pop("circuits")),
+                "targets": self.waves.process(config.pop("circuits")),  # type: ignore
                 "passmanager_pair": passmanager_processor(
                     passmanager=config.pop("passmanager"), passmanager_container=self.passmanagers
                 ),
@@ -844,6 +845,13 @@ class QurriumPrototype(ABC):
             compress (bool, optional):
                 Whether to compress the export file. Defaults to False.
 
+        Raises:
+            ValueError: No summoner_name or summoner_id given.
+            ValueError: Both summoner_name and summoner_id are given.
+            ValueError: No such summoner_id in multimanagers.
+            TypeError: summoner_name or summoner_id is not str.
+            ValueError: No backend or provider given.
+
         Returns:
             str: The summoner_id of multimanager.
         """
@@ -876,8 +884,8 @@ class QurriumPrototype(ABC):
 
         print("| MultiRetrieve running...")
         jobs_type = current_multimanager.multicommons.jobstype
-        if backend is None:
-            raise ValueError("backend is None.")
+        if backend is None and provider is None:
+            raise ValueError("No backend or provider given.")
 
         tmp_exps_container: ExperimentContainer[ExperimentPrototype] = ExperimentContainer(
             {
