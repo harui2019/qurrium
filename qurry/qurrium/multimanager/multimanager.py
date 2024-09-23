@@ -591,6 +591,7 @@ class MultiManager:
     def update_save_location(
         self,
         save_location: Union[Path, str],
+        # short_name: str = "",  # TODO: short_name
         without_serial: bool = True,
     ) -> dict[str, Any]:
         """Update the save location of the multi-experiment.
@@ -606,6 +607,7 @@ class MultiManager:
         self.naming_complex = naming(
             without_serial=without_serial,
             exps_name=self.multicommons.summoner_name,
+            # short_name=short_name,
             save_location=save_location,
         )
         self.multicommons = self.multicommons._replace(
