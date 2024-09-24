@@ -21,7 +21,7 @@ from qiskit.providers import Backend
 from .arguments import MultiCommonparams, PendingStrategyLiteral, PendingTargetProviderLiteral
 from .beforewards import Before
 from .afterwards import After
-from .process import multiprocess_exporter_and_writer
+from .process import multiprocess_exporter_and_writer, datetimedict_process
 from ..experiment import ExperimentPrototype
 from ..container import ExperimentContainer, QuantityContainer, _ExpInst
 from ..utils.iocontrol import naming, RJUST_LEN, IOComplex
@@ -526,20 +526,15 @@ class MultiManager:
 
         multicommons, outfields = MultiCommonparams.build(raw_multiconfig)
 
-        if "build" not in multicommons.datetimes and not is_read_or_retrieve:
-            multicommons.datetimes.add_only("build")
-
-        if naming_complex.tarLocation.exists():
-            if (not multiconfig_name_v5.exists()) and (not multiconfig_name_v7.exists()):
-                multicommons.datetimes.add_serial("decompress")
-            elif read_from_tarfile:
-                multicommons.datetimes.add_serial("decompressOverwrite")
-
-        # readV5 files re-export
-        if multiconfig_name_v5.exists():
-            multicommons.datetimes.add_only("readV7")
-            for k in old_files.keys():
-                multicommons.files.pop(k, None)
+        datetimedict_process(
+            multicommons=multicommons,
+            naming_complex=naming_complex,
+            multiconfig_name_v5=multiconfig_name_v5,
+            multiconfig_name_v7=multiconfig_name_v7,
+            is_read_or_retrieve=is_read_or_retrieve,
+            read_from_tarfile=read_from_tarfile,
+            old_files=old_files,
+        )
 
         assert (
             naming_complex.save_location == multicommons.save_location

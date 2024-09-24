@@ -5,14 +5,16 @@ Multiprocess component for multimanager
 ================================================================
 """
 
-from pathlib import Path
-from typing import Union, Optional
+from typing import Union, Optional, Any
 from collections.abc import Hashable
+from pathlib import Path
 import gc
 import tqdm
 
+from .arguments import MultiCommonparams
 from ..experiment import ExperimentPrototype
 from ..experiment.export import Export
+from ..utils.iocontrol import IOComplex
 
 
 def exporter(
@@ -150,3 +152,40 @@ def multiprocess_exporter_and_writer(
     del exps_export
     gc.collect()
     return qurryinfo_exp_id, qurryinfo_files
+
+
+def datetimedict_process(
+    multicommons: MultiCommonparams,
+    naming_complex: IOComplex,
+    multiconfig_name_v5: Path,
+    multiconfig_name_v7: Path,
+    is_read_or_retrieve: bool,
+    read_from_tarfile: bool,
+    old_files: dict[str, Any],
+):
+    """Process the datetime dict of multimanager.
+
+    Args:
+        multicommons (MultiCommonparams): The common parameters of multimanager.
+        naming_complex (IOComplex): The complex of IO.
+        multiconfig_name_v5 (Path): The path of multiConfig in v5.
+        multiconfig_name_v7 (Path): The path of multiConfig in v7.
+        is_read_or_retrieve (bool): Whether read or retrieve.
+        read_from_tarfile (bool): Whether read from tarfile.
+        old_files (dict[str, Any]): The old files.
+    """
+
+    if "build" not in multicommons.datetimes and not is_read_or_retrieve:
+        multicommons.datetimes.add_only("build")
+
+    if naming_complex.tarLocation.exists():
+        if (not multiconfig_name_v5.exists()) and (not multiconfig_name_v7.exists()):
+            multicommons.datetimes.add_serial("decompress")
+        elif read_from_tarfile:
+            multicommons.datetimes.add_serial("decompressOverwrite")
+
+    # readV5 files re-export
+    if multiconfig_name_v5.exists():
+        multicommons.datetimes.add_only("readV7")
+        for k in old_files.keys():
+            multicommons.files.pop(k, None)
