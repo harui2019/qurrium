@@ -10,7 +10,7 @@ on:
 
 jobs:
   build_wheels:
-    if: github.repository == 'harui2019/qurry' || contains(github.event.pull_request.title, ':publish')
+    if: github.repository == 'harui2019/qurry' || contains(github.event.pull_request.title, ':publish') || github.event.pull_request.merged == 'true'
     name: Build wheels on ${{ matrix.os }} - ${{ matrix.archs }}
     runs-on: ${{ matrix.os }}
     strategy:
