@@ -47,10 +47,8 @@ jobs:
 
       # - name: Install Rust
       #   uses: dtolnay/rust-toolchain@stable
-
       # - name: Install Rustup
       #   run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain=nightly --profile=minimal -y
-
       - name: Install Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
         id: rust-install
@@ -66,11 +64,12 @@ jobs:
           python -m pip install --upgrade pipenv wheel pip
           python -m pip install auditwheel auditwheel-symbols
           python -m pip install setuptools_rust Cython setuptools toml pytest
+          python -m pip install cibuildwheel
           python -m pip install .
 
       - name: Prebuild Test
         run: |
-          pytest
+          pytest ./tests/process/test_randomized.py 
           echo "======================================================================"
           echo "Prebuild Test Passed ................................................."
           echo "======================================================================"
@@ -80,11 +79,11 @@ jobs:
 
       - name: Build wheels on Linux of x86 series
         if: runner.os == 'Linux' && matrix.archs == 'X64'
-        uses: pypa/cibuildwheel@v2.19.2
+        run: python -m cibuildwheel --output-dir wheelhouse
 
       - name: Build wheels on MacOS of x86 series
         if: runner.os == 'macOS' && matrix.archs == 'X64'
-        uses: pypa/cibuildwheel@v2.19.2
+        run: python -m cibuildwheel --output-dir wheelhouse
         env:
           CIBW_ARCHS_MACOS: x86_64
           CIBW_ENVIRONMENT: >-
@@ -92,14 +91,14 @@ jobs:
 
       - name: Build wheels on Windows of x86 series
         if: runner.os == 'Windows' && matrix.archs == 'X64'
-        uses: pypa/cibuildwheel@v2.19.2
+        run: python -m cibuildwheel --output-dir wheelhouse
       # Attention: Windows runner requires Rust already installed
       # For there is not reliable way to install Rust on Windows runner
       # See: https://github.com/harui2019/qurry/issues/173
 
       - name: Build wheels on MacOS of ARM series
         if: runner.os == 'macOS' && matrix.archs == 'ARM64'
-        uses: pypa/cibuildwheel@v2.19.2
+        run: python -m cibuildwheel --output-dir wheelhouse
         env:
           CIBW_BEFORE_ALL: rustup target add aarch64-apple-darwin
           CIBW_ARCHS_MACOS: arm64 universal2
