@@ -34,7 +34,7 @@ def toml_rename():
 
 def bump_version(
     version_split: list[str],
-    bump_type: Literal["major", "minor", "patch", "dev"],
+    bump_type: Literal["major", "minor", "patch", "dev", "skip"],
 ) -> list[str]:
     """Bump the version number.
     The version number is split by dot, and the release type is either stable or nightly.
@@ -44,8 +44,9 @@ def bump_version(
 
     version_split: list[str]
         The version number split by dot.
-    bump_type: Literal["major", "minor", "patch", "dev"]
-        The bump type.
+    bump_type: Literal["major", "minor", "patch", "dev", "skip"]
+        The bump type of the version number.
+        "skip" means the version number is not bumped.
 
     Returns:
         str: The bumped version number
@@ -64,6 +65,8 @@ def bump_version(
         raise NotImplementedError(
             "| The major and minor bump are only allowed by bumping manually."
         )
+    elif bump_type == "skip":
+        version_new_split = version_split
     else:
         raise ValueError(
             "| The bump type should be one of the following: " + "major, minor, patch, dev."
@@ -97,7 +100,7 @@ if __name__ == "__main__":
         "-b",
         "--bump",
         type=str,
-        default="dev",
+        default="skip",
         help="Bump the version number.",
     )
 
@@ -137,8 +140,10 @@ if __name__ == "__main__":
             print(f"| Stable print, version: '{VERSION}'")
         else:
             print(f"| Stable print, version: '{VERSION}', rewrite VERSION.txt and pyproject.toml")
-            os.system(f'echo "{VERSION}" > ./qurry/VERSION.txt')
-            toml_rename()
+
+    if (args.release == "stable" or args.bump in ["patch", "dev"]) and not args.test:
+        os.system(f'echo "{VERSION}" > ./qurry/VERSION.txt')
+        toml_rename()
 
     else:
         VERSION = ".".join(version_txt_split)

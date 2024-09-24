@@ -11,6 +11,7 @@ from typing import Union, Optional
 from collections.abc import Hashable
 from qiskit import QuantumCircuit
 
+from .utils import retrieve_exceptions_loader
 from ...exceptions import QurryExtraPackageRequired
 
 try:
@@ -269,10 +270,11 @@ class IBMProviderRunner(Runner):
         )
 
         retrieve_principal: Union["IBMQBackend", IBMProvider]
-        if QISKIT_IBMQ_PROVIDER and isinstance(self.backend, IBMQBackend):
-            retrieve_principal = self.backend
-        else:
-            retrieve_principal = self.provider
+        retrieve_principal = (
+            self.backend
+            if QISKIT_IBMQ_PROVIDER and isinstance(self.backend, IBMQBackend)
+            else self.provider
+        )
         assert hasattr(retrieve_principal, "retrieve_job"), "retrieve_principal should not be None."
 
         for pending_id, pk in retrieve_progressbar:
@@ -346,11 +348,7 @@ class IBMProviderRunner(Runner):
                     f"{pending_tags} - Packing: {rk} with len {len(counts[rk - pcircs[0]])}",
                     refresh=True,
                 )
-            if len(exceptions) > 0:
-                if "exceptions" not in self.current_multimanager.outfields:
-                    self.current_multimanager.outfields["exceptions"] = {}
-                for result_id, exception_item in exceptions.items():
-                    self.current_multimanager.outfields["exceptions"][result_id] = exception_item
+            retrieve_exceptions_loader(exceptions, self.current_multimanager.outfields)
 
         circuits_map_distributer(
             current_multimanager=self.current_multimanager,

@@ -7,7 +7,7 @@ Runner Utils
 """
 
 import warnings
-from typing import Union, Literal, overload
+from typing import Union, Literal, Any, overload
 from collections.abc import Iterable, Hashable
 from qiskit import QuantumCircuit
 
@@ -231,3 +231,20 @@ def circuits_map_distributer(
         current_multimanager.afterwards.allCounts[current_id] = experiment_container[
             current_id
         ].afterwards.counts
+
+
+def retrieve_exceptions_loader(
+    exceptions: dict[str, Union[Exception, Any]],
+    current_multimanager_outfields: dict[str, Any],
+):
+    """Exceptions loader during retrieve.
+
+    Args:
+        exceptions (dict[str, Union[Exception, Any]]): The exceptions.
+        current_multimanager_outfields (dict[str, Any]): The current multimanager outfields
+    """
+    if len(exceptions) > 0:
+        if "exceptions" not in current_multimanager_outfields:
+            current_multimanager_outfields["exceptions"] = {}
+        for result_id, exception_item in exceptions.items():
+            current_multimanager_outfields["exceptions"][result_id] = exception_item
