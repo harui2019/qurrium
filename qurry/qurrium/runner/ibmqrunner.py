@@ -17,6 +17,7 @@ from collections.abc import Hashable
 
 from qiskit import QuantumCircuit
 
+from .utils import retrieve_exceptions_loader
 from ...exceptions import QurryExtraPackageRequired
 
 try:
@@ -357,13 +358,7 @@ class IBMQRunner(Runner):
                         f"{pk}/{pending_job.jobID}/{pending_job.name} - "
                         + f"Packing: {rk} with len {len(counts[rk - pcircs[0]])}"
                     )
-                if len(exceptions) > 0:
-                    if "exceptions" not in self.current_multimanager.outfields:
-                        self.current_multimanager.outfields["exceptions"] = {}
-                    for result_id, exception_item in exceptions.items():
-                        self.current_multimanager.outfields["exceptions"][
-                            result_id
-                        ] = exception_item
+                retrieve_exceptions_loader(exceptions, self.current_multimanager.outfields)
             else:
                 warnings.warn(f"Pending pool '{pk}' is empty.")
 

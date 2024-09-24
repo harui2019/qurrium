@@ -11,6 +11,7 @@ from typing import Union, Optional, Literal
 from collections.abc import Hashable
 from qiskit import QuantumCircuit
 
+from .utils import retrieve_exceptions_loader
 from ...exceptions import QurryExtraPackageRequired
 
 try:
@@ -262,11 +263,7 @@ class IBMRuntimeRunner(Runner):
                     f"{pending_tags} - Packing: {rk} with len {len(counts[rk - pcircs[0]])}",
                     refresh=True,
                 )
-            if len(exceptions) > 0:
-                if "exceptions" not in self.current_multimanager.outfields:
-                    self.current_multimanager.outfields["exceptions"] = {}
-                for result_id, exception_item in exceptions.items():
-                    self.current_multimanager.outfields["exceptions"][result_id] = exception_item
+            retrieve_exceptions_loader(exceptions, self.current_multimanager.outfields)
 
         circuits_map_distributer(
             current_multimanager=self.current_multimanager,
