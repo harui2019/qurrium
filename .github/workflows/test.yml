@@ -13,6 +13,14 @@ on:
       - dev
 
 jobs:
+  test_skip:
+    if: ${{ startsWith(github.event.pull_request.title, 'skip-test:') }}
+    name: Skip Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skip Test
+        run: echo "Skip Test"
+
   test_py_latest:
     if: ${{ !startsWith(github.event.pull_request.title, 'skip-test:') }}
     name: Test on Python Latest
