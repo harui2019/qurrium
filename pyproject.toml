@@ -56,6 +56,7 @@ before-all = [
     'echo "### Building ........................................................."',
     'echo "======================================================================"',
     "pip install auditwheel-symbols",
+    "pip install setuptools_rust Cython setuptools toml",
 ]
 environment = { PATH = "$HOME/.cargo/bin:$PATH" }
 before-test = [
@@ -63,7 +64,7 @@ before-test = [
     'echo "### Testing .........................................................."',
     'echo "======================================================================"',
     "pip install scipy",
-    "pip install pytest",
+    "pip install setuptools_rust Cython setuptools toml",
     "cd {project} && pip install . --upgrade && cd ..",
 ]
 test-command = ["pytest {project}/tests"]
