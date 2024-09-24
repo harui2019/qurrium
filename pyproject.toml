@@ -58,10 +58,6 @@ before-all = [
     "pip install auditwheel-symbols",
     "pip install scipy",
     "pip install pytest",
-    'echo "======================================================================"',
-    'echo "### Rust Setup Check.................................................."',
-    'echo "======================================================================"',
-    "rustup show",
 ]
 environment = { PATH = "$HOME/.cargo/bin:$PATH" }
 before-test = [
