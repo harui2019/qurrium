@@ -46,6 +46,7 @@ skip = [
     "*-musllinux_i686", # rust tier 2 support, qiskit did not support musllinux
     "pp*",              # Qiskit and Qurry are not pure python packages, See https://github.com/harui2019/qurry/issues/93#issuecomment-1801837481
     "cp38-*",           # Not support and won't support for we write type hint in 3.9 syntax.
+    "cp313-*",          # Just too recent
     "*-musllinux_*",    # qiskit did not support musllinux
     # "*-manylinux_i686", # scipy dependency issue, Check issue https://github.com/harui2019/qurry/issues/93 for details
 ]
@@ -63,8 +64,8 @@ before-build = [
     'echo "======================================================================"',
     'echo "### Building ........................................................."',
     'echo "======================================================================"',
-    "pip install --upgrade auditwheel auditwheel-symbols",
-    "pip install --upgrade setuptools_rust Cython setuptools toml",
+    "pip install auditwheel auditwheel-symbols",
+    "pip install setuptools_rust Cython setuptools toml",
 ]
 before-test = [
     'echo "======================================================================"',
@@ -72,13 +73,16 @@ before-test = [
     'echo "======================================================================"',
     "pip install scipy",
     "pip install pytest",
-    "pip install --upgrade auditwheel auditwheel-symbols",
-    "pip install --upgrade setuptools_rust Cython setuptools toml",
     "cd {project} && pip install . --upgrade && cd ..",
 ]
 test-command = ["pytest {project}/tests"]
 
 [tool.cibuildwheel.linux]
+before-all = [
+    "curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain=nightly --profile=minimal -y",
+    'source "$HOME/.cargo/env"',
+    "rustup show",
+]
 # before-test = [
 #     'echo "======================================================================"',
 #     'echo "### Testing on Lunux.................................................."',
@@ -99,7 +103,22 @@ test-command = ["pytest {project}/tests"]
 # ]
 
 [tool.cibuildwheel.macos]
-before-all = ['source "$HOME/.cargo/env"']
+before-all = [
+    "curl https://sh.rustup.rs -sSf | bash -s -- --default-toolchain=nightly --profile=minimal -y",
+    'source "$HOME/.cargo/env"',
+    "rustup show",
+]
+
+[tool.cibuildwheel.windows]
+before-all = [
+    'Write-Host "Downloading..."',
+    "Invoke-WebRequest -Uri https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe -OutFile rustup-init.exe",
+    'Write-Host "Installing Rust..." -ForegroundColor Cyan',
+    'Start-Process -FilePath .\rustup-init.exe -ArgumentList "--default-toolchain nightly --profile minimal -y" -NoNewWindow -Wait',
+    'Remove-Item .\rustup-init.exe',
+    '$env:Path = "$env:USERPROFILE\.cargo\bin"',
+    "rustup show",
+]
 
 [tool.pylint."messages control"]
 disable = [
