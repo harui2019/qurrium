@@ -140,8 +140,10 @@ if __name__ == "__main__":
             print(f"| Stable print, version: '{VERSION}'")
         else:
             print(f"| Stable print, version: '{VERSION}', rewrite VERSION.txt and pyproject.toml")
-            os.system(f'echo "{VERSION}" > ./qurry/VERSION.txt')
-            toml_rename()
+
+    if (args.release == "stable" or args.bump in ["patch", "dev"]) and not args.test:
+        os.system(f'echo "{VERSION}" > ./qurry/VERSION.txt')
+        toml_rename()
 
     else:
         VERSION = ".".join(version_txt_split)
