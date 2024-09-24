@@ -14,6 +14,7 @@ on:
 
 jobs:
   test_py_latest:
+    if: ${{ !startsWith(github.event.pull_request.title, 'skip-test:') }}
     name: Test on Python Latest
     runs-on: ubuntu-latest
     strategy:
@@ -55,6 +56,7 @@ jobs:
 
   test_py_oldest:
     name: Test on Python Oldest Supported
+    if: ${{ !startsWith(github.event.pull_request.title, 'skip-test:') }}
     needs: test_py_latest
     runs-on: ubuntu-latest
     strategy:
@@ -96,6 +98,7 @@ jobs:
 
   test_other:
     name: Test on Python Other Versions
+    if: ${{ !startsWith(github.event.pull_request.title, 'skip-test:') }}
     needs:
       - test_py_latest
       - test_py_oldest
