@@ -1,6 +1,6 @@
 """
 ===========================================================
-Second Renyi Entropy - Randomized Measurement 
+EntropyMeasureRandomized - Analysis
 (:mod:`qurry.qurrent.randomized_measure.analysis`)
 ===========================================================
 
@@ -11,7 +11,7 @@ from typing import Union, Optional, NamedTuple, Iterable, Literal
 from ...qurrium.analysis import AnalysisPrototype
 
 
-class EntropyRandomizedAnalysis(AnalysisPrototype):
+class EntropyMeasureRandomizedAnalysis(AnalysisPrototype):
     """The container for the analysis of :cls:`EntropyRandomizedExperiment`."""
 
     __name__ = "qurrentRandomized.Analysis"

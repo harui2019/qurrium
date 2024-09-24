@@ -4,6 +4,7 @@ ProcessManager (:mod:`qurry.tools.processmanager`)
 ================================================================
 
 """
+
 import warnings
 from typing import Optional, Iterable, Callable, TypeVar, Any
 from multiprocessing import Pool, cpu_count

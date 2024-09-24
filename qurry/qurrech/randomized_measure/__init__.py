@@ -1,11 +1,12 @@
 """
 ===========================================================
-Wave Function Overlap - Randomized Measurement 
+EchoListenRandomized - 
+Wave Function Overlap by Randomized Measure
 (:mod:`qurry.qurrech.randomized_measure`)
 ===========================================================
 
 """
 
-from .analysis import EchoRandomizedAnalysis
-from .experiment import EchoRandomizedExperiment
-from .qurry import EchoRandomizedListen
+from .analysis import EchoListenRandomizedAnalysis
+from .experiment import EchoListenRandomizedExperiment
+from .qurry import EchoListenRandomized

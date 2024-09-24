@@ -4,6 +4,7 @@ Inputfixer in Cython
 (:mod:`qurry.boost.inputfixer`)
 ================================================================
 """
+
 from typing import Iterable
 
 # pylint: disable=unused-argument

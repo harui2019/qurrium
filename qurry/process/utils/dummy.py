@@ -126,7 +126,7 @@ def make_two_bit_str_32_py(
     ), f"2**int(logged_num) == len_raw_content: {2**int(logged_num)} == {len_raw_content}"
     assert 2 * len_raw_content >= real_num >= len_raw_content, (
         "2*len_raw_content >= real_num >= len_raw_content: "
-        + f"{2*len_raw_content} >= {real_num} >= {len_raw_content}"
+        + f"{2 * len_raw_content} >= {real_num} >= {len_raw_content}"
     )
     first_filler = ["0", "1"] if np.random.rand() > 0.5 else ["1", "0"]
     filler_h_or_e: Callable[[str, str], str] = lambda ff, item: (

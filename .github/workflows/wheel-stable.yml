@@ -12,7 +12,7 @@ jobs:
   build_wheels_linux_x86:
     if: github.repository == 'harui2019/qurry'
     name: Build wheels on Linux-x86
-    runs-on: ubuntu-latest
+    runs-on: [ubuntu-latest, X64]
     strategy:
       fail-fast: false
     steps:
@@ -33,7 +33,7 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.16.2
+        uses: pypa/cibuildwheel@v2.19.2
       - uses: actions/upload-artifact@v3
         with:
           path: ./wheelhouse/*.whl
@@ -42,7 +42,7 @@ jobs:
   build_wheels_macos_x86:
     if: github.repository == 'harui2019/qurry'
     name: Build wheels on MacOS of x86 series
-    runs-on: macos-11
+    runs-on: [macos-13, x64]
     strategy:
       fail-fast: false
     steps:
@@ -63,7 +63,7 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.16.2
+        uses: pypa/cibuildwheel@v2.19.2
       - uses: actions/upload-artifact@v3
         with:
           path: ./wheelhouse/*.whl
@@ -93,7 +93,7 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.16.2
+        uses: pypa/cibuildwheel@v2.19.2
         env:
           CIBW_PLATFORM: windows
       - uses: actions/upload-artifact@v3
@@ -107,7 +107,7 @@ jobs:
     needs:
       - build_wheels_linux_x86
       - build_wheels_macos_x86
-      # - build_wheels_windows_x86
+      - build_wheels_windows_x86
     runs-on: ubuntu-latest
     environment:
       name: pypi
@@ -130,7 +130,7 @@ jobs:
   build_wheels_macos_arm:
     if: github.repository == 'harui2019/qurry'
     name: Build wheels on MacOS of arm64
-    runs-on: macos-11
+    runs-on: [macos-latest, ARM64]
     strategy:
       fail-fast: false
     steps:
@@ -151,7 +151,7 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.16.2
+        uses: pypa/cibuildwheel@v2.19.2
         env:
           CIBW_BEFORE_ALL: rustup target add aarch64-apple-darwin
           CIBW_ARCHS_MACOS: arm64 universal2
@@ -193,7 +193,7 @@ jobs:
   #       with:
   #         platforms: all
   #     - name: Build wheels
-  #       uses: pypa/cibuildwheel@v2.16.2
+  #       uses: pypa/cibuildwheel@v2.19.2
   #       env:
   #         CIBW_ARCHS_LINUX: aarch64
   #     - uses: actions/upload-artifact@v3

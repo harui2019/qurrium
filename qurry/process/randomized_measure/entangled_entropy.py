@@ -407,24 +407,24 @@ def randomized_entangled_entropy_mitigated(
     if len(null_counts) > 0:
         return {
             # target system
-            "purity": np.NaN,
-            "entropy": np.NaN,
+            "purity": np.nan,
+            "entropy": np.nan,
             "purityCells": {},
-            "puritySD": np.NaN,
-            "entropySD": np.NaN,
+            "puritySD": np.nan,
+            "entropySD": np.nan,
             "bitStringRange": (0, 0),
             # all system
             "allSystemSource": "Null counts exist, no measure.",
-            "purityAllSys": np.NaN,
-            "entropyAllSys": np.NaN,
+            "purityAllSys": np.nan,
+            "entropyAllSys": np.nan,
             "purityCellsAllSys": {},
-            "puritySDAllSys": np.NaN,
-            "entropySDAllSys": np.NaN,
+            "puritySDAllSys": np.nan,
+            "entropySDAllSys": np.nan,
             "bitsStringRangeAllSys": (0, 0),
             # mitigated
-            "errorRate": np.NaN,
-            "mitigatedPurity": np.NaN,
-            "mitigatedEntropy": np.NaN,
+            "errorRate": np.nan,
+            "mitigatedPurity": np.nan,
+            "mitigatedEntropy": np.nan,
             # info
             "degree": degree,
             "num_qubits": 0,

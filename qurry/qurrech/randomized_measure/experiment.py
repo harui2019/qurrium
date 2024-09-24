@@ -1,36 +1,38 @@
 """
 ===========================================================
-Wave Function Overlap - Randomized Measurement Experiment
+EchoListenRandomized - Experiment
 (:mod:`qurry.qurrech.randomized_measure.experiment`)
 ===========================================================
 
 """
 
-from typing import Union, Optional, Hashable, NamedTuple, Iterable
+from typing import Union, Optional, Type, Any
+from collections.abc import Iterable, Hashable
+import warnings
 import tqdm
 
-from .analysis import EchoRandomizedAnalysis
-from ...qurrium.experiment import ExperimentPrototype
+from qiskit import QuantumCircuit
+
+from .analysis import EchoListenRandomizedAnalysis
+from .arguments import EchoListenRandomizedArguments, SHORT_NAME
+from .utils import circuit_method_core
+from ...qurrium.experiment import ExperimentPrototype, Commonparams
+from ...process.utils import qubit_selector
+from ...qurrium.utils.randomized import (
+    local_random_unitary_operators,
+    local_random_unitary_pauli_coeff,
+    random_unitary,
+)
 from ...process.randomized_measure.wavefunction_overlap import (
     randomized_overlap_echo,
     PostProcessingBackendLabel,
     DEFAULT_PROCESS_BACKEND,
 )
-from ...tools import qurry_progressbar, DEFAULT_POOL_SIZE
+from ...tools import qurry_progressbar, ParallelManager
+from ...exceptions import QurryArgumentsExpectedNotNone
 
 
-class EchoRandomizedArguments(NamedTuple):
-    """Arguments for the experiment."""
-
-    exp_name: str = "exps"
-    wave_key_2: Optional[Hashable] = None
-    times: int = 100
-    measure: Optional[tuple[int, int]] = None
-    unitary_loc: Optional[tuple[int, int]] = None
-    workers_num: int = DEFAULT_POOL_SIZE
-
-
-class EchoRandomizedExperiment(ExperimentPrototype):
+class EchoListenRandomizedExperiment(ExperimentPrototype):
     """Randomized measure experiment.
 
     - Reference:
@@ -61,14 +63,208 @@ class EchoRandomizedExperiment(ExperimentPrototype):
     ```
     """
 
-    __name__ = "qurrechRandomized.Experiment"
-    shortName = "qurrech_haar.exp"
+    __name__ = "EchoRandomizedExperiment"
 
-    Arguments = EchoRandomizedArguments
-    args: EchoRandomizedArguments
+    @property
+    def arguments_instance(self) -> Type[EchoListenRandomizedArguments]:
+        """The arguments instance for this experiment."""
+        return EchoListenRandomizedArguments
 
-    analysis_container = EchoRandomizedAnalysis
-    """The container class responding to this QurryV5 class."""
+    args: EchoListenRandomizedArguments
+
+    @property
+    def analysis_instance(self) -> Type[EchoListenRandomizedAnalysis]:
+        """The analysis instance for this experiment."""
+        return EchoListenRandomizedAnalysis
+
+    @classmethod
+    def params_control(
+        cls,
+        targets: list[tuple[Hashable, QuantumCircuit]],
+        exp_name: str = "exps",
+        times: int = 100,
+        measure: Optional[Union[tuple[int, int], int]] = None,
+        unitary_loc: Optional[Union[tuple[int, int], int]] = None,
+        **custom_kwargs: Any,
+    ) -> tuple[EchoListenRandomizedArguments, Commonparams, dict[str, Any]]:
+        """Handling all arguments and initializing a single experiment.
+
+        Args:
+            targets (list[tuple[Hashable, QuantumCircuit]]):
+                The circuits of the experiment.
+            exp_name (str, optional):
+                The name of the experiment.
+                Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
+                This name is also used for creating a folder to store the exports.
+                Defaults to `'experiment'`.
+            times (int):
+                The number of random unitary operator. Defaults to 100.
+                It will denote as `N_U` in the experiment name.
+            measure (Optional[Union[tuple[int, int], int]]):
+                The measure range. Defaults to None.
+            unitary_loc (Optional[Union[tuple[int, int], int]]):
+                The range of the unitary operator. Defaults to None.
+            custom_kwargs (Any):
+                The custom parameters.
+
+        Raises:
+            ValueError: If the number of target circuits is not two.
+            TypeError: If times is not an integer.
+            ValueError: If the number of qubits in two circuits is not the same.
+
+        Returns:
+            tuple[EntropyMeasureRandomizedArguments, Commonparams, dict[str, Any]]:
+                The arguments of the experiment, the common parameters, and the custom parameters.
+        """
+        if len(targets) != 2:
+            raise ValueError("The number of target circuits should be two.")
+        if not isinstance(times, int):
+            raise TypeError(f"times should be an integer, but got {times}.")
+
+        target_key_01, target_circuit_01 = targets[0]
+        num_qubits_01 = target_circuit_01.num_qubits
+        target_key_02, target_circuit_02 = targets[1]
+        num_qubits_02 = target_circuit_02.num_qubits
+
+        if num_qubits_01 != num_qubits_02:
+            raise ValueError(
+                "The number of qubits in two circuits should be the same, "
+                + f"but got {target_key_01}: {num_qubits_01} and {target_key_02}: {num_qubits_02}."
+            )
+
+        if measure is None:
+            measure = num_qubits_01
+        measure = qubit_selector(num_qubits_01, degree=measure)
+        if unitary_loc is None:
+            unitary_loc = num_qubits_01
+        unitary_loc = qubit_selector(num_qubits_01, degree=unitary_loc)
+
+        exp_name = f"{exp_name}.N_U_{times}.{SHORT_NAME}"
+
+        # pylint: disable=protected-access
+        return EchoListenRandomizedArguments._filter(
+            exp_name=exp_name,
+            target_keys=[target_key_01, target_key_02],
+            times=times,
+            measure=measure,
+            unitary_loc=unitary_loc,
+            **custom_kwargs,
+        )
+        # pylint: enable=protected-access
+
+    @classmethod
+    def method(
+        cls,
+        targets: list[tuple[Hashable, QuantumCircuit]],
+        arguments: EchoListenRandomizedArguments,
+        pbar: Optional[tqdm.tqdm] = None,
+    ) -> tuple[list[QuantumCircuit], dict[str, Any]]:
+        """The method to construct circuit.
+
+        Args:
+            targets (list[tuple[Hashable, QuantumCircuit]]):
+                The circuits of the experiment.
+            arguments (EchoListenRandomizedArguments):
+                The arguments of the experiment.
+            pbar (Optional[tqdm.tqdm], optional):
+                The progress bar for showing the progress of the experiment.
+                Defaults to None.
+
+        Returns:
+            tuple[list[QuantumCircuit], dict[str, Any]]:
+                The circuits of the experiment and the side products.
+        """
+        side_product = {}
+
+        pool = ParallelManager(arguments.workers_num)
+        if isinstance(pbar, tqdm.tqdm):
+            pbar.set_description_str(
+                f"Preparing {arguments.times} random unitary with {arguments.workers_num} workers."
+            )
+
+        target_key_01, target_circuit_01 = targets[0]
+        target_key_01 = "" if isinstance(target_key_01, int) else str(target_key_01)
+        num_qubits_01 = target_circuit_01.num_qubits
+        target_key_02, target_circuit_02 = targets[1]
+        target_key_02 = "" if isinstance(target_key_02, int) else str(target_key_02)
+        num_qubits_02 = target_circuit_02.num_qubits
+
+        assert (
+            num_qubits_01 == num_qubits_02
+        ), "The number of qubits in two circuits should be the same."
+
+        if arguments.unitary_loc is None:
+            actual_unitary_loc = (0, num_qubits_01)
+            warnings.warn(
+                f"| unitary_loc is not specified, using the whole qubits {actual_unitary_loc},"
+                + " but it should be not None anymore here.",
+                QurryArgumentsExpectedNotNone,
+            )
+        else:
+            actual_unitary_loc = arguments.unitary_loc
+        unitary_dict = {
+            i: {j: random_unitary(2) for j in range(*actual_unitary_loc)}
+            for i in range(arguments.times)
+        }
+
+        if isinstance(pbar, tqdm.tqdm):
+            pbar.set_description_str(
+                f"Building {2 * arguments.times} circuits with {arguments.workers_num} workers."
+            )
+        circ_list = pool.starmap(
+            circuit_method_core,
+            [
+                (
+                    i,
+                    target_circuit_01,
+                    target_key_01,
+                    arguments.exp_name,
+                    arguments.unitary_loc,
+                    unitary_dict[i],
+                    arguments.measure,
+                )
+                for i in range(arguments.times)
+            ]
+            + [
+                (
+                    i + arguments.times,
+                    target_circuit_02,
+                    target_key_02,
+                    arguments.exp_name,
+                    arguments.unitary_loc,
+                    unitary_dict[i],
+                    arguments.measure,
+                )
+                for i in range(arguments.times)
+            ],
+        )
+        assert len(circ_list) == 2 * arguments.times, "The number of circuits is not correct."
+
+        if isinstance(pbar, tqdm.tqdm):
+            pbar.set_description_str(f"Writing 'unitaryOP' with {arguments.workers_num} workers.")
+        # side_product["unitaryOP"] = {
+        #     k: {i: np.array(v[i]).tolist() for i in range(*arguments.unitary_loc)}
+        #     for k, v in unitary_dict.items()
+        # }
+        unitary_operator_list = pool.starmap(
+            local_random_unitary_operators,
+            [(arguments.unitary_loc, unitary_dict[i]) for i in range(arguments.times)],
+        )
+        side_product["unitaryOP"] = dict(enumerate(unitary_operator_list))
+
+        if isinstance(pbar, tqdm.tqdm):
+            pbar.set_description_str(f"Writing 'randomized' with {arguments.workers_num} workers.")
+        # side_product["randomized"] = {
+        #     i: {j: qubitOpToPauliCoeff(unitary_dict[i][j]) for j in range(*arguments.unitary_loc)}
+        #     for i in range(arguments.times)
+        # }
+        randomized_list = pool.starmap(
+            local_random_unitary_pauli_coeff,
+            [(arguments.unitary_loc, unitary_operator_list[i]) for i in range(arguments.times)],
+        )
+        side_product["randomized"] = dict(enumerate(randomized_list))
+
+        return circ_list, side_product
 
     def analyze(
         self,
@@ -77,7 +273,7 @@ class EchoRandomizedExperiment(ExperimentPrototype):
         workers_num: Optional[int] = None,
         backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
         pbar: Optional[tqdm.tqdm] = None,
-    ) -> EchoRandomizedAnalysis:
+    ) -> EchoListenRandomizedAnalysis:
         """Calculate entangled entropy with more information combined.
 
         Args:
@@ -106,7 +302,6 @@ class EchoRandomizedExperiment(ExperimentPrototype):
         if degree is None:
             raise ValueError("degree must be specified, but get None.")
 
-        self.args: EchoRandomizedExperiment.Arguments
         shots = self.commons.shots
         measure = self.args.measure
         unitary_loc = self.args.unitary_loc
@@ -157,7 +352,7 @@ class EchoRandomizedExperiment(ExperimentPrototype):
                 pb_self.update()
 
         serial = len(self.reports)
-        analysis = self.analysis_container(
+        analysis = self.analysis_instance(
             serial=serial,
             shots=shots,
             unitary_loc=unitary_loc,
@@ -187,13 +382,14 @@ class EchoRandomizedExperiment(ExperimentPrototype):
             degree (Union[tuple[int, int], int]): Degree of the subsystem.
             measure (tuple[int, int], optional):
                 Measuring range on quantum circuits. Defaults to None.
+            backend (PostProcessingBackendLabel, optional):
+                Backend for the process. Defaults to DEFAULT_PROCESS_BACKEND.
             workers_num (Optional[int], optional):
                 Number of multi-processing workers,
                 if sets to 1, then disable to using multi-processing;
                 if not specified, then use the number of all cpu counts - 2 by `cpu_count() - 2`.
                 Defaults to None.
             pbar (Optional[tqdm.tqdm], optional): Progress bar. Defaults to None.
-            use_cython (bool, optional): Use cython to calculate purity cell. Defaults to True.
 
         Returns:
             dict[str, float]: A dictionary contains

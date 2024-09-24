@@ -136,8 +136,11 @@ Many of the fake backends are not available in qiskit-ibm-runtime.
 @overload
 def fack_backend_loader(
     version: Literal["v1"],
-) -> tuple[dict[str, str], dict[str, Backend], Union["FakeProviderDep", "FakeProviderIndep"],]:
-    ...
+) -> tuple[
+    dict[str, str],
+    dict[str, Backend],
+    Union["FakeProviderDep", "FakeProviderIndep"],
+]: ...
 
 
 @overload
@@ -147,15 +150,13 @@ def fack_backend_loader(
     dict[str, str],
     dict[str, Backend],
     Union["FakeProviderForBackendV2Dep", "FakeProviderForBackendV2Indep"],
-]:
-    ...
+]: ...
 
 
 @overload
 def fack_backend_loader(
     version: None,
-) -> tuple[dict[str, str], dict[str, Backend], None]:
-    ...
+) -> tuple[dict[str, str], dict[str, Backend], None]: ...
 
 
 def fack_backend_loader(version=None):

@@ -13,6 +13,7 @@ from .backend import (
     GeneralSimulator,
     GeneralBackend,
     GeneralProvider,
+    backend_name_getter,
 )
 from .parallelmanager import ParallelManager, workers_distribution, DEFAULT_POOL_SIZE
 from .progressbar import qurry_progressbar

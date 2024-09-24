@@ -37,7 +37,7 @@ def pytorch_cuda_check() -> Optional[bool]:
     """
     try:
         # pylint: disable=import-outside-toplevel
-        import torch
+        import torch  # type: ignore
 
         # pylint: disable=import-outside-toplevel
 

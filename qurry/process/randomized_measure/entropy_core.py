@@ -211,7 +211,13 @@ def entangled_entropy_core_allrust(
     counts: list[dict[str, int]],
     degree: Optional[Union[tuple[int, int], int]],
     measure: Optional[tuple[int, int]] = None,
-) -> tuple[dict[int, float], tuple[int, int], tuple[int, int], str, float,]:
+) -> tuple[
+    dict[int, float],
+    tuple[int, int],
+    tuple[int, int],
+    str,
+    float,
+]:
     """The core function of entangled entropy by Rust.
 
     Args:

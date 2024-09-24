@@ -163,3 +163,6 @@ wheelhouse/
 
 .DS_Store
 @eaDir
+
+
+tests/qurrium/exports/

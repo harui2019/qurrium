@@ -43,9 +43,9 @@ dependencies = { file = "requirements.txt" }
 manylinux-x86_64-image = "manylinux2014"
 manylinux-i686-image = "manylinux2014"
 skip = [
-    "*-musllinux_i686", # rust tier 2 support
+    "*-musllinux_i686", # rust tier 2 support, qiskit did not support musllinux
     "pp*",              # Qiskit and Qurry are not pure python packages, See https://github.com/harui2019/qurry/issues/93#issuecomment-1801837481
-    "cp38-*",           # Not support for Qurry and won't support for we make type hint in 3.9 syntax.
+    "cp38-*",           # Not support and won't support for we write type hint in 3.9 syntax.
     "*-musllinux_*",    # qiskit did not support musllinux
     # "*-manylinux_i686", # scipy dependency issue, Check issue https://github.com/harui2019/qurry/issues/93 for details
 ]
@@ -56,7 +56,14 @@ before-all = [
     'python -c "print(\"### Building \".ljust(70, \".\"))"',
     'python -c "print(\"=\"*70)"',
     "pip install auditwheel-symbols",
+    'python -c "print(\"=\"*70)"',
+    'python -c "print(\"### Rust Setup \".ljust(70, \".\"))"',
+    'python -c "print(\"=\"*70)"',
+    "curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain=nightly --profile=minimal -y",
+    'source "$HOME/.cargo/env"',
+    "rustup show",
 ]
+environment = { PATH = "$HOME/.cargo/bin:$PATH" }
 before-test = [
     'python -c "print(\"=\"*70)"',
     'python -c "print(\"### Testing \".ljust(70, \".\"))"',
@@ -67,12 +74,6 @@ before-test = [
 test-command = ["pytest {project}/tests"]
 
 [tool.cibuildwheel.linux]
-environment = { PATH = "$HOME/.cargo/bin:$PATH" }
-before-all = [
-    "curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain=nightly --profile=minimal -y",
-    'source "$HOME/.cargo/env"',
-    "rustup show",
-]
 before-test = [
     'python -c "print(\"=\"*70)"',
     'python -c "print(\"### Testing on Linux \".ljust(70, \".\"))"',

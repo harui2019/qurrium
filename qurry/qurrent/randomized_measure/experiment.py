@@ -1,97 +1,221 @@
 """
 ===========================================================
-Second Renyi Entropy - Randomized Measurement 
-(:mod:`qurry.qurrent.randomized_measure`)
+EntropyMeasureRandomized - Experiment
+(:mod:`qurry.qurrent.randomized_measure.experiment`)
 ===========================================================
 
 """
 
-from typing import Union, Optional, NamedTuple, Iterable
+from typing import Union, Optional, Type, Any
+from collections.abc import Iterable, Hashable
+import warnings
 import tqdm
 
-from .analysis import EntropyRandomizedAnalysis
-from ...qurrium.experiment import ExperimentPrototype
+from qiskit import QuantumCircuit
+
+from .analysis import EntropyMeasureRandomizedAnalysis
+from .arguments import EntropyMeasureRandomizedArguments, SHORT_NAME
+from .utils import circuit_method_core, randomized_entangled_entropy_complex
+from ...qurrium.experiment import ExperimentPrototype, Commonparams
+from ...qurrium.utils.randomized import (
+    local_random_unitary_operators,
+    local_random_unitary_pauli_coeff,
+    random_unitary,
+)
+from ...process.utils import qubit_selector
 from ...process.randomized_measure.entangled_entropy import (
     RandomizedEntangledEntropyMitigatedComplex,
-    randomized_entangled_entropy_mitigated,
-    ExistingAllSystemSource,
 )
 from ...process.randomized_measure.entropy_core import (
     PostProcessingBackendLabel,
     DEFAULT_PROCESS_BACKEND,
 )
-from ...tools import qurry_progressbar, DEFAULT_POOL_SIZE
+from ...tools import qurry_progressbar, ParallelManager
+from ...exceptions import QurryArgumentsExpectedNotNone
 
 
-def _randomized_entangled_entropy_complex(
-    shots: int,
-    counts: list[dict[str, int]],
-    degree: Optional[Union[tuple[int, int], int]],
-    measure: Optional[tuple[int, int]] = None,
-    all_system_source: Optional[EntropyRandomizedAnalysis] = None,
-    backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
-    workers_num: Optional[int] = None,
-    pbar: Optional[tqdm.tqdm] = None,
-) -> RandomizedEntangledEntropyMitigatedComplex:
-    """Inner wrapper"""
+class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
+    """The instance of experiment."""
 
-    if all_system_source is not None:
-        source = str(all_system_source.header)
-        assert (
-            all_system_source.content.purityCellsAllSys is not None
-        ), f"purityCellsAllSys of {source} is None"
-        assert (
-            all_system_source.content.bitStringRange is not None
-        ), f"bitStringRange of {source} is None"
-        assert (
-            all_system_source.content.measureActually is not None
-        ), f"measureActually of {source} is None"
+    __name__ = "EntropyMeasureRandomizedExperiment"
 
-        existed_all_system: Optional[ExistingAllSystemSource] = {
-            "bitStringRange": all_system_source.content.bitStringRange,
-            "measureActually": all_system_source.content.measureActually,
-            "purityCellsAllSys": all_system_source.content.purityCellsAllSys,
-            "source": source,
+    @property
+    def arguments_instance(self) -> Type[EntropyMeasureRandomizedArguments]:
+        """The arguments instance for this experiment."""
+        return EntropyMeasureRandomizedArguments
+
+    args: EntropyMeasureRandomizedArguments
+
+    @property
+    def analysis_instance(self) -> Type[EntropyMeasureRandomizedAnalysis]:
+        """The analysis instance for this experiment."""
+        return EntropyMeasureRandomizedAnalysis
+
+    @classmethod
+    def params_control(
+        cls,
+        targets: list[tuple[Hashable, QuantumCircuit]],
+        exp_name: str = "exps",
+        times: int = 100,
+        measure: Optional[Union[tuple[int, int], int]] = None,
+        unitary_loc: Optional[Union[tuple[int, int], int]] = None,
+        **custom_kwargs: Any,
+    ) -> tuple[EntropyMeasureRandomizedArguments, Commonparams, dict[str, Any]]:
+        """Handling all arguments and initializing a single experiment.
+
+        Args:
+            targets (list[tuple[Hashable, QuantumCircuit]]):
+                The circuits of the experiment.
+            exp_name (str, optional):
+                The name of the experiment.
+                Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
+                This name is also used for creating a folder to store the exports.
+                Defaults to `'experiment'`.
+            times (int):
+                The number of random unitary operator. Defaults to 100.
+                It will denote as `N_U` in the experiment name.
+            measure (Optional[Union[tuple[int, int], int]]):
+                The measure range. Defaults to None.
+            unitary_loc (Optional[Union[tuple[int, int], int]]):
+                The range of the unitary operator. Defaults to None.
+            custom_kwargs (Any):
+                The custom parameters.
+
+        Raises:
+            ValueError: If the number of targets is not one.
+            TypeError: If times is not an integer.
+            ValueError: If the range of measure is not in the range of unitary_loc.
+
+        Returns:
+            tuple[EntropyMeasureRandomizedArguments, Commonparams, dict[str, Any]]:
+                The arguments of the experiment, the common parameters, and the custom parameters.
+        """
+        if len(targets) > 1:
+            raise ValueError("The number of target circuits should be only one.")
+        if not isinstance(times, int):
+            raise TypeError(f"times should be an integer, but got {times}.")
+
+        target_key, target_circuit = targets[0]
+        num_qubits = target_circuit.num_qubits
+
+        if measure is None:
+            measure = num_qubits
+        measure = qubit_selector(num_qubits, degree=measure)
+        if unitary_loc is None:
+            unitary_loc = num_qubits
+        unitary_loc = qubit_selector(num_qubits, degree=unitary_loc)
+
+        if (min(measure) < min(unitary_loc)) or (max(measure) > max(unitary_loc)):
+            raise ValueError(
+                f"unitary_loc range '{unitary_loc}' does not contain measure range '{measure}'."
+            )
+
+        exp_name = f"{exp_name}.N_U_{times}.{SHORT_NAME}"
+
+        # pylint: disable=protected-access
+        return EntropyMeasureRandomizedArguments._filter(
+            exp_name=exp_name,
+            target_keys=[target_key],
+            times=times,
+            measure=measure,
+            unitary_loc=unitary_loc,
+            **custom_kwargs,
+        )
+        # pylint: enable=protected-access
+
+    @classmethod
+    def method(
+        cls,
+        targets: list[tuple[Hashable, QuantumCircuit]],
+        arguments: EntropyMeasureRandomizedArguments,
+        pbar: Optional[tqdm.tqdm] = None,
+    ) -> tuple[list[QuantumCircuit], dict[str, Any]]:
+        """The method to construct circuit.
+
+        Args:
+            targets (list[tuple[Hashable, QuantumCircuit]]):
+                The circuits of the experiment.
+            arguments (EntropyMeasureRandomizedArguments):
+                The arguments of the experiment.
+            pbar (Optional[tqdm.tqdm], optional):
+                The progress bar for showing the progress of the experiment.
+                Defaults to None.
+
+        Returns:
+            tuple[list[QuantumCircuit], dict[str, Any]]:
+                The circuits of the experiment and the side products.
+        """
+        side_product = {}
+
+        pool = ParallelManager(arguments.workers_num)
+        if isinstance(pbar, tqdm.tqdm):
+            pbar.set_description_str(
+                f"Preparing {arguments.times} random unitary with {arguments.workers_num} workers."
+            )
+
+        target_key, target_circuit = targets[0]
+        target_key = "" if isinstance(target_key, int) else str(target_key)
+        num_qubits = target_circuit.num_qubits
+
+        if arguments.unitary_loc is None:
+            actual_unitary_loc = (0, num_qubits)
+            warnings.warn(
+                f"| unitary_loc is not specified, using the whole qubits {actual_unitary_loc},"
+                + " but it should be not None anymore here.",
+                QurryArgumentsExpectedNotNone,
+            )
+        else:
+            actual_unitary_loc = arguments.unitary_loc
+        unitary_dict = {
+            i: {j: random_unitary(2) for j in range(*actual_unitary_loc)}
+            for i in range(arguments.times)
         }
-    else:
-        existed_all_system = None
 
-    return randomized_entangled_entropy_mitigated(
-        shots=shots,
-        counts=counts,
-        degree=degree,
-        measure=measure,
-        backend=backend,
-        workers_num=workers_num,
-        existed_all_system=existed_all_system,
-        pbar=pbar,
-    )
+        if isinstance(pbar, tqdm.tqdm):
+            pbar.set_description_str(
+                f"Building {arguments.times} circuits with {arguments.workers_num} workers."
+            )
+        circ_list = pool.starmap(
+            circuit_method_core,
+            [
+                (
+                    i,
+                    target_circuit,
+                    target_key,
+                    arguments.exp_name,
+                    arguments.unitary_loc,
+                    unitary_dict[i],
+                    arguments.measure,
+                )
+                for i in range(arguments.times)
+            ],
+        )
 
+        if isinstance(pbar, tqdm.tqdm):
+            pbar.set_description_str(f"Writing 'unitaryOP' with {arguments.workers_num} workers.")
+        # side_product["unitaryOP"] = {
+        #     k: {i: np.array(v[i]).tolist() for i in range(*arguments.unitary_loc)}
+        #     for k, v in unitary_dict.items()
+        # }
+        unitary_operator_list = pool.starmap(
+            local_random_unitary_operators,
+            [(arguments.unitary_loc, unitary_dict[i]) for i in range(arguments.times)],
+        )
+        side_product["unitaryOP"] = dict(enumerate(unitary_operator_list))
 
-class EntropyRandomizedArguments(NamedTuple):
-    """Arguments for the experiment."""
+        if isinstance(pbar, tqdm.tqdm):
+            pbar.set_description_str(f"Writing 'randomized' with {arguments.workers_num} workers.")
+        # side_product["randomized"] = {
+        #     i: {j: qubitOpToPauliCoeff(unitary_dict[i][j]) for j in range(*arguments.unitary_loc)}
+        #     for i in range(arguments.times)
+        # }
+        randomized_list = pool.starmap(
+            local_random_unitary_pauli_coeff,
+            [(arguments.unitary_loc, unitary_operator_list[i]) for i in range(arguments.times)],
+        )
+        side_product["randomized"] = dict(enumerate(randomized_list))
 
-    exp_name: str = "exps"
-    times: int = 100
-    measure: Optional[tuple[int, int]] = None
-    unitary_loc: Optional[tuple[int, int]] = None
-    workers_num: int = DEFAULT_POOL_SIZE
-
-
-class EntropyRandomizedExperiment(ExperimentPrototype):
-    """The instance for the experiment of :cls:`EntropyRandomizedMeasure`."""
-
-    __name__ = "qurrentRandomized.Experiment"
-    shortName = "qurrent_haar.exp"
-
-    tqdm_handleable = True
-    """The handleable of tqdm."""
-
-    Arguments = EntropyRandomizedArguments
-    args: EntropyRandomizedArguments
-
-    analysis_container = EntropyRandomizedAnalysis
-    """The container class responding to this QurryV5 class."""
+        return circ_list, side_product
 
     def analyze(
         self,
@@ -101,7 +225,7 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
         independent_all_system: bool = False,
         backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
         pbar: Optional[tqdm.tqdm] = None,
-    ) -> EntropyRandomizedAnalysis:
+    ) -> EntropyMeasureRandomizedAnalysis:
         """Calculate entangled entropy with more information combined.
 
         Args:
@@ -132,8 +256,8 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
         if degree is None:
             raise ValueError("degree should be specified.")
 
-        self.args: EntropyRandomizedExperiment.Arguments
-        self.reports: dict[int, EntropyRandomizedAnalysis]
+        self.args: EntropyMeasureRandomizedArguments
+        self.reports: dict[int, EntropyMeasureRandomizedAnalysis]
         shots = self.commons.shots
         measure = self.args.measure
         unitary_loc = self.args.unitary_loc
@@ -192,7 +316,7 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
                 pb_self.update()
 
         serial = len(self.reports)
-        analysis = self.analysis_container(
+        analysis = self.analysis_instance(
             serial=serial,
             shots=shots,
             unitary_loc=unitary_loc,
@@ -210,7 +334,7 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
         counts: Optional[list[dict[str, int]]] = None,
         degree: Optional[Union[tuple[int, int], int]] = None,
         measure: Optional[tuple[int, int]] = None,
-        all_system_source: Optional["EntropyRandomizedAnalysis"] = None,
+        all_system_source: Optional["EntropyMeasureRandomizedAnalysis"] = None,
         backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
         workers_num: Optional[int] = None,
         pbar: Optional[tqdm.tqdm] = None,
@@ -323,7 +447,7 @@ class EntropyRandomizedExperiment(ExperimentPrototype):
         if shots is None or counts is None:
             raise ValueError("shots and counts should be specified.")
 
-        return _randomized_entangled_entropy_complex(
+        return randomized_entangled_entropy_complex(
             shots=shots,
             counts=counts,
             degree=degree,

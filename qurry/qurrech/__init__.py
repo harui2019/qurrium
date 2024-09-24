@@ -5,23 +5,22 @@ Qurrech - Wave Function Overlap
 ================================================================
 
 """
+
 from typing import Literal, Union, overload
 
-from .hadamard_test import EchoHadamardTest
-from .randomized_measure import EchoRandomizedListen
+from .hadamard_test import EchoListenHadamard
+from .randomized_measure import EchoListenRandomized
 
 
 # pylint: disable=invalid-name
 @overload
-def EchoListen(*args, method: Literal["hadamard"], **kwargs) -> EchoHadamardTest:
-    ...
+def EchoListen(*args, method: Literal["hadamard"], **kwargs) -> EchoListenHadamard: ...
 
 
 @overload
 def EchoListen(
     *args, method: Union[Literal["randomized", "base"], str] = "randomized", **kwargs
-) -> EchoRandomizedListen:
-    ...
+) -> EchoListenRandomized: ...
 
 
 def EchoListen(
@@ -42,20 +41,18 @@ def EchoListen(
         EchoListenBase: method.
     """
     if method == "hadamard":
-        return EchoHadamardTest(*args, **kwargs)
-    return EchoRandomizedListen(*args, **kwargs)
+        return EchoListenHadamard(*args, **kwargs)
+    return EchoListenRandomized(*args, **kwargs)
 
 
 @overload
-def WaveFunctionOverlap(*args, method: Literal["hadamard"], **kwargs) -> EchoHadamardTest:
-    ...
+def WaveFunctionOverlap(*args, method: Literal["hadamard"], **kwargs) -> EchoListenHadamard: ...
 
 
 @overload
 def WaveFunctionOverlap(
     *args, method: Union[Literal["randomized", "base"], str] = "randomized", **kwargs
-) -> EchoRandomizedListen:
-    ...
+) -> EchoListenRandomized: ...
 
 
 def WaveFunctionOverlap(
@@ -76,5 +73,5 @@ def WaveFunctionOverlap(
         WaveFunctionOverlapBase: method.
     """
     if method == "hadamard":
-        return EchoHadamardTest(*args, **kwargs)
-    return EchoRandomizedListen(*args, **kwargs)
+        return EchoListenHadamard(*args, **kwargs)
+    return EchoListenRandomized(*args, **kwargs)

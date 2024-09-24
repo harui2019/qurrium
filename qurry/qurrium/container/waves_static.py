@@ -6,13 +6,13 @@ WaveContainer
 
 """
 
-from typing import Literal, Union, Optional, Hashable, overload
+from typing import Literal, Union, Optional, overload
+from collections.abc import Hashable
 from qiskit import QuantumCircuit
 from qiskit.quantum_info import Operator
 from qiskit.circuit import Gate, Instruction
 
-
-from .waves_dynamic import _add, _remove
+from .waves_dynamic import _add, _remove, _process
 
 
 class WaveContainer(dict[Hashable, QuantumCircuit]):
@@ -46,6 +46,20 @@ class WaveContainer(dict[Hashable, QuantumCircuit]):
         """
         return _add(_wave_container=self, wave=wave, key=key, replace=replace)
 
+    def process(
+        self, circuits: list[Union[QuantumCircuit, Hashable]]
+    ) -> list[tuple[Hashable, QuantumCircuit]]:
+        """Process the circuits in container.
+
+        Args:
+            circuits (list[Union[QuantumCircuit, Hashable]]):
+                The circuits or keys of circuits in container.
+
+        Returns:
+            list[tuple[Hashable, QuantumCircuit]]: The processed circuits.
+        """
+        return _process(self, circuits)
+
     def remove(self, key: Hashable) -> None:
         """Remove wave from container.
 
@@ -55,38 +69,34 @@ class WaveContainer(dict[Hashable, QuantumCircuit]):
         _remove(self, key)
 
     @overload
-    def get_wave(self, wave: list[Hashable], run_by: Literal["gate"]) -> list[Gate]:
-        ...
+    def get_wave(self, wave: list[Hashable], run_by: Literal["gate"]) -> list[Gate]: ...
 
     @overload
-    def get_wave(self, wave: list[Hashable], run_by: Literal["operator"]) -> list[Operator]:
-        ...
+    def get_wave(self, wave: list[Hashable], run_by: Literal["operator"]) -> list[Operator]: ...
 
     @overload
-    def get_wave(self, wave: list[Hashable], run_by: Literal["instruction"]) -> list[Instruction]:
-        ...
+    def get_wave(
+        self, wave: list[Hashable], run_by: Literal["instruction"]
+    ) -> list[Instruction]: ...
 
     @overload
     def get_wave(
         self, wave: list[Hashable], run_by: Optional[Literal["copy", "call"]]
-    ) -> list[QuantumCircuit]:
-        ...
+    ) -> list[QuantumCircuit]: ...
 
     @overload
-    def get_wave(self, wave: Hashable, run_by: Literal["gate"]) -> Gate:
-        ...
+    def get_wave(self, wave: Hashable, run_by: Literal["gate"]) -> Gate: ...
 
     @overload
-    def get_wave(self, wave: Hashable, run_by: Literal["operator"]) -> Operator:
-        ...
+    def get_wave(self, wave: Hashable, run_by: Literal["operator"]) -> Operator: ...
 
     @overload
-    def get_wave(self, wave: Hashable, run_by: Literal["instruction"]) -> Instruction:
-        ...
+    def get_wave(self, wave: Hashable, run_by: Literal["instruction"]) -> Instruction: ...
 
     @overload
-    def get_wave(self, wave: Hashable, run_by: Optional[Literal["copy", "call"]]) -> QuantumCircuit:
-        ...
+    def get_wave(
+        self, wave: Hashable, run_by: Optional[Literal["copy", "call"]]
+    ) -> QuantumCircuit: ...
 
     def get_wave(self, wave=None, run_by=None):
         """Parse wave Circuit into `Instruction` as `Gate` or `Operator` on `QuantumCircuit`.
@@ -132,12 +142,10 @@ class WaveContainer(dict[Hashable, QuantumCircuit]):
         return self[wave].to_gate()
 
     @overload
-    def call(self, wave: list[Hashable]) -> list[QuantumCircuit]:
-        ...
+    def call(self, wave: list[Hashable]) -> list[QuantumCircuit]: ...
 
     @overload
-    def call(self, wave: Hashable) -> QuantumCircuit:
-        ...
+    def call(self, wave: Hashable) -> QuantumCircuit: ...
 
     def call(self, wave):
         """Export wave function as `QuantumCircuit`.
@@ -240,9 +248,24 @@ class WaveContainer(dict[Hashable, QuantumCircuit]):
         return wavename in self
 
     def __repr__(self):
-        inner_lines = "\n".join(f"    {k}: ..." for k in self.keys())
-        inner_lines2 = "{\n%s\n}" % inner_lines
-        return (
-            f"<{self.__name__}={inner_lines2} with {len(self)} "
-            + "waves load, a customized dictionary>"
-        )
+        return f"{self.__name__}({super().__repr__()})"
+
+    def _repr_oneline(self):
+        return f"{self.__name__}(" + "{...}" + f", num={len(self)})"
+
+    def _repr_pretty_(self, p, cycle):
+        if cycle:
+            p.text(f"{self.__name__}(" + "{...}" + f", num={len(self)})")
+        else:
+            original_repr = super().__repr__()
+            original_repr_split = original_repr[1:-1].split(", ")
+            length = len(original_repr_split)
+            with p.group(2, f"{self.__name__}(" + "{", "})"):
+                for i, item in enumerate(original_repr_split):
+                    p.breakable()
+                    p.text(item)
+                    if i < length - 1:
+                        p.text(",")
+
+    def __str__(self):
+        return super().__repr__()

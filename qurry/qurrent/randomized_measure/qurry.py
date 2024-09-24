@@ -1,74 +1,28 @@
 """
 ===========================================================
-Second Renyi Entropy - Randomized Measurement 
-(:mod:`qurry.qurrent.randomized_measure`)
+EntropyMeasureRandomized - Qurry
+(:mod:`qurry.qurrent.randomized_measure.qurry`)
 ===========================================================
 
 """
 
+from typing import Union, Optional, Any, Type
+from collections.abc import Hashable
 from pathlib import Path
-from typing import Union, Optional, Hashable, Any, Type
-import warnings
 import tqdm
 
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit.quantum_info import Operator
+from qiskit import QuantumCircuit
+from qiskit.providers import Backend
+from qiskit.transpiler.passmanager import PassManager
 
-from .experiment import EntropyRandomizedExperiment
-from ...qurrium.qurrium import QurryPrototype
+from .arguments import SHORT_NAME, EntropyMeasureRandomizedOutputArgs
+from .experiment import EntropyMeasureRandomizedExperiment
+from ...qurrium.qurrium import QurriumPrototype
 from ...qurrium.container import ExperimentContainer
-from ...qurrium.utils.randomized import (
-    local_random_unitary_operators,
-    local_random_unitary_pauli_coeff,
-    random_unitary,
-)
-from ...process.utils import qubit_selector
-from ...tools import ParallelManager
-from ...exceptions import QurryArgumentsExpectedNotNone
+from ...declare import BaseRunArgs, TranspileArgs
 
 
-def circuit_method_core(
-    idx: int,
-    target_circuit: QuantumCircuit,
-    exp_name: str,
-    unitary_loc: tuple[int, int],
-    unitary_sublist: dict[int, Operator],
-    measure: tuple[int, int],
-) -> QuantumCircuit:
-    """Build the circuit for the experiment.
-
-    Args:
-        idx (int): Index of the randomized unitary.
-        target_circuit (QuantumCircuit): Target circuit.
-        exp_name (str): Experiment name.
-        unitary_loc (tuple[int, int]): Unitary operator location.
-        unitary_sublist (dict[int, Operator]): Unitary operator list.
-        measure (tuple[int, int]): Measure range.
-
-    Returns:
-        QuantumCircuit: The circuit for the experiment.
-    """
-
-    num_qubits = target_circuit.num_qubits
-
-    q_func1 = QuantumRegister(num_qubits, "q1")
-    c_meas1 = ClassicalRegister(measure[1] - measure[0], "c1")
-    qc_exp1 = QuantumCircuit(q_func1, c_meas1)
-    qc_exp1.name = f"{exp_name}-{idx}"
-
-    qc_exp1.compose(target_circuit, [q_func1[i] for i in range(num_qubits)], inplace=True)
-
-    qc_exp1.barrier()
-    for j in range(*unitary_loc):
-        qc_exp1.append(unitary_sublist[j].to_instruction(), [j])
-
-    for j in range(*measure):
-        qc_exp1.measure(q_func1[j], c_meas1[j - measure[0]])
-
-    return qc_exp1
-
-
-class EntropyRandomizedMeasure(QurryPrototype):
+class EntropyMeasureRandomized(QurriumPrototype):
     """Randomized Measure Experiment.
 
     - Which entropy:
@@ -150,231 +104,214 @@ class EntropyRandomizedMeasure(QurryPrototype):
     ```
     """
 
-    __name__ = "qurrentRandomized"
-    shortName = "qurrent_haar"
+    __name__ = "EntropyRandomizedMeasure"
+    short_name = SHORT_NAME
 
     @property
-    def experiment(self) -> Type[EntropyRandomizedExperiment]:
+    def experiment_instance(self) -> Type[EntropyMeasureRandomizedExperiment]:
         """The container class responding to this QurryV5 class."""
-        return EntropyRandomizedExperiment
+        return EntropyMeasureRandomizedExperiment
 
-    exps: ExperimentContainer[EntropyRandomizedExperiment]
+    exps: ExperimentContainer[EntropyMeasureRandomizedExperiment]
 
-    def params_control(
+    def measure_to_output(
         self,
-        wave_key: Hashable = None,
-        exp_name: Optional[str] = None,
-        times: int = 100,
-        measure: Optional[Union[tuple[int, int], int]] = None,
-        unitary_loc: Optional[Union[tuple[int, int], int]] = None,
-        **other_kwargs,
-    ) -> tuple[
-        EntropyRandomizedExperiment.Arguments,
-        EntropyRandomizedExperiment.Commonparams,
-        dict[str, Any],
-    ]:
-        """Handling all arguments and initializing a single experiment.
-
-        Args:
-            wave_key (Hashable):
-                The index of the wave function in `self.waves` or add new one to calaculation,
-                then choose one of waves as the experiment material.
-                If input is `QuantumCircuit`, then add and use it.
-                If input is the key in `.waves`, then use it.
-                If input is `None` or something illegal, then use `.lastWave'.
-                Defaults to None.
-
-            exp_name (str, optional):
-                Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
-                This name is also used for creating a folder to store the exports.
-                Defaults to `'exps'`.
-
-            other_kwargs (any):
-                Other arguments.
-
-        Returns:
-            dict: The export will be processed in `.paramsControlCore`
-        """
-
-        # times
-        if not isinstance(times, int):
-            raise ValueError(f"times should be an integer, but got {times}.")
-
-        # measure and unitary location
-        num_qubits = self.waves[wave_key].num_qubits
-        if measure is None:
-            measure = num_qubits
-        measure = qubit_selector(num_qubits, degree=measure)
-
-        if unitary_loc is None:
-            unitary_loc = num_qubits
-        unitary_loc = qubit_selector(num_qubits, degree=unitary_loc)
-
-        if (min(measure) < min(unitary_loc)) or (max(measure) > max(unitary_loc)):
-            raise ValueError(
-                f"unitary_loc range '{unitary_loc}' does not contain measure range '{measure}'."
-            )
-
-        actual_exp_name = (
-            f"w={wave_key}.with{times}random.{self.shortName}" if exp_name is None else exp_name
-        )
-
-        return self.experiment.filter(
-            exp_name=actual_exp_name,
-            wave_key=wave_key,
-            times=times,
-            measure=measure,
-            unitary_loc=unitary_loc,
-            **other_kwargs,
-        )
-
-    def method(
-        self,
-        exp_id: str,
-        _pbar: Optional[tqdm.tqdm] = None,
-    ) -> list[QuantumCircuit]:
-        assert exp_id in self.exps
-        assert self.exps[exp_id].commons.exp_id == exp_id
-        current_exp = self.exps[exp_id]
-        args = self.exps[exp_id].args
-        commons = self.exps[exp_id].commons
-        circuit = self.waves[commons.wave_key]
-        _num_qubits = circuit.num_qubits
-
-        pool = ParallelManager(args.workers_num)
-
-        if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str(
-                f"Preparing {args.times} random unitary with {args.workers_num} workers."
-            )
-
-        # !Warning: DO NOT USE MULTI-PROCESSING HERE !!!!!
-        # See https://github.com/numpy/numpy/issues/9650
-        # And https://github.com/harui2019/qurry/issues/78
-        # The random seed will be duplicated in each process,
-        # and it will make duplicated result.
-        # unitaryList = pool.starmap(
-        #     local_random_unitary, [(args.unitary_loc, None) for _ in range(args.times)])
-
-        if args.unitary_loc is None:
-            actual_unitary_loc = (0, circuit.num_qubits)
-            warnings.warn(
-                f"| unitary_loc is not specified, using the whole qubits {actual_unitary_loc},"
-                + " but it should be not None anymore here.",
-                QurryArgumentsExpectedNotNone,
-            )
-        else:
-            actual_unitary_loc = args.unitary_loc
-
-        unitary_dict = {
-            i: {j: random_unitary(2) for j in range(*actual_unitary_loc)} for i in range(args.times)
-        }
-
-        if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str(
-                f"Building {args.times} circuits with {args.workers_num} workers."
-            )
-        qc_list = pool.starmap(
-            circuit_method_core,
-            [
-                (
-                    i,
-                    circuit,
-                    args.exp_name,
-                    args.unitary_loc,
-                    unitary_dict[i],
-                    args.measure,
-                )
-                for i in range(args.times)
-            ],
-        )
-
-        if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str(f"Writing 'unitaryOP' with {args.workers_num} workers.")
-        unitary_operator_list = pool.starmap(
-            local_random_unitary_operators,
-            [(args.unitary_loc, unitary_dict[i]) for i in range(args.times)],
-        )
-        current_exp.beforewards.side_product["unitaryOP"] = dict(enumerate(unitary_operator_list))
-
-        # currentExp.beforewards.side_product['unitaryOP'] = {
-        #     k: {i: np.array(v[i]).tolist() for i in range(*args.unitary_loc)}
-        #     for k, v in unitaryList.items()}
-
-        if isinstance(_pbar, tqdm.tqdm):
-            _pbar.set_description_str(f"Writing 'randomized' with {args.workers_num} workers.")
-        randomized_list = pool.starmap(
-            local_random_unitary_pauli_coeff,
-            [(args.unitary_loc, unitary_operator_list[i]) for i in range(args.times)],
-        )
-        current_exp.beforewards.side_product["randomized"] = dict(enumerate(randomized_list))
-
-        # currentExp.beforewards.side_product['randomized'] = {i: {
-        #     j: qubitOpToPauliCoeff(
-        #         unitaryList[i][j])
-        #     for j in range(*args.unitary_loc)
-        # } for i in range(args.times)}
-
-        return qc_list
-
-    def measure(
-        self,
-        wave: Union[QuantumCircuit, any],
+        wave: Optional[Union[QuantumCircuit, Hashable]] = None,
         times: int = 100,
         measure: Union[int, tuple[int, int], None] = None,
         unitary_loc: Union[int, tuple[int, int], None] = None,
-        exp_name: str = "exps",
-        *,
+        shots: int = 1024,
+        backend: Optional[Backend] = None,
+        exp_name: str = "experiment",
+        run_args: Optional[Union[BaseRunArgs, dict[str, Any]]] = None,
+        transpile_args: Optional[TranspileArgs] = None,
+        passmanager: Optional[Union[str, PassManager, tuple[str, PassManager]]] = None,
+        # process tool
+        export: bool = False,
         save_location: Optional[Union[Path, str]] = None,
         mode: str = "w+",
         indent: int = 2,
         encoding: str = "utf-8",
-        jsonablize: bool = False,
-        **other_kwargs: any,
-    ) -> str:
-        """
+        jsonable: bool = False,
+        pbar: Optional[tqdm.tqdm] = None,
+    ) -> EntropyMeasureRandomizedOutputArgs:
+        """Trasnform :meth:`measure` arguments form into :meth:`output` form.
 
         Args:
-            wave (Union[QuantumCircuit, int, None], optional):
-                The index of the wave function in `self.waves` or add new one to calaculation,
-                then choose one of waves as the experiment material.
-                If input is `QuantumCircuit`, then add and use it.
-                If input is the key in `.waves`, then use it.
-                If input is `None` or something illegal, then use `.lastWave'.
-                Defaults to None.
-
+            wave (Union[QuantumCircuit, Hashable]):
+                The key or the circuit to execute.
+            times (int, optional):
+                The number of random unitary operator.
+                It will denote as `N_U` in the experiment name.
+                Defaults to `100`.
+            measure (Union[int, tuple[int, int], None], optional):
+                The measure range. Defaults to `None`.
+            unitary_loc (Union[int, tuple[int, int], None], optional):
+                The range of the unitary operator. Defaults to `None`.
+            shots (int, optional):
+                Shots of the job. Defaults to `1024`.
+            backend (Optional[Backend], optional):
+                The quantum backend. Defaults to None.
             exp_name (str, optional):
+                The name of the experiment.
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
                 This name is also used for creating a folder to store the exports.
                 Defaults to `'exps'`.
+            run_args (Optional[Union[BaseRunArgs, dict[str, Any]]], optional):
+                Arguments for :func:`qiskit.execute`. Defaults to `{}`.
+            transpile_args (Optional[TranspileArgs], optional):
+                Arguments for :func:`qiskit.transpile`. Defaults to `{}`.
+            passmanager (Optional[Union[str, PassManager, tuple[str, PassManager]], optional):
+                The passmanager. Defaults to None.
 
-            other_kwargs (any):
-                Other arguments.
+            exp_id (Optional[str], optional):
+                The ID of experiment. Defaults to None.
+            new_backend (Optional[Backend], optional):
+                The new backend. Defaults to None.
+            revive (bool, optional):
+                Whether to revive the circuit. Defaults to False.
+            replace_circuits (bool, optional):
+                Whether to replace the circuits during revive. Defaults to False.
+
+            export (bool, optional):
+                Whether to export the experiment. Defaults to False.
+            save_location (Optional[Union[Path, str]], optional):
+                The location to save the experiment. Defaults to None.
+            mode (str, optional):
+                The mode to open the file. Defaults to 'w+'.
+            indent (int, optional):
+                The indent of json file. Defaults to 2.
+            encoding (str, optional):
+                The encoding of json file. Defaults to 'utf-8'.
+            jsonable (bool, optional):
+                Whether to jsonablize the experiment output. Defaults to False.
+            pbar (Optional[tqdm.tqdm], optional):
+                The progress bar for showing the progress of the experiment.
+                Defaults to None.
 
         Returns:
-            dict: The output.
+            EntropyMeasureRandomizedOutputArgs: The output arguments.
+        """
+        if wave is None:
+            raise ValueError("The `wave` must be provided.")
+
+        return {
+            "circuits": [wave],
+            "times": times,
+            "measure": measure,
+            "unitary_loc": unitary_loc,
+            "shots": shots,
+            "backend": backend,
+            "exp_name": exp_name,
+            "run_args": run_args,
+            "transpile_args": transpile_args,
+            "passmanager": passmanager,
+            "export": export,
+            "save_location": save_location,
+            "mode": mode,
+            "indent": indent,
+            "encoding": encoding,
+            "jsonable": jsonable,
+            "pbar": pbar,
+        }
+
+    def measure(
+        self,
+        wave: Optional[Union[QuantumCircuit, Hashable]] = None,
+        times: int = 100,
+        measure: Union[int, tuple[int, int], None] = None,
+        unitary_loc: Union[int, tuple[int, int], None] = None,
+        shots: int = 1024,
+        backend: Optional[Backend] = None,
+        exp_name: str = "experiment",
+        run_args: Optional[Union[BaseRunArgs, dict[str, Any]]] = None,
+        transpile_args: Optional[TranspileArgs] = None,
+        passmanager: Optional[Union[str, PassManager, tuple[str, PassManager]]] = None,
+        # process tool
+        export: bool = False,
+        save_location: Optional[Union[Path, str]] = None,
+        mode: str = "w+",
+        indent: int = 2,
+        encoding: str = "utf-8",
+        jsonable: bool = False,
+        pbar: Optional[tqdm.tqdm] = None,
+    ) -> str:
+        """Execute the experiment.
+
+        Args:
+            wave (Union[QuantumCircuit, Hashable]):
+                The key or the circuit to execute.
+            times (int, optional):
+                The number of random unitary operator.
+                It will denote as `N_U` in the experiment name.
+                Defaults to `100`.
+            measure (Union[int, tuple[int, int], None], optional):
+                The measure range. Defaults to `None`.
+            unitary_loc (Union[int, tuple[int, int], None], optional):
+                The range of the unitary operator. Defaults to `None`.
+            shots (int, optional):
+                Shots of the job. Defaults to `1024`.
+            backend (Optional[Backend], optional):
+                The quantum backend. Defaults to None.
+            exp_name (str, optional):
+                The name of the experiment.
+                Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
+                This name is also used for creating a folder to store the exports.
+                Defaults to `'exps'`.
+            run_args (Optional[Union[BaseRunArgs, dict[str, Any]]], optional):
+                Arguments for :func:`qiskit.execute`. Defaults to `{}`.
+            transpile_args (Optional[TranspileArgs], optional):
+                Arguments for :func:`qiskit.transpile`. Defaults to `{}`.
+            passmanager (Optional[Union[str, PassManager, tuple[str, PassManager]], optional):
+                The passmanager. Defaults to None.
+
+            exp_id (Optional[str], optional):
+                The ID of experiment. Defaults to None.
+            new_backend (Optional[Backend], optional):
+                The new backend. Defaults to None.
+            revive (bool, optional):
+                Whether to revive the circuit. Defaults to False.
+            replace_circuits (bool, optional):
+                Whether to replace the circuits during revive. Defaults to False.
+
+            export (bool, optional):
+                Whether to export the experiment. Defaults to False.
+            save_location (Optional[Union[Path, str]], optional):
+                The location to save the experiment. Defaults to None.
+            mode (str, optional):
+                The mode to open the file. Defaults to 'w+'.
+            indent (int, optional):
+                The indent of json file. Defaults to 2.
+            encoding (str, optional):
+                The encoding of json file. Defaults to 'utf-8'.
+            jsonable (bool, optional):
+                Whether to jsonablize the experiment output. Defaults to False.
+            pbar (Optional[tqdm.tqdm], optional):
+                The progress bar for showing the progress of the experiment.
+                Defaults to None.
+
+        Returns:
+            str: The experiment ID.
         """
 
-        id_now = self.result(
+        output_args = self.measure_to_output(
             wave=wave,
-            exp_name=exp_name,
             times=times,
             measure=measure,
             unitary_loc=unitary_loc,
-            save_location=None,
-            **other_kwargs,
+            shots=shots,
+            backend=backend,
+            exp_name=exp_name,
+            run_args=run_args,
+            transpile_args=transpile_args,
+            passmanager=passmanager,
+            export=export,
+            save_location=save_location,
+            mode=mode,
+            indent=indent,
+            encoding=encoding,
+            jsonable=jsonable,
+            pbar=pbar,
         )
-        assert id_now in self.exps, f"ID {id_now} not found."
-        assert self.exps[id_now].commons.exp_id == id_now
-        current_exp = self.exps[id_now]
 
-        if isinstance(save_location, (Path, str)):
-            current_exp.write(
-                save_location=save_location,
-                mode=mode,
-                indent=indent,
-                encoding=encoding,
-                jsonable=jsonablize,
-            )
-
-        return id_now
+        return self.output(**output_args)

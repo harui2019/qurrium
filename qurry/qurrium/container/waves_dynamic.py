@@ -5,7 +5,8 @@ Dynamic Wave Container - A experimental feature of Qurry
 ================================================================
 """
 
-from typing import Literal, Union, Optional, Hashable, MutableMapping, Type, overload
+from typing import Literal, Union, Optional, Type, MutableMapping, overload
+from collections.abc import Hashable
 import warnings
 
 from qiskit import QuantumCircuit
@@ -51,42 +52,43 @@ def wave_container_maker(
     ) -> Hashable:
         return _add(self, wave, key, replace)
 
+    def process(
+        self, circuits: list[Union[QuantumCircuit, Hashable]]
+    ) -> list[tuple[Hashable, QuantumCircuit]]:
+        return _process(self, circuits)
+
     def remove(self, key: Hashable):
         return _remove(self, key)
 
     @overload
-    def get_wave(self, wave: list[Hashable], run_by: Literal["gate"]) -> list[Gate]:
-        ...
+    def get_wave(self, wave: list[Hashable], run_by: Literal["gate"]) -> list[Gate]: ...
 
     @overload
-    def get_wave(self, wave: list[Hashable], run_by: Literal["operator"]) -> list[Operator]:
-        ...
+    def get_wave(self, wave: list[Hashable], run_by: Literal["operator"]) -> list[Operator]: ...
 
     @overload
-    def get_wave(self, wave: list[Hashable], run_by: Literal["instruction"]) -> list[Instruction]:
-        ...
+    def get_wave(
+        self, wave: list[Hashable], run_by: Literal["instruction"]
+    ) -> list[Instruction]: ...
 
     @overload
     def get_wave(
         self, wave: list[Hashable], run_by: Optional[Literal["copy", "call"]]
-    ) -> list[QuantumCircuit]:
-        ...
+    ) -> list[QuantumCircuit]: ...
 
     @overload
-    def get_wave(self, wave: Hashable, run_by: Literal["gate"]) -> Gate:
-        ...
+    def get_wave(self, wave: Hashable, run_by: Literal["gate"]) -> Gate: ...
 
     @overload
-    def get_wave(self, wave: Hashable, run_by: Literal["operator"]) -> Operator:
-        ...
+    def get_wave(self, wave: Hashable, run_by: Literal["operator"]) -> Operator: ...
 
     @overload
-    def get_wave(self, wave: Hashable, run_by: Literal["instruction"]) -> Instruction:
-        ...
+    def get_wave(self, wave: Hashable, run_by: Literal["instruction"]) -> Instruction: ...
 
     @overload
-    def get_wave(self, wave: Hashable, run_by: Optional[Literal["copy", "call"]]) -> QuantumCircuit:
-        ...
+    def get_wave(
+        self, wave: Hashable, run_by: Optional[Literal["copy", "call"]]
+    ) -> QuantumCircuit: ...
 
     def get_wave(self, wave=None, run_by=None):
         """Parse wave Circuit into `Instruction` as `Gate` or `Operator` on `QuantumCircuit`.
@@ -132,12 +134,10 @@ def wave_container_maker(
         return self[wave].to_gate()
 
     @overload
-    def call(self, wave: list[Hashable]) -> list[QuantumCircuit]:
-        ...
+    def call(self, wave: list[Hashable]) -> list[QuantumCircuit]: ...
 
     @overload
-    def call(self, wave: Hashable) -> QuantumCircuit:
-        ...
+    def call(self, wave: Hashable) -> QuantumCircuit: ...
 
     def call(self, wave):
         """Export wave function as `QuantumCircuit`.
@@ -239,13 +239,28 @@ def wave_container_maker(
         """
         return wavename in self
 
-    def __repr__(self: MutableMapping[Hashable, QuantumCircuit]):
-        inner_lines = "\n".join(f"    {k}: ..." for k in self.keys())
-        inner_lines2 = "{\n%s\n}" % inner_lines
-        return (
-            f"<{self.__name__}={inner_lines2} with {len(self)} "
-            + "waves load, a customized mutable mapping>"
-        )
+    def __repr__(self):
+        return f"{type(self).__name__}({super(self).__repr__()})"
+
+    def _repr_oneline(self):
+        return f"{self.__name__}(" + "{...}" + f", num={len(self)})"
+
+    def _repr_pretty_(self, p, cycle):
+        if cycle:
+            p.text(f"{type(self).__name__}(" + "{...}" + f", num={len(self)})")
+        else:
+            original_repr = super(self).__repr__()
+            original_repr_split = original_repr[1:-1].split(", ")
+            length = len(original_repr_split)
+            with p.group(2, f"{type(self).__name__}(" + "{", "})"):
+                for i, item in enumerate(original_repr_split):
+                    p.breakable()
+                    p.text(item)
+                    if i < length - 1:
+                        p.text(",")
+
+    def __str__(self):
+        return super(self).__repr__()
 
     class_namespace = {
         "__init__": constructor,
@@ -259,7 +274,11 @@ def wave_container_maker(
         "copy_circuit": copy_circuit,
         "instruction": instruction,
         "has": has,
+        "process": process,
         "__repr__": __repr__,
+        "_repr_oneline": _repr_oneline,
+        "_repr_pretty_": _repr_pretty_,
+        "__str__": __str__,
     }
 
     result = type(typename, (base_type,), class_namespace)
@@ -284,7 +303,8 @@ def _add(
     """Add new wave function to measure.
 
     Args:
-        waveCircuit (QuantumCircuit): The wave functions or circuits want to measure.
+        _wave_container (WaveContainer): The container of waves.
+        wave (QuantumCircuit): The wave function or circuit to add.
         key (Optional[Hashable], optional):
             Given a specific key to add to the wave function or circuit,
             if `key == None`, then generate a number as key.
@@ -302,6 +322,8 @@ def _add(
 
     if not isinstance(wave, QuantumCircuit):
         raise TypeError(f"waveCircuit should be a QuantumCircuit, not {type(wave)}")
+    if isinstance(key, int):
+        raise ValueError("Number key is only for internal use, not for user.")
 
     if key is None:
         key = len(_wave_container)
@@ -332,3 +354,38 @@ def _remove(
     key: Optional[Hashable] = None,
 ) -> None:
     del _wave_container[key]
+
+
+def _process(
+    _wave_container: MutableMapping[Hashable, QuantumCircuit],
+    circuits: list[Union[QuantumCircuit, Hashable]],
+) -> list[tuple[Hashable, QuantumCircuit]]:
+    """Process the circuits for Qurrium.
+
+    Args:
+        _wave_container (WaveContainer): The container of waves.
+        circuits (list[Union[QuantumCircuit, Hashable]]): The circuits.
+
+    Raises:
+        KeyError: If the wave not found in the container.
+        ValueError: If the circuit is invalid.
+
+    Returns:
+        dict[Hashable, QuantumCircuit]: The circuits maps.
+    """
+    circuits_items: list[tuple[Hashable, QuantumCircuit]] = []
+    for _circuit in circuits:
+        if isinstance(_circuit, QuantumCircuit):
+            key = _add(_wave_container, wave=_circuit)
+            circuits_items.append((key, _wave_container[key]))
+        elif isinstance(_circuit, Hashable):
+            if _circuit in _wave_container:
+                circuits_items.append((_circuit, _wave_container[_circuit]))
+            else:
+                raise KeyError(f"Wave {_circuit} not found in {_wave_container}")
+        else:
+            raise ValueError(f"Invalid type of circuit: {_circuit}, type: {type(_circuit)}")
+
+    if len(circuits_items) != len(circuits):
+        raise ValueError(f"Lost some circuits: {[k for k, _ in circuits_items]}, {circuits}")
+    return circuits_items

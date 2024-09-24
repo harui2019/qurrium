@@ -206,8 +206,8 @@ def outfields_hint(
 
     if not mute_outfields_warning:
         warnings.warn(
-            "| The following keys are not recognized as arguments for main process of experiment "
-            + ", but still kept in experiment record."
+            "| The following keys are not recognized as arguments for main process of experiment, "
+            + "but still kept in experiment record."
             + " Similar: ["
             + ", ".join([f"'{k}' maybe '{v}'" for k, v in outfields_maybe.items()])
             + "]. Unknown: ["
