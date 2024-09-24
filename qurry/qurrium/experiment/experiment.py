@@ -38,6 +38,7 @@ from ..utils.inputfixer import outfields_check, outfields_hint
 from ..analysis import AnalysisPrototype
 from ...tools import ParallelManager, DEFAULT_POOL_SIZE
 from ...tools.datetime import DatetimeDict
+from ...tools.progressbar import set_pbar_description
 from ...tools.backend import GeneralSimulator
 from ...tools.backend.utils import backend_name_getter
 from ...capsule import jsonablize, quickJSON
@@ -306,8 +307,7 @@ class ExperimentPrototype(ABC):
             tags = ()
 
         # Given parameters and default parameters
-        if isinstance(pbar, tqdm.tqdm):
-            pbar.set_description_str("Prepaing parameters...")
+        set_pbar_description(pbar, "Prepaing parameters...")
 
         checked_exp_id = exp_id_process(exp_id)
         arguments, commonparams, outfields = cls.params_control(
@@ -335,8 +335,7 @@ class ExperimentPrototype(ABC):
         )
         outfields_hint(outfield_maybe, outfields_unknown, mute_outfields_warning)
 
-        if isinstance(pbar, tqdm.tqdm):
-            pbar.set_description_str("Create experiment instance... ")
+        set_pbar_description(pbar, "Create experiment instance... ")
         new_exps = cls(arguments, commonparams, outfields)
 
         if len(commonparams.default_analysis) > 0:
@@ -475,8 +474,7 @@ class ExperimentPrototype(ABC):
         """
 
         # preparing
-        if isinstance(pbar, tqdm.tqdm):
-            pbar.set_description_str("Parameter loading...")
+        set_pbar_description(pbar, "Parameter loading...")
 
         current_exp = cls._params_control_core(
             targets=targets,
@@ -495,8 +493,7 @@ class ExperimentPrototype(ABC):
         )
         if not isinstance(current_exp.commons.backend, Backend):
             if isinstance(backend, Backend):
-                if isinstance(pbar, tqdm.tqdm):
-                    pbar.set_description_str("Backend replacing...")
+                set_pbar_description(pbar, "Backend replacing...")
                 current_exp.replace_backend(backend)
             else:
                 raise ValueError(
@@ -511,8 +508,7 @@ class ExperimentPrototype(ABC):
         )
 
         # circuit
-        if isinstance(pbar, tqdm.tqdm):
-            pbar.set_description_str("Circuit creating...")
+        set_pbar_description(pbar, "Circuit creating...")
 
         for tk, tv in targets:
             current_exp.beforewards.target.append((tk, tv))
@@ -523,8 +519,7 @@ class ExperimentPrototype(ABC):
 
         # qasm
         pool = ParallelManager()
-        if isinstance(pbar, tqdm.tqdm):
-            pbar.set_description_str("Exporting OpenQASM string...")
+        set_pbar_description(pbar, "Exporting OpenQASM string...")
         tmp_qasm = pool.map(qasm_drawer, cirqs)
         for qasm_str in tmp_qasm:
             current_exp.beforewards.circuit_qasm.append(qasm_str)
@@ -538,10 +533,9 @@ class ExperimentPrototype(ABC):
         # transpile
         if passmanager_pair is not None:
             passmanager_name, passmanager = passmanager_pair
-            if isinstance(pbar, tqdm.tqdm):
-                pbar.set_description_str(
-                    f"Circuit transpiling by passmanager '{passmanager_name}'..."
-                )
+            set_pbar_description(
+                pbar, f"Circuit transpiling by passmanager '{passmanager_name}'..."
+            )
             transpiled_circs = passmanager.run(circuits=cirqs)  # type: ignore
             if len(current_exp.commons.transpile_args) > 0:
                 warnings.warn(
@@ -550,29 +544,25 @@ class ExperimentPrototype(ABC):
                     category=QurryTranspileConfigurationIgnored,
                 )
         else:
-            if isinstance(pbar, tqdm.tqdm):
-                pbar.set_description_str("Circuit transpiling...")
+            set_pbar_description(pbar, "Circuit transpiling...")
             transpiled_circs: list[QuantumCircuit] = transpile(
                 cirqs,
                 backend=current_exp.commons.backend,
                 **current_exp.commons.transpile_args,
             )
 
-        if isinstance(pbar, tqdm.tqdm):
-            pbar.set_description_str("Circuit loading...")
+        set_pbar_description(pbar, "Circuit loading...")
         for _w in transpiled_circs:
             current_exp.beforewards.circuit.append(_w)
 
         # commons
         datenote, date = current_exp.commons.datetimes.add_only("build")
-        if isinstance(pbar, tqdm.tqdm):
-            pbar.set_description_str(f"Building Completed, denoted '{datenote}' date: {date}...")
+        set_pbar_description(pbar, f"Building Completed, denoted '{datenote}' date: {date}...")
 
         if export:
             # export may be slow, consider export at finish or something
             if isinstance(save_location, (Path, str)):
-                if isinstance(pbar, tqdm.tqdm):
-                    pbar.set_description_str("Setup data exporting...")
+                set_pbar_description(pbar, "Setup data exporting...")
                 current_exp.write(
                     save_location=save_location,
                     mode=mode,
@@ -612,18 +602,14 @@ class ExperimentPrototype(ABC):
             str: The ID of the experiment.
         """
         if new_backend is not None:
-            if isinstance(pbar, tqdm.tqdm):
-                pbar.set_description_str(
-                    f"Backend replacing from {self.commons.backend} to {new_backend}..."
-                )
+            set_pbar_description(
+                pbar, f"Backend replacing from {self.commons.backend} to {new_backend}..."
+            )
             self.replace_backend(new_backend)
 
         if revive:
             datenote, date = self.commons.datetimes.add_serial("revive")
-            if isinstance(pbar, tqdm.tqdm):
-                pbar.set_description_str(
-                    f"Reviving Completed, denoted '{datenote}' date: {date}..."
-                )
+            set_pbar_description(pbar, f"Reviving, denoted '{datenote}' date: {date}...")
             self.beforewards.revive_circuit(replace_circuits)
 
         if len(self.beforewards.circuit) == 0:
@@ -637,8 +623,7 @@ class ExperimentPrototype(ABC):
         )
         assert hasattr(self.commons.backend, "run"), "Current backend is not runnable."
 
-        if isinstance(pbar, tqdm.tqdm):
-            pbar.set_description_str("Executing...")
+        set_pbar_description(pbar, "Executing...")
         event_name, date = self.commons.datetimes.add_serial("run")
         execution: Job = self.commons.backend.run(  # type: ignore
             self.beforewards.circuit,
@@ -646,8 +631,7 @@ class ExperimentPrototype(ABC):
             **self.commons.run_args,
         )
         # commons
-        if isinstance(pbar, tqdm.tqdm):
-            pbar.set_description_str(f"Executing completed '{event_name}', denoted date: {date}...")
+        set_pbar_description(pbar, f"Executing completed '{event_name}', denoted date: {date}...")
         # beforewards
         self["job_id"] = execution.job_id()
         # afterwards
@@ -693,8 +677,7 @@ class ExperimentPrototype(ABC):
             raise ValueError("The job has not been executed yet.")
         assert len(self.afterwards.result) == 1, "The job has been executed more than once."
 
-        if isinstance(pbar, tqdm.tqdm):
-            pbar.set_description_str("Result loading...")
+        set_pbar_description(pbar, "Result loading...")
         num = len(self.beforewards.circuit)
         counts, exceptions = get_counts_and_exceptions(
             result=self.afterwards.result[-1],
@@ -706,24 +689,21 @@ class ExperimentPrototype(ABC):
             for result_id, exception_item in exceptions.items():
                 self.outfields["exceptions"][result_id] = exception_item
 
-        if isinstance(pbar, tqdm.tqdm):
-            pbar.set_description_str("Counts loading...")
+        set_pbar_description(pbar, "Counts loading...")
         for _c in counts:
             self.afterwards.counts.append(_c)
 
         if len(self.commons.default_analysis) > 0:
             for i, _analysis in enumerate(self.commons.default_analysis):
-                if isinstance(pbar, tqdm.tqdm):
-                    pbar.set_description_str(
-                        f"Default Analysis executing {i}/{len(self.commons.default_analysis)}..."
-                    )
+                set_pbar_description(
+                    pbar, f"Default Analysis executing {i}/{len(self.commons.default_analysis)}..."
+                )
                 self.analyze(**_analysis)
 
         if export:
             # export may be slow, consider export at finish or something
             if isinstance(save_location, (Path, str)):
-                if isinstance(pbar, tqdm.tqdm):
-                    pbar.set_description_str("Exporting data... ")
+                set_pbar_description(pbar, "Setup data exporting...")
                 self.write(
                     save_location=save_location,
                     mode=mode,
