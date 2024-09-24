@@ -20,12 +20,12 @@ jobs:
           - vers: Linux
             os: ubuntu-latest
             archs: X64
-          - vers: MacOS
-            os: macos-13
-            archs: X64
-          - vers: Windows
-            os: windows-latest
-            archs: X64
+          # - vers: MacOS
+          #   os: macos-13
+          #   archs: X64
+          # - vers: Windows
+          #   os: windows-latest
+          #   archs: X64
           # - vers: Windows
           #   os: windows-latest
           #   archs: ARM64
