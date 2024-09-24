@@ -51,20 +51,29 @@ skip = [
 ]
 test-skip = "*win32 *linux_i686"
 # build = ["*-manylinux_aarch64"]
-before-all = [
+# before-all = [
+#     'echo "======================================================================"',
+#     'echo "### Building ........................................................."',
+#     'echo "======================================================================"',
+#     "pip install --upgrade auditwheel auditwheel-symbols",
+#     "pip install --upgrade setuptools_rust Cython setuptools toml",
+# ]
+environment = { PATH = "$HOME/.cargo/bin:$PATH" }
+before-build = [
     'echo "======================================================================"',
     'echo "### Building ........................................................."',
     'echo "======================================================================"',
-    "pip install auditwheel-symbols",
-    "pip install setuptools_rust Cython setuptools toml",
+    "pip install --upgrade auditwheel auditwheel-symbols",
+    "pip install --upgrade setuptools_rust Cython setuptools toml",
 ]
-environment = { PATH = "$HOME/.cargo/bin:$PATH" }
 before-test = [
     'echo "======================================================================"',
     'echo "### Testing .........................................................."',
     'echo "======================================================================"',
     "pip install scipy",
-    "pip install setuptools_rust Cython setuptools toml",
+    "pip install pytest",
+    "pip install --upgrade auditwheel auditwheel-symbols",
+    "pip install --upgrade setuptools_rust Cython setuptools toml",
     "cd {project} && pip install . --upgrade && cd ..",
 ]
 test-command = ["pytest {project}/tests"]
