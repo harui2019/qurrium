@@ -33,10 +33,10 @@ jobs:
 
       - name: Bump Dev Version and Create Tag
         if: contains(github.event.pull_request.title, 'dev:')
-        run: python bump_version.py -b dev
+        run: python get_version.py -b dev
       - name: Bump Minor Version and Create Tag
         if: contains(github.event.pull_request.title, 'patch:')
-        run: python bump_version.py -b minor
+        run: python get_version.py -b minor
 
       - name: Read Version File Nightly
         if: github.event.pull_request.base.ref == 'pre-release' || startsWith(github.event.pull_request.base.ref, 'pre-release-')
