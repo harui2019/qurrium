@@ -506,6 +506,7 @@ class MultiManager:
                 encoding=encoding,
             )
             files = raw_multiconfig["files"]
+            old_files = {}
             beforewards = Before.read(export_location=naming_complex.export_location, version="v7")
             afterwards = After.read(export_location=naming_complex.export_location, version="v7")
             quantity_container = QuantityContainer()
