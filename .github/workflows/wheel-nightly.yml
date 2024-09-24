@@ -67,7 +67,7 @@ jobs:
         env:
           CIBW_ARCHS_MACOS: x86_64
           CIBW_ENVIRONMENT: >-
-            PYO3_CROSS_LIB_DIR="/Library/Frameworks/Python.framework/Versions/$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')/lib/python$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')"
+            PYO3_CROSS_LIB_DIR="/Library/Frameworks/Python.framewormak/Versions/$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')/lib/python$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')"
 
       - name: Build wheels on Windows of x86 series
         if: runner.os == 'Windows' && matrix.archs == 'X64'
