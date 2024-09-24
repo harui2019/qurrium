@@ -110,13 +110,25 @@ before-all = [
 ]
 
 [tool.cibuildwheel.windows]
+# PowerShell script
+# before-all = [
+#     'Write-Host "Downloading..."',
+#     "Invoke-WebRequest -Uri https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe -OutFile rustup-init.exe",
+#     'Write-Host "Installing Rust..." -ForegroundColor Cyan',
+#     'Start-Process -FilePath .\rustup-init.exe -ArgumentList "--default-toolchain nightly --profile minimal -y" -NoNewWindow -Wait',
+#     'Remove-Item .\rustup-init.exe',
+#     '$env:Path = "$env:USERPROFILE\.cargo\bin"',
+#     "rustup show",
+# ]
+
+# CMD script
 before-all = [
-    'Write-Host "Downloading..."',
-    "Invoke-WebRequest -Uri https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe -OutFile rustup-init.exe",
-    'Write-Host "Installing Rust..." -ForegroundColor Cyan',
-    'Start-Process -FilePath .\rustup-init.exe -ArgumentList "--default-toolchain nightly --profile minimal -y" -NoNewWindow -Wait',
-    'Remove-Item .\rustup-init.exe',
-    '$env:Path = "$env:USERPROFILE\.cargo\bin"',
+    "echo Downloading...",
+    "curl -o rustup-init.exe https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe",
+    "echo Installing Rust...",
+    "rustup-init.exe --default-toolchain nightly --profile minimal -y",
+    "del rustup-init.exe",
+    'set PATH=%USERPROFILE%\.cargo\bin;%PATH%',
     "rustup show",
 ]
 
