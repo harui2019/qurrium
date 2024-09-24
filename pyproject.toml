@@ -52,49 +52,66 @@ skip = [
 test-skip = "*win32 *linux_i686"
 # build = ["*-manylinux_aarch64"]
 before-all = [
-    'python -c "print(\"=\"*70)"',
-    'python -c "print(\"### Building \".ljust(70, \".\"))"',
-    'python -c "print(\"=\"*70)"',
+    'echo "======================================================================"',
+    'echo "### Building ........................................................."',
+    'echo "======================================================================"',
     "pip install auditwheel-symbols",
-    'python -c "print(\"=\"*70)"',
-    'python -c "print(\"### Rust Setup \".ljust(70, \".\"))"',
-    'python -c "print(\"=\"*70)"',
-    "curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain=nightly --profile=minimal -y",
-    'source "$HOME/.cargo/env"',
-    "rustup show",
+    "pip install scipy",
+    "pip install pytest",
 ]
 environment = { PATH = "$HOME/.cargo/bin:$PATH" }
 before-test = [
-    'python -c "print(\"=\"*70)"',
-    'python -c "print(\"### Testing \".ljust(70, \".\"))"',
-    'python -c "print(\"=\"*70)"',
+    'echo "======================================================================"',
+    'echo "### Testing .........................................................."',
+    'echo "======================================================================"',
     "pip install pytest",
     "cd {project} && pip install .  && cd ..",
 ]
 test-command = ["pytest {project}/tests"]
 
 [tool.cibuildwheel.linux]
-before-test = [
-    'python -c "print(\"=\"*70)"',
-    'python -c "print(\"### Testing on Linux \".ljust(70, \".\"))"',
-    'python -c "print(\"=\"*70)"',
-    # Solution for scipy dependency issue
-    # Check https://github.com/harui2019/qurry/issues/95 for details
-    # https://github.com/scipy/scipy/issues/16308#issuecomment-1560669084
-    # "git clone https://github.com/xianyi/OpenBLAS.git",
-    # "cd OpenBLAS",
-    # "make -j8",
-    # "make PREFIX=/usr/local/OpenBLAS install",
-    # "export PKG_CONFIG_PATH=/usr/local/OpenBLAS/lib/pkgconfig",
-    # "cd ..",
-    # "rm -rf OpenBLAS",
-    # end of solution
-    "pip install scipy",
-    "pip install pytest",
+before-all = [
+    'echo "======================================================================"',
+    'echo "### Rust Setup Check.................................................."',
+    'echo "======================================================================"',
+    'source "$HOME/.cargo/env"',
+    "rustup show",
 ]
+# before-test = [
+#     'echo "======================================================================"',
+#     'echo "### Testing on Lunux.................................................."',
+#     'echo "======================================================================"',
+#     # Solution for scipy dependency issue
+#     # Check https://github.com/harui2019/qurry/issues/95 for details
+#     # https://github.com/scipy/scipy/issues/16308#issuecomment-1560669084
+#     # "git clone https://github.com/xianyi/OpenBLAS.git",
+#     # "cd OpenBLAS",
+#     # "make -j8",
+#     # "make PREFIX=/usr/local/OpenBLAS install",
+#     # "export PKG_CONFIG_PATH=/usr/local/OpenBLAS/lib/pkgconfig",
+#     # "cd ..",
+#     # "rm -rf OpenBLAS",
+#     # end of solution
+#     "pip install scipy",
+#     "pip install pytest",
+# ]
 
 [tool.cibuildwheel.macos]
-before-all = ["rustup show"]
+before-all = [
+    'echo "======================================================================"',
+    'echo "### Rust Setup Check.................................................."',
+    'echo "======================================================================"',
+    'source "$HOME/.cargo/env"',
+    "rustup show",
+]
+
+[tool.cibuildwheel.windows]
+before-all = [
+    'echo "======================================================================"',
+    'echo "### Rust Setup Check.................................................."',
+    'echo "======================================================================"',
+    "rustup show",
+]
 
 [tool.pylint."messages control"]
 disable = [
