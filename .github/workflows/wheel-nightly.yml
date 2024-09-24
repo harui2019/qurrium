@@ -45,8 +45,8 @@ jobs:
         with:
           python-version: "3.12"
 
-      # - name: Install Rust
-      #   uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
       # - name: Install Rustup
       #   run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain=nightly --profile=minimal -y
 
