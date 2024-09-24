@@ -56,15 +56,15 @@ before-all = [
     'echo "### Building ........................................................."',
     'echo "======================================================================"',
     "pip install auditwheel-symbols",
-    "pip install scipy",
-    "pip install pytest",
 ]
 environment = { PATH = "$HOME/.cargo/bin:$PATH" }
 before-test = [
     'echo "======================================================================"',
     'echo "### Testing .........................................................."',
     'echo "======================================================================"',
-    "cd {project} && pip install .  && cd ..",
+    "pip install scipy",
+    "pip install pytest",
+    "cd {project} && pip install . --upgrade && cd ..",
 ]
 test-command = ["pytest {project}/tests"]
 
