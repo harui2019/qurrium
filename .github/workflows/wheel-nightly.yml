@@ -43,13 +43,14 @@ jobs:
           submodules: true
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
 
       - name: Update Pip
         run: |
-          pip install --upgrade pipenv wheel pip
-          pip install setuptools_rust setuptools toml
-          pip install .
+          python -m ensurepip
+          python -m pip install --upgrade pipenv wheel pip
+          python -m pip install setuptools_rust setuptools toml
+          python -m pip install .
 
       - name: Reversion
         run: python get_version.py --release nightly
