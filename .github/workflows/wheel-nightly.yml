@@ -89,11 +89,14 @@ jobs:
 
       - name: Build wheels on MacOS of x86 series
         if: runner.os == 'macOS' && matrix.archs == 'X64'
-        run: python -m cibuildwheel --output-dir wheelhouse
+        run: |
+          echo "| Change setup.py for MacOS x86_64"
+          mv -f ./setup.py ./setup-abi3.py
+          mv -f ./setup-not-abi3.py ./setup.py
+          echo "| Build wheels on MacOS x86_64"
+          python -m cibuildwheel --output-dir wheelhouse
         env:
           CIBW_ARCHS_MACOS: x86_64
-          CIBW_ENVIRONMENT: >-
-            PYO3_CROSS_LIB_DIR="/Library/Frameworks/Python.framewormak/Versions/$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')/lib/python$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')"
 
       - name: Build wheels on Windows of x86 series
         if: runner.os == 'Windows' && matrix.archs == 'X64'
