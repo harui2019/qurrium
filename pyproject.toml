@@ -115,26 +115,22 @@ before-all = [
 # ]
 
 [tool.cibuildwheel.macos]
+# environment = { MACOSX_DEPLOYMENT_TARGET = "10.12", CARGO_BUILD_TARGET = "aarch64-apple-darwin", PYO3_CROSS_LIB_DIR = "/Library/Frameworks/Python.framework/Versions/$(python -c 'import sys; print(str(sys.version_info[0]) + \".\" + str(sys.version_info[1]))')/lib/python$(python -c 'import sys; print(str(sys.version_info[0]) + \".\" + str(sys.version_info[1]))')" }
 # environment = { MACOSX_DEPLOYMENT_TARGET = "10.12", CARGO_BUILD_TARGET = "aarch64-apple-darwin", PYO3_CROSS_LIB_DIR= "PYO3_CROSS_LIB_DIR=$(which python | sed 's|/bin/python|/lib/python|')$(python -c 'import sys; print(str(sys.version_info[0]) + \".\" + str(sys.version_info[1]))')"}
-environment = { MACOSX_DEPLOYMENT_TARGET = "10.12", CARGO_BUILD_TARGET = "aarch64-apple-darwin", PYO3_CROSS_LIB_DIR = "/Library/Frameworks/Python.framework/Versions/$(python -c 'import sys; print(str(sys.version_info[0]) + \".\" + str(sys.version_info[1]))')/lib/python$(python -c 'import sys; print(str(sys.version_info[0]) + \".\" + str(sys.version_info[1]))')" }
-archs = ["universal2", "arm64"]
+environment = { MACOSX_DEPLOYMENT_TARGET = "10.12" }
 before-all = [
     "echo",
     'echo "======================================================================"',
     'echo "### MacOS Setup ......................................................"',
     'echo "======================================================================"',
     # "export PYO3_CROSS_LIB_DIR=$(which python | sed 's|/bin/python|/lib/python|')$(python -c 'import sys; print(str(sys.version_info[0]) + \".\" + str(sys.version_info[1]))')",
-    "echo $PYO3_CROSS_LIB_DIR",
-    'echo "----------------------------------------------------------------------"',
+    # "echo $PYO3_CROSS_LIB_DIR",
+    # 'echo "----------------------------------------------------------------------"',
     "curl https://sh.rustup.rs -sSf | bash -s -- --default-toolchain=nightly --profile=minimal -y",
     'source "$HOME/.cargo/env"',
     "rustup show",
-    "rustup target add aarch64-apple-darwin",
+    # "rustup target add aarch64-apple-darwin",
 ]
-
-# [[tool.cibuildwheel.overrides]]
-# select = "*-musllinux*"
-# before-all = "apk add mylib"
 
 [tool.cibuildwheel.windows]
 # PowerShell script
