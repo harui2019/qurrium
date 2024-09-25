@@ -9,6 +9,7 @@ EchoListenRandomized - Arguments
 from typing import Optional, Union
 from collections.abc import Hashable
 from dataclasses import dataclass
+import numpy as np
 
 from qiskit import QuantumCircuit
 
@@ -33,6 +34,8 @@ class EchoListenRandomizedArguments(ArgumentsPrototype):
     """The measure range."""
     unitary_loc: Optional[tuple[int, int]] = None
     """The range of the unitary operator."""
+    random_unitary_seed: Optional[Union[int, np.random.Generator]] = None
+    """The seed for the random unitary operator."""
     workers_num: int = DEFAULT_POOL_SIZE
     """The number of workers for multiprocessing."""
 
@@ -51,6 +54,8 @@ class EchoListenRandomizedMeasureArgs(BasicArgs):
     """The measure range."""
     unitary_loc: Union[int, tuple[int, int], None]
     """The range of the unitary operator."""
+    random_unitary_seed: Optional[Union[int, np.random.Generator]]
+    """The seed for the random unitary operator."""
 
 
 class EchoListenRandomizedOutputArgs(OutputArgs):
@@ -63,6 +68,8 @@ class EchoListenRandomizedOutputArgs(OutputArgs):
     """The measure range."""
     unitary_loc: Union[int, tuple[int, int], None]
     """The range of the unitary operator."""
+    random_unitary_seed: Optional[Union[int, np.random.Generator]]
+    """The seed for the random unitary operator."""
 
 
 SHORT_NAME = "qurrech_randomized"

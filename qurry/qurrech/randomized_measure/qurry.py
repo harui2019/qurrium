@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Union, Optional, Any, Type
 from collections.abc import Hashable
 import tqdm
+import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.providers import Backend
@@ -42,6 +43,7 @@ class EchoListenRandomized(QurriumPrototype):
         times: int = 100,
         measure: Union[int, tuple[int, int], None] = None,
         unitary_loc: Union[int, tuple[int, int], None] = None,
+        random_unitary_seed: Optional[Union[int, np.random.Generator]] = None,
         shots: int = 1024,
         backend: Optional[Backend] = None,
         exp_name: str = "experiment",
@@ -72,6 +74,8 @@ class EchoListenRandomized(QurriumPrototype):
                 The measure range. Defaults to `None`.
             unitary_loc (Union[int, tuple[int, int], None], optional):
                 The range of the unitary operator. Defaults to `None`.
+            random_unitary_seed (Optional[Union[int, np.random.Generator]], optional):
+                The seed for the random unitary operator. Defaults to None.
             shots (int, optional):
                 Shots of the job. Defaults to `1024`.
             backend (Optional[Backend], optional):
@@ -126,6 +130,7 @@ class EchoListenRandomized(QurriumPrototype):
             "times": times,
             "measure": measure,
             "unitary_loc": unitary_loc,
+            "random_unitary_seed": random_unitary_seed,
             "shots": shots,
             "backend": backend,
             "exp_name": exp_name,
@@ -148,6 +153,7 @@ class EchoListenRandomized(QurriumPrototype):
         times: int = 100,
         measure: Union[int, tuple[int, int], None] = None,
         unitary_loc: Union[int, tuple[int, int], None] = None,
+        random_unitary_seed: Optional[Union[int, np.random.Generator]] = None,
         shots: int = 1024,
         backend: Optional[Backend] = None,
         exp_name: str = "experiment",
@@ -178,6 +184,8 @@ class EchoListenRandomized(QurriumPrototype):
                 The measure range. Defaults to `None`.
             unitary_loc (Union[int, tuple[int, int], None], optional):
                 The range of the unitary operator. Defaults to `None`.
+            random_unitary_seed (Optional[Union[int, np.random.Generator]], optional):
+                The seed for the random unitary operator. Defaults to None.
             shots (int, optional):
                 Shots of the job. Defaults to `1024`.
             backend (Optional[Backend], optional):
@@ -229,6 +237,7 @@ class EchoListenRandomized(QurriumPrototype):
             times=times,
             measure=measure,
             unitary_loc=unitary_loc,
+            random_unitary_seed=random_unitary_seed,
             shots=shots,
             backend=backend,
             exp_name=exp_name,
