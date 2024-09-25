@@ -61,24 +61,36 @@ test-skip = "*win32 *linux_i686"
 # ]
 environment = { PATH = "$HOME/.cargo/bin:$PATH" }
 before-build = [
+    "echo",
     'echo "======================================================================"',
     'echo "### Building ........................................................."',
     'echo "======================================================================"',
-    "pip install auditwheel auditwheel-symbols",
-    "pip install setuptools_rust Cython setuptools toml",
+    "which python",
+    "pip install --upgrade auditwheel auditwheel-symbols",
+    "pip install --upgrade setuptools_rust Cython setuptools toml wheel",
 ]
 before-test = [
+    "echo",
     'echo "======================================================================"',
-    'echo "### Testing .........................................................."',
+    'echo "### Testing Environment Preparing ...................................."',
     'echo "======================================================================"',
     "pip install scipy",
     "pip install pytest",
     "cd {project} && pip install . --upgrade && cd ..",
+    'echo "======================================================================"',
+    'echo "### Test Start ......................................................."',
+    'echo "======================================================================"',
+    "echo",
 ]
 test-command = ["pytest {project}/tests"]
+# build = ["cp39-macosx_universal2"]
 
 [tool.cibuildwheel.linux]
 before-all = [
+    "echo",
+    'echo "======================================================================"',
+    'echo "### Linux Setup ......................................................"',
+    'echo "======================================================================"',
     "curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain=nightly --profile=minimal -y",
     'source "$HOME/.cargo/env"',
     "rustup show",
@@ -103,11 +115,26 @@ before-all = [
 # ]
 
 [tool.cibuildwheel.macos]
+# environment = { MACOSX_DEPLOYMENT_TARGET = "10.12", CARGO_BUILD_TARGET = "aarch64-apple-darwin", PYO3_CROSS_LIB_DIR= "PYO3_CROSS_LIB_DIR=$(which python | sed 's|/bin/python|/lib/python|')$(python -c 'import sys; print(str(sys.version_info[0]) + \".\" + str(sys.version_info[1]))')"}
+environment = { MACOSX_DEPLOYMENT_TARGET = "10.12", CARGO_BUILD_TARGET = "aarch64-apple-darwin", PYO3_CROSS_LIB_DIR = "/Library/Frameworks/Python.framework/Versions/$(python -c 'import sys; print(str(sys.version_info[0]) + \".\" + str(sys.version_info[1]))')/lib/python$(python -c 'import sys; print(str(sys.version_info[0]) + \".\" + str(sys.version_info[1]))')" }
+archs = ["universal2", "arm64"]
 before-all = [
+    "echo",
+    'echo "======================================================================"',
+    'echo "### MacOS Setup ......................................................"',
+    'echo "======================================================================"',
+    # "export PYO3_CROSS_LIB_DIR=$(which python | sed 's|/bin/python|/lib/python|')$(python -c 'import sys; print(str(sys.version_info[0]) + \".\" + str(sys.version_info[1]))')",
+    "echo $PYO3_CROSS_LIB_DIR",
+    'echo "----------------------------------------------------------------------"',
     "curl https://sh.rustup.rs -sSf | bash -s -- --default-toolchain=nightly --profile=minimal -y",
     'source "$HOME/.cargo/env"',
     "rustup show",
+    "rustup target add aarch64-apple-darwin",
 ]
+
+# [[tool.cibuildwheel.overrides]]
+# select = "*-musllinux*"
+# before-all = "apk add mylib"
 
 [tool.cibuildwheel.windows]
 # PowerShell script
@@ -123,6 +150,10 @@ before-all = [
 
 # CMD script
 before-all = [
+    "echo",
+    'echo "======================================================================"',
+    'echo "### Windows Setup ...................................................."',
+    'echo "======================================================================"',
     "echo Downloading...",
     "curl -o rustup-init.exe https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe",
     "echo Installing Rust...",
