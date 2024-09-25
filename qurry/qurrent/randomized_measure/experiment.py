@@ -167,7 +167,10 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
         else:
             actual_unitary_loc = arguments.unitary_loc
         unitary_dict = {
-            i: {j: random_unitary(2) for j in range(*actual_unitary_loc)}
+            i: {
+                j: random_unitary(2, arguments.random_unitary_seed)
+                for j in range(*actual_unitary_loc)
+            }
             for i in range(arguments.times)
         }
 

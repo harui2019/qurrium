@@ -10,6 +10,7 @@ from typing import Union, Optional, Any, Type
 from collections.abc import Hashable
 from pathlib import Path
 import tqdm
+import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.providers import Backend
@@ -120,6 +121,7 @@ class EntropyMeasureRandomized(QurriumPrototype):
         times: int = 100,
         measure: Union[int, tuple[int, int], None] = None,
         unitary_loc: Union[int, tuple[int, int], None] = None,
+        random_unitary_seed: Optional[Union[int, np.random.Generator]] = None,
         shots: int = 1024,
         backend: Optional[Backend] = None,
         exp_name: str = "experiment",
@@ -148,6 +150,8 @@ class EntropyMeasureRandomized(QurriumPrototype):
                 The measure range. Defaults to `None`.
             unitary_loc (Union[int, tuple[int, int], None], optional):
                 The range of the unitary operator. Defaults to `None`.
+            random_unitary_seed (Optional[Union[int, np.random.Generator]], optional):
+                The seed for the random unitary operator. Defaults to None.
             shots (int, optional):
                 Shots of the job. Defaults to `1024`.
             backend (Optional[Backend], optional):
@@ -200,6 +204,7 @@ class EntropyMeasureRandomized(QurriumPrototype):
             "times": times,
             "measure": measure,
             "unitary_loc": unitary_loc,
+            "random_unitary_seed": random_unitary_seed,
             "shots": shots,
             "backend": backend,
             "exp_name": exp_name,
@@ -221,6 +226,7 @@ class EntropyMeasureRandomized(QurriumPrototype):
         times: int = 100,
         measure: Union[int, tuple[int, int], None] = None,
         unitary_loc: Union[int, tuple[int, int], None] = None,
+        random_unitary_seed: Optional[Union[int, np.random.Generator]] = None,
         shots: int = 1024,
         backend: Optional[Backend] = None,
         exp_name: str = "experiment",
@@ -249,6 +255,8 @@ class EntropyMeasureRandomized(QurriumPrototype):
                 The measure range. Defaults to `None`.
             unitary_loc (Union[int, tuple[int, int], None], optional):
                 The range of the unitary operator. Defaults to `None`.
+            random_unitary_seed (Optional[Union[int, np.random.Generator]], optional):
+                The seed for the random unitary operator. Defaults to None.
             shots (int, optional):
                 Shots of the job. Defaults to `1024`.
             backend (Optional[Backend], optional):
@@ -299,6 +307,7 @@ class EntropyMeasureRandomized(QurriumPrototype):
             times=times,
             measure=measure,
             unitary_loc=unitary_loc,
+            random_unitary_seed=random_unitary_seed,
             shots=shots,
             backend=backend,
             exp_name=exp_name,
