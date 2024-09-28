@@ -4,20 +4,20 @@ Test the qurry.qurrent module EntropyMeasure class.
 ================================================================
 
 - hadamard test
-    - [4-trivial] 0.0 <= 0.5. 1.0 ~= 1.0.
-    - [4-GHZ] 0.005859375 <= 0.5. 0.505859375 ~= 0.5.
-    - [4-topological-period]  0.033203125 <= 0.5. 0.283203125 ~= 0.25.
-    - [6-trivial] 0.0 <= 0.5. 1.0 ~= 1.0.
-    - [6-GHZ] 0.005859375 <= 0.5. 0.505859375 ~= 0.5.
-    - [6-topological-period] 0.041015625 <= 0.5. 0.291015625 ~= 0.25.
+    - [4-trivial] 0.0 <= 0.25. 1.0 ~= 1.0.
+    - [4-GHZ] 0.005859375 <= 0.25. 0.505859375 ~= 0.5.
+    - [4-topological-period] 0.033203125 <= 0.25. 0.283203125 ~= 0.25.
+    - [6-trivial] 0.0 <= 0.25. 1.0 ~= 1.0.
+    - [6-GHZ] 0.005859375 <= 0.25. 0.505859375 ~= 0.5.
+    - [6-topological-period] 0.041015625 <= 0.25. 0.291015625 ~= 0.25.
 
 - randomized measurement
-    - [4-trivial] 0.38355971932411204 <= 0.5. 1.383559719324112 ~= 1.0.
-    - [4-GHZ] 0.4259319674968719 <= 0.5. 0.9259319674968719 ~= 0.5.
-    - [4-topological-period] 0.0010692214965820068 <= 0.5. 0.251069221496582 ~= 0.25.
-    - [6-trivial] 0.38355971932411204 <= 0.5. 1.383559719324112 ~= 1.0.
-    - [6-GHZ] 0.4259319674968719 <= 0.5. 0.9259319674968719 ~= 0.5.
-    - [6-topological-period] 0.0010692214965820068 <= 0.5. 0.251069221496582 ~= 0.25.
+    - [4-trivial] 0.10342769622802739 <= 0.25. 1.1034276962280274 ~= 1.0.
+    - [4-GHZ] 0.14542131423950194 <= 0.25. 0.35457868576049806 ~= 0.5.
+    - [4-topological-period] 0.003579425811767567 <= 0.25. 0.25357942581176757 ~= 0.25.
+    - [6-trivial] 0.18802957534790044 <= 0.25. 0.8119704246520996 ~= 1.0.
+    - [6-GHZ] 0.018079471588134777 <= 0.25. 0.4819205284118652 ~= 0.5.
+    - [6-topological-period] 0.003579425811767567 <= 0.25. 0.25357942581176757 ~= 0.25.
 
 """
 
@@ -27,20 +27,26 @@ import numpy as np
 
 from qurry.qurrent import EntropyMeasure
 from qurry.tools.backend import GeneralSimulator
-from qurry.capsule import mori, hoshi
+from qurry.capsule import mori, hoshi, quickRead
 from qurry.recipe import TrivialParamagnet, GHZ, TopologicalParamagnet
 
 tag_list = mori.TagList()
 statesheet = hoshi.Hoshi()
 
+FILE_LOCATION = os.path.join(os.path.dirname(__file__), "random_unitary_seeds.json")
 SEED_SIMULATOR = 2019  # <harmony/>
-SEED_RANDOM_UNITARY = 42
-THREDHOLD = 0.5
+THREDHOLD = 0.25
 MANUAL_ASSERT_ERROR = False
 
 exp_method_01 = EntropyMeasure(method="hadamard")
 exp_method_02 = EntropyMeasure(method="randomized")
 
+random_unitary_seeds_raw: dict[str, dict[str, dict[str, int]]] = quickRead(FILE_LOCATION)
+random_unitary_seeds = {
+    int(k): {int(k2): {int(k3): v3 for k3, v3 in v2.items()} for k2, v2 in v.items()}
+    for k, v in random_unitary_seeds_raw.items()
+}
+seed_usage = {}
 wave_adds_01 = []
 wave_adds_02 = []
 answer = {}
@@ -49,11 +55,13 @@ for i in range(4, 7, 2):
     wave_adds_01.append(exp_method_01.add(TrivialParamagnet(i), f"{i}-trivial"))
     wave_adds_02.append(exp_method_02.add(TrivialParamagnet(i), f"{i}-trivial"))
     answer[f"{i}-trivial"] = 1.0
+    seed_usage[f"{i}-trivial"] = i
     # purity = 1.0
 
     wave_adds_01.append(exp_method_01.add(GHZ(i), f"{i}-GHZ"))
     wave_adds_02.append(exp_method_02.add(GHZ(i), f"{i}-GHZ"))
     answer[f"{i}-GHZ"] = 0.5
+    seed_usage[f"{i}-GHZ"] = i
     # purity = 0.5
 
     wave_adds_01.append(
@@ -63,6 +71,7 @@ for i in range(4, 7, 2):
         exp_method_02.add(TopologicalParamagnet(i, "period"), f"{i}-topological-period")
     )
     answer[f"{i}-topological-period"] = 0.25
+    seed_usage[f"{i}-topological-period"] = i
     # purity = 0.25
 
 backend = GeneralSimulator()
@@ -79,7 +88,7 @@ def test_quantity_01(tgt):
         tgt (Hashable): The target wave key in Qurry.
     """
 
-    exp_id = exp_method_01.measure(wave=tgt, degree=(0, 2), backend=backend)
+    exp_id = exp_method_01.measure(tgt, (0, 2), backend=backend)
     exp_method_01.exps[exp_id].analyze()
     quantity = exp_method_01.exps[exp_id].reports[0].content._asdict()
     assert all(
@@ -149,7 +158,10 @@ def test_quantity_02(tgt):
     """
 
     exp_id = exp_method_02.measure(
-        wave=tgt, random_unitary_seed=SEED_RANDOM_UNITARY, shots=4096, backend=backend
+        wave=tgt,
+        times=20,
+        random_unitary_seeds={i: random_unitary_seeds[seed_usage[tgt]][i] for i in range(20)},
+        backend=backend,
     )
     analysis_01 = exp_method_02.exps[exp_id].analyze((0, 2))
     quantity_01 = analysis_01.content._asdict()
@@ -177,7 +189,14 @@ def test_multi_output_02():
         tgt (Hashable): The target wave key in Qurry.
     """
 
-    config_list = [{"wave": k, "random_unitary_seed": SEED_RANDOM_UNITARY} for k in wave_adds_02]
+    config_list = [
+        {
+            "wave": k,
+            "times": 20,
+            "random_unitary_seeds": {i: random_unitary_seeds[seed_usage[k]][i] for i in range(20)},
+        }
+        for k in wave_adds_02
+    ]
     answer_list = [answer[k] for k in wave_adds_01]
 
     summoner_id = exp_method_02.multiOutput(

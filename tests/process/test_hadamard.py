@@ -33,7 +33,7 @@ test_setup_hadamard: list[TestItemHadamardTest] = [
 ]
 
 
-@pytest.mark.parametrize("test_items", test_setup_hadamard)
+@pytest.mark.parametrize("test_input", test_setup_hadamard)
 def test_hadamard(test_input: TestItemHadamardTest):
     """Test the purity_echo_core function."""
 
