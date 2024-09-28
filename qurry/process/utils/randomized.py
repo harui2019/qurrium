@@ -1,7 +1,6 @@
 """
 ================================================================
-Randomized Measure Kit for PostProcessing 
-(:mod:`qurry.qurrium.utils.randomized`)
+Randomized (:mod:`qurry.process.utils.randomized`)
 ================================================================
 
 """
