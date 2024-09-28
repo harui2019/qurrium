@@ -840,7 +840,7 @@ class ExperimentPrototype(ABC):
         """
 
     @abstractmethod
-    def analyze(self, /, pbar: Optional[tqdm.tqdm] = None) -> AnalysisPrototype:
+    def analyze(self) -> AnalysisPrototype:
         """Analyzing the example circuit results in specific method.
         Where should be overwritten by each construction of new measurement.
 
