@@ -22,6 +22,7 @@ from ...qurrium.utils.randomized import (
     local_random_unitary_pauli_coeff,
     random_unitary,
 )
+from ...qurrium.utils.random_unitary import check_input_for_experiment
 from ...process.utils import qubit_selector
 from ...process.randomized_measure.entangled_entropy import (
     RandomizedEntangledEntropyMitigatedComplex,
@@ -59,6 +60,7 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
         times: int = 100,
         measure: Optional[Union[tuple[int, int], int]] = None,
         unitary_loc: Optional[Union[tuple[int, int], int]] = None,
+        random_unitary_seeds: Optional[dict[int, dict[int, int]]] = None,
         **custom_kwargs: Any,
     ) -> tuple[EntropyMeasureRandomizedArguments, Commonparams, dict[str, Any]]:
         """Handling all arguments and initializing a single experiment.
@@ -78,8 +80,26 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
                 The measure range. Defaults to None.
             unitary_loc (Optional[Union[tuple[int, int], int]]):
                 The range of the unitary operator. Defaults to None.
+            random_unitary_seeds (Optional[dict[int, dict[int, int]]]):
+                The seeds for all random unitary operator.
+                This argument only takes input as type of `dict[int, dict[int, int]]`.
+                The first key is the index for the random unitary operator.
+                The second key is the index for the qubit.
+                If you want to generate the seeds for all random unitary operator,
+                you can use the function `generate_random_unitary_seeds`
+                in `qurry.qurrium.utils.random_unitary`.
             custom_kwargs (Any):
                 The custom parameters.
+
+        Example:
+            random_unitary_seeds (Optional[dict[int, dict[int, int]]]):
+                ```python
+                {
+                    0: {0: 1234, 1: 5678},
+                    1: {0: 2345, 1: 6789},
+                    2: {0: 3456, 1: 7890},
+                }
+                ```
 
         Raises:
             ValueError: If the number of targets is not one.
@@ -112,6 +132,8 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
 
         exp_name = f"{exp_name}.N_U_{times}.{SHORT_NAME}"
 
+        check_input_for_experiment(times, num_qubits, random_unitary_seeds)
+
         # pylint: disable=protected-access
         return EntropyMeasureRandomizedArguments._filter(
             exp_name=exp_name,
@@ -119,6 +141,7 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
             times=times,
             measure=measure,
             unitary_loc=unitary_loc,
+            random_unitary_seeds=random_unitary_seeds,
             **custom_kwargs,
         )
         # pylint: enable=protected-access
@@ -168,7 +191,11 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
             actual_unitary_loc = arguments.unitary_loc
         unitary_dict = {
             i: {
-                j: random_unitary(2, arguments.random_unitary_seed)
+                j: (
+                    random_unitary(2)
+                    if arguments.random_unitary_seeds is None
+                    else random_unitary(2, arguments.random_unitary_seeds[i][j])
+                )
                 for j in range(*actual_unitary_loc)
             }
             for i in range(arguments.times)

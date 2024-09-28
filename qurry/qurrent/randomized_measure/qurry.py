@@ -10,7 +10,6 @@ from typing import Union, Optional, Any, Type
 from collections.abc import Hashable
 from pathlib import Path
 import tqdm
-import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.providers import Backend
@@ -121,7 +120,8 @@ class EntropyMeasureRandomized(QurriumPrototype):
         times: int = 100,
         measure: Union[int, tuple[int, int], None] = None,
         unitary_loc: Union[int, tuple[int, int], None] = None,
-        random_unitary_seed: Optional[Union[int, np.random.Generator]] = None,
+        random_unitary_seeds: Optional[dict[int, dict[int, int]]] = None,
+        # basic inputs
         shots: int = 1024,
         backend: Optional[Backend] = None,
         exp_name: str = "experiment",
@@ -150,8 +150,14 @@ class EntropyMeasureRandomized(QurriumPrototype):
                 The measure range. Defaults to `None`.
             unitary_loc (Union[int, tuple[int, int], None], optional):
                 The range of the unitary operator. Defaults to `None`.
-            random_unitary_seed (Optional[Union[int, np.random.Generator]], optional):
-                The seed for the random unitary operator. Defaults to None.
+            random_unitary_seeds (Optional[dict[int, dict[int, int]]], optional):
+                The seeds for all random unitary operator.
+                This argument only takes input as type of `dict[int, dict[int, int]]`.
+                The first key is the index for the random unitary operator.
+                The second key is the index for the qubit.
+                If you want to generate the seeds for all random unitary operator,
+                you can use the function `generate_random_unitary_seeds`
+                in `qurry.qurrium.utils.random_unitary`.
             shots (int, optional):
                 Shots of the job. Defaults to `1024`.
             backend (Optional[Backend], optional):
@@ -193,6 +199,16 @@ class EntropyMeasureRandomized(QurriumPrototype):
                 The progress bar for showing the progress of the experiment.
                 Defaults to None.
 
+        Example:
+            random_unitary_seeds (Optional[dict[int, dict[int, int]]]):
+                ```python
+                {
+                    0: {0: 1234, 1: 5678},
+                    1: {0: 2345, 1: 6789},
+                    2: {0: 3456, 1: 7890},
+                }
+                ```
+
         Returns:
             EntropyMeasureRandomizedOutputArgs: The output arguments.
         """
@@ -204,7 +220,7 @@ class EntropyMeasureRandomized(QurriumPrototype):
             "times": times,
             "measure": measure,
             "unitary_loc": unitary_loc,
-            "random_unitary_seed": random_unitary_seed,
+            "random_unitary_seeds": random_unitary_seeds,
             "shots": shots,
             "backend": backend,
             "exp_name": exp_name,
@@ -226,7 +242,8 @@ class EntropyMeasureRandomized(QurriumPrototype):
         times: int = 100,
         measure: Union[int, tuple[int, int], None] = None,
         unitary_loc: Union[int, tuple[int, int], None] = None,
-        random_unitary_seed: Optional[Union[int, np.random.Generator]] = None,
+        random_unitary_seeds: Optional[dict[int, dict[int, int]]] = None,
+        # basic inputs
         shots: int = 1024,
         backend: Optional[Backend] = None,
         exp_name: str = "experiment",
@@ -255,8 +272,14 @@ class EntropyMeasureRandomized(QurriumPrototype):
                 The measure range. Defaults to `None`.
             unitary_loc (Union[int, tuple[int, int], None], optional):
                 The range of the unitary operator. Defaults to `None`.
-            random_unitary_seed (Optional[Union[int, np.random.Generator]], optional):
-                The seed for the random unitary operator. Defaults to None.
+            random_unitary_seeds (Optional[dict[int, dict[int, int]]], optional):
+                The seeds for all random unitary operator.
+                This argument only takes input as type of `dict[int, dict[int, int]]`.
+                The first key is the index for the random unitary operator.
+                The second key is the index for the qubit.
+                If you want to generate the seeds for all random unitary operator,
+                you can use the function `generate_random_unitary_seeds`
+                in `qurry.qurrium.utils.random_unitary`.
             shots (int, optional):
                 Shots of the job. Defaults to `1024`.
             backend (Optional[Backend], optional):
@@ -298,6 +321,16 @@ class EntropyMeasureRandomized(QurriumPrototype):
                 The progress bar for showing the progress of the experiment.
                 Defaults to None.
 
+        Example:
+            random_unitary_seeds (Optional[dict[int, dict[int, int]]]):
+                ```python
+                {
+                    0: {0: 1234, 1: 5678},
+                    1: {0: 2345, 1: 6789},
+                    2: {0: 3456, 1: 7890},
+                }
+                ```
+
         Returns:
             str: The experiment ID.
         """
@@ -307,7 +340,7 @@ class EntropyMeasureRandomized(QurriumPrototype):
             times=times,
             measure=measure,
             unitary_loc=unitary_loc,
-            random_unitary_seed=random_unitary_seed,
+            random_unitary_seeds=random_unitary_seeds,
             shots=shots,
             backend=backend,
             exp_name=exp_name,
