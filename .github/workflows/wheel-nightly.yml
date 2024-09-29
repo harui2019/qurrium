@@ -62,7 +62,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip pipenv wheel
           python -m pip install --upgrade auditwheel auditwheel-symbols
-          python -m pip install --upgrade setuptools_rust Cython setuptools toml wheel
+          python -m pip install --upgrade setuptools_rust Cython setuptools toml wheel cibuildwheel
 
       - name: Reversion Nightly
         run: python get_version.py --release nightly
@@ -76,9 +76,9 @@ jobs:
         run: |
           echo "| Change setup.py for MacOS x86_64"
           mv -f ./setup.py ./setup-abi3.py
-          mv -f ./setup-not-abi3.py ./setup.py
+          mv -f ./setup-no-abi3.py ./setup.py
           echo "| Build wheels on MacOS x86_64"
-          python -m cibuildwheel --output-dir wheelhouse
+          python -m cibuildwheel --output-dir wheelhouse --platform macos --archs x86_64
         env:
           CIBW_ARCHS_MACOS: x86_64
 
