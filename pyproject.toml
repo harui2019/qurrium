@@ -66,8 +66,9 @@ before-build = [
     'echo "### Building ........................................................."',
     'echo "======================================================================"',
     "which python",
+    "pip install --upgrade pipenv wheel pip",
     "pip install --upgrade auditwheel auditwheel-symbols",
-    "pip install --upgrade setuptools_rust Cython setuptools toml wheel",
+    "pip install --upgrade setuptools_rust Cython setuptools toml wheel cibuildwheel",
 ]
 before-test = [
     "echo ''",
@@ -163,8 +164,9 @@ before-build = [
     'echo "======================================================================"',
     'echo "### Building ........................................................."',
     'echo "======================================================================"',
+    "python -m pip install --upgrade pipenv wheel pip",
     "python -m pip install --upgrade auditwheel auditwheel-symbols",
-    "python -m pip install --upgrade setuptools_rust Cython setuptools toml wheel",
+    "python -m pip install --upgrade setuptools_rust Cython setuptools toml wheel cibuildwheel",
 ]
 before-test = [
     "echo ''",
