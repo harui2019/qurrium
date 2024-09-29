@@ -98,9 +98,9 @@ jobs:
         run: python -m cibuildwheel --output-dir wheelhouse
         env:
           CIBW_BEFORE_ALL: rustup target add aarch64-apple-darwin
-          # CIBW_ARCHS_MACOS: arm64 universal2
+          # CIBW_ARCHS_MACOS: arm64 universal2 
+          # See: https://github.com/harui2019/qurry/issues/187 and https://github.com/harui2019/qurry/issues/173
           CIBW_ARCHS_MACOS: arm64
-          CIBW_TEST_SKIP: "*_universal2:arm64"
           CIBW_ENVIRONMENT: >-
             CARGO_BUILD_TARGET="aarch64-apple-darwin"
             PYO3_CROSS_LIB_DIR="/Library/Frameworks/Python.framework/Versions/$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')/lib/python$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')"

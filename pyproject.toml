@@ -49,7 +49,9 @@ skip = [
     "cp313-*",          # Just too recent
     "*-musllinux_*",    # qiskit did not support musllinux
     # "*-manylinux_i686", # scipy dependency issue, Check issue https://github.com/harui2019/qurry/issues/93 for details
-    "*_universal2", # univeral2 fail test on ARM64 runner but it should not be this, See: https://github.com/harui2019/qurry/issues/187
+    "*_universal2", # univeral2 fail test on ARM64 runner but it should not be this
+    # See: https://github.com/harui2019/qurry/issues/187 and https://github.com/harui2019/qurry/issues/173
+
 ]
 test-skip = "*win32 *linux_i686 *_universal2"
 # build = ["*-manylinux_aarch64"]
