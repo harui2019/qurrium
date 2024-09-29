@@ -49,8 +49,9 @@ skip = [
     "cp313-*",          # Just too recent
     "*-musllinux_*",    # qiskit did not support musllinux
     # "*-manylinux_i686", # scipy dependency issue, Check issue https://github.com/harui2019/qurry/issues/93 for details
+    "*_universal2", # univeral2 fail test on ARM64 runner but it should not be this, See: https://github.com/harui2019/qurry/issues/187
 ]
-test-skip = "*win32 *linux_i686"
+test-skip = "*win32 *linux_i686 *_universal2"
 # build = ["*-manylinux_aarch64"]
 # before-all = [
 #     'echo "======================================================================"',
@@ -68,7 +69,7 @@ before-build = [
     "which python",
     "pip install --upgrade pipenv wheel pip",
     "pip install --upgrade auditwheel auditwheel-symbols",
-    "pip install --upgrade setuptools_rust Cython setuptools toml wheel cibuildwheel",
+    "pip install --upgrade setuptools_rust Cython setuptools toml wheel",
 ]
 before-test = [
     "echo ''",
@@ -166,7 +167,7 @@ before-build = [
     'echo "======================================================================"',
     "python -m pip install --upgrade pipenv wheel pip",
     "python -m pip install --upgrade auditwheel auditwheel-symbols",
-    "python -m pip install --upgrade setuptools_rust Cython setuptools toml wheel cibuildwheel",
+    "python -m pip install --upgrade setuptools_rust Cython setuptools toml wheel",
 ]
 before-test = [
     "echo ''",
