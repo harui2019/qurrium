@@ -23,16 +23,18 @@ jobs:
           # - vers: MacOS-X64
           #   os: macos-13
           #   archs: X64
-          # - vers: Windows-X64  # Avaliability confirmed by act
+          # - vers: Windows-X64
           #   os: windows-latest
           #   archs: X64
           # - vers: Windows-ARM
           #   os: windows-latest
           #   archs: ARM64
-          - vers: MacOS-ARM # Avaliability confirmed by act
+          # Avaliability confirmed by act
+          - vers: MacOS-ARM
             os: macos-latest
             archs: ARM64
-          - vers: Linux-ARM # Avaliability confirmed by act
+          # Avaliability confirmed by act
+          - vers: Linux-ARM
             os: macos-latest
             archs: ARM64
 
@@ -57,8 +59,40 @@ jobs:
       - name: Install Rust
         if: runner.os != 'Windows'
         uses: dtolnay/rust-toolchain@stable
+      # - name: Install Rustup
+      #   run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain=nightly --profile=minimal -y
 
-      - name: Reversion Nightly
+      # - name: Install Rust
+      #   if: runner.os == 'Linux' || runner.os == 'macOS'
+      #   uses: actions-rust-lang/setup-rust-toolchain@v1
+      #   id: rust-install
+      # - name: Test Rust
+      #   run: |
+      #     echo "Rust version: ${{ steps.rust-install.outputs.rustc-version }}"
+      #     echo "Cargo version: ${{ steps.rust-install.outputs.cargo-version }}"
+      #     echo "Rustup version: ${{ steps.rust-install.outputs.rustup-version }}"
+      # This action has bug for clean cache
+      # See: https://github.com/harui2019/qurry/issues/173#issuecomment-2372088144
+
+      # - name: Update Pip
+      #   run: |
+      #     python -m ensurepip
+      #     python -m pip install --upgrade pipenv wheel pip
+      #     python -m pip install auditwheel auditwheel-symbols
+      #     python -m pip install setuptools_rust Cython setuptools toml pytest
+      #     python -m pip install cibuildwheel
+      #     python -m pip install .
+
+      # - name: Prebuild Test
+      #   if: runner.os == 'Linux' || runner.os == 'macOS'
+      #   run: |
+      #     pytest ./tests/process/test_randomized.py
+      #     echo "======================================================================"
+      #     echo "Prebuild Test Passed ................................................."
+      #     echo "======================================================================"
+      # Cancel until Install Rust is fixed
+
+      - name: Reversion
         run: python get_version.py --release nightly
 
       - name: Build wheels on Linux of x86 series
