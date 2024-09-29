@@ -20,9 +20,9 @@ jobs:
           - vers: Linux
             os: ubuntu-latest
             archs: X64
-          - vers: MacOS
-            os: macos-13
-            archs: X64
+          # - vers: MacOS
+          #   os: macos-13
+          #   archs: X64
           # - vers: Windows
           #   os: windows-latest
           #   archs: X64
@@ -45,19 +45,22 @@ jobs:
         with:
           python-version: "3.12"
 
-      # - name: Install Rust
-      #   uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
       # - name: Install Rustup
       #   run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain=nightly --profile=minimal -y
-      - name: Install Rust
-        if: runner.os == 'Linux' || runner.os == 'macOS'
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-        id: rust-install
-      - name: Test Rust
-        run: |
-          echo "Rust version: ${{ steps.rust-install.outputs.rustc-version }}"
-          echo "Cargo version: ${{ steps.rust-install.outputs.cargo-version }}"
-          echo "Rustup version: ${{ steps.rust-install.outputs.rustup-version }}"
+
+      # - name: Install Rust
+      #   if: runner.os == 'Linux' || runner.os == 'macOS'
+      #   uses: actions-rust-lang/setup-rust-toolchain@v1
+      #   id: rust-install
+      # - name: Test Rust
+      #   run: |
+      #     echo "Rust version: ${{ steps.rust-install.outputs.rustc-version }}"
+      #     echo "Cargo version: ${{ steps.rust-install.outputs.cargo-version }}"
+      #     echo "Rustup version: ${{ steps.rust-install.outputs.rustup-version }}"
+      # This action has bug for clean cache
+      # See: https://github.com/harui2019/qurry/issues/173#issuecomment-2372088144
 
       - name: Update Pip
         run: |
@@ -68,13 +71,14 @@ jobs:
           python -m pip install cibuildwheel
           python -m pip install .
 
-      - name: Prebuild Test
-        if: runner.os == 'Linux' || runner.os == 'macOS'
-        run: |
-          pytest ./tests/process/test_randomized.py 
-          echo "======================================================================"
-          echo "Prebuild Test Passed ................................................."
-          echo "======================================================================"
+      # - name: Prebuild Test
+      #   if: runner.os == 'Linux' || runner.os == 'macOS'
+      #   run: |
+      #     pytest ./tests/process/test_randomized.py
+      #     echo "======================================================================"
+      #     echo "Prebuild Test Passed ................................................."
+      #     echo "======================================================================"
+      # Cancel until Install Rust is fixed
 
       - name: Reversion
         run: python get_version.py --release nightly
@@ -85,11 +89,14 @@ jobs:
 
       - name: Build wheels on MacOS of x86 series
         if: runner.os == 'macOS' && matrix.archs == 'X64'
-        run: python -m cibuildwheel --output-dir wheelhouse
+        run: |
+          echo "| Change setup.py for MacOS x86_64"
+          mv -f ./setup.py ./setup-abi3.py
+          mv -f ./setup-not-abi3.py ./setup.py
+          echo "| Build wheels on MacOS x86_64"
+          python -m cibuildwheel --output-dir wheelhouse
         env:
           CIBW_ARCHS_MACOS: x86_64
-          CIBW_ENVIRONMENT: >-
-            PYO3_CROSS_LIB_DIR="/Library/Frameworks/Python.framewormak/Versions/$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')/lib/python$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')"
 
       - name: Build wheels on Windows of x86 series
         if: runner.os == 'Windows' && matrix.archs == 'X64'
