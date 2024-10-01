@@ -49,8 +49,11 @@ skip = [
     "cp313-*",          # Just too recent
     "*-musllinux_*",    # qiskit did not support musllinux
     # "*-manylinux_i686", # scipy dependency issue, Check issue https://github.com/harui2019/qurry/issues/93 for details
+    "*_universal2", # univeral2 fail test on ARM64 runner but it should not be this
+    # See: https://github.com/harui2019/qurry/issues/187 and https://github.com/harui2019/qurry/issues/173
+
 ]
-test-skip = "*win32 *linux_i686"
+test-skip = "*win32 *linux_i686 *_universal2"
 # build = ["*-manylinux_aarch64"]
 # before-all = [
 #     'echo "======================================================================"',
@@ -61,16 +64,17 @@ test-skip = "*win32 *linux_i686"
 # ]
 environment = { PATH = "$HOME/.cargo/bin:$PATH" }
 before-build = [
-    "echo",
+    "echo ''",
     'echo "======================================================================"',
     'echo "### Building ........................................................."',
     'echo "======================================================================"',
     "which python",
+    "pip install --upgrade pipenv wheel pip",
     "pip install --upgrade auditwheel auditwheel-symbols",
     "pip install --upgrade setuptools_rust Cython setuptools toml wheel",
 ]
 before-test = [
-    "echo",
+    "echo ''",
     'echo "======================================================================"',
     'echo "### Testing Environment Preparing ...................................."',
     'echo "======================================================================"',
@@ -80,14 +84,14 @@ before-test = [
     'echo "======================================================================"',
     'echo "### Test Start ......................................................."',
     'echo "======================================================================"',
-    "echo",
+    "echo ''",
 ]
 test-command = ["pytest {project}/tests"]
 # build = ["cp39-macosx_universal2"]
 
 [tool.cibuildwheel.linux]
 before-all = [
-    "echo",
+    "echo ''",
     'echo "======================================================================"',
     'echo "### Linux Setup ......................................................"',
     'echo "======================================================================"',
@@ -119,7 +123,7 @@ before-all = [
 # environment = { MACOSX_DEPLOYMENT_TARGET = "10.12", CARGO_BUILD_TARGET = "aarch64-apple-darwin", PYO3_CROSS_LIB_DIR= "PYO3_CROSS_LIB_DIR=$(which python | sed 's|/bin/python|/lib/python|')$(python -c 'import sys; print(str(sys.version_info[0]) + \".\" + str(sys.version_info[1]))')"}
 environment = { MACOSX_DEPLOYMENT_TARGET = "10.12" }
 before-all = [
-    "echo",
+    "echo ''",
     'echo "======================================================================"',
     'echo "### MacOS Setup ......................................................"',
     'echo "======================================================================"',
@@ -146,7 +150,7 @@ before-all = [
 
 # CMD script
 before-all = [
-    "echo",
+    "echo ''",
     'echo "======================================================================"',
     'echo "### Windows Setup ...................................................."',
     'echo "======================================================================"',
@@ -157,6 +161,28 @@ before-all = [
     "del rustup-init.exe",
     'set PATH=%USERPROFILE%\.cargo\bin;%PATH%',
     "rustup show",
+]
+before-build = [
+    "echo ''",
+    'echo "======================================================================"',
+    'echo "### Building ........................................................."',
+    'echo "======================================================================"',
+    "python -m pip install --upgrade pipenv wheel pip",
+    "python -m pip install --upgrade auditwheel auditwheel-symbols",
+    "python -m pip install --upgrade setuptools_rust Cython setuptools toml wheel",
+]
+before-test = [
+    "echo ''",
+    'echo "======================================================================"',
+    'echo "### Testing Environment Preparing ...................................."',
+    'echo "======================================================================"',
+    "python -m pip install scipy",
+    "python -m pip install pytest",
+    "cd {project} && python -m pip install . --upgrade && cd ..",
+    'echo "======================================================================"',
+    'echo "### Test Start ......................................................."',
+    'echo "======================================================================"',
+    "echo ''",
 ]
 
 [tool.pylint."messages control"]
