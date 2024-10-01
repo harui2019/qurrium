@@ -20,9 +20,9 @@ jobs:
           - vers: Linux-x86_64
             os: ubuntu-latest
             archs: X64
-          # - vers: MacOS-x86_64
-          #   os: macos-13
-          #   archs: X64
+          - vers: MacOS-x86_64 # Avaliability confirmed by act
+            os: macos-13
+            archs: X64
           - vers: Windows-x86 # Avaliability confirmed by act
             os: windows-latest
             archs: X64
@@ -98,7 +98,7 @@ jobs:
         run: python -m cibuildwheel --output-dir wheelhouse
         env:
           CIBW_BEFORE_ALL: rustup target add aarch64-apple-darwin
-          # CIBW_ARCHS_MACOS: arm64 universal2 
+          # CIBW_ARCHS_MACOS: arm64 universal2
           # See: https://github.com/harui2019/qurry/issues/187 and https://github.com/harui2019/qurry/issues/173
           CIBW_ARCHS_MACOS: arm64
           CIBW_ENVIRONMENT: >-
@@ -131,8 +131,8 @@ jobs:
         include:
           - archs: X64
             folder: shared-wheel-builds-x86
-          # - archs: ARM64
-          #   folder: shared-wheel-builds-arm
+          - archs: ARM64
+            folder: shared-wheel-builds-arm
     permissions:
       id-token: write # IMPORTANT: mandatory for trusted publishing
 
