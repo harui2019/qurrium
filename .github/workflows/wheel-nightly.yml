@@ -29,9 +29,9 @@ jobs:
           # - vers: Windows-arm64
           #   os: windows-latest
           #   archs: ARM64
-          # - vers: macOS-ARM64 # Avaliability confirmed by act
-          #   os: macos-latest
-          #   archs: ARM64
+          - vers: macOS-ARM64 # Avaliability confirmed by act
+            os: macos-latest
+            archs: ARM64
           # - vers: linux-aarch64 # Avaliability confirmed by act
           #   os: macos-latest
           #   archs: ARM64
@@ -95,7 +95,7 @@ jobs:
 
       - name: Build wheels on MacOS of ARM series
         if: runner.os == 'macOS' && matrix.archs == 'ARM64' && matrix.vers == 'macOS-ARM64'
-        run:  python -m cibuildwheel --output-dir wheelhouse --platform macos --archs arm64
+        run: python -m cibuildwheel --output-dir wheelhouse --platform macos --archs arm64
         env:
           CIBW_BEFORE_ALL: rustup target add aarch64-apple-darwin
           # CIBW_ARCHS_MACOS: arm64 universal2
@@ -105,19 +105,11 @@ jobs:
             CARGO_BUILD_TARGET="aarch64-apple-darwin"
             PYO3_CROSS_LIB_DIR="/Library/Frameworks/Python.framework/Versions/$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')/lib/python$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')"
 
-      - name: Wheelhouse Upload x86
-        if: matrix.archs == 'X64'
+      - name: Wheelhouse Upload
         uses: actions/upload-artifact@v3
         with:
           path: ./wheelhouse/*.whl
-          name: shared-wheel-builds-x86
-
-      - name: Wheelhouse Upload arm
-        if: matrix.archs == 'ARM64'
-        uses: actions/upload-artifact@v3
-        with:
-          path: ./wheelhouse/*.whl
-          name: shared-wheel-builds-arm
+          name: shared-wheel-builds
 
   publish-to-testpypi:
     if: github.repository == 'harui2019/qurry' || contains(github.event.pull_request.title, ':publish')
@@ -127,12 +119,6 @@ jobs:
       - build_wheels
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - archs: X64
-            folder: shared-wheel-builds-x86
-          - archs: ARM64
-            folder: shared-wheel-builds-arm
     permissions:
       id-token: write # IMPORTANT: mandatory for trusted publishing
 
@@ -140,7 +126,7 @@ jobs:
       - name: Download all the dists ${{ matrix.archs }}
         uses: actions/download-artifact@v3
         with:
-          name: ${{ matrix.folder }}
+          name: shared-wheel-build
           path: deploy
       - name: Publish distribution 📦 to TestPyPI
         uses: pypa/gh-action-pypi-publish@release/v1
