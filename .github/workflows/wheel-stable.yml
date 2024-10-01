@@ -65,7 +65,7 @@ jobs:
           python -m pip install --upgrade setuptools_rust Cython setuptools toml wheel cibuildwheel
 
       - name: Reversion Nightly
-        run: python get_version.py --release nightly
+        run: python get_version.py --release stable
 
       - name: Build wheels on Linux of x86 series
         if: runner.os == 'Linux' && matrix.archs == 'X64'
