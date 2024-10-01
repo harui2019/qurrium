@@ -29,12 +29,12 @@ jobs:
           # - vers: Windows-arm64
           #   os: windows-latest
           #   archs: ARM64
-          - vers: macOS-ARM64 # Avaliability confirmed by act
-            os: macos-latest
-            archs: ARM64
-          - vers: linux-aarch64 # Avaliability confirmed by act
-            os: macos-latest
-            archs: ARM64
+          # - vers: macOS-ARM64 # Avaliability confirmed by act
+          #   os: macos-latest
+          #   archs: ARM64
+          # - vers: linux-aarch64 # Avaliability confirmed by act
+          #   os: macos-latest
+          #   archs: ARM64
 
     steps:
       - uses: actions/checkout@v3
@@ -95,7 +95,7 @@ jobs:
 
       - name: Build wheels on MacOS of ARM series
         if: runner.os == 'macOS' && matrix.archs == 'ARM64' && matrix.vers == 'macOS-ARM64'
-        run: python -m cibuildwheel --output-dir wheelhouse
+        run:  python -m cibuildwheel --output-dir wheelhouse --platform macos --archs arm64
         env:
           CIBW_BEFORE_ALL: rustup target add aarch64-apple-darwin
           # CIBW_ARCHS_MACOS: arm64 universal2
