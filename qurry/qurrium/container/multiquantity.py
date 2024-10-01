@@ -4,7 +4,9 @@ The container for quantities of analysis for :cls:`MultiManager`.
 (:mod:`qurry.qurrium.container.multiquantity`)
 ================================================================
 """
-from typing import Union, Optional, Literal, Hashable
+
+from typing import Union, Optional, Literal
+from collections.abc import Hashable
 from pathlib import Path
 
 from ...tools import qurry_progressbar
@@ -101,9 +103,21 @@ class QuantityContainer(dict[str, TagList[Hashable, dict[str, float]]]):
         return quantity_output
 
     def __repr__(self):
-        inner_lines = "\n".join([f"    {k}: ..." for k in self.keys()])
-        inner_lines2 = "{\n%s\n}" % inner_lines
-        return (
-            f"<{self.__name__}={inner_lines2} with {len(self)} "
-            + "analysis results load, a customized dictionary>"
-        )
+        return f"{self.__name__}({super().__repr__()}, num={len(self)})"
+
+    def _repr_oneline(self):
+        return f"{self.__name__}(" + "{...}" + f", num={len(self)}"
+
+    def _repr_pretty_(self, p, cycle):
+        if cycle:
+            p.text(f"{self.__name__}(" + "{...}" + f", num={len(self)})")
+        else:
+            original_repr = super().__repr__()
+            original_repr_split = original_repr[1:-1].split(", ")
+            length = len(original_repr_split)
+            with p.group(2, f"{self.__name__}(" + "{", "})"):
+                for i, item in enumerate(original_repr_split):
+                    p.breakable()
+                    p.text(item)
+                    if i < length - 1:
+                        p.text(",")

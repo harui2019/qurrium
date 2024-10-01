@@ -5,6 +5,7 @@ Postprocessing - Magnet Square
 ================================================================
 
 """
+
 from .magsq_core import BACKEND_AVAILABLE as magnet_square_availability
 from .magsq_cell import BACKEND_AVAILABLE as magsq_cell_availability
 

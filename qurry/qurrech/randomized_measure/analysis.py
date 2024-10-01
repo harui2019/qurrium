@@ -1,6 +1,6 @@
 """
 ===========================================================
-Wave Function Overlap - Randomized Measurement Analysis
+EchoListenRandomized - Analysis
 (:mod:`qurry.qurrech.randomized_measure.analysis`)
 ===========================================================
 
@@ -11,7 +11,7 @@ from typing import Optional, NamedTuple, Iterable
 from ...qurrium.analysis import AnalysisPrototype
 
 
-class EchoRandomizedAnalysis(AnalysisPrototype):
+class EchoListenRandomizedAnalysis(AnalysisPrototype):
     """The analysis of loschmidt echo."""
 
     __name__ = "qurrechRandomized.Analysis"

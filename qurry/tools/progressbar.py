@@ -5,8 +5,9 @@ Progress Bar for Qurry (:mod:`qurry.tools.progressbar`)
 
 """
 
-from typing import TypeVar, Iterable, Iterator
-from tqdm.auto import tqdm as real_tqdm
+from typing import TypeVar, Iterable, Iterator, Optional
+import tqdm as real_tqdm
+from tqdm.auto import tqdm as real_tqdm_instance
 
 DEFAULT_BAR_FORMAT = {
     "simple": "| {desc} - {elapsed} < {remaining}",
@@ -49,7 +50,7 @@ def default_setup(
 
 
 # pylint: disable=invalid-name,inconsistent-mro
-class tqdm(Iterator[_T], real_tqdm):
+class tqdm(Iterator[_T], real_tqdm_instance):
     """A fake tqdm class for type hint.
 
     For tqdm not yet implemented their type hint by subscript like:
@@ -99,10 +100,21 @@ def qurry_progressbar(
     actual_bar_format = result_setup["bar_format"]
     actual_ascii = result_setup["ascii"]
 
-    return real_tqdm(  # type: ignore # for fake tqdm class
+    return real_tqdm_instance(  # type: ignore # for fake tqdm class
         iterable=iterable,
         *args,
         bar_format=actual_bar_format,
         ascii=actual_ascii,
         **kwargs,
     )
+
+
+def set_pbar_description(pbar: Optional[real_tqdm.tqdm], description: str) -> None:
+    """Set the description of the progress bar.
+
+    Args:
+        pbar (Optional[tqdm.tqdm]): The progress bar.
+        description (str): The description.
+    """
+    if isinstance(pbar, real_tqdm.tqdm):
+        pbar.set_description_str(description)

@@ -113,3 +113,11 @@ class QurryArgumentsExpectedNotNone(QurryWarning):
 class QurryDependenciesNotWorking(QurryWarning):
     """Some function from the dependencies of Qurry
     like Qiskit will not working for some reason."""
+
+
+class QurryTranspileConfigurationIgnored(QurryWarning):
+    """Transpile configuration ignored warning."""
+
+
+class QurryPendingTagTooMany(QurryWarning):
+    """Pending tag too many warning."""

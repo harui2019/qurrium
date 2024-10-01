@@ -55,4 +55,5 @@ setup(
         language_level=3,
     ),
     rust_extensions=rust_extension,
+    options={"bdist_wheel": {"py_limited_api": "cp39"}},
 )

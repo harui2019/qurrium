@@ -1,11 +1,12 @@
 """
 ================================================================
-Wave Function Overlap - Hadamard Test
+EchoListenHadamard - 
+Wave Function Overlap by Hadamard Test
 (:mod:`qurry.qurrech.hadamard_test`)
 ================================================================
 
 """
 
-from .analysis import EchoHadamardAnalysis
-from .experiment import EchoHadamardExperiment
-from .qurry import EchoHadamardTest
+from .analysis import EchoListenHadamardAnalysis
+from .experiment import EchoListenHadamardExperiment
+from .qurry import EchoListenHadamard

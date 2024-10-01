@@ -13,3 +13,4 @@ from .iocontrol import (
     FULL_SUFFIX_OF_COMPRESS_FORMAT,
     STAND_COMPRESS_FORMAT,
 )
+from .build import passmanager_processor

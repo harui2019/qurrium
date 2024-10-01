@@ -1,6 +1,6 @@
 """
 ================================================================
-Second Renyi Entropy - Hadamard Test Analysis
+EntropyMeasureHadamard - Analysis
 (:mod:`qurry.qurrent.hadamard_test.analysis`)
 ================================================================
 
@@ -12,7 +12,7 @@ from ...qurrium.analysis import AnalysisPrototype
 from ...process.hadamard_test import hadamard_entangled_entropy
 
 
-class EntropyHadamardAnalysis(AnalysisPrototype):
+class EntropyMeasureHadamardAnalysis(AnalysisPrototype):
     """The instance for the analysis of :cls:`EntropyHadamardExperiment`."""
 
     __name__ = "qurrentHadamard.Analysis"

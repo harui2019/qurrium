@@ -4,6 +4,7 @@ Paramagnet (:mod:`qurry.recipe.library.simple.paramagnet`)
 ================================================================
 
 """
+
 from typing import Literal
 
 from ..n_body import OneBody, TwoBody

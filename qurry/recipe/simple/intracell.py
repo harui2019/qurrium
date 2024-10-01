@@ -4,6 +4,7 @@ Intracell (:mod:`qurry.recipe.library.simple.intracell`)
 ================================================================
 
 """
+
 from typing import Literal
 
 from ..n_body import TwoBody

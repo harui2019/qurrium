@@ -1,0 +1,176 @@
+---
+name: Wheel Builds Nightly
+on:
+  pull_request:
+    branches:
+      - pre-release
+      - pre-release-*
+    types:
+      - closed
+
+jobs:
+  build_wheels:
+    if: github.repository == 'harui2019/qurry' || contains(github.event.pull_request.title, ':publish') || github.event.pull_request.merged == 'true'
+    name: Build wheels on ${{ matrix.os }} - ${{ matrix.archs }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # - vers: Linux-X64
+          #   os: ubuntu-latest
+          #   archs: X64
+          # - vers: MacOS-X64
+          #   os: macos-13
+          #   archs: X64
+          # - vers: Windows-X64
+          #   os: windows-latest
+          #   archs: X64
+          # - vers: Windows-ARM
+          #   os: windows-latest
+          #   archs: ARM64
+          # Avaliability confirmed by act
+          - vers: MacOS-ARM
+            os: macos-latest
+            archs: ARM64
+          # Avaliability confirmed by act
+          - vers: Linux-ARM
+            os: macos-latest
+            archs: ARM64
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.CI_TOKEN }}
+          submodules: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        if: runner.os != 'Windows'
+        with:
+          python-version: "3.12"
+
+      - name: Set up Python for Windows
+        uses: actions/setup-python@v3
+        if: runner.os == 'Windows'
+        with:
+          python-version: "3.9"
+
+      - name: Install Rust
+        if: runner.os != 'Windows'
+        uses: dtolnay/rust-toolchain@stable
+      # - name: Install Rustup
+      #   run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain=nightly --profile=minimal -y
+
+      # - name: Install Rust
+      #   if: runner.os == 'Linux' || runner.os == 'macOS'
+      #   uses: actions-rust-lang/setup-rust-toolchain@v1
+      #   id: rust-install
+      # - name: Test Rust
+      #   run: |
+      #     echo "Rust version: ${{ steps.rust-install.outputs.rustc-version }}"
+      #     echo "Cargo version: ${{ steps.rust-install.outputs.cargo-version }}"
+      #     echo "Rustup version: ${{ steps.rust-install.outputs.rustup-version }}"
+      # This action has bug for clean cache
+      # See: https://github.com/harui2019/qurry/issues/173#issuecomment-2372088144
+
+      # - name: Update Pip
+      #   run: |
+      #     python -m ensurepip
+      #     python -m pip install --upgrade pipenv wheel pip
+      #     python -m pip install auditwheel auditwheel-symbols
+      #     python -m pip install setuptools_rust Cython setuptools toml pytest
+      #     python -m pip install cibuildwheel
+      #     python -m pip install .
+
+      # - name: Prebuild Test
+      #   if: runner.os == 'Linux' || runner.os == 'macOS'
+      #   run: |
+      #     pytest ./tests/process/test_randomized.py
+      #     echo "======================================================================"
+      #     echo "Prebuild Test Passed ................................................."
+      #     echo "======================================================================"
+      # Cancel until Install Rust is fixed
+
+      - name: Reversion
+        run: python get_version.py --release nightly
+
+      - name: Build wheels on Linux of x86 series
+        if: runner.os == 'Linux' && matrix.archs == 'X64'
+        run: python -m cibuildwheel --output-dir wheelhouse
+
+      - name: Build wheels on MacOS of x86 series
+        if: runner.os == 'macOS' && matrix.archs == 'X64'
+        run: |
+          echo "| Change setup.py for MacOS x86_64"
+          mv -f ./setup.py ./setup-abi3.py
+          mv -f ./setup-not-abi3.py ./setup.py
+          echo "| Build wheels on MacOS x86_64"
+          python -m cibuildwheel --output-dir wheelhouse
+        env:
+          CIBW_ARCHS_MACOS: x86_64
+
+      - name: Build wheels on Windows of x86 series
+        if: runner.os == 'Windows' && matrix.archs == 'X64'
+        run: python -m cibuildwheel --output-dir wheelhouse
+      # Attention: Windows runner requires Rust already installed
+      # For there is not reliable way to install Rust on Windows runner
+      # See: https://github.com/harui2019/qurry/issues/173
+
+      - name: Build wheels on Linux of Arm series by Apple Silicon
+        if: runner.os == 'macOS' && matrix.archs == 'ARM64' && matrix.vers == 'Linux-ARM'
+        run: python -m cibuildwheel --output-dir wheelhouse --platform linux --archs aarch64
+
+      - name: Build wheels on MacOS of ARM series
+        if: runner.os == 'macOS' && matrix.archs == 'ARM64' && matrix.vers == 'MacOS-ARM'
+        run: python -m cibuildwheel --output-dir wheelhouse
+        env:
+          CIBW_BEFORE_ALL: rustup target add aarch64-apple-darwin
+          CIBW_ARCHS_MACOS: arm64 universal2
+          CIBW_TEST_SKIP: "*_universal2:arm64"
+          CIBW_ENVIRONMENT: >-
+            CARGO_BUILD_TARGET="aarch64-apple-darwin"
+            PYO3_CROSS_LIB_DIR="/Library/Frameworks/Python.framework/Versions/$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')/lib/python$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')"
+
+      - name: Wheelhouse Upload x86
+        if: matrix.archs == 'X64'
+        uses: actions/upload-artifact@v3
+        with:
+          path: ./wheelhouse/*.whl
+          name: shared-wheel-builds-x86
+
+      - name: Wheelhouse Upload arm
+        if: matrix.archs == 'ARM64'
+        uses: actions/upload-artifact@v3
+        with:
+          path: ./wheelhouse/*.whl
+          name: shared-wheel-builds-arm
+
+  publish-to-testpypi:
+    if: github.repository == 'harui2019/qurry' || contains(github.event.pull_request.title, ':publish')
+    name: Publish Python 🐍 distribution 📦 to TestPyPI ${{ matrix.archs }}
+    runs-on: ubuntu-latest
+    needs:
+      - build_wheels
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - archs: X64
+            folder: shared-wheel-builds-x86
+          # - archs: ARM64
+          #   folder: shared-wheel-builds-arm
+    permissions:
+      id-token: write # IMPORTANT: mandatory for trusted publishing
+
+    steps:
+      - name: Download all the dists ${{ matrix.archs }}
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ matrix.folder }}
+          path: deploy
+      - name: Publish distribution 📦 to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: deploy
+          repository-url: https://test.pypi.org/legacy/
