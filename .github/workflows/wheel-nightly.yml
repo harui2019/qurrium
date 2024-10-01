@@ -23,9 +23,9 @@ jobs:
           - vers: macOS-x86_64 # Avaliability confirmed by act
             os: macos-13
             archs: X64
-          - vers: Windows-x86 # Avaliability confirmed by act
-            os: windows-latest
-            archs: X64
+          # - vers: Windows-x86 # Avaliability confirmed by act, but failed in self-hosted runner, WTF
+          #   os: windows-latest # They are using the same machine with self-hosted
+          #   archs: X64
           # - vers: Windows-arm64
           #   os: windows-latest
           #   archs: ARM64
@@ -105,45 +105,51 @@ jobs:
             CARGO_BUILD_TARGET="aarch64-apple-darwin"
             PYO3_CROSS_LIB_DIR="/Library/Frameworks/Python.framework/Versions/$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')/lib/python$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')"
 
-      - name: Wheelhouse Upload x86
-        if: matrix.archs == 'X64'
-        uses: actions/upload-artifact@v3
-        with:
-          path: ./wheelhouse/*.whl
-          name: shared-wheel-builds-x86
+      # - name: Wheelhouse Upload x86
+      #   if: matrix.archs == 'X64'
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     path: ./wheelhouse/*.whl
+      #     name: shared-wheel-builds-x86
 
-      - name: Wheelhouse Upload arm
-        if: matrix.archs == 'ARM64'
-        uses: actions/upload-artifact@v3
-        with:
-          path: ./wheelhouse/*.whl
-          name: shared-wheel-builds-arm
+      # - name: Wheelhouse Upload arm
+      #   if: matrix.archs == 'ARM64'
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     path: ./wheelhouse/*.whl
+      #     name: shared-wheel-builds-arm
 
-  publish-to-testpypi:
-    if: github.repository == 'harui2019/qurry' || contains(github.event.pull_request.title, ':publish')
-    name: Publish Python 🐍 distribution 📦 to TestPyPI ${{ matrix.archs }}
-    runs-on: ubuntu-latest
-    needs:
-      - build_wheels
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - archs: X64
-            folder: shared-wheel-builds-x86
-          - archs: ARM64
-            folder: shared-wheel-builds-arm
-    permissions:
-      id-token: write # IMPORTANT: mandatory for trusted publishing
-
-    steps:
-      - name: Download all the dists ${{ matrix.archs }}
-        uses: actions/download-artifact@v3
-        with:
-          name: ${{ matrix.folder }}
-          path: deploy
-      - name: Publish distribution 📦 to TestPyPI
+      - name: Publish distribution 📦 to TestPyPI on ${{matrix.vers}} by ${{ matrix.os }}/${{ matrix.archs }}
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          packages-dir: deploy
+          packages-dir: wheelhouse/
           repository-url: https://test.pypi.org/legacy/
+
+  # publish-to-testpypi:
+  #   if: github.repository == 'harui2019/qurry' || contains(github.event.pull_request.title, ':publish')
+  #   name: Publish Python 🐍 distribution 📦 to TestPyPI ${{ matrix.archs }}
+  #   runs-on: ubuntu-latest
+  #   needs:
+  #     - build_wheels
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       include:
+  #         - archs: X64
+  #           folder: shared-wheel-builds-x86
+  #         - archs: ARM64
+  #           folder: shared-wheel-builds-arm
+  #   permissions:
+  #     id-token: write # IMPORTANT: mandatory for trusted publishing
+
+  #   steps:
+  #     - name: Download all the dists ${{ matrix.archs }}
+  #       uses: actions/download-artifact@v3
+  #       with:
+  #         name: ${{ matrix.folder }}
+  #         path: deploy
+  #     - name: Publish distribution 📦 to TestPyPI
+  #       uses: pypa/gh-action-pypi-publish@release/v1
+  #       with:
+  #         packages-dir: deploy
+  #         repository-url: https://test.pypi.org/legacy/
