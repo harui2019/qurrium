@@ -105,19 +105,11 @@ jobs:
             CARGO_BUILD_TARGET="aarch64-apple-darwin"
             PYO3_CROSS_LIB_DIR="/Library/Frameworks/Python.framework/Versions/$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')/lib/python$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')"
 
-      - name: Wheelhouse Upload x86
-        if: matrix.archs == 'X64'
+      - name: Wheelhouse Upload
         uses: actions/upload-artifact@v3
         with:
           path: ./wheelhouse/*.whl
-          name: shared-wheel-builds-x86
-
-      - name: Wheelhouse Upload arm
-        if: matrix.archs == 'ARM64'
-        uses: actions/upload-artifact@v3
-        with:
-          path: ./wheelhouse/*.whl
-          name: shared-wheel-builds-arm
+          name: shared-wheel-builds
 
   publish-to-pypi:
     if: github.repository == 'harui2019/qurry'
@@ -127,12 +119,6 @@ jobs:
       - build_wheels
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - archs: X64
-            folder: shared-wheel-builds-x86
-          # - archs: ARM64
-          #   folder: shared-wheel-builds-arm
     permissions:
       id-token: write # IMPORTANT: mandatory for trusted publishing
 
@@ -140,9 +126,9 @@ jobs:
       - name: Download all the dists ${{ matrix.archs }}
         uses: actions/download-artifact@v3
         with:
-          name: ${{ matrix.folder }}
+          name: shared-wheel-build
           path: deploy
-      - name: Publish distribution 📦 to PyPI
+      - name: Publish distribution 📦 to TestPyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: deploy
