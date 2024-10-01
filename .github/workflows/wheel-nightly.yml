@@ -17,10 +17,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - vers: Linux-x86_64
+          - vers: linux-x86_64
             os: ubuntu-latest
             archs: X64
-          - vers: MacOS-x86_64 # Avaliability confirmed by act
+          - vers: macOS-x86_64 # Avaliability confirmed by act
             os: macos-13
             archs: X64
           - vers: Windows-x86 # Avaliability confirmed by act
@@ -48,11 +48,11 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Set up Python for Windows
-        uses: actions/setup-python@v3
-        if: runner.os == 'Windows'
-        with:
-          python-version: "3.9"
+      # - name: Set up Python for Windows
+      #   uses: actions/setup-python@v3
+      #   if: runner.os == 'Windows'
+      #   with:
+      #     python-version: "3.9"
 
       - name: Install Rust
         if: runner.os != 'Windows'
@@ -90,11 +90,11 @@ jobs:
       # See: https://github.com/harui2019/qurry/issues/173
 
       - name: Build wheels on Linux of Arm series by Apple Silicon
-        if: runner.os == 'macOS' && matrix.archs == 'ARM64' && matrix.vers == 'Linux-ARM'
+        if: runner.os == 'macOS' && matrix.archs == 'ARM64' && matrix.vers == 'linux-aarch64'
         run: python -m cibuildwheel --output-dir wheelhouse --platform linux --archs aarch64
 
       - name: Build wheels on MacOS of ARM series
-        if: runner.os == 'macOS' && matrix.archs == 'ARM64' && matrix.vers == 'MacOS-ARM'
+        if: runner.os == 'macOS' && matrix.archs == 'ARM64' && matrix.vers == 'macOS-ARM64'
         run: python -m cibuildwheel --output-dir wheelhouse
         env:
           CIBW_BEFORE_ALL: rustup target add aarch64-apple-darwin
