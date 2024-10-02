@@ -1,0 +1,59 @@
+name: Test Unit
+author: Harui (Huai-Chun Chang)
+description: "The basic unit to test Qurry. Including the parts written in Cython and Rust"
+
+inputs:
+  python_version:
+    description: "Python version to set up"
+    default: "3.12"
+  token:
+    description: >
+      Personal access token (PAT) used to fetch the repository.
+    default: ${{ github.token }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Check OS
+      run: |
+        if [ "$RUNNER_OS" == "Windows" ]; then
+          echo "| This action is not yet proved to work on Windows"
+        fi
+      shell: bash
+
+    - name: Check Python
+      uses: actions/checkout@v4
+      with:
+        submodules: true
+        token: ${{ inputs.token }}
+
+    - name: Set up Python ${{ inputs.python_version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python_version }}
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+    - name: Install dependencies
+      shell: bash
+      run: |
+        python -m pip install --upgrade pipenv wheel pip
+        python -m pip install flake8 pytest matplotlib pep440
+        python -m pip install --upgrade urllib3
+        python -m pip install --upgrade --user setuptools setuptools_rust
+        python -c "print('### Preparing setup.py '.ljust(70, '.'))"
+        python -m pip install -e .
+        # python -c "print('### Preparing requirements.txt '.ljust(70, '.'))
+        # if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        python -c "print('### Dependencies are ready to go '.ljust(70, '.'))"
+    - name: Lint with flaflake8ke8
+      shell: bash
+      run: |
+        # stop the build if there are Python syntax errors or undefined names
+        python -m flake8 . --count --show-source --statistics
+        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+        python -m flake8 . --count --exit-zero --statistics
+
+    - name: Test with pytest
+      shell: bash
+      run: |
+        python -m pytest
