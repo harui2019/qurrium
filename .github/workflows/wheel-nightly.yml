@@ -106,10 +106,18 @@ jobs:
             PYO3_CROSS_LIB_DIR="/Library/Frameworks/Python.framework/Versions/$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')/lib/python$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')"
 
       - name: Wheelhouse Upload
+        if: runner.os != 'Linux' || matrix.archs != 'X64'
         uses: actions/upload-artifact@v3
         with:
           path: ./wheelhouse/*.whl
           name: shared-wheel-builds
+
+      - name: Early Publish distribution 📦 to TestPyPI for Linux X86_64
+        if: runner.os == 'Linux' && matrix.archs == 'X64'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: wheelhouse
+          repository-url: https://test.pypi.org/legacy/
 
   publish-to-testpypi:
     if: github.repository == 'harui2019/qurry' || contains(github.event.pull_request.title, ':publish')
