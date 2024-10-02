@@ -2,37 +2,21 @@ name: Test Unit
 author: Harui (Huai-Chun Chang)
 description: "The basic unit to test Qurry. Including the parts written in Cython and Rust"
 
-inputs:
-  python_version:
-    description: "Python version to set up"
-    default: "3.12"
-  token:
-    description: >
-      Personal access token (PAT) used to fetch the repository.
-    default: ${{ github.token }}
-
 runs:
   using: "composite"
   steps:
     - name: Check OS
       run: |
+        echo "======================================================================"
+        echo "### Test ............................................................."
+        echo "======================================================================"
         if [ "$RUNNER_OS" == "Windows" ]; then
           echo "| This action is not yet proved to work on Windows"
+        else
+          echo "| This action is proved to work on UNIX-like $RUNNER_OS"
         fi
       shell: bash
 
-    - name: Check Python
-      uses: actions/checkout@v4
-      with:
-        submodules: true
-        token: ${{ inputs.token }}
-
-    - name: Set up Python ${{ inputs.python_version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ inputs.python_version }}
-    - name: Install Rust
-      uses: dtolnay/rust-toolchain@stable
     - name: Install dependencies
       shell: bash
       run: |
@@ -45,7 +29,7 @@ runs:
         # python -c "print('### Preparing requirements.txt '.ljust(70, '.'))
         # if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         python -c "print('### Dependencies are ready to go '.ljust(70, '.'))"
-    - name: Lint with flaflake8ke8
+    - name: Lint with flake8
       shell: bash
       run: |
         # stop the build if there are Python syntax errors or undefined names
