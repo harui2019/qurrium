@@ -51,20 +51,19 @@ skip = [
     # "*-manylinux_i686", # scipy dependency issue, Check issue https://github.com/harui2019/qurry/issues/93 for details
     "*_universal2", # univeral2 fail test on ARM64 runner but it should not be this
     # See: https://github.com/harui2019/qurry/issues/187 and https://github.com/harui2019/qurry/issues/173
-
 ]
 test-skip = "*win32 *linux_i686 *_universal2"
-# build = ["*-manylinux_aarch64"]
-# before-all = [
-#     'echo "======================================================================"',
-#     'echo "### Building ........................................................."',
-#     'echo "======================================================================"',
-#     "pip install --upgrade auditwheel auditwheel-symbols",
-#     "pip install --upgrade setuptools_rust Cython setuptools toml",
-# ]
 environment = { PATH = "$HOME/.cargo/bin:$PATH" }
 before-build = [
     "echo ''",
+    'echo "| Clear .so files"',
+    "find . -name '*.so' -delete",
+    "rm -rf build",
+    "rm -rf dist",
+    "rm -rf qurry.egg-info",
+    "rm -rf qurry/__pycache__",
+    "rm -rf qurry/capsule/__pycache__",
+    "rm -rf target",
     'echo "======================================================================"',
     'echo "### Building ........................................................."',
     'echo "======================================================================"',
@@ -87,7 +86,6 @@ before-test = [
     "echo ''",
 ]
 test-command = ["pytest {project}/tests"]
-# build = ["cp39-macosx_universal2"]
 
 [tool.cibuildwheel.linux]
 before-all = [
@@ -99,24 +97,6 @@ before-all = [
     'source "$HOME/.cargo/env"',
     "rustup show",
 ]
-# before-test = [
-#     'echo "======================================================================"',
-#     'echo "### Testing on Lunux.................................................."',
-#     'echo "======================================================================"',
-#     # Solution for scipy dependency issue
-#     # Check https://github.com/harui2019/qurry/issues/95 for details
-#     # https://github.com/scipy/scipy/issues/16308#issuecomment-1560669084
-#     # "git clone https://github.com/xianyi/OpenBLAS.git",
-#     # "cd OpenBLAS",
-#     # "make -j8",
-#     # "make PREFIX=/usr/local/OpenBLAS install",
-#     # "export PKG_CONFIG_PATH=/usr/local/OpenBLAS/lib/pkgconfig",
-#     # "cd ..",
-#     # "rm -rf OpenBLAS",
-#     # end of solution
-#     "pip install scipy",
-#     "pip install pytest",
-# ]
 
 [tool.cibuildwheel.macos]
 # environment = { MACOSX_DEPLOYMENT_TARGET = "10.12", CARGO_BUILD_TARGET = "aarch64-apple-darwin", PYO3_CROSS_LIB_DIR = "/Library/Frameworks/Python.framework/Versions/$(python -c 'import sys; print(str(sys.version_info[0]) + \".\" + str(sys.version_info[1]))')/lib/python$(python -c 'import sys; print(str(sys.version_info[0]) + \".\" + str(sys.version_info[1]))')" }
@@ -163,7 +143,15 @@ before-all = [
     "rustup show",
 ]
 before-build = [
-    "echo ''",
+    "echo.",
+    'echo "| Clear .so files"',
+    'for /r %i in (*.so) do del %i',
+    'rmdir /s /q build',
+    'rmdir /s /q dist',
+    'rmdir /s /q qurry.egg-info',
+    'rmdir /s /q qurry\__pycache__',
+    'rmdir /s /q qurry\capsule\__pycache__',
+    'rmdir /s /q target',
     'echo "======================================================================"',
     'echo "### Building ........................................................."',
     'echo "======================================================================"',
