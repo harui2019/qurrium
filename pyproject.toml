@@ -55,15 +55,6 @@ skip = [
 test-skip = "*win32 *linux_i686 *_universal2"
 environment = { PATH = "$HOME/.cargo/bin:$PATH" }
 before-build = [
-    "echo ''",
-    'echo "| Clear .so files"',
-    "find . -name '*.so' -delete",
-    "rm -rf build",
-    "rm -rf dist",
-    "rm -rf qurry.egg-info",
-    "rm -rf qurry/__pycache__",
-    "rm -rf qurry/capsule/__pycache__",
-    "rm -rf target",
     'echo "======================================================================"',
     'echo "### Building ........................................................."',
     'echo "======================================================================"',
@@ -90,6 +81,15 @@ test-command = ["pytest {project}/tests"]
 [tool.cibuildwheel.linux]
 before-all = [
     "echo ''",
+    'echo "| Clear .so files"',
+    "find . -name '*.so' -delete",
+    "rm -rf build",
+    "rm -rf dist",
+    "rm -rf qurry.egg-info",
+    "rm -rf qurry/__pycache__",
+    "rm -rf qurry/capsule/__pycache__",
+    "rm -rf target",
+    "echo ''",
     'echo "======================================================================"',
     'echo "### Linux Setup ......................................................"',
     'echo "======================================================================"',
@@ -103,6 +103,15 @@ before-all = [
 # environment = { MACOSX_DEPLOYMENT_TARGET = "10.12", CARGO_BUILD_TARGET = "aarch64-apple-darwin", PYO3_CROSS_LIB_DIR= "PYO3_CROSS_LIB_DIR=$(which python | sed 's|/bin/python|/lib/python|')$(python -c 'import sys; print(str(sys.version_info[0]) + \".\" + str(sys.version_info[1]))')"}
 environment = { MACOSX_DEPLOYMENT_TARGET = "10.12" }
 before-all = [
+    "echo ''",
+    'echo "| Clear .so files"',
+    "find . -name '*.so' -delete",
+    "rm -rf build",
+    "rm -rf dist",
+    "rm -rf qurry.egg-info",
+    "rm -rf qurry/__pycache__",
+    "rm -rf qurry/capsule/__pycache__",
+    "rm -rf target",
     "echo ''",
     'echo "======================================================================"',
     'echo "### MacOS Setup ......................................................"',
@@ -130,6 +139,15 @@ before-all = [
 
 # CMD script
 before-all = [
+    "echo.",
+    'echo "| Clear .so files"',
+    'for /r %i in (*.so) do del %i',
+    'rmdir /s /q build',
+    'rmdir /s /q dist',
+    'rmdir /s /q qurry.egg-info',
+    'rmdir /s /q qurry\__pycache__',
+    'rmdir /s /q qurry\capsule\__pycache__',
+    'rmdir /s /q target',
     "echo ''",
     'echo "======================================================================"',
     'echo "### Windows Setup ...................................................."',
@@ -143,15 +161,6 @@ before-all = [
     "rustup show",
 ]
 before-build = [
-    "echo.",
-    'echo "| Clear .so files"',
-    'for /r %i in (*.so) do del %i',
-    'rmdir /s /q build',
-    'rmdir /s /q dist',
-    'rmdir /s /q qurry.egg-info',
-    'rmdir /s /q qurry\__pycache__',
-    'rmdir /s /q qurry\capsule\__pycache__',
-    'rmdir /s /q target',
     'echo "======================================================================"',
     'echo "### Building ........................................................."',
     'echo "======================================================================"',
