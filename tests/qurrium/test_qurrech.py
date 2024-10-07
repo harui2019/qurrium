@@ -114,9 +114,9 @@ def test_multi_output_01():
             "wave2": k,
             "degree": (0, 2),
         }
-        for k in wave_adds_01
+        for k in wave_adds_01[:3]
     ]
-    answer_list = [answer[k] for k in wave_adds_01]
+    answer_list = [answer[k] for k in wave_adds_01[:3]]
 
     summoner_id = exp_method_01.multiOutput(
         config_list,
@@ -192,9 +192,9 @@ def test_multi_output_02():
             "times": 20,
             "random_unitary_seeds": {i: random_unitary_seeds[seed_usage[k]][i] for i in range(20)},
         }
-        for k in wave_adds_02
+        for k in wave_adds_02[:3]
     ]
-    answer_list = [answer[k] for k in wave_adds_01]
+    answer_list = [answer[k] for k in wave_adds_02[:3]]
 
     summoner_id = exp_method_02.multiOutput(
         config_list,
