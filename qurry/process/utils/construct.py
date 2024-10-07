@@ -9,10 +9,7 @@ import warnings
 from typing import Union
 
 from ..availability import availablility
-from ..exceptions import (
-    PostProcessingRustImportError,
-    PostProcessingRustUnavailableWarning,
-)
+from ..exceptions import PostProcessingRustImportError, PostProcessingRustUnavailableWarning
 
 try:
     from ...boorust import construct  # type: ignore
