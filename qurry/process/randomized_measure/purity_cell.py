@@ -10,40 +10,18 @@ import warnings
 from typing import Union
 import numpy as np
 
-from ..utils import (
-    ensemble_cell as ensemble_cell_py,
-    cycling_slice as cycling_slice_py,
-)
+from ..utils import ensemble_cell as ensemble_cell_py, cycling_slice as cycling_slice_py
 from ..availability import (
     availablility,
     default_postprocessing_backend,
     PostProcessingBackendLabel,
 )
 from ..exceptions import (
-    PostProcessingCythonImportError,
-    PostProcessingCythonUnavailableWarning,
     PostProcessingRustImportError,
     PostProcessingRustUnavailableWarning,
+    PostProcessingBackendDeprecatedWarning,
 )
 
-
-try:
-    from ...boost.randomized import purityCellCore  # type: ignore
-
-    CYTHON_AVAILABLE = True
-    FAILED_PYX_IMPORT = None
-except ImportError as err:
-    FAILED_PYX_IMPORT = err
-    CYTHON_AVAILABLE = False
-    # pylint: disable=invalid-name, unused-argument
-
-    def purityCellCore(*args, **kwargs):
-        """Dummy function for purityCellCore."""
-        raise PostProcessingCythonImportError(
-            "Cython is not available, using python to calculate purity cell."
-        ) from FAILED_PYX_IMPORT
-
-    # pylint: enable=invalid-name, unused-argument
 
 try:
     # Proven import point for rust modules
@@ -73,10 +51,10 @@ BACKEND_AVAILABLE = availablility(
     "randomized_measure.purity_cell",
     [
         ("Rust", RUST_AVAILABLE, FAILED_RUST_IMPORT),
-        ("Cython", CYTHON_AVAILABLE, FAILED_PYX_IMPORT),
+        ("Cython", "Depr.", None),
     ],
 )
-DEFAULT_PROCESS_BACKEND = default_postprocessing_backend(RUST_AVAILABLE, CYTHON_AVAILABLE)
+DEFAULT_PROCESS_BACKEND = default_postprocessing_backend(RUST_AVAILABLE, False)
 
 
 # Randomized measure
@@ -132,27 +110,6 @@ def purity_cell_py(
     return idx, _purity_cell
 
 
-def purity_cell_cy(
-    idx: int,
-    single_counts: dict[str, int],
-    bitstring_range: tuple[int, int],
-    subsystem_size: int,
-) -> tuple[int, float]:
-    """Calculate the purity cell, one of overlap, of a subsystem by Cython.
-
-    Args:
-        idx (int): Index of the cell (counts).
-        single_counts (dict[str, int]): Counts measured by the single quantum circuit.
-        bitstring_range (tuple[int, int]): The range of the subsystem.
-        subsystem_size (int): Subsystem size included.
-
-    Returns:
-        tuple[int, float]: Index, one of overlap purity.
-    """
-
-    return idx, purityCellCore(dict(single_counts), bitstring_range, subsystem_size)
-
-
 def purity_cell_rust(
     idx: int,
     single_counts: dict[str, int],
@@ -200,17 +157,14 @@ def purity_cell(
             + f"Check the error: {FAILED_RUST_IMPORT}",
             PostProcessingRustUnavailableWarning,
         )
-        backend = "Cython" if CYTHON_AVAILABLE else "Python"
-    if not CYTHON_AVAILABLE and backend == "Cython":
-        warnings.warn(
-            "Cython is not available, using Python or Rust to calculate purity cell."
-            + f"Check the error: {FAILED_PYX_IMPORT}",
-            PostProcessingCythonUnavailableWarning,
-        )
-        backend = "Rust" if RUST_AVAILABLE else "Python"
+        backend = "Python"
 
     if backend == "Cython":
-        return purity_cell_cy(idx, single_counts, bitstring_range, subsystem_size)
+        warnings.warn(
+            "Cython backend is deprecated, using Python or Rust to calculate purity cell.",
+            PostProcessingBackendDeprecatedWarning,
+        )
+        backend = DEFAULT_PROCESS_BACKEND
     if backend == "Rust":
         return purity_cell_rust(idx, single_counts, bitstring_range, subsystem_size)
     return purity_cell_py(idx, single_counts, bitstring_range, subsystem_size)

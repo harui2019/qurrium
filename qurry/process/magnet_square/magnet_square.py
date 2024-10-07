@@ -10,9 +10,7 @@ from typing import Union, Optional, TypedDict
 import numpy as np
 import tqdm
 
-from ..availability import (
-    PostProcessingBackendLabel,
-)
+from ..availability import PostProcessingBackendLabel
 from .magsq_core import magnetic_square_core, DEFAULT_PROCESS_BACKEND
 
 

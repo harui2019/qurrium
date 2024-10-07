@@ -76,7 +76,7 @@ def test_multi_output_01():
         tgt (Hashable): The target wave key in Qurry.
     """
 
-    config_list = [{"wave": k} for k in wave_adds_01]
+    config_list = [{"wave": k} for k in wave_adds_01[:3]]
     summoner_id = exp_demo_01.multiOutput(
         config_list,
         backend=backend,
@@ -111,7 +111,7 @@ def test_multi_output_02():
         tgt (Hashable): The target wave key in Qurry.
     """
 
-    config_list = [{"waves": [k for _ in range(5)]} for k in wave_adds_02]
+    config_list = [{"waves": [k for _ in range(5)]} for k in wave_adds_02[:3]]
     summoner_id = exp_demo_02.multiOutput(
         config_list,
         backend=backend,

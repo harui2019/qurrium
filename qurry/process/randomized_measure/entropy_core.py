@@ -11,13 +11,7 @@ import warnings
 from typing import Union, Optional
 import numpy as np
 
-from .purity_cell import (
-    purity_cell_py,
-    purity_cell_cy,
-    purity_cell_rust,
-    CYTHON_AVAILABLE,
-    FAILED_PYX_IMPORT,
-)
+from .purity_cell import purity_cell_py, purity_cell_rust
 from ..utils import cycling_slice as cycling_slice_py, qubit_selector
 from ..availability import (
     availablility,
@@ -25,9 +19,9 @@ from ..availability import (
     PostProcessingBackendLabel,
 )
 from ..exceptions import (
-    PostProcessingCythonUnavailableWarning,
     PostProcessingRustImportError,
     PostProcessingRustUnavailableWarning,
+    PostProcessingBackendDeprecatedWarning,
 )
 from ...tools import ParallelManager, workers_distribution
 
@@ -54,10 +48,10 @@ BACKEND_AVAILABLE = availablility(
     "randomized_measure.entangled_core",
     [
         ("Rust", RUST_AVAILABLE, FAILED_RUST_IMPORT),
-        ("Cython", CYTHON_AVAILABLE, FAILED_PYX_IMPORT),
+        ("Cython", "Depr.", None),
     ],
 )
-DEFAULT_PROCESS_BACKEND = default_postprocessing_backend(RUST_AVAILABLE, CYTHON_AVAILABLE)
+DEFAULT_PROCESS_BACKEND = default_postprocessing_backend(RUST_AVAILABLE, False)
 
 
 def entangled_entropy_core_pycyrust(
@@ -66,7 +60,7 @@ def entangled_entropy_core_pycyrust(
     degree: Optional[Union[tuple[int, int], int]],
     measure: Optional[tuple[int, int]] = None,
     multiprocess_pool_size: Optional[int] = None,
-    backend: PostProcessingBackendLabel = "Cython",
+    backend: PostProcessingBackendLabel = "Rust",
 ) -> tuple[
     Union[dict[int, float], dict[int, np.float64]],
     tuple[int, int],
@@ -159,20 +153,9 @@ def entangled_entropy_core_pycyrust(
             + f"Check the error: {FAILED_RUST_IMPORT}",
             PostProcessingRustUnavailableWarning,
         )
-        backend = "Cython" if CYTHON_AVAILABLE else "Python"
-    if not CYTHON_AVAILABLE and backend == "Cython":
-        warnings.warn(
-            "Cython is not available, using Python to calculate purity cell."
-            + f"Check the error: {FAILED_PYX_IMPORT}",
-            PostProcessingCythonUnavailableWarning,
-        )
-        backend = "Rust" if RUST_AVAILABLE else "Python"
+        backend = "Python"
 
-    cell_calculation = (
-        purity_cell_cy
-        if backend == "Cython"
-        else (purity_cell_rust if backend == "Rust" else purity_cell_py)
-    )
+    cell_calculation = purity_cell_rust if backend == "Rust" else purity_cell_py
 
     msg = (
         "| Partition: "
@@ -282,10 +265,16 @@ def entangled_entropy_core(
         measure = tuple(measure)  # type: ignore
     assert isinstance(measure, tuple) or measure is None, f"measure {measure} is not tuple or None."
 
+    if backend == "Cython":
+        warnings.warn(
+            "Cython backend is deprecated, using Python or Rust to calculate purity cell.",
+            PostProcessingBackendDeprecatedWarning,
+        )
+        backend = DEFAULT_PROCESS_BACKEND
     if backend == "Rust":
         if RUST_AVAILABLE:
             return entangled_entropy_core_allrust(shots, counts, degree, measure)
-        backend = "Cython" if CYTHON_AVAILABLE else "Python"
+        backend = "Python"
         warnings.warn(
             f"Rust is not available, using {backend} to calculate purity cell."
             + f" Check the error: {FAILED_RUST_IMPORT}",

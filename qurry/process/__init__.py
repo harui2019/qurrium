@@ -8,4 +8,4 @@ Post-processing module for Qurry
 ================================================================
 """
 
-from .status import AVAIBILITY_STATESHEET, AVAIBILITY_STATUS
+from .status import AVAIBILITY_STATESHEET, AVAIBILITY_STATUS, ERROR_STATUS

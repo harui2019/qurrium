@@ -5,4 +5,4 @@ Status Conclusions
 ================================================================
 """
 
-from .backend import AVAIBILITY_STATESHEET, AVAIBILITY_STATUS
+from .backend import AVAIBILITY_STATESHEET, AVAIBILITY_STATUS, ERROR_STATUS

@@ -5,7 +5,7 @@ Post-processing Status Conclusions
 ================================================================
 """
 
-from typing import Union
+from typing import Literal, Optional
 
 from ..randomized_measure import (
     entangled_availability,
@@ -22,10 +22,21 @@ from ...version import __version__
 from ...capsule.hoshi import Hoshi
 
 
-def availability_status_print() -> tuple[Hoshi, dict[str, dict[str, dict[str, Union[bool, None]]]]]:
+def availability_status_print() -> tuple[
+    Hoshi,
+    dict[str, dict[str, dict[str, Literal["Yes", "Error", "Depr.", "No"]]]],
+    dict[str, dict[str, dict[str, Optional[ImportError]]]],
+]:
     """Print the availability status of the post-processing modules.
 
-    Returns: tuple[Hoshi, dict[str, dict[str, dict[str, Union[bool, None]]]]]
+    Returns:
+        tuple[
+            Hoshi,
+            dict[str, dict[str, dict[str, Literal["Yes", "Error", "Depr.", "No"]]]],
+            dict[str, dict[str, dict[str, Optional[ImportError]]]],
+        ]:
+            The Hoshi object for the availability status of the post-processing modules,
+            the availability status of the post-processing modules and the errors.
     """
     availability_dict = [
         entangled_availability,
@@ -51,11 +62,13 @@ def availability_status_print() -> tuple[Hoshi, dict[str, dict[str, dict[str, Un
         },
     ]
     availability_status = {}
+    errors_status = {}
     # pylint: disable=no-member
-    for mod_location, available_dict in availability_dict:
+    for mod_location, available_dict, errors in availability_dict:
         mod1, file1 = mod_location.split(".")
         if mod1 not in availability_status:
             availability_status[mod1] = {}
+            errors_status[mod1] = {}
             pre_hoshi.append(
                 {
                     "type": "itemize",
@@ -63,8 +76,10 @@ def availability_status_print() -> tuple[Hoshi, dict[str, dict[str, dict[str, Un
                 },
             )
         availability_status[mod1][file1] = {}
+        errors_status[mod1][file1] = errors
         for bt in BACKEND_TYPES:
-            availability_status[mod1][file1][bt] = available_dict.get(bt, None)
+            availability_status[mod1][file1][bt] = available_dict.get(bt, "No")
+            errors_status[mod1][file1][bt] = errors.get(bt, None)
         pre_hoshi.append(
             {
                 "type": "itemize",
@@ -78,9 +93,10 @@ def availability_status_print() -> tuple[Hoshi, dict[str, dict[str, dict[str, Un
         )
     pre_hoshi.append(("divider", 56))
     for d, v in [
-        ("True", "Working normally."),
-        ("False", "Exception occurred."),
-        ("None", "Not supported."),
+        ("Yes", "Working normally."),
+        ("Error", "Exception occurred."),
+        ("No", "Not supported."),
+        ("Depr.", "Deprecated."),
     ]:
         pre_hoshi.append(
             {
@@ -94,7 +110,7 @@ def availability_status_print() -> tuple[Hoshi, dict[str, dict[str, dict[str, Un
             }
         )
     pre_hoshi.append(("divider", 56))
-    return Hoshi(pre_hoshi), availability_status
+    return Hoshi(pre_hoshi), availability_status, errors_status
 
 
-AVAIBILITY_STATESHEET, AVAIBILITY_STATUS = availability_status_print()
+AVAIBILITY_STATESHEET, AVAIBILITY_STATUS, ERROR_STATUS = availability_status_print()

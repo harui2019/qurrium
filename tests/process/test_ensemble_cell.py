@@ -13,9 +13,7 @@ import numpy as np
 from qurry.process.exceptions import PostProcessingRustUnavailableWarning
 from qurry.process.utils.randomized import (
     RUST_AVAILABLE as rust_available_randomized,
-    CYTHON_AVAILABLE as cython_available_randomized,
     ensemble_cell as ensemble_cell_py,
-    ensemble_cell_cy,
 )
 
 if rust_available_randomized:
@@ -58,21 +56,13 @@ test_setup_ensemble: list[TestItemEnsembleCell] = [
 def test_ensemble_cell_rust(test_items: TestItemEnsembleCell):
     """Test the ensemble_cell_rust function."""
 
-    assert cython_available_randomized, "Cython is not available."
     assert rust_available_randomized, "Rust is not available."
-    ensemble_cell_cy_result = ensemble_cell_cy(*test_items["target"])
     ensemble_cell_py_result = ensemble_cell_py(*test_items["target"])
     ensemble_cell_rust_result = ensemble_cell_rust(*test_items["target"])
 
     assert (
-        np.abs(ensemble_cell_rust_result - ensemble_cell_cy_result) < 1e-10
-    ), "Rust and Cython results are not equal in ensemble_cell."
-    assert (
         np.abs(ensemble_cell_rust_result - ensemble_cell_py_result) < 1e-10
     ), "Rust and Python results are not equal in ensemble_cell."
-    assert (
-        np.abs(ensemble_cell_cy_result - ensemble_cell_py_result) < 1e-10
-    ), "Cython and Python results are not equal in ensemble_cell."
     assert np.abs(ensemble_cell_rust_result - test_items["answer"]) < 1e-10, (
         "The result of ensemble_cell is not correct,"
         + f"ensemble_cell_rust_result: {ensemble_cell_rust_result} "
