@@ -11,13 +11,7 @@ import warnings
 from typing import Union, Optional
 import numpy as np
 
-from .echo_cell import (
-    echo_cell_py,
-    echo_cell_cy,
-    echo_cell_rust,
-    CYTHON_AVAILABLE,
-    FAILED_PYX_IMPORT,
-)
+from .echo_cell import echo_cell_py, echo_cell_rust
 from ..utils import cycling_slice as cycling_slice_py, qubit_selector
 from ..availability import (
     availablility,
@@ -25,14 +19,10 @@ from ..availability import (
     PostProcessingBackendLabel,
 )
 from ..exceptions import (
-    PostProcessingCythonUnavailableWarning,
     PostProcessingRustImportError,
     PostProcessingRustUnavailableWarning,
 )
-from ...tools import (
-    ParallelManager,
-    workers_distribution,
-)
+from ...tools import ParallelManager, workers_distribution
 
 try:
     from ...boorust import randomized  # type: ignore
@@ -56,12 +46,12 @@ BACKEND_AVAILABLE = availablility(
     "randomized_measure.wavefunction_overlap",
     [
         ("Rust", RUST_AVAILABLE, FAILED_RUST_IMPORT),
-        ("Cython", CYTHON_AVAILABLE, FAILED_PYX_IMPORT),
+        ("Cython", "Depr.", None),
     ],
 )
 DEFAULT_PROCESS_BACKEND = default_postprocessing_backend(
     RUST_AVAILABLE,
-    CYTHON_AVAILABLE,
+    False,
 )
 
 
@@ -168,24 +158,13 @@ def overlap_echo_core_pycyrust(
 
     if not RUST_AVAILABLE and backend == "Rust":
         warnings.warn(
-            "Rust is not available, using Cython or Python to calculate purity cell."
+            "Rust is not available, using Python to calculate purity cell."
             + f"Check the error: {FAILED_RUST_IMPORT}",
             PostProcessingRustUnavailableWarning,
         )
-        backend = "Cython" if CYTHON_AVAILABLE else "Python"
-    if not CYTHON_AVAILABLE and backend == "Cython":
-        warnings.warn(
-            "Cython is not available, using Python to calculate purity cell."
-            + f"Check the error: {FAILED_PYX_IMPORT}",
-            PostProcessingCythonUnavailableWarning,
-        )
-        backend = "Rust" if RUST_AVAILABLE else "Python"
+        backend = "Python"
 
-    cell_calculation = (
-        echo_cell_cy
-        if backend == "Cython"
-        else (echo_cell_rust if backend == "Rust" else echo_cell_py)
-    )
+    cell_calculation = echo_cell_rust if backend == "Rust" else echo_cell_py
 
     if launch_worker == 1:
         echo_cell_items = []
@@ -292,7 +271,7 @@ def overlap_echo_core(
     if backend == "Rust":
         if RUST_AVAILABLE:
             return overlap_echo_allrust(shots, counts, degree, measure)
-        backend = "Cython" if CYTHON_AVAILABLE else "Python"
+        backend = "Python"
         warnings.warn(
             f"Rust is not available, using {backend} to calculate purity cell."
             + f" Check the error: {FAILED_RUST_IMPORT}",
