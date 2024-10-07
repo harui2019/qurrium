@@ -52,6 +52,13 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.10"
+        if: matrix.vers != 'macOS-ARM64'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          architecture: "arm64" # For MacOS ARM64
+        if: matrix.vers == 'macOS-ARM64'
 
       - name: Python Version and Architecture Check
         run: |
@@ -78,10 +85,6 @@ jobs:
       - name: Build wheels on MacOS of x86 series
         if: runner.os == 'macOS' && matrix.archs == 'X64'
         run: |
-          echo "| Change setup.py for MacOS x86_64"
-          mv -f ./setup.py ./setup-abi3.py
-          mv -f ./setup-no-abi3.py ./setup.py
-          echo "| Build wheels on MacOS x86_64"
           python -m cibuildwheel --output-dir wheelhouse --platform macos --archs x86_64
         env:
           CIBW_ARCHS_MACOS: x86_64
