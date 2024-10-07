@@ -23,17 +23,19 @@ jobs:
           - vers: macOS-x86_64 # Avaliability confirmed by act
             os: macos-13
             archs: X64
-          # - vers: Windows-x86 # Avaliability confirmed by act, but failed in self-hosted runner, WTF
-          #   os: windows-latest # They are using the same machine with self-hosted
-          #   archs: X64
-          # - vers: Windows-arm64
-          #   os: windows-latest
-          #   archs: ARM64
           - vers: macOS-ARM64 # Avaliability confirmed by act
             os: macos-latest
             archs: ARM64
           # - vers: linux-aarch64 # Avaliability confirmed by act
           #   os: macos-latest
+          #   archs: ARM64
+          # Disabled for runner setup is not completed
+          # See: https://github.com/harui2019/qurry/issues/200
+          # - vers: Windows-x86
+          #   os: windows-latest
+          #   archs: X64
+          # - vers: Windows-arm64
+          #   os: windows-latest
           #   archs: ARM64
 
     environment:
@@ -51,12 +53,17 @@ jobs:
         if: runner.os != 'Windows'
         with:
           python-version: "3.12"
+      - name: Set up Python for MacOS ARM64
+        if: runner.os == 'macOS' && matrix.archs == 'ARM64'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          architecture: arm64
 
-      # - name: Set up Python for Windows
-      #   uses: actions/setup-python@v3
-      #   if: runner.os == 'Windows'
-      #   with:
-      #     python-version: "3.9"
+      - name: Python Version and Architecture Check
+        run: |
+          python --version
+          python -c "from distutils import util; print(util.get_platform())
 
       - name: Install Rust
         if: runner.os != 'Windows'
@@ -99,7 +106,7 @@ jobs:
 
       - name: Build wheels on MacOS of ARM series
         if: runner.os == 'macOS' && matrix.archs == 'ARM64' && matrix.vers == 'macOS-ARM64'
-        run: python -m cibuildwheel --output-dir wheelhouse --platform macos --archs arm64
+        run: python -m cibuildwheel --output-dir wheelhouse --platform macos --archs universal2
         env:
           CIBW_BEFORE_ALL: rustup target add aarch64-apple-darwin
           # CIBW_ARCHS_MACOS: arm64 universal2
