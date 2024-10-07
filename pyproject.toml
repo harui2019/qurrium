@@ -49,18 +49,16 @@ skip = [
     "cp313-*",          # Just too recent
     "*-musllinux_*",    # qiskit did not support musllinux
     # "*-manylinux_i686", # scipy dependency issue, Check issue https://github.com/harui2019/qurry/issues/93 for details
-    "*_universal2", # univeral2 fail test on ARM64 runner but it should not be this
-    # See: https://github.com/harui2019/qurry/issues/187 and https://github.com/harui2019/qurry/issues/173
 ]
-test-skip = "*win32 *linux_i686 *_universal2"
-environment = { PATH = "$HOME/.cargo/bin:$PATH" }
+test-skip = "*win32 *linux_i686"
+environment = { PATH = "$HOME/.cargo/bin:$PATH", RUSTUP_TOOLCHAIN = "stable" }
 before-build = [
     'echo "======================================================================"',
     'echo "### Building ........................................................."',
     'echo "======================================================================"',
     "which python",
     "pip install --upgrade pipenv wheel pip",
-    "pip install --upgrade auditwheel auditwheel-symbols",
+    "pip install --upgrade auditwheel auditwheel-symbols delocate",
     "pip install --upgrade setuptools_rust Cython setuptools toml wheel",
 ]
 before-test = [
@@ -68,7 +66,7 @@ before-test = [
     'echo "======================================================================"',
     'echo "### Testing Environment Preparing ...................................."',
     'echo "======================================================================"',
-    "pip install scipy",
+    "pip install --prefer-binary --only-binary=numpy,scipy numpy scipy",
     "pip install pytest",
     "cd {project} && pip install . --upgrade && cd ..",
     'echo "======================================================================"',
@@ -98,9 +96,7 @@ before-all = [
 ]
 
 [tool.cibuildwheel.macos]
-# environment = { MACOSX_DEPLOYMENT_TARGET = "10.12", CARGO_BUILD_TARGET = "aarch64-apple-darwin", PYO3_CROSS_LIB_DIR = "/Library/Frameworks/Python.framework/Versions/$(python -c 'import sys; print(str(sys.version_info[0]) + \".\" + str(sys.version_info[1]))')/lib/python$(python -c 'import sys; print(str(sys.version_info[0]) + \".\" + str(sys.version_info[1]))')" }
-# environment = { MACOSX_DEPLOYMENT_TARGET = "10.12", CARGO_BUILD_TARGET = "aarch64-apple-darwin", PYO3_CROSS_LIB_DIR= "PYO3_CROSS_LIB_DIR=$(which python | sed 's|/bin/python|/lib/python|')$(python -c 'import sys; print(str(sys.version_info[0]) + \".\" + str(sys.version_info[1]))')"}
-environment = { MACOSX_DEPLOYMENT_TARGET = "10.12" }
+# environment = "MACOSX_DEPLOYMENT_TARGET=10.12"
 before-all = [
     "echo ''",
     'echo "| Clear .so files"',
