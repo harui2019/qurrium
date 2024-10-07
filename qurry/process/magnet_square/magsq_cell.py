@@ -9,10 +9,7 @@ Postprocessing - Magnet Square - Magnet Square Cell
 from typing import Union
 import numpy as np
 
-from ..availability import (
-    availablility,
-    default_postprocessing_backend,
-)
+from ..availability import availablility, default_postprocessing_backend
 
 # from ..exceptions import (
 #     PostProcessingRustImportError,

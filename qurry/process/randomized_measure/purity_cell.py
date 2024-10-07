@@ -10,10 +10,7 @@ import warnings
 from typing import Union
 import numpy as np
 
-from ..utils import (
-    ensemble_cell as ensemble_cell_py,
-    cycling_slice as cycling_slice_py,
-)
+from ..utils import ensemble_cell as ensemble_cell_py, cycling_slice as cycling_slice_py
 from ..availability import (
     availablility,
     default_postprocessing_backend,
