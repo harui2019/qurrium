@@ -17,12 +17,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - vers: linux-x86_64
-            os: ubuntu-latest
-            archs: X64
-          - vers: macOS-x86_64 # Avaliability confirmed by act
-            os: macos-13
-            archs: X64
+          # - vers: linux-x86_64
+          #   os: ubuntu-latest
+          #   archs: X64
+          # - vers: macOS-x86_64 # Avaliability confirmed by act
+          #   os: macos-13
+          #   archs: X64
           - vers: macOS-ARM64 # Avaliability confirmed by act
             os: macos-latest
             archs: ARM64
@@ -43,27 +43,20 @@ jobs:
       url: https://test.pypi.org/p/qurry
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           token: ${{ secrets.CI_TOKEN }}
           submodules: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
-        if: runner.os != 'Windows'
         with:
-          python-version: "3.12"
-      - name: Set up Python for MacOS ARM64
-        if: runner.os == 'macOS' && matrix.archs == 'ARM64'
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          architecture: arm64
+          python-version: "3.10"
 
       - name: Python Version and Architecture Check
         run: |
           python --version
-          python -c "from distutils import util; print(util.get_platform())
+          python -c "from distutils import util; print(util.get_platform())"
 
       - name: Install Rust
         if: runner.os != 'Windows'
@@ -106,15 +99,7 @@ jobs:
 
       - name: Build wheels on MacOS of ARM series
         if: runner.os == 'macOS' && matrix.archs == 'ARM64' && matrix.vers == 'macOS-ARM64'
-        run: python -m cibuildwheel --output-dir wheelhouse --platform macos --archs universal2
-        env:
-          CIBW_BEFORE_ALL: rustup target add aarch64-apple-darwin
-          # CIBW_ARCHS_MACOS: arm64 universal2
-          # See: https://github.com/harui2019/qurry/issues/187 and https://github.com/harui2019/qurry/issues/173
-          CIBW_ARCHS_MACOS: arm64
-          CIBW_ENVIRONMENT: >-
-            CARGO_BUILD_TARGET="aarch64-apple-darwin"
-            PYO3_CROSS_LIB_DIR="/Library/Frameworks/Python.framework/Versions/$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')/lib/python$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')"
+        run: python -m cibuildwheel --output-dir wheelhouse --platform macos
 
       - name: Wheelhouse Upload
         if: runner.os != 'Linux' || matrix.archs != 'X64'
