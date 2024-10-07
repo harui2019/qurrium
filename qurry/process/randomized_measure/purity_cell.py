@@ -22,6 +22,7 @@ from ..availability import (
 from ..exceptions import (
     PostProcessingRustImportError,
     PostProcessingRustUnavailableWarning,
+    PostProcessingBackendDeprecatedWarning,
 )
 
 
@@ -161,6 +162,12 @@ def purity_cell(
         )
         backend = "Python"
 
+    if backend == "Cython":
+        warnings.warn(
+            "Cython backend is deprecated, using Python or Rust to calculate purity cell.",
+            PostProcessingBackendDeprecatedWarning,
+        )
+        backend = DEFAULT_PROCESS_BACKEND
     if backend == "Rust":
         return purity_cell_rust(idx, single_counts, bitstring_range, subsystem_size)
     return purity_cell_py(idx, single_counts, bitstring_range, subsystem_size)

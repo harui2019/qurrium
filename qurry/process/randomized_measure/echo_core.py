@@ -21,6 +21,7 @@ from ..availability import (
 from ..exceptions import (
     PostProcessingRustImportError,
     PostProcessingRustUnavailableWarning,
+    PostProcessingBackendDeprecatedWarning,
 )
 from ...tools import ParallelManager, workers_distribution
 
@@ -268,6 +269,12 @@ def overlap_echo_core(
     if isinstance(measure, list):
         measure = tuple(measure)  # type: ignore
 
+    if backend == "Cython":
+        warnings.warn(
+            "Cython backend is deprecated, using Python or Rust to calculate purity cell.",
+            PostProcessingBackendDeprecatedWarning,
+        )
+        backend = DEFAULT_PROCESS_BACKEND
     if backend == "Rust":
         if RUST_AVAILABLE:
             return overlap_echo_allrust(shots, counts, degree, measure)

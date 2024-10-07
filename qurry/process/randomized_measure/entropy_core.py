@@ -21,6 +21,7 @@ from ..availability import (
 from ..exceptions import (
     PostProcessingRustImportError,
     PostProcessingRustUnavailableWarning,
+    PostProcessingBackendDeprecatedWarning,
 )
 from ...tools import ParallelManager, workers_distribution
 
@@ -264,6 +265,12 @@ def entangled_entropy_core(
         measure = tuple(measure)  # type: ignore
     assert isinstance(measure, tuple) or measure is None, f"measure {measure} is not tuple or None."
 
+    if backend == "Cython":
+        warnings.warn(
+            "Cython backend is deprecated, using Python or Rust to calculate purity cell.",
+            PostProcessingBackendDeprecatedWarning,
+        )
+        backend = DEFAULT_PROCESS_BACKEND
     if backend == "Rust":
         if RUST_AVAILABLE:
             return entangled_entropy_core_allrust(shots, counts, degree, measure)
