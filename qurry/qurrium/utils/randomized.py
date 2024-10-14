@@ -8,6 +8,7 @@ Randomized Measure Kit for Qurry
 
 from typing import Union, Optional
 import numpy as np
+
 from qiskit.quantum_info import random_unitary, Operator
 
 RXmatrix = np.array([[0, 1], [1, 0]])
@@ -18,7 +19,7 @@ RZmatrix = np.array([[1, 0], [0, -1]])
 """Pauli-Z matrix"""
 
 
-def density_matrix_to_bloch(rho: np.array) -> list[float]:
+def density_matrix_to_bloch(rho: np.ndarray) -> list[float]:
     """Convert a density matrix to a Bloch vector.
 
     Args:

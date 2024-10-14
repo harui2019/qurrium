@@ -4,6 +4,7 @@ GHZ state (:mod:`qurry.recipe.library.simple.cat`)
 ================================================================
 
 """
+
 from ..n_body import OneBody
 
 

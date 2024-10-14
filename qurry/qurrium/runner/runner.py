@@ -7,37 +7,28 @@ Runner for pending and retrieve jobs from remote backend.
 
 import warnings
 from abc import abstractmethod, ABC
-from typing import Optional, Literal
+from typing import Optional, Literal, Union, Any
 
 from qiskit.providers import Backend, Provider
 
 from ..experiment import ExperimentPrototype
 from ..container import ExperimentContainer
-from ..multimanager import MultiManager, TagListKeyable
-from ...tools import DatetimeDict
+from ..multimanager import MultiManager
+from ..multimanager.beforewards import TagListKeyable
+from ...tools.backend import backend_name_getter
 from ...exceptions import QurryDummyRunnerWarning
-
-
-def retrieve_counter(datetimes_dict: DatetimeDict):
-    """Count the number of retrieve jobs in the datetimes_dict.""
-
-    Args:
-        datetimes_dict (DatetimeDict): The datetimes_dict from Qurry instance.
-
-    Returns:
-        int: The number of retrieve jobs in the datetimes_dict.
-    """
-    return len([datetime_tag for datetime_tag in datetimes_dict if "retrieve" in datetime_tag])
 
 
 class Runner(ABC):
     """Pending and Retrieve Jobs from remote backend."""
 
+    __name__ = "Runner"
+
     current_multimanager: MultiManager
     """The current :cls:`Multimanager` been used."""
     backend: Optional[Backend]
     """The backend been used."""
-    provider: Optional[Provider]
+    provider: Union[Provider, Any, None]
     """The provider used for this backend."""
     experiment_container: ExperimentContainer[ExperimentPrototype]
     """The experimental container from Qurry instance."""
@@ -57,9 +48,37 @@ class Runner(ABC):
     def retrieve(self, overwrite: bool = False) -> list[tuple[Optional[str], TagListKeyable]]:
         """Retrieve jobs from remote backend."""
 
+    def __repr__(self):
+        backend_repr = self.backend if self.backend is None else backend_name_getter(self.backend)
+
+        return (
+            f"<{self.__name__}("
+            + f"current_multimanager={self.current_multimanager._repr_oneline()}, "
+            + f"backend={backend_repr}, "
+            + f"provider={self.provider}, "
+            + f"experiment_container={self.experiment_container._repr_oneline()}, "
+            + f"reports_num={len(self.reports)})>"
+        )
+
+    def _repr_oneline(self):
+        backend_repr = self.backend if self.backend is None else backend_name_getter(self.backend)
+
+        return f"<{self.__name__}(backend={backend_repr}, provider={self.provider}, ...)>"
+
+
+# Using for Third-Party Backend
+class ThirdPartyRunner(Runner):
+    """Pending and Retrieve Jobs from Third-Parties' backend."""
+
+    @abstractmethod
+    def __init__(self, manager: MultiManager, backend: Backend, **kwargs):
+        pass
+
 
 class DummyRunner(Runner):
     """A dummy runner for testing."""
+
+    __name__ = "DummyRunner"
 
     def __init__(
         self,
@@ -111,14 +130,3 @@ class DummyRunner(Runner):
             QurryDummyRunnerWarning,
         )
         return []
-
-
-# Using for Third-Party Backend
-
-
-class ThirdPartyRunner(Runner):
-    """Pending and Retrieve Jobs from Third-Parties' backend."""
-
-    @abstractmethod
-    def __init__(self, manager: MultiManager, backend: Backend, **kwargs):
-        pass

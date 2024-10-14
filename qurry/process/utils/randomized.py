@@ -1,7 +1,6 @@
 """
 ================================================================
-Randomized Measure Kit for PostProcessing 
-(:mod:`qurry.qurrium.utils.randomized`)
+Randomized (:mod:`qurry.process.utils.randomized`)
 ================================================================
 
 """
@@ -233,18 +232,15 @@ def ensemble_cell_rust(
 
 
 @overload
-def cycling_slice(target: list, start: int, end: int, step: int = 1) -> list:
-    ...
+def cycling_slice(target: list, start: int, end: int, step: int = 1) -> list: ...
 
 
 @overload
-def cycling_slice(target: str, start: int, end: int, step: int = 1) -> str:
-    ...
+def cycling_slice(target: str, start: int, end: int, step: int = 1) -> str: ...
 
 
 @overload
-def cycling_slice(target: tuple, start: int, end: int, step: int = 1) -> tuple:
-    ...
+def cycling_slice(target: tuple, start: int, end: int, step: int = 1) -> tuple: ...
 
 
 def cycling_slice(target, start, end, step=1):

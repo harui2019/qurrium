@@ -5,12 +5,15 @@ ExperimentContainer
 ================================================================
 
 """
-from typing import Union, Optional, Hashable, TypeVar
 
-ExperimentInstance = TypeVar("ExperimentInstance")
+from typing import TypeVar
+
+from ..experiment import ExperimentPrototype
+
+_ExpInst = TypeVar("_ExpInst", bound=ExperimentPrototype)
 
 
-class ExperimentContainer(dict[Hashable, ExperimentInstance]):
+class ExperimentContainer(dict[str, _ExpInst]):
     """A customized dictionary for storing `ExperimentPrototype` objects."""
 
     __name__ = "ExperimentContainer"
@@ -20,8 +23,8 @@ class ExperimentContainer(dict[Hashable, ExperimentInstance]):
 
     def call(
         self,
-        exp_id: Optional[Hashable] = None,
-    ) -> ExperimentInstance:
+        exp_id: str,
+    ) -> _ExpInst:
         """Call an experiment by its id.
 
         Args:
@@ -33,18 +36,34 @@ class ExperimentContainer(dict[Hashable, ExperimentInstance]):
 
         if exp_id in self:
             return self[exp_id]
-        raise KeyError(f'Experiment id: "{exp_id}" not found in {self}')
+        raise KeyError(f"Experiment id: '{exp_id}' not found.")
 
     def __call__(
         self,
-        exp_id: Union[Hashable, None] = None,
-    ) -> ExperimentInstance:
+        exp_id: str,
+    ) -> _ExpInst:
         return self.call(exp_id=exp_id)
 
     def __repr__(self):
-        inner_lines = "\n".join(f"    {k}: ..." for k in self.keys())
-        inner_lines2 = "{\n%s\n}" % inner_lines
-        return (
-            f"<{self.__name__}={inner_lines2} with {len(self)} "
-            + "experiments load, a customized dictionary>"
-        )
+        original_repr = repr({k: v._repr_no_id() for k, v in self.items()})
+        return f"{self.__name__}({original_repr}, num={len(self)})"
+
+    def _repr_oneline(self):
+        return f"{self.__name__}(" + "{...}" + f", num={len(self)})"
+
+    def _repr_pretty_(self, p, cycle):
+        length = len(self)
+        if cycle:
+            p.text(f"{self.__name__}(" + "{...}" + f", num={length})")
+        else:
+            with p.group(2, f"{self.__name__}(num={length}" + ", {", "})"):
+                for i, (k, v) in enumerate(self.items()):
+                    p.breakable()
+                    # pylint: disable=protected-access
+                    p.text(f"'{k}': {v._repr_no_id()}")
+                    # pylint: enable=protected-access
+                    if i < length - 1:
+                        p.text(",")
+
+    def __str__(self):
+        return super().__repr__()

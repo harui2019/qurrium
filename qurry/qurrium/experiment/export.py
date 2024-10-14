@@ -1,19 +1,20 @@
 """
 ================================================================
-Export data structure for qurry.expertiment.ExperimentPrototype
+Export data structure for Experiment
 (:mod:`qurry.qurrium.container.export`)
 ================================================================
 
 """
 
 import os
-from typing import Optional, NamedTuple, Any, Hashable, Union
+from typing import Optional, NamedTuple, Union, Any
+from collections.abc import Hashable
 from pathlib import Path
 import warnings
 import gc
 import tqdm
 
-from .container import CommonparamsDict, REQUIRED_FOLDER
+from .arguments import CommonparamsDict, REQUIRED_FOLDER
 from ...tools import ParallelManager
 from ...capsule import quickJSON
 

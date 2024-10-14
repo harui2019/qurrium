@@ -5,23 +5,22 @@ Qurrent - Second Renyi Entropy Measurement
 ================================================================
 
 """
+
 from typing import Literal, Union, overload
 
-from .randomized_measure import EntropyRandomizedMeasure
-from .hadamard_test import EntropyHadamardTest
+from .randomized_measure import EntropyMeasureRandomized
+from .hadamard_test import EntropyMeasureHadamard
 
 
 # pylint: disable=invalid-name
 @overload
-def EntropyMeasure(*args, method: Literal["hadamard"], **kwargs) -> EntropyHadamardTest:
-    ...
+def EntropyMeasure(*args, method: Literal["hadamard"], **kwargs) -> EntropyMeasureHadamard: ...
 
 
 @overload
 def EntropyMeasure(
     *args, method: Union[Literal["randomized", "base"], str] = "randomized", **kwargs
-) -> EntropyRandomizedMeasure:
-    ...
+) -> EntropyMeasureRandomized: ...
 
 
 def EntropyMeasure(
@@ -43,10 +42,10 @@ def EntropyMeasure(
         Union[EntropyMeasureBase, EntropyMeasureV2Base]: method.
     """
     if method in ("randomized", "haar"):
-        return EntropyRandomizedMeasure(*args, **kwargs)
+        return EntropyMeasureRandomized(*args, **kwargs)
     if method == "hadamard":
-        return EntropyHadamardTest(*args, **kwargs)
-    return EntropyRandomizedMeasure(*args, **kwargs)
+        return EntropyMeasureHadamard(*args, **kwargs)
+    return EntropyMeasureRandomized(*args, **kwargs)
 
 
 # pylint: enable=invalid-name
