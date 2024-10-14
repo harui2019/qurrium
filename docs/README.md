@@ -2,11 +2,11 @@
 
 ## Introduction
 
-This is a simple documentation for the project.
+This folder contains tutorials for the users.
 
 ## Installation
 
-You can clone the project to your local machine running these Jupyter Notebooks.
+You can clone the project to your local machine and run these Jupyter Notebooks.
 
 ---
 
@@ -18,12 +18,12 @@ You can clone the project to your local machine running these Jupyter Notebooks.
 - [02 - The True Power of Qurry](./main/02_The_True_Power_of_Qurry.ipynb)
 - [03 - Just Post-Processing](./main/03_Just_Post_Processing.ipynb)
   - 3.1 - EntropyMeasure
-    - 3.1.1 Entanglement Entropy - Randomized Measure
+    - 3.1.1 Entanglement Entropy - Randomized Measurement
       - a. [randomized_entangled_entropy](./main/0311a_EntropyRandomizedMeasure.ipynb)
       - b. [randomized_entangled_entropy_mitigated](./main/0311b_EntropyRandomizedMeasure.ipynb)
     - 3.1.2 [Entanglement Entropy - Hadamard Test](./main/0312_EntropyHadamardTest.ipynb)
   - 3.2 EchoListen
-    - This feature has been implemented, but documentation is not ready yet. Please wait for the next version.
+    - This feature has been implemented, but the tutorial is not ready yet. Please wait for the next version.
 
 ### Appendix
 
