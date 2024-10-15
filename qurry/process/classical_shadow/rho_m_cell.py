@@ -12,7 +12,7 @@ import numpy as np
 from .unitary_set import U_M_MATRIX, OUTER_PRODUCT, IDENTITY
 
 
-def rho_m_py(
+def rho_m_cell_py(
     idx: int,
     single_counts: dict[str, int],
     nu_shadow_direction: dict[int, Union[Literal[0, 1, 2], int]],
