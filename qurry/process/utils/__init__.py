@@ -7,10 +7,12 @@ Utility functions for qurry.process
 
 from .construct import (
     qubit_selector,
+    cycling_slice,
+    degree_handler,
+    is_cycling_slice_active,
     BACKEND_AVAILABLE as construct_availability,
 )
 from .randomized import (
-    cycling_slice,
     hamming_distance,
     ensemble_cell,
     BACKEND_AVAILABLE as randomized_availability,

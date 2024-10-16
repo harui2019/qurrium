@@ -6,18 +6,17 @@ Randomized (:mod:`qurry.process.utils.randomized`)
 """
 
 import warnings
-from typing import Union, overload
+from typing import Union
 import numpy as np
 
 from ..availability import availablility
 from ..exceptions import PostProcessingRustImportError, PostProcessingRustUnavailableWarning
 
 try:
-    from ...boorust import construct, randomized  # type: ignore
+    from ...boorust import randomized  # type: ignore
 
     ensemble_cell_rust_source = randomized.ensemble_cell_rust  # type: ignore
     hamming_distance_rust_source = randomized.hamming_distance_rust  # type: ignore
-    cycling_slice_rust_source = construct.cycling_slice_rust  # type: ignore
 
     RUST_AVAILABLE = True
     FAILED_RUST_IMPORT = None
@@ -35,12 +34,6 @@ except ImportError as err:
         """Dummy function for hamming_distance_rust."""
         raise PostProcessingRustImportError(
             "Rust is not available, using python to calculate hamming distance."
-        ) from FAILED_RUST_IMPORT
-
-    def cycling_slice_rust_source(*args, **kwargs):
-        """Dummy function for cycling_slice_rust."""
-        raise PostProcessingRustImportError(
-            "Rust is not available, using python to calculate cycling slice."
         ) from FAILED_RUST_IMPORT
 
 
@@ -162,73 +155,3 @@ def ensemble_cell_rust(
     )
     return ensemble_cell(s_i, s_i_meas, s_j, s_j_meas, a_num, shots)
 
-
-@overload
-def cycling_slice(target: list, start: int, end: int, step: int = 1) -> list: ...
-
-
-@overload
-def cycling_slice(target: str, start: int, end: int, step: int = 1) -> str: ...
-
-
-@overload
-def cycling_slice(target: tuple, start: int, end: int, step: int = 1) -> tuple: ...
-
-
-def cycling_slice(target, start, end, step=1):
-    """Slice a iterable object with cycling.
-
-    Args:
-        target (_ListT): The target object.
-        start (int): Index of start.
-        end (int): Index of end.
-        step (int, optional): Step of slice. Defaults to 1.
-
-    Raises:
-        IndexError: Slice out of range.
-
-    Returns:
-        Iterable: The sliced object.
-    """
-    length = len(target)
-    slice_check = {
-        "start <= -length": (start <= -length),
-        "end >= length ": (end >= length),
-    }
-    if all(slice_check.values()):
-        raise IndexError(
-            "Slice out of range" + ", ".join([f" {k};" for k, v in slice_check.items() if not v])
-        )
-    if length <= 0:
-        return target
-    if start < 0 <= end:
-        new_string = target[start:] + target[:end]
-    else:
-        new_string = target[start:end]
-
-    return new_string[::step]
-
-
-def cycling_slice_rust(target: str, start: int, end: int, step: int = 1) -> str:
-    """Slice a iterable object with cycling.
-
-    Args:
-        target (str): The target object.
-        start (int): Index of start.
-        end (int): Index of end.
-        step (int, optional): Step of slice. Defaults to 1.
-
-    Raises:
-        IndexError: Slice out of range.
-
-    Returns:
-        str: The sliced object.
-    """
-    if RUST_AVAILABLE:
-        return cycling_slice_rust_source(target, start, end, step)
-    warnings.warn(
-        "Rust is not available, using python to calculate cycling slice."
-        + f" Check: {FAILED_RUST_IMPORT}",
-        PostProcessingRustUnavailableWarning,
-    )
-    return cycling_slice(target, start, end, step)
