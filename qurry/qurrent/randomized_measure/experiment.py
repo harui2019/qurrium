@@ -32,7 +32,7 @@ from ...process.randomized_measure.entropy_core import (
     DEFAULT_PROCESS_BACKEND,
 )
 from ...tools import qurry_progressbar, ParallelManager
-from ...exceptions import QurryArgumentsExpectedNotNone
+from ...exceptions import QurryArgumentsExpectedNotNone, QurryDeprecatedWarning
 
 
 class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
@@ -118,9 +118,13 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
         target_key, target_circuit = targets[0]
         num_qubits = target_circuit.num_qubits
 
-        if measure is None:
-            measure = num_qubits
-        measure = qubit_selector(num_qubits, degree=measure)
+        if measure is not None:
+            warnings.warn(
+                "The measure range is not available anymore, "
+                + "it will be set to the whole qubits range.",
+                QurryDeprecatedWarning,
+            )
+        measure = qubit_selector(num_qubits, degree=None)
         if unitary_loc is None:
             unitary_loc = num_qubits
         unitary_loc = qubit_selector(num_qubits, degree=unitary_loc)
