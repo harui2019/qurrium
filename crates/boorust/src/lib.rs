@@ -6,7 +6,7 @@ extern crate pyo3;
 use pyo3::prelude::*;
 
 use crate::hadamard::purity_echo_core_rust;
-use crate::randomized::construct::{cycling_slice_rust, qubit_selector_rust};
+use crate::randomized::construct::{cycling_slice_rust, degree_handler_rust, qubit_selector_rust};
 use crate::randomized::echo::overlap_echo_core_rust;
 use crate::randomized::entropy::entangled_entropy_core_rust;
 use crate::randomized::randomized::{
@@ -32,6 +32,7 @@ fn register_child_module(py: Python<'_>, parent_module: &PyModule) -> PyResult<(
     let construct = PyModule::new(py, "construct")?;
     construct.add_function(wrap_pyfunction!(qubit_selector_rust, construct)?)?;
     construct.add_function(wrap_pyfunction!(cycling_slice_rust, construct)?)?;
+    construct.add_function(wrap_pyfunction!(degree_handler_rust, construct)?)?;
 
     let hadamard = PyModule::new(py, "hadamard")?;
     hadamard.add_function(wrap_pyfunction!(purity_echo_core_rust, hadamard)?)?;

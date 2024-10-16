@@ -2,6 +2,8 @@ extern crate pyo3;
 
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
+use std::collections::HashMap;
+use std::panic;
 
 #[derive(Clone, FromPyObject)]
 pub enum QubitDegree {
@@ -111,6 +113,62 @@ pub fn qubit_selector_rust(num_qubits: i32, degree: Option<QubitDegree>) -> PyRe
 
     assert!(item_range.1 >= item_range.0);
     Ok(item_range)
+}
+
+#[pyfunction]
+pub fn degree_handler_rust(
+    allsystems_size: i32,
+    degree: Option<QubitDegree>,
+    measure: Option<(i32, i32)>,
+) -> ((i32, i32), (i32, i32), i32) {
+    // Determine degree
+    let actual_deg: (i32, i32) = qubit_selector_rust(allsystems_size, degree).unwrap();
+    let subsystems_size: i32 = actual_deg.1 - actual_deg.0;
+
+    let bitstring_range: (i32, i32) = actual_deg.clone();
+
+    // Check whether the bitstring range is valid
+    let mut bitstring_check: HashMap<&str, bool> = HashMap::new();
+    bitstring_check.insert("b > a", bitstring_range.1 > bitstring_range.0);
+    bitstring_check.insert("a >= -allsystemSize", bitstring_range.0 >= -allsystems_size);
+    bitstring_check.insert("b <= allsystemSize", bitstring_range.1 <= allsystems_size);
+    bitstring_check.insert(
+        "b-a <= allsystemSize",
+        bitstring_range.1 - bitstring_range.0 <= allsystems_size,
+    );
+
+    let mut error_message: String = format!(
+        "Invalid 'bitStringRange = {:?} for allsystemSize = {}. Available range 'bitStringRange = [a, b)' should be",
+        bitstring_range,
+        allsystems_size
+    );
+    let invalid_ranges: Vec<String> = bitstring_check
+        .iter()
+        .filter(|(_, &v)| !v)
+        .map(|(k, _): (&&str, _)| format!(" {}", k))
+        .collect();
+    error_message.push_str(&invalid_ranges.join(";"));
+    if !bitstring_check.values().all(|&value: &bool| value) {
+        panic!("{}", error_message);
+    }
+
+    let actual_measure: (i32, i32) = match measure {
+        Some(m) => {
+            let tmp: (i32, i32) = m.clone();
+            tmp
+        }
+        None => {
+            let tmp: PyResult<(i32, i32)> = qubit_selector_rust(
+                allsystems_size,
+                Some(QubitDegree::Pair(actual_deg.0, actual_deg.1)),
+            );
+            match tmp {
+                Ok(val) => val,
+                Err(e) => panic!("Error: {}", e),
+            }
+        }
+    };
+    (bitstring_range, actual_measure, subsystems_size)
 }
 
 #[allow(dead_code)]
