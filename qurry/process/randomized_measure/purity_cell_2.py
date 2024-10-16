@@ -1,0 +1,152 @@
+"""
+================================================================
+Postprocessing - Randomized Measure - Purity Cell 2
+(:mod:`qurry.process.randomized_measure.purity_cell_2`)
+
+This version introduces another way to process subsystems.
+================================================================
+
+"""
+
+import warnings
+from typing import Union
+import numpy as np
+
+from ..utils import ensemble_cell as ensemble_cell_py
+from ..availability import (
+    availablility,
+    default_postprocessing_backend,
+    PostProcessingBackendLabel,
+)
+from ..exceptions import (
+    # PostProcessingRustImportError,
+    PostProcessingRustUnavailableWarning,
+    # PostProcessingBackendDeprecatedWarning,
+)
+
+
+# try:
+
+#     from ...boorust import randomized  # type: ignore
+
+#     purity_cell_2_rust_source = randomized.purity_cell_2_rust
+
+#     RUST_AVAILABLE = True
+#     FAILED_RUST_IMPORT = None
+# except ImportError as err:
+#     RUST_AVAILABLE = False
+#     FAILED_RUST_IMPORT = err
+
+#     def purity_cell_rust_source(*args, **kwargs):
+#         """Dummy function for purity_cell_rust."""
+#         raise PostProcessingRustImportError(
+#             "Rust is not available, using python to calculate purity cell."
+#         ) from FAILED_RUST_IMPORT
+
+RUST_AVAILABLE = False
+FAILED_RUST_IMPORT = None
+
+BACKEND_AVAILABLE = availablility(
+    "randomized_measure.purity_cell",
+    [
+        ("Rust", RUST_AVAILABLE, FAILED_RUST_IMPORT),
+        ("Cython", "Depr.", None),
+    ],
+)
+DEFAULT_PROCESS_BACKEND = default_postprocessing_backend(RUST_AVAILABLE, False)
+
+
+# Randomized measure
+def purity_cell_2_py(
+    idx: int,
+    single_counts: dict[str, int],
+    selected_qubits: list[int],
+) -> tuple[int, np.float64, list[int]]:
+    """Calculate the purity cell, one of overlap, of a subsystem by Python.
+
+    Args:
+        idx (int):
+            Index of the cell (counts).
+        single_counts (dict[str, int]):
+            Counts measured by the single quantum circuit.
+        selected_qubits (list[int]):
+            The list of the selected qubits.
+
+    Returns:
+        tuple[int, float, list[int]]:
+            Index, one of overlap purity, the list of the selected qubits.
+    """
+
+    num_qubits = len(list(single_counts.keys())[0])
+    shots = sum(single_counts.values())
+
+    selected_qubits_sorted = sorted(selected_qubits, reverse=True)
+    subsystem_size = len(selected_qubits_sorted)
+    single_counts_under_degree = {}
+    for bitstring_all, num_counts_all in single_counts.items():
+        bitstring = "".join(bitstring_all[num_qubits - q_i - 1] for q_i in selected_qubits_sorted)
+        if bitstring in single_counts_under_degree:
+            single_counts_under_degree[bitstring] += num_counts_all
+        else:
+            single_counts_under_degree[bitstring] = num_counts_all
+
+    purity_cell_value = np.float64(0)
+    for s_ai, s_ai_meas in single_counts_under_degree.items():
+        for s_aj, s_aj_meas in single_counts_under_degree.items():
+            purity_cell_value += ensemble_cell_py(
+                s_ai, s_ai_meas, s_aj, s_aj_meas, subsystem_size, shots
+            )
+
+    return idx, purity_cell_value, selected_qubits_sorted
+
+
+# def purity_cell_2_rust(
+#     idx: int,
+#     single_counts: dict[str, int],
+#     selected_qubits: list[int],
+# ) -> tuple[int, float]:
+#     """Calculate the purity cell, one of overlap, of a subsystem by Rust.
+
+#     Args:
+#         idx (int):
+#             Index of the cell (counts).
+#         single_counts (dict[str, int]):
+#             Counts measured by the single quantum circuit.
+#         selected_qubits (list[int]):
+#             The list of the selected qubits.
+#     Returns:
+#         tuple[int, float]: Index, one of overlap purity.
+#     """
+
+#     return purity_cell_2_rust_source(idx, single_counts, selected_qubits)
+
+
+def purity_cell(
+    idx: int,
+    single_counts: dict[str, int],
+    selected_qubits: list[int],
+    backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
+) -> tuple[int, Union[float, np.float64], list[int]]:
+    """Calculate the purity cell, one of overlap, of a subsystem.
+
+    Args:
+        idx (int):
+            Index of the cell (counts).
+        single_counts (dict[str, int]):
+            Counts measured by the single quantum circuit.
+        selected_qubits (list[int]):
+            The list of the selected qubits.
+        backend (ExistingProcessBackendLabel, optional):
+            Backend for the process. Defaults to DEFAULT_PROCESS_BACKEND.
+
+    Returns:
+        tuple[int, Union[float, np.float64], list[int]]:
+            Index, one of overlap purity, the list of the selected qubits.
+    """
+    if backend != "Python":
+        warnings.warn(
+            "The Rust is not implemented yet, using Python to calculate purity cell.",
+            PostProcessingRustUnavailableWarning,
+        )
+
+    return purity_cell_2_py(idx, single_counts, selected_qubits)
