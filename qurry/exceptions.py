@@ -121,3 +121,7 @@ class QurryTranspileConfigurationIgnored(QurryWarning):
 
 class QurryPendingTagTooMany(QurryWarning):
     """Pending tag too many warning."""
+
+
+class QurryDeprecatedWarning(QurryWarning, DeprecationWarning):
+    """Deprecated warning."""
