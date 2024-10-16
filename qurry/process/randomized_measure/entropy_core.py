@@ -12,7 +12,7 @@ from typing import Union, Optional
 import numpy as np
 
 from .purity_cell import purity_cell_py, purity_cell_rust
-from ..utils import cycling_slice as cycling_slice_py, qubit_selector
+from ..utils import is_cycling_slice_active, degree_handler
 from ..availability import (
     availablility,
     default_postprocessing_backend,
@@ -110,36 +110,7 @@ def entangled_entropy_core_pycyrust(
     allsystem_size = len(list(counts[0].keys())[0])
 
     # Determine degree
-    degree = qubit_selector(allsystem_size, degree=degree)
-    subsystem_size = max(degree) - min(degree)
-
-    bitstring_range = degree
-    bitstring_check = {
-        "b > a": (bitstring_range[1] > bitstring_range[0]),
-        "a >= -allsystemSize": bitstring_range[0] >= -allsystem_size,
-        "b <= allsystemSize": bitstring_range[1] <= allsystem_size,
-        "b-a <= allsystemSize": ((bitstring_range[1] - bitstring_range[0]) <= allsystem_size),
-    }
-    if not all(bitstring_check.values()):
-        raise ValueError(
-            f"Invalid 'bitStringRange = {bitstring_range} for allsystemSize = {allsystem_size}'. "
-            + "Available range 'bitStringRange = [a, b)' should be"
-            + ", ".join([f" {k};" for k, v in bitstring_check.items() if not v])
-        )
-
-    if measure is None:
-        measure = qubit_selector(len(list(counts[0].keys())[0]))
-
-    _dummy_string = "".join(str(ds) for ds in range(allsystem_size))
-    _dummy_string_slice = cycling_slice_py(_dummy_string, bitstring_range[0], bitstring_range[1], 1)
-    is_avtive_cycling_slice = (
-        _dummy_string[bitstring_range[0] : bitstring_range[1]] != _dummy_string_slice
-    )
-    if is_avtive_cycling_slice:
-        assert len(_dummy_string_slice) == subsystem_size, (
-            f"| All system size '{subsystem_size}' "
-            + f"does not match dummyStringSlice '{_dummy_string_slice}'"
-        )
+    bitstring_range, measure, subsystem_size = degree_handler(allsystem_size, degree, measure)
 
     if backend not in BACKEND_AVAILABLE[1]:
         warnings.warn(
@@ -159,7 +130,11 @@ def entangled_entropy_core_pycyrust(
 
     msg = (
         "| Partition: "
-        + ("cycling-" if is_avtive_cycling_slice else "")
+        + (
+            "cycling-"
+            if is_cycling_slice_active(allsystem_size, bitstring_range, subsystem_size)
+            else ""
+        )
         + f"{bitstring_range}, Measure: {measure}, backend: {backend}"
     )
 
