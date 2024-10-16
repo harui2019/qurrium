@@ -9,13 +9,13 @@ from typing import Union
 import pytest
 from qurry.process.utils.randomized import (
     RUST_AVAILABLE as rust_available_randomized,
-    cycling_slice as cycling_slice_py,
-    cycling_slice_rust,
 )
 from qurry.process.utils.construct import (
     RUST_AVAILABLE as rust_available_construct,
     qubit_selector as qubit_selector_py,
     qubit_selector_rust,
+    cycling_slice as cycling_slice_py,
+    cycling_slice_rust,
 )
 
 
