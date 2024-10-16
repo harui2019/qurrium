@@ -9,12 +9,3 @@ rust-version = "1.73.0"
 [workspace.dependencies]
 pyo3 = { version = "0.20.0", extension-module = ["pyo3/extension-module"], features = ["extension-module"] }
 
-#  Do yur meet this error?
-# 💥 maturin failed
-#   Caused by: Failed to parse Cargo.toml at /home/nccu/Downloads/qiskit/Cargo.toml
-#   Caused by: TOML parse error at line 1, column 1
-#   |
-# 1 | [workspace]
-#   | ^
-# missing field `package`
-# maturin doesn't work here is normal.
