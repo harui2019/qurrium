@@ -128,7 +128,9 @@ class QurriumPrototype(ABC):
         run_args: Optional[Union[BaseRunArgs, dict[str, Any]]] = None,
         transpile_args: Optional[TranspileArgs] = None,
         passmanager: Optional[Union[str, PassManager, tuple[str, PassManager]]] = None,
+        tags: Optional[tuple[str, ...]] = None,
         # process tool
+        qasm_version: Literal["qasm2", "qasm3"] = "qasm3",
         export: bool = False,
         save_location: Optional[Union[Path, str]] = None,
         mode: str = "w+",
@@ -159,6 +161,11 @@ class QurriumPrototype(ABC):
                 Arguments for :func:`qiskit.transpile`. Defaults to `{}`.
             passmanager (Optional[Union[str, PassManager, tuple[str, PassManager]]], optional):
                 The passmanager. Defaults to None.
+            tags (Optional[tuple[str, ...]], optional):
+                Given the experiment multiple tags to make a dictionary for recongnizing it.
+
+            qasm_version (Literal["qasm2", "qasm3"], optional):
+                The export version of OpenQASM. Defaults to 'qasm3'.
             export (bool, optional):
                 Whether to export the experiment. Defaults to False.
             save_location (Optional[Union[Path, str]], optional):
@@ -193,6 +200,9 @@ class QurriumPrototype(ABC):
             run_args=run_args,
             transpile_args=transpile_args,
             passmanager_pair=passmanager_pair,
+            tags=tags,
+            # process tool
+            qasm_version=qasm_version,
             export=export,
             save_location=save_location,
             mode=mode,
@@ -216,12 +226,14 @@ class QurriumPrototype(ABC):
         run_args: Optional[Union[BaseRunArgs, dict[str, Any]]] = None,
         transpile_args: Optional[TranspileArgs] = None,
         passmanager: Optional[Union[str, PassManager, tuple[str, PassManager]]] = None,
+        tags: Optional[tuple[str, ...]] = None,
         # already built exp
         exp_id: Optional[str] = None,
         new_backend: Optional[Backend] = None,
         revive: bool = False,
         replace_circuits: bool = False,
         # process tool
+        qasm_version: Literal["qasm2", "qasm3"] = "qasm3",
         export: bool = False,
         save_location: Optional[Union[Path, str]] = None,
         mode: str = "w+",
@@ -251,6 +263,9 @@ class QurriumPrototype(ABC):
                 Arguments for :func:`qiskit.transpile`. Defaults to `{}`.
             passmanager (Optional[Union[str, PassManager, tuple[str, PassManager]], optional):
                 The passmanager. Defaults to None.
+            tags (Optional[tuple[str, ...]], optional):
+                Given the experiment multiple tags to make a dictionary for recongnizing it.
+                Defaults to None.
 
             exp_id (Optional[str], optional):
                 The ID of experiment. Defaults to None.
@@ -261,6 +276,8 @@ class QurriumPrototype(ABC):
             replace_circuits (bool, optional):
                 Whether to replace the circuits during revive. Defaults to False.
 
+            qasm_version (Literal["qasm2", "qasm3"], optional):
+                The export version of OpenQASM. Defaults to 'qasm3'.
             export (bool, optional):
                 Whether to export the experiment. Defaults to False.
             save_location (Optional[Union[Path, str]], optional):
@@ -296,10 +313,13 @@ class QurriumPrototype(ABC):
                 circuits=circuits,
                 shots=shots,
                 backend=backend,
+                exp_name=exp_name,
                 run_args=run_args,
                 transpile_args=transpile_args,
                 passmanager=passmanager,
-                exp_name=exp_name,
+                tags=tags,
+                # process tool
+                qasm_version=qasm_version,
                 export=export,
                 save_location=save_location,
                 mode=mode,
