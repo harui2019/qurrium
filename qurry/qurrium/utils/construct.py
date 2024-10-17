@@ -11,7 +11,6 @@ from typing import Union, Optional
 from qiskit import QuantumCircuit
 from qiskit.result import Result
 from qiskit.exceptions import QiskitError
-from qiskit.qasm2 import dumps
 
 from ...exceptions import QurryCountLost
 
@@ -32,20 +31,6 @@ def decomposer(
     """
 
     return qc.decompose(reps=reps)
-
-
-def qasm_drawer(qc: QuantumCircuit) -> str:
-    """Draw the circuits in qasm format. This function is used for multiprocessing.
-
-    Args:
-        qc (QuantumCircuit): The circuit wanted to be drawn.
-
-    Returns:
-        str: The drawing of circuit in qasm format.
-    """
-    txt = dumps(qc)
-    assert isinstance(txt, str), "The drawing of circuit does not export."
-    return txt
 
 
 def get_counts_and_exceptions(
