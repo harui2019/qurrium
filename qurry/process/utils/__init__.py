@@ -10,6 +10,7 @@ from .construct import (
     cycling_slice,
     degree_handler,
     is_cycling_slice_active,
+    qubit_mapper,
     BACKEND_AVAILABLE as construct_availability,
 )
 from .randomized import (

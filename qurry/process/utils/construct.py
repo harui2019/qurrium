@@ -6,7 +6,7 @@ Construct (:mod:`qurry.process.utils.construct`)
 """
 
 import warnings
-from typing import Union, Optional, overload
+from typing import Union, Optional, Sequence, overload
 
 from ..availability import availablility
 from ..exceptions import PostProcessingRustImportError, PostProcessingRustUnavailableWarning
@@ -139,6 +139,120 @@ def qubit_selector_rust(
         category=PostProcessingRustUnavailableWarning,
     )
     return qubit_selector(num_qubits, degree)
+
+
+def qubit_mapper_2_int(
+    actual_num_qubits: int,
+    selected_qubits: tuple[int, int],
+) -> dict[int, int]:
+    """Map the index of selected qubits to the index of the classical register.
+    The selected qubits are defined by two integers.
+
+    Args:
+        actual_num_qubits (int): The actual number of qubits.
+        selected_qubits (tuple[int, int]): The range of the selected qubits.
+
+    Raises:
+        ValueError: The range of qubits should be defined by two integers.
+        ValueError: The selected qubits are beyond the number of qubits.
+        ValueError: The selected qubits are not natural number.
+        ValueError: The first integer should be less than the second integer.
+
+    Returns:
+        dict[int, int]:
+            The mapping of the index of selected qubits to the index of the classical register.
+    """
+    if not all(isinstance(qi, int) for qi in selected_qubits):
+        raise ValueError(
+            "The range of qubits should be defined by two integers, "
+            + f"but get '{selected_qubits[0]}' with type '{type(selected_qubits[0])}' "
+            + f"and '{selected_qubits[1]}' with type '{type(selected_qubits[1])}'."
+        )
+    if selected_qubits[0] > actual_num_qubits or selected_qubits[1] > actual_num_qubits:
+        raise ValueError(
+            f"The selected qubits {selected_qubits} "
+            + f"are beyond the number of qubits {actual_num_qubits}."
+        )
+    if selected_qubits[0] < 0 or selected_qubits[1] < 0:
+        raise ValueError(
+            "The range of qubits should be natural number when inputs as tuple, "
+            + f"but get '{selected_qubits}'. "
+            + "If you want to use negative number to select cycling bitstring slice, "
+            + "please use a list of the index of qubits instead, which is more clear to use."
+        )
+    if selected_qubits[0] >= selected_qubits[1]:
+        raise ValueError(
+            "The first integer should be less than the second integer "
+            + f"when inputs as tuple, but get '{selected_qubits}'."
+        )
+    return {qi: ci for ci, qi in enumerate(range(selected_qubits[0], selected_qubits[1]))}
+
+
+def qubit_mapper(
+    actual_num_qubits: int,
+    selected_qubits: Optional[Union[Sequence[int], int, tuple[int, int]]] = None,
+) -> dict[int, int]:
+    """Map the index of selected qubits to the index of the classical register.
+
+    Args:
+        actual_num_qubits (int): The actual number of qubits.
+        selected_qubits (tuple[int, int]): The range of the selected qubits.
+
+    Raises:
+        ValueError: The range of qubits should be defined by two integers.
+        ValueError: The selected qubits are beyond the number of qubits.
+        ValueError: The selected qubits are not natural number.
+        ValueError: The first integer should be less than the second integer.
+        ValueError: The number of selected qubits should be more than 1.
+        ValueError: The selected qubits index are beyond the number of qubits.
+        ValueError: The selected qubits index are not natural number.
+        ValueError: Duplicate selected qubits index are not allowed.
+        ValueError: Invalid input for selected qubits.
+
+    Returns:
+        dict[int, int]: The mapping of the degree of freedom to the qubits.
+    """
+    if selected_qubits is None:
+        return {i: i for i in range(actual_num_qubits)}
+    if isinstance(selected_qubits, int):
+        return {
+            qi: ci
+            for ci, qi in enumerate(range(actual_num_qubits - selected_qubits, actual_num_qubits))
+        }
+    if isinstance(selected_qubits, tuple):
+        if len(selected_qubits) != 2:
+            raise ValueError(
+                "Subsystem range is defined by only two integers when inputs as tuple, "
+                + f"but there is {len(selected_qubits)} integers in '{selected_qubits}'."
+            )
+        return qubit_mapper_2_int(actual_num_qubits, selected_qubits)
+    if isinstance(selected_qubits, Sequence):
+        if len(selected_qubits) < 2:
+            raise ValueError(
+                "The number of selected qubits should be more than 1 "
+                + f"when inputs as list, but get '{selected_qubits}'."
+            )
+        if len(selected_qubits) == 2:
+            return qubit_mapper_2_int(actual_num_qubits, (selected_qubits[0], selected_qubits[1]))
+        invalid_qubits_index = [
+            qi
+            for qi in selected_qubits
+            if not ((0 <= qi < actual_num_qubits) and isinstance(qi, int))
+        ]
+        if invalid_qubits_index:
+            raise ValueError(
+                f"The following selected qubits index {invalid_qubits_index} "
+                + f"are beyond the number of qubits {actual_num_qubits}, not natural number, "
+                + "or even not integer."
+            )
+        if len(dict.fromkeys(selected_qubits).keys()) != len(selected_qubits):
+            raise ValueError(f"Duplicate selected qubits index {selected_qubits} are not allowed.")
+        selected_qubits = sorted(list(selected_qubits))
+        return {qi: ci for ci, qi in enumerate(selected_qubits)}
+    raise ValueError(
+        f"Invalid input for selected qubits: '{selected_qubits}'. "
+        + "It should be 'int', 'tuple[int, int]', or 'list[int]'."
+    )
 
 
 @overload
