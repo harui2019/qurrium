@@ -1,8 +1,8 @@
 """
-================================================================
-Postprocessing - Randomized Measure - Wavefunction Overlap Core
-(:mod:`qurry.process.randomized_measure.echo_core`)
-================================================================
+=========================================================================================
+Postprocessing - Randomized Measure - Wavefunction Overlap - Echo Core
+(:mod:`qurry.process.randomized_measure.wavefunction_overlap.echo_core`)
+=========================================================================================
 
 """
 
@@ -12,21 +12,21 @@ from typing import Union, Optional
 import numpy as np
 
 from .echo_cell import echo_cell_py, echo_cell_rust
-from ..utils import cycling_slice as cycling_slice_py, qubit_selector
-from ..availability import (
+from ...utils import cycling_slice as cycling_slice_py, qubit_selector
+from ...availability import (
     availablility,
     default_postprocessing_backend,
     PostProcessingBackendLabel,
 )
-from ..exceptions import (
+from ...exceptions import (
     PostProcessingRustImportError,
     PostProcessingRustUnavailableWarning,
     PostProcessingBackendDeprecatedWarning,
 )
-from ...tools import ParallelManager, workers_distribution
+from ....tools import ParallelManager, workers_distribution
 
 try:
-    from ...boorust import randomized  # type: ignore
+    from ....boorust import randomized  # type: ignore
 
     overlap_echo_core_rust_source = randomized.overlap_echo_core_rust
 

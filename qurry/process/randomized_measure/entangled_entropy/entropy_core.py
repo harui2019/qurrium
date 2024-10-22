@@ -1,8 +1,8 @@
 """
-================================================================
-Postprocessing - Randomized Measure - Entangled Entropy Core
-(:mod:`qurry.process.randomized_measure.entangled_core`)
-================================================================
+=========================================================================================
+Postprocessing - Randomized Measure - Entangled Entropy - Core
+(:mod:`qurry.process.randomized_measure.entangled_entropy.entropy_core`)
+=========================================================================================
 
 """
 
@@ -12,22 +12,22 @@ from typing import Union, Optional
 import numpy as np
 
 from .purity_cell import purity_cell_py, purity_cell_rust
-from ..utils import is_cycling_slice_active, degree_handler
-from ..availability import (
+from ...utils import is_cycling_slice_active, degree_handler
+from ...availability import (
     availablility,
     default_postprocessing_backend,
     PostProcessingBackendLabel,
 )
-from ..exceptions import (
+from ...exceptions import (
     PostProcessingRustImportError,
     PostProcessingRustUnavailableWarning,
     PostProcessingBackendDeprecatedWarning,
 )
-from ...tools import ParallelManager, workers_distribution
+from ....tools import ParallelManager, workers_distribution
 
 
 try:
-    from ...boorust import randomized  # type: ignore
+    from ....boorust import randomized  # type: ignore
 
     entangled_entropy_core_rust_source = randomized.entangled_entropy_core_rust
 
@@ -45,7 +45,7 @@ except ImportError as err:
 
 
 BACKEND_AVAILABLE = availablility(
-    "randomized_measure.entangled_core",
+    "randomized_measure.entangled_entropy.entropy_core",
     [
         ("Rust", RUST_AVAILABLE, FAILED_RUST_IMPORT),
         ("Cython", "Depr.", None),

@@ -1,8 +1,8 @@
 """
-================================================================
-Postprocessing - Randomized Measure - Wavefunction Overlap
-(:mod:`qurry.process.randomized_measure.wavefunction_overlap`)
-================================================================
+=========================================================================================
+Postprocessing - Randomized Measure - Wavefunction Overlap - Wavefunction Overlap
+(:mod:`qurry.process.randomized_measure.wavefunction_overlap.wavefunction_overlap`)
+=========================================================================================
 
 """
 
@@ -11,7 +11,7 @@ import numpy as np
 import tqdm
 
 from .echo_core import overlap_echo_core, DEFAULT_PROCESS_BACKEND
-from ..availability import PostProcessingBackendLabel
+from ...availability import PostProcessingBackendLabel
 
 
 def randomized_overlap_echo(

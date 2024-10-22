@@ -1,10 +1,10 @@
 """
-================================================================
-Postprocessing - Randomized Measure - Purity Cell 2
-(:mod:`qurry.process.randomized_measure.purity_cell_2`)
+=========================================================================================
+Postprocessing - Randomized Measure - Entangled Entropy - Purity Cell 2
+(:mod:`qurry.process.randomized_measure.entangled_entropy.purity_cell_2`)
+=========================================================================================
 
 This version introduces another way to process subsystems.
-================================================================
 
 """
 
@@ -12,13 +12,13 @@ import warnings
 from typing import Union
 import numpy as np
 
-from ..utils import ensemble_cell as ensemble_cell_py
-from ..availability import (
+from ...utils import ensemble_cell as ensemble_cell_py
+from ...availability import (
     availablility,
     default_postprocessing_backend,
     PostProcessingBackendLabel,
 )
-from ..exceptions import (
+from ...exceptions import (
     # PostProcessingRustImportError,
     PostProcessingRustUnavailableWarning,
     # PostProcessingBackendDeprecatedWarning,
@@ -27,7 +27,7 @@ from ..exceptions import (
 
 # try:
 
-#     from ...boorust import randomized  # type: ignore
+#     from ....boorust import randomized  # type: ignore
 
 #     purity_cell_2_rust_source = randomized.purity_cell_2_rust
 
@@ -47,7 +47,7 @@ RUST_AVAILABLE = False
 FAILED_RUST_IMPORT = None
 
 BACKEND_AVAILABLE = availablility(
-    "randomized_measure.purity_cell",
+    "randomized_measure.entangle_entropy.purity_cell_2",
     [
         ("Rust", RUST_AVAILABLE, FAILED_RUST_IMPORT),
         ("Cython", "Depr.", None),
@@ -60,7 +60,7 @@ DEFAULT_PROCESS_BACKEND = default_postprocessing_backend(RUST_AVAILABLE, False)
 def purity_cell_2_py(
     idx: int,
     single_counts: dict[str, int],
-    selected_qubits: list[int],
+    selected_classical_registers: list[int],
 ) -> tuple[int, np.float64, list[int]]:
     """Calculate the purity cell, one of overlap, of a subsystem by Python.
 
@@ -69,18 +69,19 @@ def purity_cell_2_py(
             Index of the cell (counts).
         single_counts (dict[str, int]):
             Counts measured by the single quantum circuit.
-        selected_qubits (list[int]):
-            The list of the selected qubits.
+        selected_classical_registers (list[int]):
+            The list of **the index of the selected_classical_registers**.
 
     Returns:
         tuple[int, float, list[int]]:
-            Index, one of overlap purity, the list of the selected qubits.
+            Index, one of overlap purity,
+            The list of **the index of the selected classical registers**.
     """
 
     num_qubits = len(list(single_counts.keys())[0])
     shots = sum(single_counts.values())
 
-    selected_qubits_sorted = sorted(selected_qubits, reverse=True)
+    selected_qubits_sorted = sorted(selected_classical_registers, reverse=True)
     subsystem_size = len(selected_qubits_sorted)
     single_counts_under_degree = {}
     for bitstring_all, num_counts_all in single_counts.items():
@@ -113,7 +114,7 @@ def purity_cell_2_py(
 #         single_counts (dict[str, int]):
 #             Counts measured by the single quantum circuit.
 #         selected_qubits (list[int]):
-#             The list of the selected qubits.
+#             The list of **the index on quantum circuit** the selected qubits.
 #     Returns:
 #         tuple[int, float]: Index, one of overlap purity.
 #     """
@@ -124,7 +125,7 @@ def purity_cell_2_py(
 def purity_cell(
     idx: int,
     single_counts: dict[str, int],
-    selected_qubits: list[int],
+    selected_classical_registers: list[int],
     backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
 ) -> tuple[int, Union[float, np.float64], list[int]]:
     """Calculate the purity cell, one of overlap, of a subsystem.
@@ -134,14 +135,15 @@ def purity_cell(
             Index of the cell (counts).
         single_counts (dict[str, int]):
             Counts measured by the single quantum circuit.
-        selected_qubits (list[int]):
-            The list of the selected qubits.
+        selected_bitstrings (list[int]):
+            The list of **the index of the selected classical registers**.
         backend (ExistingProcessBackendLabel, optional):
             Backend for the process. Defaults to DEFAULT_PROCESS_BACKEND.
 
     Returns:
         tuple[int, Union[float, np.float64], list[int]]:
-            Index, one of overlap purity, the list of the selected qubits.
+            Index, one of overlap purity,
+            The list of **the index of the selected classical registers**.
     """
     if backend != "Python":
         warnings.warn(
@@ -149,4 +151,4 @@ def purity_cell(
             PostProcessingRustUnavailableWarning,
         )
 
-    return purity_cell_2_py(idx, single_counts, selected_qubits)
+    return purity_cell_2_py(idx, single_counts, selected_classical_registers)

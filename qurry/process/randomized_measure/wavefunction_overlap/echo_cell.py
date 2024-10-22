@@ -1,8 +1,8 @@
 """
-================================================================
-Postprocessing - Wavefunction Overlap - Echo Cell
-(:mod:`qurry.process.randomized_measure.echo_cell`)
-================================================================
+=========================================================================================
+Postprocessing - Randomized Measure - Wavefunction Overlap - Echo Cell
+(:mod:`qurry.process.randomized_measure.wavefunction_overlap.echo_cell`)
+=========================================================================================
 
 """
 
@@ -10,13 +10,13 @@ import warnings
 from typing import Union
 import numpy as np
 
-from ..utils import ensemble_cell as ensemble_cell_py
-from ..availability import (
+from ...utils import ensemble_cell as ensemble_cell_py
+from ...availability import (
     availablility,
     default_postprocessing_backend,
     PostProcessingBackendLabel,
 )
-from ..exceptions import (
+from ...exceptions import (
     PostProcessingRustImportError,
     PostProcessingRustUnavailableWarning,
 )

@@ -1,33 +1,34 @@
 """
-================================================================
-Postprocessing - Randomized Measure - Entangled Entropy Core 2
-(:mod:`qurry.process.randomized_measure.entangled_core_2`)
-================================================================
+=========================================================================================
+Postprocessing - Randomized Measure - Entangled Entropy - Core 2
+(:mod:`qurry.process.randomized_measure.entangled_entropy.entropy_core_2`)
+=========================================================================================
+
+This version introduces another way to process subsystems.
 
 """
 
 import time
 import warnings
-from typing import Union, Optional
+from typing import Optional
 import numpy as np
 
 from .purity_cell_2 import purity_cell_2_py
-from ..utils import is_cycling_slice_active, degree_handler
-from ..availability import (
+from ...availability import (
     availablility,
     default_postprocessing_backend,
     PostProcessingBackendLabel,
 )
-from ..exceptions import (
+from ...exceptions import (
     # PostProcessingRustImportError,
     PostProcessingRustUnavailableWarning,
     # PostProcessingBackendDeprecatedWarning,
 )
-from ...tools import ParallelManager, workers_distribution
+from ....tools import ParallelManager, workers_distribution
 
 
 # try:
-#     from ...boorust import randomized  # type: ignore
+#     from ....boorust import randomized  # type: ignore
 
 #     entangled_entropy_core_rust_source = randomized.entangled_entropy_core_rust
 
@@ -47,7 +48,7 @@ RUST_AVAILABLE = False
 FAILED_RUST_IMPORT = None
 
 BACKEND_AVAILABLE = availablility(
-    "randomized_measure.entangled_core_2",
+    "randomized_measure.entangled_entropy.entropy_core_2",
     [
         ("Rust", RUST_AVAILABLE, FAILED_RUST_IMPORT),
     ],
@@ -58,8 +59,8 @@ DEFAULT_PROCESS_BACKEND = default_postprocessing_backend(RUST_AVAILABLE, False)
 def entangled_entropy_core_2_pyrust(
     shots: int,
     counts: list[dict[str, int]],
-    degree_or_selected: Optional[Union[tuple[int, int], int, list[int]]],
-    backend: PostProcessingBackendLabel = "Rust",
+    selected_classical_registers: Optional[list[int]] = None,
+    backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
 ) -> tuple[
     dict[int, np.float64],
     list[int],
@@ -73,18 +74,14 @@ def entangled_entropy_core_2_pyrust(
             Shots of the experiment on quantum machine.
         counts (list[dict[str, int]]):
             Counts of the experiment on quantum machine.
-        degree_or_selected (Optional[Union[tuple[int, int], int, list[int]]]):
-            The list of the selected qubits or the degree of the subsystem.
+        selected_classical_registers (Optional[list[int]], optional):
+            The list of **the index of the selected_classical_registers**.
         backend (ExistingProcessBackendLabel, optional):
             Backend for the process. Defaults to DEFAULT_PROCESS_BACKEND.
 
-    Raises:
-        ValueError: Get degree neither 'int' nor 'tuple[int, int]'.
-        ValueError: Measure range does not contain subsystem.
-
     Returns:
         tuple[dict[int, np.float64], list[int], str, float]:
-            Purity of each cell, Selected qubits, Message, Time to calculate.
+            Purity of each cell, Selected classical registers, Message, Time to calculate.
     """
 
     # check shots
@@ -95,37 +92,19 @@ def entangled_entropy_core_2_pyrust(
     launch_worker = workers_distribution()
 
     # Determine subsystem size
-    allsystem_size = len(list(counts[0].keys())[0])
+    measured_system_size = len(list(counts[0].keys())[0])
 
-    # Determine degree
-    if isinstance(degree_or_selected, (int, tuple)) or degree_or_selected is None:
-        bitstring_range, measure, subsystem_size = degree_handler(
-            allsystem_size, degree_or_selected, None
+    if selected_classical_registers is None:
+        selected_classical_registers = list(range(measured_system_size))
+    elif not isinstance(selected_classical_registers, list):
+        raise ValueError(
+            "selected_classical_registers should be list, "
+            + f"but get {type(selected_classical_registers)}"
         )
-
-        msg = (
-            "| Partition: "
-            + (
-                "cycling-"
-                if is_cycling_slice_active(allsystem_size, bitstring_range, subsystem_size)
-                else ""
-            )
-            + f"{bitstring_range}, Measure: {measure}, backend: {backend}"
-        )
-        selected_qubits = list(range(allsystem_size))
-        selected_qubits = sorted(selected_qubits, reverse=True)[
-            bitstring_range[0] : bitstring_range[1]
-        ]
-
-    elif isinstance(degree_or_selected, list):
-        selected_qubits = degree_or_selected
-        assert all(
-            0 <= q_i < allsystem_size for q_i in selected_qubits
-        ), f"Invalid selected qubits: {selected_qubits}"
-        msg = f"| Selected qubits: {selected_qubits}"
-
-    else:
-        raise ValueError(f"Invalid degree_or_selected: {degree_or_selected}")
+    assert all(
+        0 <= q_i < measured_system_size for q_i in selected_classical_registers
+    ), f"Invalid selected qubits: {selected_classical_registers}"
+    msg = f"| Selected qubits: {selected_classical_registers}"
 
     begin = time.time()
 
@@ -139,17 +118,17 @@ def entangled_entropy_core_2_pyrust(
     pool = ParallelManager(launch_worker)
     purity_cell_result_list = pool.starmap(
         cell_calculation,
-        [(i, c, selected_qubits) for i, c in enumerate(counts)],
+        [(i, c, selected_classical_registers) for i, c in enumerate(counts)],
     )
     taken = round(time.time() - begin, 3)
 
-    selected_qubits_sorted = sorted(selected_qubits, reverse=True)
+    selected_classical_registers_sorted = sorted(selected_classical_registers, reverse=True)
 
     purity_cell_dict: dict[int, np.float64] = {}
     selected_qubits_checked: dict[int, bool] = {}
     for idx, purity_cell_value, selected_qubits_sorted_result in purity_cell_result_list:
         purity_cell_dict[idx] = purity_cell_value
-        if selected_qubits_sorted_result != selected_qubits_sorted:
+        if selected_qubits_sorted_result != selected_classical_registers_sorted:
             selected_qubits_checked[idx] = False
 
     if len(selected_qubits_checked) > 0:
@@ -158,13 +137,13 @@ def entangled_entropy_core_2_pyrust(
             RuntimeWarning,
         )
 
-    return purity_cell_dict, selected_qubits_sorted, msg, taken
+    return purity_cell_dict, selected_classical_registers_sorted, msg, taken
 
 
 def entangled_entropy_core_2(
     shots: int,
     counts: list[dict[str, int]],
-    degree_or_selected: Optional[Union[tuple[int, int], int, list[int]]],
+    selected_classical_registers: Optional[list[int]] = None,
     backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
 ) -> tuple[
     dict[int, np.float64],
@@ -179,18 +158,14 @@ def entangled_entropy_core_2(
             Shots of the experiment on quantum machine.
         counts (list[dict[str, int]]):
             Counts of the experiment on quantum machine.
-        degree_or_selected (Optional[Union[tuple[int, int], int, list[int]]]):
-            The list of the selected qubits or the degree of the subsystem.
+        selected_classical_registers (Optional[list[int]], optional):
+            The list of **the index of the selected_classical_registers**.
         backend (ExistingProcessBackendLabel, optional):
             Backend for the process. Defaults to DEFAULT_PROCESS_BACKEND.
-
-    Raises:
-        ValueError: Get degree neither 'int' nor 'tuple[int, int]'.
-        ValueError: Measure range does not contain subsystem.
 
     Returns:
         tuple[dict[int, np.float64], list[int], str, float]:
             Purity of each cell, Selected qubits, Message, Time to calculate.
     """
 
-    return entangled_entropy_core_2_pyrust(shots, counts, degree_or_selected, backend)
+    return entangled_entropy_core_2_pyrust(shots, counts, selected_classical_registers, backend)
