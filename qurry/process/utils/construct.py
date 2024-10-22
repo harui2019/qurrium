@@ -1,6 +1,7 @@
 """
 ================================================================
-Construct (:mod:`qurry.process.utils.construct`)
+Post-processing - Utils - Construct
+(:mod:`qurry.process.utils.construct`)
 ================================================================
 
 """
@@ -210,7 +211,8 @@ def qubit_mapper(
         ValueError: Invalid input for selected qubits.
 
     Returns:
-        dict[int, int]: The mapping of the degree of freedom to the qubits.
+        dict[int, int]:
+            The mapping of the index of selected qubits to the index of the classical register.
     """
     if selected_qubits is None:
         return {i: i for i in range(actual_num_qubits)}

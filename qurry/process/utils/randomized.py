@@ -1,6 +1,7 @@
 """
 ================================================================
-Randomized (:mod:`qurry.process.utils.randomized`)
+Postprocessing - Utils - Randomized
+(:mod:`qurry.process.utils.randomized`)
 ================================================================
 
 """
@@ -154,4 +155,3 @@ def ensemble_cell_rust(
         PostProcessingRustUnavailableWarning,
     )
     return ensemble_cell(s_i, s_i_meas, s_j, s_j_meas, a_num, shots)
-
