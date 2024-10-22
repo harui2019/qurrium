@@ -97,7 +97,9 @@ def randomized_entangled_entropy(
 
     Returns:
         EntangledEntropyReturn:
-            A dictionary contains purity, entropy, a list of each overlap, puritySD, entropySD,
+            A dictionary contains purity, entropy, a dictionary of each purity cell,
+            entropySD, puritySD, num_classical_registers, classical_registers,
+            classical_registers_actually, counts_num, taking_time.
     """
 
     if isinstance(pbar, tqdm.tqdm):
@@ -327,11 +329,13 @@ def randomized_entangled_entropy_mitigated(
             Defaults to None.
 
     Returns:
-        RandomizedEntangledEntropyMitigatedComplex: A dictionary contains
-            purity, entropy, a list of each overlap, puritySD,
-            purity of all system, entropy of all system,
-            a list of each overlap in all system, puritySD of all system,
-            degree, actual measure range, actual measure range in all system, bitstring range.
+        EntangledEntropyResultMitigated: A dictionary contains
+            purity, entropy, a dictionary of each purity cell,
+            entropySD, puritySD, num_classical_registers, classical_registers,
+            classical_registers_actually, counts_num, taking_time,
+            purityAllSys, entropyAllSys, puritySDAllSys, entropySDAllSys,
+            num_classical_registers_all_sys, classical_registers_all_sys,
+            classical_registers_actually_all_sys, errorRate, mitigatedPurity, mitigatedEntropy.
     """
     null_counts = [i for i, c in enumerate(counts) if len(c) == 0]
     if len(null_counts) > 0:

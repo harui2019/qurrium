@@ -229,3 +229,33 @@ class ExistedAllSystemInfo(NamedTuple):
     # refactored
     taking_time_all_sys: GenericFloatType
     """The calculation time of the all system."""
+
+
+class ExistedAllSystemInfoInput(TypedDict, total=False):
+    """Existed all system information"""
+
+    source: str
+    """The source of all system."""
+
+    purityAllSys: GenericFloatType
+    """The purity of the all system."""
+    entropyAllSys: GenericFloatType
+    """The entropy of the all system."""
+    puritySDAllSys: GenericFloatType
+    """The standard deviation of the purity of the all system."""
+    entropySDAllSys: GenericFloatType
+    """The standard deviation of the entropy of the all system."""
+    purityCellsAllSys: Union[dict[int, np.float64], dict[int, float]]
+    """The purity of each single count."""
+
+    # new added
+    num_classical_registers_all_sys: int
+    """The number of classical registers of all system."""
+    classical_registers_all_sys: Optional[list[int]]
+    """The list of the index of the selected classical registers."""
+    classical_registers_actually_all_sys: list[int]
+    """The list of the index of the selected classical registers which is actually used."""
+
+    # refactored
+    taking_time_all_sys: GenericFloatType
+    """The calculation time of the all system."""
