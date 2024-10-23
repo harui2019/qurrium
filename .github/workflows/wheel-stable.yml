@@ -23,18 +23,22 @@ jobs:
           - vers: macOS-x86_64 # Avaliability confirmed by act
             os: macos-13
             archs: X64
-          # - vers: Windows-x86 # Avaliability confirmed by act, but failed in self-hosted runner, WTF
-          #   os: windows-latest # They are using the same machine with self-hosted
-          #   archs: X64
-          # - vers: Windows-arm64
-          #   os: windows-latest
-          #   archs: ARM64
           # - vers: macOS-ARM64 # Avaliability confirmed by act
           #   os: macos-latest
           #   archs: ARM64
           # - vers: linux-aarch64 # Avaliability confirmed by act
           #   os: macos-latest
           #   archs: ARM64
+          # Disabled for runner setup is not completed
+          # See: https://github.com/harui2019/qurry/issues/200
+          # - vers: Windows-x86
+          #   os: windows-latest
+          #   archs: X64
+          # - vers: Windows-arm64
+          #   os: windows-latest
+          #   archs: ARM64
+    permissions:
+      id-token: write # IMPORTANT: mandatory for trusted publishing
 
     environment:
       name: pypi
