@@ -79,7 +79,7 @@ jobs:
           python -m pip install --upgrade auditwheel auditwheel-symbols
           python -m pip install --upgrade setuptools_rust Cython setuptools toml wheel cibuildwheel
 
-      - name: Reversion Nightly
+      - name: Reversion Stable
         run: python get_version.py --release stable
 
       - name: Build wheels on Linux of x86 series
@@ -89,10 +89,6 @@ jobs:
       - name: Build wheels on MacOS of x86 series
         if: runner.os == 'macOS' && matrix.archs == 'X64'
         run: |
-          echo "| Change setup.py for MacOS x86_64"
-          mv -f ./setup.py ./setup-abi3.py
-          mv -f ./setup-no-abi3.py ./setup.py
-          echo "| Build wheels on MacOS x86_64"
           python -m cibuildwheel --output-dir wheelhouse --platform macos --archs x86_64
         env:
           CIBW_ARCHS_MACOS: x86_64
@@ -110,15 +106,7 @@ jobs:
 
       - name: Build wheels on MacOS of ARM series
         if: runner.os == 'macOS' && matrix.archs == 'ARM64' && matrix.vers == 'macOS-ARM64'
-        run: python -m cibuildwheel --output-dir wheelhouse --platform macos --archs arm64
-        env:
-          CIBW_BEFORE_ALL: rustup target add aarch64-apple-darwin
-          # CIBW_ARCHS_MACOS: arm64 universal2
-          # See: https://github.com/harui2019/qurry/issues/187 and https://github.com/harui2019/qurry/issues/173
-          CIBW_ARCHS_MACOS: arm64
-          CIBW_ENVIRONMENT: >-
-            CARGO_BUILD_TARGET="aarch64-apple-darwin"
-            PYO3_CROSS_LIB_DIR="/Library/Frameworks/Python.framework/Versions/$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')/lib/python$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')"
+        run: python -m cibuildwheel --output-dir wheelhouse --platform macos
 
       - name: Wheelhouse Upload
         if: runner.os != 'Linux' || matrix.archs != 'X64'
@@ -132,7 +120,6 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: wheelhouse
-          repository-url: https://test.pypi.org/legacy/
 
   publish-to-pypi:
     if: github.repository == 'harui2019/qurry'
