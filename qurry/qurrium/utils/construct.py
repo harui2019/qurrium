@@ -54,10 +54,7 @@ def get_counts_and_exceptions(
     counts: list[dict[str, int]] = []
     exceptions: dict[str, Exception] = {}
     if num is None:
-        if result_idx_list is None:
-            idx_list = []
-        else:
-            idx_list = result_idx_list
+        idx_list = [] if result_idx_list is None else result_idx_list
     else:
         if result_idx_list is None:
             idx_list = list(range(num))
