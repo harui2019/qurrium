@@ -131,7 +131,7 @@ def overlap_echo_core_pycyrust(
     if measure is None:
         measure = qubit_selector(len(list(counts[0].keys())[0]))
 
-    _dummy_string = "".join(str(ds) for ds in range(allsystem_size))
+    _dummy_string = list(range(allsystem_size))
     _dummy_string_slice = cycling_slice_py(_dummy_string, bitstring_range[0], bitstring_range[1], 1)
     is_avtive_cycling_slice = (
         _dummy_string[bitstring_range[0] : bitstring_range[1]] != _dummy_string_slice

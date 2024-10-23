@@ -424,7 +424,7 @@ def is_cycling_slice_active(
     Returns:
         bool: Whether the cycling slice is active.
     """
-    _dummy_string = "".join(str(ds) for ds in range(allsystem_size))
+    _dummy_string = list(range(allsystem_size))
     _dummy_string_slice = cycling_slice(_dummy_string, bitstring_range[0], bitstring_range[1], 1)
     is_avtive_cycling_slice = (
         _dummy_string[bitstring_range[0] : bitstring_range[1]] != _dummy_string_slice

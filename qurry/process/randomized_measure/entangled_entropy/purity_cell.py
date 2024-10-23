@@ -78,7 +78,7 @@ def purity_cell_py(
 
     shots = sum(single_counts.values())
 
-    _dummy_string = "".join(str(ds) for ds in range(subsystem_size))
+    _dummy_string = list(range(subsystem_size))
     if _dummy_string[bitstring_range[0] : bitstring_range[1]] == cycling_slice_py(
         _dummy_string, bitstring_range[0], bitstring_range[1], 1
     ):
