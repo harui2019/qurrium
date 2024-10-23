@@ -65,7 +65,8 @@ def availability_status_print() -> tuple[
     errors_status = {}
     # pylint: disable=no-member
     for mod_location, available_dict, errors in availability_dict:
-        mod1, file1 = mod_location.split(".")
+        mod1, *files_tmp = mod_location.split(".")
+        files = ".".join(files_tmp)
         if mod1 not in availability_status:
             availability_status[mod1] = {}
             errors_status[mod1] = {}
@@ -75,17 +76,17 @@ def availability_status_print() -> tuple[
                     "description": mod1,
                 },
             )
-        availability_status[mod1][file1] = {}
-        errors_status[mod1][file1] = errors
+        availability_status[mod1][files] = {}
+        errors_status[mod1][files] = errors
         for bt in BACKEND_TYPES:
-            availability_status[mod1][file1][bt] = available_dict.get(bt, "No")
-            errors_status[mod1][file1][bt] = errors.get(bt, None)
+            availability_status[mod1][files][bt] = available_dict.get(bt, "No")
+            errors_status[mod1][files][bt] = errors.get(bt, None)
         pre_hoshi.append(
             {
                 "type": "itemize",
-                "description": f"{file1}",
+                "description": f"{files}",
                 "value": " ".join(
-                    [f"{availability_status[mod1][file1][bt]}".ljust(6) for bt in BACKEND_TYPES]
+                    [f"{availability_status[mod1][files][bt]}".ljust(6) for bt in BACKEND_TYPES]
                 ),
                 "listing_level": 2,
                 "ljust_description_filler": ".",
