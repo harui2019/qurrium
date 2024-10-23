@@ -13,13 +13,14 @@ from .unitary_set import U_M_MATRIX, OUTER_PRODUCT, IDENTITY
 from ..availability import (
     availablility,
     default_postprocessing_backend,
-    PostProcessingBackendLabel,
+    # PostProcessingBackendLabel,
 )
-from ..exceptions import (
-    PostProcessingRustImportError,
-    PostProcessingRustUnavailableWarning,
-    PostProcessingBackendDeprecatedWarning,
-)
+
+# from ..exceptions import (
+#     PostProcessingRustImportError,
+#     PostProcessingRustUnavailableWarning,
+#     PostProcessingBackendDeprecatedWarning,
+# )
 
 # try:
 
@@ -94,9 +95,9 @@ def rho_m_cell_py(
             Index, rho_m, the set of rho_m_i, the sorted list of the selected qubits
     """
 
-    num_qubits = len(list(single_counts.keys())[0])
+    num_classical_register = len(list(single_counts.keys())[0])
     shots = sum(single_counts.values())
-    assert num_qubits == len(
+    assert num_classical_register == len(
         nu_shadow_direction
     ), "The number of qubits and the number of shadow directions should be the same."
 
@@ -105,7 +106,8 @@ def rho_m_cell_py(
     single_counts_under_degree = {}
     for bitstring_all, num_counts_all in single_counts.items():
         bitstring = "".join(
-            bitstring_all[num_qubits - q_i - 1] for q_i in selected_classical_registers_sorted
+            bitstring_all[num_classical_register - q_i - 1]
+            for q_i in selected_classical_registers_sorted
         )
         if bitstring in single_counts_under_degree:
             single_counts_under_degree[bitstring] += num_counts_all
@@ -114,7 +116,7 @@ def rho_m_cell_py(
 
     # core calculation
     rho_m_i_k = {q_i: {} for q_i in selected_classical_registers_sorted}
-    for bitstring in single_counts:
+    for bitstring in single_counts_under_degree:
         for q_i, s_q in zip(selected_classical_registers_sorted, bitstring):
             rho_m_i_k[q_i][bitstring] = (
                 3
@@ -126,7 +128,7 @@ def rho_m_cell_py(
         q_i: np.zeros((2, 2), dtype=np.complex128) for q_i in selected_classical_registers_sorted
     }
     for q_i in selected_classical_registers_sorted:
-        for bitstring, num_counts in single_counts.items():
+        for bitstring, num_counts in single_counts_under_degree.items():
             rho_m_i[q_i] += rho_m_i_k[q_i][bitstring] * num_counts
         rho_m_i[q_i] /= shots
 
