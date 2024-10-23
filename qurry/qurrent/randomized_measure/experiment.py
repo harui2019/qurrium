@@ -287,6 +287,9 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
         self.args: EntropyMeasureRandomizedArguments
         self.reports: dict[int, EntropyMeasureRandomizedAnalysis]
         registers_mapping = self.args.registers_mapping
+        assert isinstance(
+            registers_mapping, dict
+        ), f"registers_mapping {registers_mapping} is not dict."
 
         if isinstance(counts_used, Iterable):
             if max(counts_used) >= len(self.afterwards.counts):

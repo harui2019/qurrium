@@ -31,7 +31,7 @@ class EntropyMeasureRandomizedArguments(ArgumentsPrototype):
     It will denote as `N_U` in the experiment name."""
     qubits_measured: Optional[list[int]] = None
     """The measure range."""
-    registers_mapping: dict[int, int] = {}
+    registers_mapping: Optional[dict[int, int]] = None
     """The mapping of the classical registers with quantum registers.
 
     Example:
@@ -49,7 +49,7 @@ class EntropyMeasureRandomizedArguments(ArgumentsPrototype):
     """
     actual_num_qubits: int = 0
     """The actual number of qubits."""
-    unitary_located: list[int] = []
+    unitary_located: Optional[list[int]] = None
     """The range of the unitary operator."""
     random_unitary_seeds: Optional[dict[int, dict[int, int]]] = None
     """The seeds for all random unitary operator.
