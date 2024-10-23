@@ -63,7 +63,7 @@ jobs:
         if: matrix.vers == 'macOS-ARM64'
 
       - name: MacOS Path Fix
-        if: runner.os == 'macos-latest' || runner.os == 'macos-13'
+        if: runner.os == 'macOS'
         run: |
           export PATH="$pythonLocation:$PATH"
 
