@@ -143,4 +143,4 @@ class EntropyMeasureRandomizedV1OutputArgs(OutputArgs):
     """
 
 
-SHORT_NAME = "qurrent_randomized"
+SHORT_NAME = "qurrent_randomized_v1"
