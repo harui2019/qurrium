@@ -94,7 +94,11 @@ def qubit_selector(
 
     elif isinstance(degree, (tuple, list)):
         if len(degree) == 2:
-            deg_parsed = [(d % num_qubits if d != num_qubits else num_qubits) for d in degree]
+            deg_parsed = (
+                degree
+                if degree[0] < 0 < degree[1]
+                else [(d % num_qubits if d != num_qubits else num_qubits) for d in degree]
+            )
             item_range = (min(deg_parsed), max(deg_parsed))
             subsystem = subsystem[min(deg_parsed) : max(deg_parsed)]
 

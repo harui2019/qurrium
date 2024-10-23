@@ -87,18 +87,31 @@ pub fn qubit_selector_rust(num_qubits: i32, degree: Option<QubitDegree>) -> PyRe
             let mut raw_values: Vec<i32> = Vec::new();
             raw_values.push(start);
             raw_values.push(end);
-            let mapped_values = raw_values.iter().map(|d: &i32| {
-                if d != &num_qubits {
-                    (d + num_qubits) % num_qubits
-                } else {
-                    num_qubits
-                }
-            });
+            let mapped_values: Vec<i32> = if start < 0 && end > 0 {
+                raw_values.clone()
+            } else {
+                raw_values
+                    .iter()
+                    .map(|&d| {
+                        if d != num_qubits {
+                            (d + num_qubits) % num_qubits
+                        } else {
+                            num_qubits
+                        }
+                    })
+                    .collect()
+            };
+            // let mapped_values = raw_values.iter().map(|d: &i32| {
+            //     if d != &num_qubits {
+            //         (d + num_qubits) % num_qubits
+            //     } else {
+            //         num_qubits
+            //     }
+            // });
 
-            let vec_parsed: Vec<i32> = mapped_values.collect::<Vec<i32>>();
             let tmp: (i32, i32) = (
-                *vec_parsed.iter().min().unwrap(),
-                *vec_parsed.iter().max().unwrap(),
+                *mapped_values.iter().min().unwrap(),
+                *mapped_values.iter().max().unwrap(),
             );
             let _subsystem: Vec<i32> = full_subsystem
                 .iter()
