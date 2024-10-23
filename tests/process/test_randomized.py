@@ -20,14 +20,6 @@ from qurry.process.randomized_measure.entangled_entropy.entangled_entropy_2 impo
 from qurry.process.randomized_measure.wavefunction_overlap.wavefunction_overlap import (
     overlap_echo_core,
 )
-from qurry.process.randomized_measure.entangled_entropy.entropy_core_2 import (
-    purity_cell_2_py,
-    purity_cell_2_rust,
-)
-from qurry.process.randomized_measure.entangled_entropy.entropy_core import (
-    purity_cell_py,
-    purity_cell_rust,
-)
 from qurry.process.utils import cycling_slice
 from qurry.process.utils.randomized import RUST_AVAILABLE as rust_available_randomized
 
