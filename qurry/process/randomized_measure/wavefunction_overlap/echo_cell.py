@@ -10,7 +10,7 @@ import warnings
 from typing import Union
 import numpy as np
 
-from ...utils import ensemble_cell as ensemble_cell_py
+from ...utils import ensemble_cell as ensemble_cell_py, cycling_slice as cycling_slice_py
 from ...availability import (
     availablility,
     default_postprocessing_backend,
@@ -99,21 +99,43 @@ def echo_cell_py(
     shots2 = sum(second_counts.values())
     assert shots == shots2, f"shots {shots} does not match shots2 {shots2}"
 
-    first_counts_under_degree = dict.fromkeys(
-        [k[bitstring_range[0] : bitstring_range[1]] for k in first_counts], 0
-    )
-    for bitstring in list(first_counts):
-        first_counts_under_degree[
-            bitstring[bitstring_range[0] : bitstring_range[1]]
-        ] += first_counts[bitstring]
+    _dummy_string = list(range(subsystem_size))
+    if _dummy_string[bitstring_range[0] : bitstring_range[1]] == cycling_slice_py(
+        _dummy_string, bitstring_range[0], bitstring_range[1], 1
+    ):
+        first_counts_under_degree = dict.fromkeys(
+            [k[bitstring_range[0] : bitstring_range[1]] for k in first_counts], 0
+        )
+        for bitstring in list(first_counts):
+            first_counts_under_degree[
+                bitstring[bitstring_range[0] : bitstring_range[1]]
+            ] += first_counts[bitstring]
 
-    second_counts_under_degree = dict.fromkeys(
-        [k[bitstring_range[0] : bitstring_range[1]] for k in second_counts], 0
-    )
-    for bitstring in list(second_counts):
-        second_counts_under_degree[
-            bitstring[bitstring_range[0] : bitstring_range[1]]
-        ] += second_counts[bitstring]
+        second_counts_under_degree = dict.fromkeys(
+            [k[bitstring_range[0] : bitstring_range[1]] for k in second_counts], 0
+        )
+        for bitstring in list(second_counts):
+            second_counts_under_degree[
+                bitstring[bitstring_range[0] : bitstring_range[1]]
+            ] += second_counts[bitstring]
+    else:
+        first_counts_under_degree = dict.fromkeys(
+            [cycling_slice_py(k, bitstring_range[0], bitstring_range[1], 1) for k in first_counts],
+            0,
+        )
+        for bitstring in list(first_counts):
+            first_counts_under_degree[
+                cycling_slice_py(bitstring, bitstring_range[0], bitstring_range[1], 1)
+            ] += first_counts[bitstring]
+
+        second_counts_under_degree = dict.fromkeys(
+            [cycling_slice_py(k, bitstring_range[0], bitstring_range[1], 1) for k in second_counts],
+            0,
+        )
+        for bitstring in list(second_counts):
+            second_counts_under_degree[
+                cycling_slice_py(bitstring, bitstring_range[0], bitstring_range[1], 1)
+            ] += second_counts[bitstring]
 
     _echo_cell = np.float64(0)
     for s_i, s_i_meas in first_counts_under_degree.items():
