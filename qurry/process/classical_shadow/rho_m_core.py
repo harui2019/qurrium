@@ -12,7 +12,6 @@ from typing import Literal, Union
 import numpy as np
 
 from .rho_m_cell import rho_m_cell_py
-from ..utils import is_cycling_slice_active, degree_handler
 from ..availability import (
     availablility,
     default_postprocessing_backend,
