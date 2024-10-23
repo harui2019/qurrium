@@ -1,8 +1,8 @@
 """
-================================================================
-Postprocessing - Randomized Measure - Purity Cell
-(:mod:`qurry.process.randomized_measure.purity_cell`)
-================================================================
+=========================================================================================
+Postprocessing - Randomized Measure - Entangled Entropy - Purity Cell
+(:mod:`qurry.process.randomized_measure.entangled_entropy.purity_cell`)
+=========================================================================================
 
 """
 
@@ -10,13 +10,13 @@ import warnings
 from typing import Union
 import numpy as np
 
-from ..utils import ensemble_cell as ensemble_cell_py, cycling_slice as cycling_slice_py
-from ..availability import (
+from ...utils import ensemble_cell as ensemble_cell_py, cycling_slice as cycling_slice_py
+from ...availability import (
     availablility,
     default_postprocessing_backend,
     PostProcessingBackendLabel,
 )
-from ..exceptions import (
+from ...exceptions import (
     PostProcessingRustImportError,
     PostProcessingRustUnavailableWarning,
     PostProcessingBackendDeprecatedWarning,
@@ -30,7 +30,7 @@ try:
     #     entangled_entropy_core_rust as entangled_entropy_core_rust_source,  # type: ignore
     # )
 
-    from ...boorust import randomized  # type: ignore
+    from ....boorust import randomized  # type: ignore
 
     purity_cell_rust_source = randomized.purity_cell_rust
 
@@ -48,7 +48,7 @@ except ImportError as err:
 
 
 BACKEND_AVAILABLE = availablility(
-    "randomized_measure.purity_cell",
+    "randomized_measure.entangle_entropy.purity_cell",
     [
         ("Rust", RUST_AVAILABLE, FAILED_RUST_IMPORT),
         ("Cython", "Depr.", None),
@@ -78,7 +78,7 @@ def purity_cell_py(
 
     shots = sum(single_counts.values())
 
-    _dummy_string = "".join(str(ds) for ds in range(subsystem_size))
+    _dummy_string = list(range(subsystem_size))
     if _dummy_string[bitstring_range[0] : bitstring_range[1]] == cycling_slice_py(
         _dummy_string, bitstring_range[0], bitstring_range[1], 1
     ):

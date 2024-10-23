@@ -7,7 +7,7 @@ from :module:`QurriumPrototype`
 
 """
 
-from typing import Optional, Union, TypedDict, Any
+from typing import Optional, Union, TypedDict, Any, Literal
 from collections.abc import Hashable
 from pathlib import Path
 import tqdm
@@ -29,12 +29,14 @@ class BasicArgs(TypedDict, total=False):
     run_args: Optional[Union[BaseRunArgs, dict[str, Any]]]
     transpile_args: Optional[TranspileArgs]
     passmanager: Optional[Union[str, PassManager, tuple[str, PassManager]]]
+    tags: Optional[tuple[str, ...]]
     # already built exp
     exp_id: Optional[str]
     new_backend: Optional[Backend]
     revive: bool
     replace_circuits: bool
     # process tool
+    qasm_version: Literal["qasm2", "qasm3"]
     export: bool
     save_location: Optional[Union[Path, str]]
     mode: str

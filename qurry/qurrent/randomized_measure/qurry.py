@@ -6,7 +6,7 @@ EntropyMeasureRandomized - Qurry
 
 """
 
-from typing import Union, Optional, Any, Type
+from typing import Union, Optional, Any, Type, Literal
 from collections.abc import Hashable
 from pathlib import Path
 import tqdm
@@ -24,84 +24,76 @@ from ...declare import BaseRunArgs, TranspileArgs
 
 class EntropyMeasureRandomized(QurriumPrototype):
     """Randomized Measure Experiment.
+    The entropy we compute is the Second Order Rényi Entropy.
 
-    - Which entropy:
-
-        The entropy we compute is the Second Order Rényi Entropy.
-
-    - Reference:
-
-        Probing Rényi entanglement entropy via randomized measurements -
+    .. note::
+        - Probing Rényi entanglement entropy via randomized measurements -
         Tiff Brydges, Andreas Elben, Petar Jurcevic, Benoît Vermersch,
         Christine Maier, Ben P. Lanyon, Peter Zoller, Rainer Blatt ,and Christian F. Roos ,
         [doi:10.1126/science.aau4963](
             https://www.science.org/doi/abs/10.1126/science.aau4963)
 
-        Simple mitigation of global depolarizing errors in quantum simulations -
+        - Simple mitigation of global depolarizing errors in quantum simulations -
         Vovrosh, Joseph and Khosla, Kiran E. and Greenaway, Sean and Self,
         Christopher and Kim, M. S. and Knolle, Johannes,
         [PhysRevE.104.035309](
             https://link.aps.org/doi/10.1103/PhysRevE.104.035309)
 
-    - `bibtex`:
+    .. code-block:: bibtex
 
-    ```bibtex
-    @article{doi:10.1126/science.aau4963,
-        author = {Tiff Brydges  and Andreas Elben  and Petar Jurcevic
-        and Benoît Vermersch  and Christine Maier  and Ben P. Lanyon
-        and Peter Zoller  and Rainer Blatt  and Christian F. Roos },
-        title = {Probing Rényi entanglement entropy via randomized measurements},
-        journal = {Science},
-        volume = {364},
-        number = {6437},
-        pages = {260-263},
-        year = {2019},
-        doi = {10.1126/science.aau4963},
-        URL = {https://www.science.org/doi/abs/10.1126/science.aau4963},
-        eprint = {https://www.science.org/doi/pdf/10.1126/science.aau4963},
-        abstract = {Quantum systems are predicted to be better at information
-        processing than their classical counterparts, and quantum entanglement
-        is key to this superior performance. But how does one gauge the degree
-        of entanglement in a system? Brydges et al. monitored the build-up of
-        the so-called Rényi entropy in a chain of up to 10 trapped calcium ions,
-        each of which encoded a qubit. As the system evolved,
-        interactions caused entanglement between the chain and the rest of
-        the system to grow, which was reflected in the growth of
-        the Rényi entropy. Science, this issue p. 260 The buildup of entropy
-        in an ion chain reflects a growing entanglement between the chain
-        and its complement. Entanglement is a key feature of many-body quantum systems.
-        Measuring the entropy of different partitions of a quantum system
-        provides a way to probe its entanglement structure.
-        Here, we present and experimentally demonstrate a protocol
-        for measuring the second-order Rényi entropy based on statistical correlations
-        between randomized measurements. Our experiments, carried out with a trapped-ion
-        quantum simulator with partition sizes of up to 10 qubits,
-        prove the overall coherent character of the system dynamics and
-        reveal the growth of entanglement between its parts,
-        in both the absence and presence of disorder.
-        Our protocol represents a universal tool for probing and
-        characterizing engineered quantum systems in the laboratory,
-        which is applicable to arbitrary quantum states of up to
-        several tens of qubits.}}
-    ```
+        @article{doi:10.1126/science.aau4963,
+            author = {Tiff Brydges  and Andreas Elben  and Petar Jurcevic
+                and Benoît Vermersch  and Christine Maier  and Ben P. Lanyon
+                and Peter Zoller  and Rainer Blatt  and Christian F. Roos },
+            title = {Probing Rényi entanglement entropy via randomized measurements},
+            journal = {Science},
+            volume = {364},
+            number = {6437},
+            pages = {260-263},
+            year = {2019},
+            doi = {10.1126/science.aau4963},
+            URL = {https://www.science.org/doi/abs/10.1126/science.aau4963},
+            eprint = {https://www.science.org/doi/pdf/10.1126/science.aau4963},
+            abstract = {Quantum systems are predicted to be better at information
+            processing than their classical counterparts, and quantum entanglement
+            is key to this superior performance. But how does one gauge the degree
+            of entanglement in a system? Brydges et al. monitored the build-up of
+            the so-called Rényi entropy in a chain of up to 10 trapped calcium ions,
+            each of which encoded a qubit. As the system evolved,
+            interactions caused entanglement between the chain and the rest of
+            the system to grow, which was reflected in the growth of
+            the Rényi entropy. Science, this issue p. 260 The buildup of entropy
+            in an ion chain reflects a growing entanglement between the chain
+            and its complement. Entanglement is a key feature of many-body quantum systems.
+            Measuring the entropy of different partitions of a quantum system
+            provides a way to probe its entanglement structure.
+            Here, we present and experimentally demonstrate a protocol
+            for measuring the second-order Rényi entropy based on statistical correlations
+            between randomized measurements. Our experiments, carried out with a trapped-ion
+            quantum simulator with partition sizes of up to 10 qubits,
+            prove the overall coherent character of the system dynamics and
+            reveal the growth of entanglement between its parts,
+            in both the absence and presence of disorder.
+            Our protocol represents a universal tool for probing and
+            characterizing engineered quantum systems in the laboratory,
+            which is applicable to arbitrary quantum states of up to
+            several tens of qubits.}}
 
-    ```bibtex
-        @article{PhysRevE.104.035309,
-            title = {Simple mitigation of global depolarizing errors in quantum simulations},
-            author = {Vovrosh, Joseph and Khosla, Kiran E. and Greenaway, Sean and Self,
-            Christopher and Kim, M. S. and Knolle, Johannes},
-            journal = {Phys. Rev. E},
-            volume = {104},
-            issue = {3},
-            pages = {035309},
-            numpages = {8},
-            year = {2021},
-            month = {Sep},
-            publisher = {American Physical Society},
-            doi = {10.1103/PhysRevE.104.035309},
-            url = {https://link.aps.org/doi/10.1103/PhysRevE.104.035309}
-        }
-    ```
+            @article{PhysRevE.104.035309,
+                title = {Simple mitigation of global depolarizing errors in quantum simulations},
+                author = {Vovrosh, Joseph and Khosla, Kiran E. and Greenaway, Sean and Self,
+                Christopher and Kim, M. S. and Knolle, Johannes},
+                journal = {Phys. Rev. E},
+                volume = {104},
+                issue = {3},
+                pages = {035309},
+                numpages = {8},
+                year = {2021},
+                month = {Sep},
+                publisher = {American Physical Society},
+                doi = {10.1103/PhysRevE.104.035309},
+                url = {https://link.aps.org/doi/10.1103/PhysRevE.104.035309}
+            }
     """
 
     __name__ = "EntropyRandomizedMeasure"
@@ -120,6 +112,7 @@ class EntropyMeasureRandomized(QurriumPrototype):
         times: int = 100,
         measure: Union[int, tuple[int, int], None] = None,
         unitary_loc: Union[int, tuple[int, int], None] = None,
+        unitary_loc_not_cover_measure: bool = False,
         random_unitary_seeds: Optional[dict[int, dict[int, int]]] = None,
         # basic inputs
         shots: int = 1024,
@@ -128,7 +121,9 @@ class EntropyMeasureRandomized(QurriumPrototype):
         run_args: Optional[Union[BaseRunArgs, dict[str, Any]]] = None,
         transpile_args: Optional[TranspileArgs] = None,
         passmanager: Optional[Union[str, PassManager, tuple[str, PassManager]]] = None,
+        tags: Optional[tuple[str, ...]] = None,
         # process tool
+        qasm_version: Literal["qasm2", "qasm3"] = "qasm3",
         export: bool = False,
         save_location: Optional[Union[Path, str]] = None,
         mode: str = "w+",
@@ -150,6 +145,9 @@ class EntropyMeasureRandomized(QurriumPrototype):
                 The measure range. Defaults to `None`.
             unitary_loc (Union[int, tuple[int, int], None], optional):
                 The range of the unitary operator. Defaults to `None`.
+            unitary_loc_not_cover_measure (bool, optional):
+                Whether the range of the unitary operator is not cover the measure range.
+                Defaults to `False`.
             random_unitary_seeds (Optional[dict[int, dict[int, int]]], optional):
                 The seeds for all random unitary operator.
                 This argument only takes input as type of `dict[int, dict[int, int]]`.
@@ -173,6 +171,8 @@ class EntropyMeasureRandomized(QurriumPrototype):
                 Arguments for :func:`qiskit.transpile`. Defaults to `{}`.
             passmanager (Optional[Union[str, PassManager, tuple[str, PassManager]], optional):
                 The passmanager. Defaults to None.
+            tags (Optional[tuple[str, ...]], optional):
+                The tags of the experiment. Defaults to None.
 
             exp_id (Optional[str], optional):
                 The ID of experiment. Defaults to None.
@@ -183,6 +183,8 @@ class EntropyMeasureRandomized(QurriumPrototype):
             replace_circuits (bool, optional):
                 Whether to replace the circuits during revive. Defaults to False.
 
+            qasm_version (Literal["qasm2", "qasm3"], optional):
+                The version of OpenQASM. Defaults to "qasm3".
             export (bool, optional):
                 Whether to export the experiment. Defaults to False.
             save_location (Optional[Union[Path, str]], optional):
@@ -220,6 +222,7 @@ class EntropyMeasureRandomized(QurriumPrototype):
             "times": times,
             "measure": measure,
             "unitary_loc": unitary_loc,
+            "unitary_loc_not_cover_measure": unitary_loc_not_cover_measure,
             "random_unitary_seeds": random_unitary_seeds,
             "shots": shots,
             "backend": backend,
@@ -227,6 +230,9 @@ class EntropyMeasureRandomized(QurriumPrototype):
             "run_args": run_args,
             "transpile_args": transpile_args,
             "passmanager": passmanager,
+            "tags": tags,
+            # process tool
+            "qasm_version": qasm_version,
             "export": export,
             "save_location": save_location,
             "mode": mode,
@@ -242,6 +248,7 @@ class EntropyMeasureRandomized(QurriumPrototype):
         times: int = 100,
         measure: Union[int, tuple[int, int], None] = None,
         unitary_loc: Union[int, tuple[int, int], None] = None,
+        unitary_loc_not_cover_measure: bool = False,
         random_unitary_seeds: Optional[dict[int, dict[int, int]]] = None,
         # basic inputs
         shots: int = 1024,
@@ -250,7 +257,9 @@ class EntropyMeasureRandomized(QurriumPrototype):
         run_args: Optional[Union[BaseRunArgs, dict[str, Any]]] = None,
         transpile_args: Optional[TranspileArgs] = None,
         passmanager: Optional[Union[str, PassManager, tuple[str, PassManager]]] = None,
+        tags: Optional[tuple[str, ...]] = None,
         # process tool
+        qasm_version: Literal["qasm2", "qasm3"] = "qasm3",
         export: bool = False,
         save_location: Optional[Union[Path, str]] = None,
         mode: str = "w+",
@@ -272,6 +281,9 @@ class EntropyMeasureRandomized(QurriumPrototype):
                 The measure range. Defaults to `None`.
             unitary_loc (Union[int, tuple[int, int], None], optional):
                 The range of the unitary operator. Defaults to `None`.
+            unitary_loc_not_cover_measure (bool, optional):
+                Whether the range of the unitary operator is not cover the measure range.
+                Defaults to `False`.
             random_unitary_seeds (Optional[dict[int, dict[int, int]]], optional):
                 The seeds for all random unitary operator.
                 This argument only takes input as type of `dict[int, dict[int, int]]`.
@@ -295,6 +307,8 @@ class EntropyMeasureRandomized(QurriumPrototype):
                 Arguments for :func:`qiskit.transpile`. Defaults to `{}`.
             passmanager (Optional[Union[str, PassManager, tuple[str, PassManager]], optional):
                 The passmanager. Defaults to None.
+            tags (Optional[tuple[str, ...]], optional):
+                The tags of the experiment. Defaults to None.
 
             exp_id (Optional[str], optional):
                 The ID of experiment. Defaults to None.
@@ -305,6 +319,8 @@ class EntropyMeasureRandomized(QurriumPrototype):
             replace_circuits (bool, optional):
                 Whether to replace the circuits during revive. Defaults to False.
 
+            qasm_version (Literal["qasm2", "qasm3"], optional):
+                The version of OpenQASM. Defaults to "qasm3".
             export (bool, optional):
                 Whether to export the experiment. Defaults to False.
             save_location (Optional[Union[Path, str]], optional):
@@ -340,6 +356,7 @@ class EntropyMeasureRandomized(QurriumPrototype):
             times=times,
             measure=measure,
             unitary_loc=unitary_loc,
+            unitary_loc_not_cover_measure=unitary_loc_not_cover_measure,
             random_unitary_seeds=random_unitary_seeds,
             shots=shots,
             backend=backend,
@@ -347,6 +364,9 @@ class EntropyMeasureRandomized(QurriumPrototype):
             run_args=run_args,
             transpile_args=transpile_args,
             passmanager=passmanager,
+            tags=tags,
+            # process tool
+            qasm_version=qasm_version,
             export=export,
             save_location=save_location,
             mode=mode,

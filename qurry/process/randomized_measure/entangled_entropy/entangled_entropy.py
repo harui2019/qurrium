@@ -1,136 +1,26 @@
 """
-================================================================
-Postprocessing - Randomized Measure - Entangled Entropy
-(:mod:`qurry.process.randomized_measure.entangled_entropy`)
-================================================================
+=========================================================================================
+Postprocessing - Randomized Measure - Entangled Entropy - Entangled Entropy Deprecated
+(:mod:`qurry.process.randomized_measure.entangled_entropy.entangled_entropy`)
+=========================================================================================
 
 """
 
-from typing import Union, Optional, Literal, TypedDict
+from typing import Union, Optional
 import numpy as np
 import tqdm
 
 from .entropy_core import entangled_entropy_core, DEFAULT_PROCESS_BACKEND
+from .container import (
+    RandomizedEntangledEntropyComplex,
+    RandomizedEntangledEntropyMitigatedComplex,
+    ExistingAllSystemSource,
+)
 from .error_mitigation import depolarizing_error_mitgation
-from ..availability import PostProcessingBackendLabel
+from ...availability import PostProcessingBackendLabel
 
 
-class RandomizedEntangledEntropyComplex(TypedDict):
-    """The result of the analysis."""
-
-    purity: Union[np.float64, float]
-    """The purity of the system."""
-    entropy: Union[np.float64, float]
-    """The entropy of the system."""
-    purityCells: Union[dict[int, np.float64], dict[int, float]]
-    """The purity of each cell."""
-    puritySD: Union[np.float64, float]
-    """The standard deviation of the purity."""
-    entropySD: Union[np.float64, float]
-    """The standard deviation of the entropy."""
-    degree: Optional[Union[tuple[int, int], int]]
-    """The range of partition."""
-    measureActually: tuple[int, int]
-    """The range of partition refer to all qubits."""
-    bitStringRange: tuple[int, int]
-    """The range of partition on the bitstring."""
-    countsNum: int
-    """The number of counts."""
-    takingTime: Union[np.float64, float]
-    """The time of taking during specific partition."""
-
-
-class RandomizedEntangledEntropyMitigatedComplex(TypedDict):
-    """The result of the analysis."""
-
-    purity: Union[np.float64, float]
-    """The purity of the system."""
-    entropy: Union[np.float64, float]
-    """The entropy of the system."""
-    puritySD: Union[np.float64, float]
-    """The standard deviation of the purity."""
-    entropySD: Union[np.float64, float]
-    """The standard deviation of the entropy."""
-    purityCells: Union[dict[int, np.float64], dict[int, float]]
-    """The purity of each cell."""
-    bitStringRange: tuple[int, int]
-    """The range of partition on the bitstring."""
-
-    allSystemSource: Union[str, Literal["independent"]]
-    """The source of all system."""
-    purityAllSys: Union[np.float64, float]
-    """The purity of all system."""
-    entropyAllSys: Union[np.float64, float]
-    """The entropy of all system."""
-    puritySDAllSys: Union[np.float64, float]
-    """The standard deviation of the purity of all system."""
-    entropySDAllSys: Union[np.float64, float]
-    """The standard deviation of the entropy of all system."""
-    purityCellsAllSys: Union[dict[int, np.float64], dict[int, float]]
-    """The purity of each cell of all system."""
-    bitsStringRangeAllSys: tuple[int, int]
-    """The range of partition on the bitstring of all system."""
-
-    errorRate: Union[np.float64, float]
-    """The error rate of the measurement from depolarizing error migigation calculated."""
-    mitigatedPurity: Union[np.float64, float]
-    """The mitigated purity."""
-    mitigatedEntropy: Union[np.float64, float]
-    """The mitigated entropy."""
-
-    degree: Optional[Union[tuple[int, int], int]]
-    """The range of partition."""
-    num_qubits: int
-    """The number of qubits of this syystem."""
-    measure: tuple[str, Union[list[int], tuple[int, int]]]
-    """The qubit range of the measurement and text description.
-
-    - The first element is the text description.
-    - The second element is the qubit range of the measurement.
-
-    ---
-    - When the measurement is specified, it will be:
-
-    >>> ("measure range:", (0, 3))
-
-    - When the measurement is not specified, it will be:
-
-    >>> ("not specified, use all qubits", (0, 3))
-
-    - When null counts exist, it will be:
-
-    >>> ("The following is the index of null counts.", [0, 1, 2, 3])
-
-    """
-    measureActually: tuple[int, int]
-    """The range of partition refer to all qubits."""
-    measureActuallyAllSys: tuple[int, int]
-    """The range of partition refer to all qubits of all system."""
-
-    countsNum: int
-    """The number of counts."""
-    takingTime: Union[np.float64, float]
-    """The time of taking during specific partition."""
-    takingTimeAllSys: Union[np.float64, float]
-    """The taking time of the all system if it is calculated, 
-    it will be 0 when use the all system from other analysis.
-    """
-
-
-class ExistingAllSystemSource(TypedDict):
-    """Existing all system source."""
-
-    purityCellsAllSys: dict[int, float]
-    """The purity of each cell of all system."""
-    bitStringRange: tuple[int, int]
-    """The range of partition on the bitstring."""
-    measureActually: tuple[int, int]
-    """The range of partition refer to all qubits."""
-    source: str
-    """The source of all system."""
-
-
-def randomized_entangled_entropy(
+def randomized_entangled_entropy_deprecated(
     shots: int,
     counts: list[dict[str, int]],
     degree: Optional[Union[tuple[int, int], int]],
@@ -140,60 +30,55 @@ def randomized_entangled_entropy(
     pbar: Optional[tqdm.tqdm] = None,
 ) -> RandomizedEntangledEntropyComplex:
     """Calculate entangled entropy.
+    The entropy we compute is the Second Order Rényi Entropy.
 
-    - Which entropy:
+    .. note::
 
-        The entropy we compute is the Second Order Rényi Entropy.
-
-    - Reference:
-
-        Probing Rényi entanglement entropy via randomized measurements -
+        - Probing Rényi entanglement entropy via randomized measurements -
         Tiff Brydges, Andreas Elben, Petar Jurcevic, Benoît Vermersch,
         Christine Maier, Ben P. Lanyon, Peter Zoller, Rainer Blatt ,and Christian F. Roos ,
         [doi:10.1126/science.aau4963](
             https://www.science.org/doi/abs/10.1126/science.aau4963)
 
-    - `bibtex`:
+    .. code-block:: bibtex
 
-    ```bibtex
-    @article{doi:10.1126/science.aau4963,
-        author = {Tiff Brydges  and Andreas Elben  and Petar Jurcevic
-        and Benoît Vermersch  and Christine Maier  and Ben P. Lanyon
-        and Peter Zoller  and Rainer Blatt  and Christian F. Roos },
-        title = {Probing Rényi entanglement entropy via randomized measurements},
-        journal = {Science},
-        volume = {364},
-        number = {6437},
-        pages = {260-263},
-        year = {2019},
-        doi = {10.1126/science.aau4963},
-        URL = {https://www.science.org/doi/abs/10.1126/science.aau4963},
-        eprint = {https://www.science.org/doi/pdf/10.1126/science.aau4963},
-        abstract = {Quantum systems are predicted to be better at information
-        processing than their classical counterparts, and quantum entanglement
-        is key to this superior performance. But how does one gauge the degree
-        of entanglement in a system? Brydges et al. monitored the build-up of
-        the so-called Rényi entropy in a chain of up to 10 trapped calcium ions,
-        each of which encoded a qubit. As the system evolved,
-        interactions caused entanglement between the chain and the rest of
-        the system to grow, which was reflected in the growth of
-        the Rényi entropy. Science, this issue p. 260 The buildup of entropy
-        in an ion chain reflects a growing entanglement between the chain
-        and its complement. Entanglement is a key feature of many-body quantum systems.
-        Measuring the entropy of different partitions of a quantum system
-        provides a way to probe its entanglement structure.
-        Here, we present and experimentally demonstrate a protocol
-        for measuring the second-order Rényi entropy based on statistical correlations
-        between randomized measurements. Our experiments, carried out with a trapped-ion
-        quantum simulator with partition sizes of up to 10 qubits,
-        prove the overall coherent character of the system dynamics and
-        reveal the growth of entanglement between its parts,
-        in both the absence and presence of disorder.
-        Our protocol represents a universal tool for probing and
-        characterizing engineered quantum systems in the laboratory,
-        which is applicable to arbitrary quantum states of up to
-        several tens of qubits.}}
-    ```
+        @article{doi:10.1126/science.aau4963,
+            author = {Tiff Brydges  and Andreas Elben  and Petar Jurcevic
+                and Benoît Vermersch  and Christine Maier  and Ben P. Lanyon
+                and Peter Zoller  and Rainer Blatt  and Christian F. Roos },
+            title = {Probing Rényi entanglement entropy via randomized measurements},
+            journal = {Science},
+            volume = {364},
+            number = {6437},
+            pages = {260-263},
+            year = {2019},
+            doi = {10.1126/science.aau4963},
+            URL = {https://www.science.org/doi/abs/10.1126/science.aau4963},
+            eprint = {https://www.science.org/doi/pdf/10.1126/science.aau4963},
+            abstract = {Quantum systems are predicted to be better at information
+            processing than their classical counterparts, and quantum entanglement
+            is key to this superior performance. But how does one gauge the degree
+            of entanglement in a system? Brydges et al. monitored the build-up of
+            the so-called Rényi entropy in a chain of up to 10 trapped calcium ions,
+            each of which encoded a qubit. As the system evolved,
+            interactions caused entanglement between the chain and the rest of
+            the system to grow, which was reflected in the growth of
+            the Rényi entropy. Science, this issue p. 260 The buildup of entropy
+            in an ion chain reflects a growing entanglement between the chain
+            and its complement. Entanglement is a key feature of many-body quantum systems.
+            Measuring the entropy of different partitions of a quantum system
+            provides a way to probe its entanglement structure.
+            Here, we present and experimentally demonstrate a protocol
+            for measuring the second-order Rényi entropy based on statistical correlations
+            between randomized measurements. Our experiments, carried out with a trapped-ion
+            quantum simulator with partition sizes of up to 10 qubits,
+            prove the overall coherent character of the system dynamics and
+            reveal the growth of entanglement between its parts,
+            in both the absence and presence of disorder.
+            Our protocol represents a universal tool for probing and
+            characterizing engineered quantum systems in the laboratory,
+            which is applicable to arbitrary quantum states of up to
+            several tens of qubits.}}
 
     Args:
         shots (int):
@@ -269,7 +154,7 @@ def randomized_entangled_entropy(
     return quantity
 
 
-def randomized_entangled_entropy_mitigated(
+def randomized_entangled_entropy_mitigated_deprecated(
     shots: int,
     counts: list[dict[str, int]],
     degree: Optional[Union[tuple[int, int], int]],
@@ -280,84 +165,76 @@ def randomized_entangled_entropy_mitigated(
     pbar: Optional[tqdm.tqdm] = None,
 ) -> RandomizedEntangledEntropyMitigatedComplex:
     """Calculate entangled entropy with depolarizing error mitigation.
+    The entropy we compute is the Second Order Rényi Entropy.
 
-    - Which entropy:
-
-        The entropy we compute is the Second Order Rényi Entropy.
-
-    - Reference:
-
-        Probing Rényi entanglement entropy via randomized measurements -
+    .. note::
+        - Probing Rényi entanglement entropy via randomized measurements -
         Tiff Brydges, Andreas Elben, Petar Jurcevic, Benoît Vermersch,
         Christine Maier, Ben P. Lanyon, Peter Zoller, Rainer Blatt ,and Christian F. Roos ,
         [doi:10.1126/science.aau4963](
             https://www.science.org/doi/abs/10.1126/science.aau4963)
 
-        Simple mitigation of global depolarizing errors in quantum simulations -
+        - Simple mitigation of global depolarizing errors in quantum simulations -
         Vovrosh, Joseph and Khosla, Kiran E. and Greenaway, Sean and Self,
         Christopher and Kim, M. S. and Knolle, Johannes,
         [PhysRevE.104.035309](
             https://link.aps.org/doi/10.1103/PhysRevE.104.035309)
 
-    - `bibtex`:
+    .. code-block:: bibtex
 
-    ```bibtex
-    @article{doi:10.1126/science.aau4963,
-        author = {Tiff Brydges  and Andreas Elben  and Petar Jurcevic
-        and Benoît Vermersch  and Christine Maier  and Ben P. Lanyon
-        and Peter Zoller  and Rainer Blatt  and Christian F. Roos },
-        title = {Probing Rényi entanglement entropy via randomized measurements},
-        journal = {Science},
-        volume = {364},
-        number = {6437},
-        pages = {260-263},
-        year = {2019},
-        doi = {10.1126/science.aau4963},
-        URL = {https://www.science.org/doi/abs/10.1126/science.aau4963},
-        eprint = {https://www.science.org/doi/pdf/10.1126/science.aau4963},
-        abstract = {Quantum systems are predicted to be better at information
-        processing than their classical counterparts, and quantum entanglement
-        is key to this superior performance. But how does one gauge the degree
-        of entanglement in a system? Brydges et al. monitored the build-up of
-        the so-called Rényi entropy in a chain of up to 10 trapped calcium ions,
-        each of which encoded a qubit. As the system evolved,
-        interactions caused entanglement between the chain and the rest of
-        the system to grow, which was reflected in the growth of
-        the Rényi entropy. Science, this issue p. 260 The buildup of entropy
-        in an ion chain reflects a growing entanglement between the chain
-        and its complement. Entanglement is a key feature of many-body quantum systems.
-        Measuring the entropy of different partitions of a quantum system
-        provides a way to probe its entanglement structure.
-        Here, we present and experimentally demonstrate a protocol
-        for measuring the second-order Rényi entropy based on statistical correlations
-        between randomized measurements. Our experiments, carried out with a trapped-ion
-        quantum simulator with partition sizes of up to 10 qubits,
-        prove the overall coherent character of the system dynamics and
-        reveal the growth of entanglement between its parts,
-        in both the absence and presence of disorder.
-        Our protocol represents a universal tool for probing and
-        characterizing engineered quantum systems in the laboratory,
-        which is applicable to arbitrary quantum states of up to
-        several tens of qubits.}}
-    ```
+        @article{doi:10.1126/science.aau4963,
+            author = {Tiff Brydges  and Andreas Elben  and Petar Jurcevic
+                and Benoît Vermersch  and Christine Maier  and Ben P. Lanyon
+                and Peter Zoller  and Rainer Blatt  and Christian F. Roos },
+            title = {Probing Rényi entanglement entropy via randomized measurements},
+            journal = {Science},
+            volume = {364},
+            number = {6437},
+            pages = {260-263},
+            year = {2019},
+            doi = {10.1126/science.aau4963},
+            URL = {https://www.science.org/doi/abs/10.1126/science.aau4963},
+            eprint = {https://www.science.org/doi/pdf/10.1126/science.aau4963},
+            abstract = {Quantum systems are predicted to be better at information
+            processing than their classical counterparts, and quantum entanglement
+            is key to this superior performance. But how does one gauge the degree
+            of entanglement in a system? Brydges et al. monitored the build-up of
+            the so-called Rényi entropy in a chain of up to 10 trapped calcium ions,
+            each of which encoded a qubit. As the system evolved,
+            interactions caused entanglement between the chain and the rest of
+            the system to grow, which was reflected in the growth of
+            the Rényi entropy. Science, this issue p. 260 The buildup of entropy
+            in an ion chain reflects a growing entanglement between the chain
+            and its complement. Entanglement is a key feature of many-body quantum systems.
+            Measuring the entropy of different partitions of a quantum system
+            provides a way to probe its entanglement structure.
+            Here, we present and experimentally demonstrate a protocol
+            for measuring the second-order Rényi entropy based on statistical correlations
+            between randomized measurements. Our experiments, carried out with a trapped-ion
+            quantum simulator with partition sizes of up to 10 qubits,
+            prove the overall coherent character of the system dynamics and
+            reveal the growth of entanglement between its parts,
+            in both the absence and presence of disorder.
+            Our protocol represents a universal tool for probing and
+            characterizing engineered quantum systems in the laboratory,
+            which is applicable to arbitrary quantum states of up to
+            several tens of qubits.}}
 
-    ```bibtex
-        @article{PhysRevE.104.035309,
-            title = {Simple mitigation of global depolarizing errors in quantum simulations},
-            author = {Vovrosh, Joseph and Khosla, Kiran E. and Greenaway, Sean and Self,
-            Christopher and Kim, M. S. and Knolle, Johannes},
-            journal = {Phys. Rev. E},
-            volume = {104},
-            issue = {3},
-            pages = {035309},
-            numpages = {8},
-            year = {2021},
-            month = {Sep},
-            publisher = {American Physical Society},
-            doi = {10.1103/PhysRevE.104.035309},
-            url = {https://link.aps.org/doi/10.1103/PhysRevE.104.035309}
-        }
-    ```
+            @article{PhysRevE.104.035309,
+                title = {Simple mitigation of global depolarizing errors in quantum simulations},
+                author = {Vovrosh, Joseph and Khosla, Kiran E. and Greenaway, Sean and Self,
+                Christopher and Kim, M. S. and Knolle, Johannes},
+                journal = {Phys. Rev. E},
+                volume = {104},
+                issue = {3},
+                pages = {035309},
+                numpages = {8},
+                year = {2021},
+                month = {Sep},
+                publisher = {American Physical Society},
+                doi = {10.1103/PhysRevE.104.035309},
+                url = {https://link.aps.org/doi/10.1103/PhysRevE.104.035309}
+            }
 
     Args:
         shots (int):

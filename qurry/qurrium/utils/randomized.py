@@ -6,27 +6,39 @@ Randomized Measure Kit for Qurry
 
 """
 
-from typing import Union, Optional
+from typing import Union, Literal
 import numpy as np
 
+# pylint: disable=unused-import
 from qiskit.quantum_info import random_unitary, Operator
 
-RXmatrix = np.array([[0, 1], [1, 0]])
+# pylint: enable=unused-import
+
+RXmatrix: np.ndarray[tuple[Literal[2], Literal[2]], np.dtype[np.complex128]] = np.array(
+    [[0, 1], [1, 0]]
+)
 """Pauli-X matrix"""
-RYmatrix = np.array([[0, -1j], [1j, 0]])
+RYmatrix: np.ndarray[tuple[Literal[2], Literal[2]], np.dtype[np.complex128]] = np.array(
+    [[0, -1j], [1j, 0]]
+)
 """Pauli-Y matrix"""
-RZmatrix = np.array([[1, 0], [0, -1]])
+RZmatrix: np.ndarray[tuple[Literal[2], Literal[2]], np.dtype[np.complex128]] = np.array(
+    [[1, 0], [0, -1]]
+)
 """Pauli-Z matrix"""
 
 
-def density_matrix_to_bloch(rho: np.ndarray) -> list[float]:
+def density_matrix_to_bloch(
+    rho: np.ndarray[tuple[Literal[2], Literal[2]], np.dtype[np.complex128]]
+) -> list[float]:
     """Convert a density matrix to a Bloch vector.
 
     Args:
-        rho (np.array): The density matrix.
+        rho (np.ndarray[tuple[Literal[2], Literal[2]], np.dtype[np.complex128]]):
+            The density matrix.
 
     Returns:
-        list[np.complex128]: The bloch vector.
+        list[float]: The bloch vector.
     """
 
     ax = np.trace(np.dot(rho, RXmatrix)).real
@@ -36,7 +48,7 @@ def density_matrix_to_bloch(rho: np.ndarray) -> list[float]:
 
 
 def qubit_operator_to_pauli_coeff(
-    rho: np.ndarray,
+    rho: np.ndarray[tuple[Literal[2], Literal[2]], np.dtype[np.complex128]],
 ) -> list[tuple[Union[float, np.float64], Union[float, np.float64]]]:
     """Convert a random unitary operator matrix to a Bloch vector.
 
@@ -55,21 +67,6 @@ def qubit_operator_to_pauli_coeff(
     ay = np.trace(np.dot(rho, RYmatrix)) / 2
     az = np.trace(np.dot(rho, RZmatrix)) / 2
     return [(np.float64(a.real), np.float64(a.imag)) for a in [ax, ay, az]]
-
-
-def local_random_unitary(
-    unitary_loc: tuple[int, int], seed: Optional[int] = None
-) -> dict[int, Operator]:
-    """Generate a random unitary operator for single qubit.
-
-    Args:
-        unitary_loc (tuple[int, int]): The location of unitary operator.
-        seed (int, optional): The seed of random generator. Defaults to None.
-
-    Returns:
-        dict[int, Operator]: The random unitary operator.
-    """
-    return {j: random_unitary(2, seed) for j in range(*unitary_loc)}
 
 
 def local_random_unitary_operators(
@@ -105,3 +102,38 @@ def local_random_unitary_pauli_coeff(
         dict[int, list[tuple[float, float]]]: The list of pauli coefficients.
     """
     return {i: qubit_operator_to_pauli_coeff(unitary_op_list[i]) for i in range(*unitary_loc)}
+
+
+def local_unitary_op_to_list(
+    single_unitary_op_dict: dict[int, Operator]
+) -> dict[int, list[list[complex]]]:
+    """Transform a dictionary of local unitary operators
+    in :cls:`qiskit.quantum_info.operator.Operator`
+    with the qubit index as key to a dictionary of unitary operators in :cls:`list[list[complex]]`.
+
+    Args:
+        single_unitary_op_dict (dict[int, Operator]): The dictionary of unitary operators.
+
+    Returns:
+        dict[int, list[list[complex]]]:
+            The dictionary of unitary operators in :cls:`list[list[complex]]`.
+    """
+    return {i: np.array(op).tolist() for i, op in single_unitary_op_dict.items()}
+
+
+def local_unitary_op_to_pauli_coeff(
+    single_unitary_op_list_dict: dict[int, list[list[complex]]]
+) -> dict[int, list[tuple[Union[float, np.float64], Union[float, np.float64]]]]:
+    """Transform a dictionary of local unitary operators in :cls:`list[list[complex]]`
+    with the qubit index as key to a dictionary of pauli coefficients.
+
+    Args:
+        single_unitary_dict (dict[int, Operator]): The dictionary of unitary operators.
+
+    Returns:
+        dict[int, list[tuple[float, float]]]: The dictionary of pauli coefficients.
+    """
+    return {
+        i: qubit_operator_to_pauli_coeff(np.array(op))
+        for i, op in single_unitary_op_list_dict.items()
+    }

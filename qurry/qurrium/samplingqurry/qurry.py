@@ -7,7 +7,7 @@ QurryV9
 It is only for pendings and retrieve to remote backend.
 """
 
-from typing import Union, Optional, Any, Type
+from typing import Union, Optional, Any, Type, Literal
 from collections.abc import Hashable
 from pathlib import Path
 import tqdm
@@ -46,7 +46,9 @@ class QurryV9(QurriumPrototype):
         run_args: Optional[Union[BaseRunArgs, dict[str, Any]]] = None,
         transpile_args: Optional[TranspileArgs] = None,
         passmanager: Optional[Union[str, PassManager, tuple[str, PassManager]]] = None,
+        tags: Optional[tuple[str, ...]] = None,
         # process tool
+        qasm_version: Literal["qasm2", "qasm3"] = "qasm3",
         export: bool = False,
         save_location: Optional[Union[Path, str]] = None,
         mode: str = "w+",
@@ -77,6 +79,8 @@ class QurryV9(QurriumPrototype):
                 Arguments for :func:`qiskit.transpile`. Defaults to `{}`.
             passmanager (Optional[Union[str, PassManager, tuple[str, PassManager]], optional):
                 The passmanager. Defaults to None.
+            tags (Optional[tuple[str, ...]], optional):
+                The tags of the experiment. Defaults to None.
 
             exp_id (Optional[str], optional):
                 The ID of experiment. Defaults to None.
@@ -87,6 +91,8 @@ class QurryV9(QurriumPrototype):
             replace_circuits (bool, optional):
                 Whether to replace the circuits during revive. Defaults to False.
 
+            qasm_version (Literal["qasm2", "qasm3"], optional):
+                The version of OpenQASM. Defaults to "qasm3".
             export (bool, optional):
                 Whether to export the experiment. Defaults to False.
             save_location (Optional[Union[Path, str]], optional):
@@ -118,6 +124,9 @@ class QurryV9(QurriumPrototype):
             "run_args": run_args,
             "transpile_args": transpile_args,
             "passmanager": passmanager,
+            "tags": tags,
+            # process tool
+            "qasm_version": qasm_version,
             "export": export,
             "save_location": save_location,
             "mode": mode,
@@ -137,7 +146,9 @@ class QurryV9(QurriumPrototype):
         run_args: Optional[Union[BaseRunArgs, dict[str, Any]]] = None,
         transpile_args: Optional[TranspileArgs] = None,
         passmanager: Optional[Union[str, PassManager, tuple[str, PassManager]]] = None,
+        tags: Optional[tuple[str, ...]] = None,
         # process tool
+        qasm_version: Literal["qasm2", "qasm3"] = "qasm3",
         export: bool = False,
         save_location: Optional[Union[Path, str]] = None,
         mode: str = "w+",
@@ -168,6 +179,8 @@ class QurryV9(QurriumPrototype):
                 Arguments for :func:`qiskit.transpile`. Defaults to `{}`.
             passmanager (Optional[Union[str, PassManager, tuple[str, PassManager]], optional):
                 The passmanager. Defaults to None.
+            tags (Optional[tuple[str, ...]], optional):
+                The tags of the experiment. Defaults to None.
 
             exp_id (Optional[str], optional):
                 The ID of experiment. Defaults to None.
@@ -178,6 +191,8 @@ class QurryV9(QurriumPrototype):
             replace_circuits (bool, optional):
                 Whether to replace the circuits during revive. Defaults to False.
 
+            qasm_version (Literal["qasm2", "qasm3"], optional):
+                The version of OpenQASM. Defaults to "qasm3".
             export (bool, optional):
                 Whether to export the experiment. Defaults to False.
             save_location (Optional[Union[Path, str]], optional):
@@ -207,6 +222,9 @@ class QurryV9(QurriumPrototype):
             run_args=run_args,
             transpile_args=transpile_args,
             passmanager=passmanager,
+            tags=tags,
+            # process tool
+            qasm_version=qasm_version,
             export=export,
             save_location=save_location,
             mode=mode,

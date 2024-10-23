@@ -20,12 +20,30 @@ class EntropyMeasureRandomizedAnalysis(AnalysisPrototype):
     class AnalysisInput(NamedTuple):
         """To set the analysis."""
 
-        degree: tuple[int, int]
-        """The range of partition."""
+        num_qubits: int
+        """The number of qubits."""
+        selected_qubits: list[int]
+        """The selected qubits."""
+        registers_mapping: dict[int, int]
+        """The mapping of the classical registers with quantum registers.
+
+        Example:
+        ```python
+        {
+            0: 0, # The quantum register 0 is mapped to the classical register 0.
+            1: 1, # The quantum register 1 is mapped to the classical register 1.
+            5: 2, # The quantum register 5 is mapped to the classical register 2.
+            7: 3, # The quantum register 7 is mapped to the classical register 3.
+        }
+        ```
+
+        The key is the index of the quantum register with the numerical order.
+        The value is the index of the classical register with the numerical order.
+        """
         shots: int
         """The number of shots."""
-        unitary_loc: Optional[tuple[int, int]] = None
-        """The location of the random unitary operator."""
+        unitary_located: Optional[list[int]] = None
+        """The range of the unitary operator."""
 
     input: AnalysisInput
 
@@ -42,11 +60,21 @@ class EntropyMeasureRandomizedAnalysis(AnalysisPrototype):
         """The standard deviation of the entanglement entropy of the subsystem."""
         purityCells: Optional[dict[int, float]] = None
         """The purity of each cell of the subsystem."""
-        bitStringRange: Optional[tuple[int, int]] = None
-        """The qubit range of the subsystem."""
+        # new added
+        num_classical_registers: Optional[int] = None
+        """The number of classical registers."""
+        classical_registers: Optional[list[int]] = None
+        """The list of the index of the selected classical registers."""
+        classical_registers_actually: Optional[list[int]] = None
+        """The list of the index of the selected classical registers which is actually used."""
 
-        allSystemSource: Optional[Union[str, Literal["independent"]]] = None
-        """The source of the all system."""
+        all_system_source: Optional[Union[str, Literal["independent", "null_counts"]]] = None
+        """The name of source of all system.
+
+        - independent: The all system is calculated independently.
+        - null_counts: No counts exist.
+        """
+
         purityAllSys: Optional[float] = None
         """The purity of the system."""
         entropyAllSys: Optional[float] = None
@@ -57,8 +85,13 @@ class EntropyMeasureRandomizedAnalysis(AnalysisPrototype):
         """The standard deviation of the entanglement entropy of the system."""
         purityCellsAllSys: Optional[dict[int, float]] = None
         """The purity of each cell of the system."""
-        bitsStringRangeAllSys: Optional[tuple[int, int]] = None
-        """The qubit range of the all system."""
+        # new added
+        num_classical_registers_all_sys: Optional[int] = None
+        """The number of classical registers of all system."""
+        classical_registers_all_sys: Optional[list[int]] = None
+        """The list of the index of the selected classical registers."""
+        classical_registers_actually_all_sys: Optional[list[int]] = None
+        """The list of the index of the selected classical registers which is actually used."""
 
         errorRate: Optional[float] = None
         """The error rate of the measurement from depolarizing error migigation calculated."""
@@ -67,40 +100,14 @@ class EntropyMeasureRandomizedAnalysis(AnalysisPrototype):
         mitigatedEntropy: Optional[float] = None
         """The mitigated entanglement entropy of the subsystem."""
 
-        num_qubits: Optional[int] = None
-        """The number of qubits of the system."""
-        measure: Optional[tuple[str, Union[list[int], tuple[int, int]]]] = None
-        """The qubit range of the measurement and text description.
+        # refactored
+        counts_num: Optional[int] = None
+        """The number of counts."""
+        taking_time: Optional[float] = None
+        """The calculation time."""
+        taking_time_all_sys: Optional[float] = None
+        """The calculation time of the all system."""
 
-        - The first element is the text description.
-        - The second element is the qubit range of the measurement.
-
-        ---
-        - When the measurement is specified, it will be:
-
-        >>> ("measure range:", (0, 3))
-
-        - When the measurement is not specified, it will be:
-
-        >>> ("not specified, use all qubits", (0, 3))
-
-        - When null counts exist, it will be:
-
-        >>> ("The following is the index of null counts.", [0, 1, 2, 3])
-
-        """
-        measureActually: Optional[tuple[int, int]] = None
-        """The qubit range of the measurement actually used."""
-        measureActuallyAllSys: Optional[tuple[int, int]] = None
-        """The qubit range of the measurement actually used in the all system."""
-
-        countsNum: Optional[int] = None
-        """The number of counts of the experiment."""
-        takingTime: Optional[float] = None
-        """The taking time of the selected system."""
-        takingTimeAllSys: Optional[float] = None
-        """The taking time of the all system if it is calculated, 
-        it will be 0 when use the all system from other analysis."""
         counts_used: Optional[Iterable[int]] = None
         """The index of the counts used.
         If not specified, then use all counts."""

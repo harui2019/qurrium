@@ -13,6 +13,8 @@ from pathlib import Path
 
 from qiskit import QuantumCircuit
 
+from ..utils.qasm import qasm_loads
+
 V5_TO_V7_FIELD = {
     "jobID": "job_id",
     "expName": "exp_name",
@@ -167,8 +169,14 @@ class Before(NamedTuple):
                 self.circuit.clear()
             else:
                 raise ValueError(".circuit is not empty.")
-        for qasm in self.circuit_qasm:
-            revived_circuits.append(QuantumCircuit.from_qasm_str(qasm))
+        is_none_circuits = []
+        for i, qasm in enumerate(self.circuit_qasm):
+            tmp_circ = qasm_loads(qasm)
+            revived_circuits.append(tmp_circ)
+            if tmp_circ is None:
+                is_none_circuits.append(i)
+        if len(is_none_circuits) != 0:
+            print(f"The circuits {is_none_circuits} are not revived.")
         return revived_circuits
 
     def revive_target(self, replace_target: bool = False) -> dict[Hashable, QuantumCircuit]:

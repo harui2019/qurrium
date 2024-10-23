@@ -29,9 +29,27 @@ class EntropyMeasureRandomizedArguments(ArgumentsPrototype):
     times: int = 100
     """The number of random unitary operator. 
     It will denote as `N_U` in the experiment name."""
-    measure: Optional[tuple[int, int]] = None
+    qubits_measured: Optional[list[int]] = None
     """The measure range."""
-    unitary_loc: Optional[tuple[int, int]] = None
+    registers_mapping: Optional[dict[int, int]] = None
+    """The mapping of the classical registers with quantum registers.
+
+    Example:
+    ```python
+    {
+        0: 0, # The quantum register 0 is mapped to the classical register 0.
+        1: 1, # The quantum register 1 is mapped to the classical register 1.
+        5: 2, # The quantum register 5 is mapped to the classical register 2.
+        7: 3, # The quantum register 7 is mapped to the classical register 3.
+    }
+    ```
+
+    The key is the index of the quantum register with the numerical order.
+    The value is the index of the classical register with the numerical order.
+    """
+    actual_num_qubits: int = 0
+    """The actual number of qubits."""
+    unitary_located: Optional[list[int]] = None
     """The range of the unitary operator."""
     random_unitary_seeds: Optional[dict[int, dict[int, int]]] = None
     """The seeds for all random unitary operator.
@@ -71,10 +89,12 @@ class EntropyMeasureRandomizedMeasureArgs(BasicArgs):
     times: int
     """The number of random unitary operator. 
     It will denote as `N_U` in the experiment name."""
-    measure: Union[int, tuple[int, int], None]
+    measure: Optional[Union[tuple[int, int], int, list[int]]]
     """The measure range."""
-    unitary_loc: Union[int, tuple[int, int], None]
+    unitary_loc: Optional[Union[tuple[int, int], int, list[int]]]
     """The range of the unitary operator."""
+    unitary_loc_not_cover_measure: bool
+    """Whether the range of the unitary operator is not cover the measure range."""
     random_unitary_seeds: Optional[dict[int, dict[int, int]]]
     """The seeds for all random unitary operator.
     This argument only takes input as type of `dict[int, dict[int, int]]`.
@@ -109,10 +129,12 @@ class EntropyMeasureRandomizedOutputArgs(OutputArgs):
     times: int
     """The number of random unitary operator. 
     It will denote as `N_U` in the experiment name."""
-    measure: Union[int, tuple[int, int], None]
+    measure: Optional[Union[tuple[int, int], int, list[int]]]
     """The measure range."""
-    unitary_loc: Union[int, tuple[int, int], None]
+    unitary_loc: Optional[Union[tuple[int, int], int, list[int]]]
     """The range of the unitary operator."""
+    unitary_loc_not_cover_measure: bool
+    """Whether the range of the unitary operator is not cover the measure range."""
     random_unitary_seeds: Optional[dict[int, dict[int, int]]]
     """The seeds for all random unitary operator.
     This argument only takes input as type of `dict[int, dict[int, int]]`.
