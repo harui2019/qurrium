@@ -19,32 +19,30 @@ from ...availability import (
     PostProcessingBackendLabel,
 )
 from ...exceptions import (
-    # PostProcessingRustImportError,
+    PostProcessingRustImportError,
     PostProcessingRustUnavailableWarning,
-    # PostProcessingBackendDeprecatedWarning,
+    PostProcessingBackendDeprecatedWarning,
 )
 
 
-# try:
+try:
 
-#     from ....boorust import randomized  # type: ignore
+    from ....boorust import randomized  # type: ignore
 
-#     purity_cell_2_rust_source = randomized.purity_cell_2_rust
+    purity_cell_2_rust_source = randomized.purity_cell_2_rust
 
-#     RUST_AVAILABLE = True
-#     FAILED_RUST_IMPORT = None
-# except ImportError as err:
-#     RUST_AVAILABLE = False
-#     FAILED_RUST_IMPORT = err
+    RUST_AVAILABLE = True
+    FAILED_RUST_IMPORT = None
+except ImportError as err:
+    RUST_AVAILABLE = False
+    FAILED_RUST_IMPORT = err
 
-#     def purity_cell_rust_source(*args, **kwargs):
-#         """Dummy function for purity_cell_rust."""
-#         raise PostProcessingRustImportError(
-#             "Rust is not available, using python to calculate purity cell."
-#         ) from FAILED_RUST_IMPORT
+    def purity_cell_rust_source(*args, **kwargs):
+        """Dummy function for purity_cell_rust."""
+        raise PostProcessingRustImportError(
+            "Rust is not available, using python to calculate purity cell."
+        ) from FAILED_RUST_IMPORT
 
-RUST_AVAILABLE = False
-FAILED_RUST_IMPORT = None
 
 BACKEND_AVAILABLE = availablility(
     "randomized_measure.entangle_entropy.purity_cell_2",
@@ -78,14 +76,17 @@ def purity_cell_2_py(
             The list of **the index of the selected classical registers**.
     """
 
-    num_qubits = len(list(single_counts.keys())[0])
+    num_classical_register = len(list(single_counts.keys())[0])
     shots = sum(single_counts.values())
 
-    selected_qubits_sorted = sorted(selected_classical_registers, reverse=True)
-    subsystem_size = len(selected_qubits_sorted)
+    selected_classical_registers_sorted = sorted(selected_classical_registers, reverse=True)
+    subsystem_size = len(selected_classical_registers_sorted)
     single_counts_under_degree = {}
     for bitstring_all, num_counts_all in single_counts.items():
-        bitstring = "".join(bitstring_all[num_qubits - q_i - 1] for q_i in selected_qubits_sorted)
+        bitstring = "".join(
+            bitstring_all[num_classical_register - q_i - 1]
+            for q_i in selected_classical_registers_sorted
+        )
         if bitstring in single_counts_under_degree:
             single_counts_under_degree[bitstring] += num_counts_all
         else:
@@ -98,31 +99,34 @@ def purity_cell_2_py(
                 s_ai, s_ai_meas, s_aj, s_aj_meas, subsystem_size, shots
             )
 
-    return idx, purity_cell_value, selected_qubits_sorted
+    return idx, purity_cell_value, selected_classical_registers_sorted
 
 
-# def purity_cell_2_rust(
-#     idx: int,
-#     single_counts: dict[str, int],
-#     selected_qubits: list[int],
-# ) -> tuple[int, float]:
-#     """Calculate the purity cell, one of overlap, of a subsystem by Rust.
+def purity_cell_2_rust(
+    idx: int,
+    single_counts: dict[str, int],
+    selected_classical_registers: list[int],
+) -> tuple[int, np.float64, list[int]]:
+    """Calculate the purity cell, one of overlap, of a subsystem by Rust.
 
-#     Args:
-#         idx (int):
-#             Index of the cell (counts).
-#         single_counts (dict[str, int]):
-#             Counts measured by the single quantum circuit.
-#         selected_qubits (list[int]):
-#             The list of **the index on quantum circuit** the selected qubits.
-#     Returns:
-#         tuple[int, float]: Index, one of overlap purity.
-#     """
+    Args:
+        idx (int):
+            Index of the cell (counts).
+        single_counts (dict[str, int]):
+            Counts measured by the single quantum circuit.
+        selected_classical_registers (list[int]):
+            The list of **the index of the selected_classical_registers**.
 
-#     return purity_cell_2_rust_source(idx, single_counts, selected_qubits)
+    Returns:
+        tuple[int, float, list[int]]:
+            Index, one of overlap purity,
+            The list of **the index of the selected classical registers**.
+    """
+
+    return purity_cell_2_rust_source(idx, single_counts, selected_classical_registers)
 
 
-def purity_cell(
+def purity_cell_2(
     idx: int,
     single_counts: dict[str, int],
     selected_classical_registers: list[int],
@@ -145,10 +149,21 @@ def purity_cell(
             Index, one of overlap purity,
             The list of **the index of the selected classical registers**.
     """
-    if backend != "Python":
+
+    if backend == "Cython":
         warnings.warn(
-            "The Rust is not implemented yet, using Python to calculate purity cell.",
+            f"The Cython is deprecated, using {DEFAULT_PROCESS_BACKEND} to calculate purity cell.",
+            PostProcessingBackendDeprecatedWarning,
+        )
+        backend = DEFAULT_PROCESS_BACKEND
+    if backend == "Rust":
+        if RUST_AVAILABLE:
+            return purity_cell_2_rust(idx, single_counts, selected_classical_registers)
+        warnings.warn(
+            "Rust is not available, using Python to calculate purity cell."
+            + f"Check the error: {FAILED_RUST_IMPORT}",
             PostProcessingRustUnavailableWarning,
         )
+        backend = "Python"
 
     return purity_cell_2_py(idx, single_counts, selected_classical_registers)
