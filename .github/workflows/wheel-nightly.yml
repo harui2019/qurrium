@@ -26,9 +26,9 @@ jobs:
           - vers: macOS-ARM64 # Avaliability confirmed by act
             os: macos-latest
             archs: ARM64
-          # - vers: linux-aarch64 # Avaliability confirmed by act
-          #   os: macos-latest
-          #   archs: ARM64
+          - vers: linux-aarch64 # Avaliability confirmed by act
+            os: macos-latest
+            archs: ARM64
           # Disabled for runner setup is not completed
           # See: https://github.com/harui2019/qurry/issues/200
           # - vers: Windows-x86
@@ -62,10 +62,16 @@ jobs:
           architecture: "arm64" # For MacOS ARM64
         if: matrix.vers == 'macOS-ARM64'
 
+      - name: MacOS Path Fix
+        if: runner.os == 'macos-latest' || runner.os == 'macos-13'
+        run: |
+          export PATH="$pythonLocation:$PATH"
+
       - name: Python Version and Architecture Check
         run: |
           python --version
           python -c "from distutils import util; print(util.get_platform())"
+          python -c "import sys; print(sys.executable)"
 
       - name: Install Rust
         if: runner.os != 'Windows'
