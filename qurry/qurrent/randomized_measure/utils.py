@@ -15,7 +15,7 @@ from qiskit.quantum_info import Operator
 
 
 from .analysis import EntropyMeasureRandomizedAnalysis
-from ...process.randomized_measure.entangled_entropy.entangled_entropy_2 import (
+from ...process.randomized_measure.entangled_entropy import (
     randomized_entangled_entropy_mitigated,
 )
 from ...process.randomized_measure.entangled_entropy.container import (

@@ -26,9 +26,9 @@ from ...qurrium.utils.randomized import (
 from ...qurrium.utils.random_unitary import check_input_for_experiment
 from ...process.randomized_measure.wavefunction_overlap import (
     randomized_overlap_echo,
-    PostProcessingBackendLabel,
     DEFAULT_PROCESS_BACKEND,
 )
+from ...process.availability import PostProcessingBackendLabel
 from ...tools import qurry_progressbar, ParallelManager
 from ...exceptions import QurryArgumentsExpectedNotNone
 
