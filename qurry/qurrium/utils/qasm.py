@@ -15,7 +15,7 @@ from qiskit.qasm2 import dumps as dumps_qasm2, QASM2Error, loads as loads_qasm2
 
 def qasm_dumps(
     qc: QuantumCircuit,
-    qasm_version: Literal["qasm2", "qasm3"] = "qasm3",
+    qasm_version: Literal["qasm2", "qasm3"] = "qasm2",
 ) -> str:
     """Draw the circuits in OpenQASM string.
 
@@ -23,7 +23,7 @@ def qasm_dumps(
         qc (QuantumCircuit):
             The circuit wanted to be drawn.
         qasm_version (Literal["qasm2", "qasm3"], optional):
-            The export version of OpenQASM. Defaults to 'qasm3'.
+            The export version of OpenQASM. Defaults to 'qasm2'.
 
     Raises:
         ValueError: If the OpenQASM version is invalid.
@@ -36,11 +36,28 @@ def qasm_dumps(
             txt = dumps_qasm2(qc)
         except QASM2Error as err:
             txt = f"| Skip dumps into OpenQASM2, due to QASM2Error: {err}"
+            # pylint: disable=broad-except
+        except Exception as err:
+            # pylint: enable=broad-except
+            txt = (
+                "| Critical errors in qiskit.qasm2.dumps, "
+                + f"due to Exception: {err}, give up to export."
+            )
     elif qasm_version == "qasm3":
         try:
             txt = dumps_qasm3(qc)
         except QASM3Error as err:
             txt = f"| Skip dumps into OpenQASM3, due to QASM3Error: {err}"
+            # pylint: disable=broad-except
+
+        except Exception as err:
+            # pylint: enable=broad-except
+            # See: https://github.com/Qiskit/qiskit/issues/13362
+            # And: https://github.com/harui2019/qurry/issues/205
+            txt = (
+                "| Critical errors in qiskit.qasm3.dumps, "
+                + f"due to Exception: {err}, give up to export."
+            )
     else:
         raise ValueError(f"Invalid qaasm version: {qasm_version}")
     assert isinstance(txt, str), "The drawing of circuit does not export."
