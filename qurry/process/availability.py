@@ -38,7 +38,7 @@ def availablility(
             dict[PostProcessingBackendLabel, Literal["Yes", "Error", "Depr.", "No"]],
             dict[PostProcessingBackendLabel, Optional[QurryPostProcessingError]
         ]:
-            The location of the module, 
+            The location of the module,
             the availablility of the post-processing backend and the errors.
     """
     avails: dict[PostProcessingBackendLabel, Literal["Yes", "Error", "Depr.", "No"]] = {
