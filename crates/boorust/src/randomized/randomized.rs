@@ -99,13 +99,18 @@ pub fn purity_cell_2_rust(
 
     let mut selected_classical_registers_sorted = selected_classical_registers.clone();
     selected_classical_registers_sorted.sort();
-    let subshystem_size = selected_classical_registers_sorted.len() as i32;
+    let subsystem_size = selected_classical_registers_sorted.len() as i32;
     let mut single_counts_under_degree: HashMap<String, i32> = HashMap::new();
 
     for (bit_string_all, count) in &single_counts {
         let substring = selected_classical_registers
             .iter()
-            .map(|&i| bit_string_all.chars().nth(i as usize).unwrap())
+            .map(|&i| {
+                bit_string_all
+                    .chars()
+                    .nth((num_classical_registers - i - 1) as usize)
+                    .unwrap()
+            })
             .collect::<String>();
         let entry = single_counts_under_degree
             .entry(substring.to_string())

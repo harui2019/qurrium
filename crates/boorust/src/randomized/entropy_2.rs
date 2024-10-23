@@ -3,11 +3,10 @@ extern crate rayon;
 
 use pyo3::prelude::*;
 use rayon::iter::IntoParallelRefIterator;
-use rayon::{prelude::*, result};
+use rayon::prelude::*;
 use std::collections::HashMap;
 use std::time::Instant;
 
-use crate::randomized::construct::{degree_handler_rust, QubitDegree};
 use crate::randomized::randomized::purity_cell_2_rust;
 
 #[pyfunction]
@@ -21,7 +20,7 @@ pub fn entangled_entropy_core_2_rust(
     assert_eq!(
         shots, sample_shots,
         "shots {} does not match sample_shots {}",
-        a, b
+        shots, sample_shots,
     );
 
     // Determine the size of the allsystems
