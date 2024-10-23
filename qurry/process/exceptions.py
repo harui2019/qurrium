@@ -48,3 +48,7 @@ class PostProcessingCythonUnavailableWarning(QurryPostProcessingWarning):
 
 class PostProcessingRustUnavailableWarning(QurryPostProcessingWarning):
     """Rust unavailable warning."""
+
+
+class PostProcessingBackendDeprecatedWarning(QurryPostProcessingWarning):
+    """Post-processing backend is deprecated."""

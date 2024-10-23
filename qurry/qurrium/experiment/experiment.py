@@ -12,7 +12,7 @@ import os
 import json
 import warnings
 from abc import abstractmethod, ABC
-from typing import Union, Optional, Any, Type
+from typing import Union, Optional, Any, Type, Literal
 from collections.abc import Hashable
 from pathlib import Path
 import tqdm
@@ -32,7 +32,8 @@ from .utils import (
     DEPRECATED_PROPERTIES,
     EXPERIMENT_UNEXPORTS,
 )
-from ..utils import get_counts_and_exceptions, qasm_drawer
+from ..utils import get_counts_and_exceptions
+from ..utils.qasm import qasm_dumps
 from ..utils.iocontrol import RJUST_LEN
 from ..utils.inputfixer import outfields_check, outfields_hint
 from ..analysis import AnalysisPrototype
@@ -397,13 +398,14 @@ class ExperimentPrototype(ABC):
         run_args: Optional[Union[BaseRunArgs, dict[str, Any]]] = None,
         transpile_args: Optional[TranspileArgs] = None,
         passmanager_pair: Optional[tuple[str, PassManager]] = None,
-        # multimanager
         tags: Optional[tuple[str, ...]] = None,
+        # multimanager
         default_analysis: Optional[list[dict[str, Any]]] = None,
         serial: Optional[int] = None,
         summoner_id: Optional[Hashable] = None,
         summoner_name: Optional[str] = None,
         # process tool
+        qasm_version: Literal["qasm2", "qasm3"] = "qasm3",
         export: bool = False,
         save_location: Optional[Union[Path, str]] = None,
         mode: str = "w+",
@@ -436,6 +438,7 @@ class ExperimentPrototype(ABC):
             tags (Optional[tuple[str, ...]], optional):
                 Given the experiment multiple tags to make a dictionary for recongnizing it.
                 Defaults to None.
+
             default_analysis (list[dict[str, Any]], optional):
                 The analysis methods will be excuted after counts has been computed.
                 Defaults to [].
@@ -451,6 +454,9 @@ class ExperimentPrototype(ABC):
                 Name of experiment of the multiManager.
                 **!!ATTENTION, this should only be used by `Multimanager`!!**
                 _description_. Defaults to None.
+
+            qasm_version (Literal["qasm2", "qasm3"], optional):
+                The export version of OpenQASM. Defaults to 'qasm3'.
             export (bool, optional):
                 Whether to export the experiment. Defaults to False.
             save_location (Optional[Union[Path, str]], optional):
@@ -520,13 +526,18 @@ class ExperimentPrototype(ABC):
         # qasm
         pool = ParallelManager()
         set_pbar_description(pbar, "Exporting OpenQASM string...")
-        tmp_qasm = pool.map(qasm_drawer, cirqs)
+
+        tmp_qasm = pool.starmap(qasm_dumps, [(q, qasm_version) for q in cirqs])
         for qasm_str in tmp_qasm:
             current_exp.beforewards.circuit_qasm.append(qasm_str)
+
         targets_keys, targets_values = zip(*targets)
         targets_keys: tuple[Hashable, ...]
         targets_values: tuple[QuantumCircuit, ...]
-        tmp_target_qasm_items = zip(targets_keys, pool.map(qasm_drawer, targets_values))
+
+        tmp_target_qasm_items = zip(
+            targets_keys, pool.starmap(qasm_dumps, [(q, qasm_version) for q in targets_values])
+        )
         for tk, qasm_str in tmp_target_qasm_items:
             current_exp.beforewards.target_qasm.append((str(tk), qasm_str))
 

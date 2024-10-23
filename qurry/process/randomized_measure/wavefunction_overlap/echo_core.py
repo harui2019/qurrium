@@ -1,8 +1,8 @@
 """
-================================================================
-Postprocessing - Randomized Measure - Wavefunction Overlap Core
-(:mod:`qurry.process.randomized_measure.echo_core`)
-================================================================
+=========================================================================================
+Postprocessing - Randomized Measure - Wavefunction Overlap - Echo Core
+(:mod:`qurry.process.randomized_measure.wavefunction_overlap.echo_core`)
+=========================================================================================
 
 """
 
@@ -11,31 +11,22 @@ import warnings
 from typing import Union, Optional
 import numpy as np
 
-from .echo_cell import (
-    echo_cell_py,
-    echo_cell_cy,
-    echo_cell_rust,
-    CYTHON_AVAILABLE,
-    FAILED_PYX_IMPORT,
-)
-from ..utils import cycling_slice as cycling_slice_py, qubit_selector
-from ..availability import (
+from .echo_cell import echo_cell_py, echo_cell_rust
+from ...utils import cycling_slice as cycling_slice_py, qubit_selector
+from ...availability import (
     availablility,
     default_postprocessing_backend,
     PostProcessingBackendLabel,
 )
-from ..exceptions import (
-    PostProcessingCythonUnavailableWarning,
+from ...exceptions import (
     PostProcessingRustImportError,
     PostProcessingRustUnavailableWarning,
+    PostProcessingBackendDeprecatedWarning,
 )
-from ...tools import (
-    ParallelManager,
-    workers_distribution,
-)
+from ....tools import ParallelManager, workers_distribution
 
 try:
-    from ...boorust import randomized  # type: ignore
+    from ....boorust import randomized  # type: ignore
 
     overlap_echo_core_rust_source = randomized.overlap_echo_core_rust
 
@@ -56,12 +47,12 @@ BACKEND_AVAILABLE = availablility(
     "randomized_measure.wavefunction_overlap",
     [
         ("Rust", RUST_AVAILABLE, FAILED_RUST_IMPORT),
-        ("Cython", CYTHON_AVAILABLE, FAILED_PYX_IMPORT),
+        ("Cython", "Depr.", None),
     ],
 )
 DEFAULT_PROCESS_BACKEND = default_postprocessing_backend(
     RUST_AVAILABLE,
-    CYTHON_AVAILABLE,
+    False,
 )
 
 
@@ -140,7 +131,7 @@ def overlap_echo_core_pycyrust(
     if measure is None:
         measure = qubit_selector(len(list(counts[0].keys())[0]))
 
-    _dummy_string = "".join(str(ds) for ds in range(allsystem_size))
+    _dummy_string = list(range(allsystem_size))
     _dummy_string_slice = cycling_slice_py(_dummy_string, bitstring_range[0], bitstring_range[1], 1)
     is_avtive_cycling_slice = (
         _dummy_string[bitstring_range[0] : bitstring_range[1]] != _dummy_string_slice
@@ -168,24 +159,13 @@ def overlap_echo_core_pycyrust(
 
     if not RUST_AVAILABLE and backend == "Rust":
         warnings.warn(
-            "Rust is not available, using Cython or Python to calculate purity cell."
+            "Rust is not available, using Python to calculate purity cell."
             + f"Check the error: {FAILED_RUST_IMPORT}",
             PostProcessingRustUnavailableWarning,
         )
-        backend = "Cython" if CYTHON_AVAILABLE else "Python"
-    if not CYTHON_AVAILABLE and backend == "Cython":
-        warnings.warn(
-            "Cython is not available, using Python to calculate purity cell."
-            + f"Check the error: {FAILED_PYX_IMPORT}",
-            PostProcessingCythonUnavailableWarning,
-        )
-        backend = "Rust" if RUST_AVAILABLE else "Python"
+        backend = "Python"
 
-    cell_calculation = (
-        echo_cell_cy
-        if backend == "Cython"
-        else (echo_cell_rust if backend == "Rust" else echo_cell_py)
-    )
+    cell_calculation = echo_cell_rust if backend == "Rust" else echo_cell_py
 
     if launch_worker == 1:
         echo_cell_items = []
@@ -289,10 +269,16 @@ def overlap_echo_core(
     if isinstance(measure, list):
         measure = tuple(measure)  # type: ignore
 
+    if backend == "Cython":
+        warnings.warn(
+            "Cython backend is deprecated, using Python or Rust to calculate purity cell.",
+            PostProcessingBackendDeprecatedWarning,
+        )
+        backend = DEFAULT_PROCESS_BACKEND
     if backend == "Rust":
         if RUST_AVAILABLE:
             return overlap_echo_allrust(shots, counts, degree, measure)
-        backend = "Cython" if CYTHON_AVAILABLE else "Python"
+        backend = "Python"
         warnings.warn(
             f"Rust is not available, using {backend} to calculate purity cell."
             + f" Check the error: {FAILED_RUST_IMPORT}",

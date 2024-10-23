@@ -9,15 +9,13 @@ from typing import Union
 import pytest
 from qurry.process.utils.randomized import (
     RUST_AVAILABLE as rust_available_randomized,
-    CYTHON_AVAILABLE as cython_available_randomized,
-    cycling_slice as cycling_slice_py,
-    cycling_slice_cy,
-    cycling_slice_rust,
 )
 from qurry.process.utils.construct import (
     RUST_AVAILABLE as rust_available_construct,
     qubit_selector as qubit_selector_py,
     qubit_selector_rust,
+    cycling_slice as cycling_slice_py,
+    cycling_slice_rust,
 )
 
 
@@ -48,21 +46,11 @@ def test_qubit_selector(test_items: tuple[int, Union[int, tuple[int, int]], str]
 
     selected = qubit_selector_py_result
 
-    assert cython_available_randomized, "Cython is not available."
     assert rust_available_randomized, "Rust is not available."
-    cycling_slice_cy_result = cycling_slice_cy("01234567", *selected, 1)
     cycling_slice_py_result = cycling_slice_py("01234567", *selected, 1)
     cycling_slice_rust_result = cycling_slice_rust("01234567", *selected, 1)
 
-    assert cycling_slice_cy_result == cycling_slice_py_result, (
-        "Cython and Python results are not equal in"
-        + f"cycling_slice at {test_items[2]}: {test_items[0]} qubits {test_items[1]}."
-    )
     assert cycling_slice_rust_result == cycling_slice_py_result, (
         "Rust and Python results are not equal in"
-        + f"cycling_slice at {test_items[2]}: {test_items[0]} qubits {test_items[1]}."
-    )
-    assert cycling_slice_rust_result == cycling_slice_cy_result, (
-        "Rust and Cython results are not equal in"
         + f"cycling_slice at {test_items[2]}: {test_items[0]} qubits {test_items[1]}."
     )

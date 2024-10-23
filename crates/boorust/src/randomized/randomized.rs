@@ -89,6 +89,50 @@ pub fn purity_cell_rust(
 }
 
 #[pyfunction]
+pub fn purity_cell_2_rust(
+    idx: i32,
+    single_counts: HashMap<String, i32>,
+    selected_classical_registers: Vec<i32>,
+) -> (i32, f64, Vec<i32>) {
+    let shots: i32 = single_counts.values().sum();
+    let num_classical_registers: i32 = single_counts.keys().next().unwrap().len() as i32;
+
+    let mut selected_classical_registers_sorted = selected_classical_registers.clone();
+    selected_classical_registers_sorted.sort();
+    let subsystem_size = selected_classical_registers_sorted.len() as i32;
+    let mut single_counts_under_degree: HashMap<String, i32> = HashMap::new();
+
+    for (bit_string_all, count) in &single_counts {
+        let substring = selected_classical_registers
+            .iter()
+            .map(|&i| {
+                bit_string_all
+                    .chars()
+                    .nth((num_classical_registers - i - 1) as usize)
+                    .unwrap()
+            })
+            .collect::<String>();
+        let entry = single_counts_under_degree
+            .entry(substring.to_string())
+            .or_insert(0);
+        *entry += count;
+    }
+
+    let purity_cell: f64 = single_counts_under_degree
+        .par_iter()
+        .flat_map(|(s_ai, s_ai_meas)| {
+            single_counts_under_degree
+                .par_iter()
+                .map(move |(s_aj, s_aj_meas)| {
+                    ensemble_cell_rust(s_ai, *s_ai_meas, s_aj, *s_aj_meas, subsystem_size, shots)
+                })
+        })
+        .sum();
+
+    (idx, purity_cell, selected_classical_registers_sorted)
+}
+
+#[pyfunction]
 pub fn echo_cell_rust(
     idx: i32,
     single_counts: HashMap<String, i32>,

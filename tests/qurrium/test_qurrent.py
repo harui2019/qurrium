@@ -11,7 +11,7 @@ Test the qurry.qurrent module EntropyMeasure class.
     - [6-GHZ] 0.005859375 <= 0.25. 0.505859375 ~= 0.5.
     - [6-topological-period] 0.041015625 <= 0.25. 0.291015625 ~= 0.25.
 
-- randomized measurement
+- randomized measurement and randomized measurement v1
     - [4-trivial] 0.10342769622802739 <= 0.25. 1.1034276962280274 ~= 1.0.
     - [4-GHZ] 0.14542131423950194 <= 0.25. 0.35457868576049806 ~= 0.5.
     - [4-topological-period] 0.003579425811767567 <= 0.25. 0.25357942581176757 ~= 0.25.
@@ -40,6 +40,7 @@ MANUAL_ASSERT_ERROR = False
 
 exp_method_01 = EntropyMeasure(method="hadamard")
 exp_method_02 = EntropyMeasure(method="randomized")
+exp_method_03 = EntropyMeasure(method="randomized_v1")
 
 random_unitary_seeds_raw: dict[str, dict[str, dict[str, int]]] = quickRead(FILE_LOCATION)
 random_unitary_seeds = {
@@ -49,17 +50,20 @@ random_unitary_seeds = {
 seed_usage = {}
 wave_adds_01 = []
 wave_adds_02 = []
+wave_adds_03 = []
 answer = {}
 
 for i in range(4, 7, 2):
     wave_adds_01.append(exp_method_01.add(TrivialParamagnet(i), f"{i}-trivial"))
     wave_adds_02.append(exp_method_02.add(TrivialParamagnet(i), f"{i}-trivial"))
+    wave_adds_03.append(exp_method_03.add(TrivialParamagnet(i), f"{i}-trivial"))
     answer[f"{i}-trivial"] = 1.0
     seed_usage[f"{i}-trivial"] = i
     # purity = 1.0
 
     wave_adds_01.append(exp_method_01.add(GHZ(i), f"{i}-GHZ"))
     wave_adds_02.append(exp_method_02.add(GHZ(i), f"{i}-GHZ"))
+    wave_adds_03.append(exp_method_03.add(GHZ(i), f"{i}-GHZ"))
     answer[f"{i}-GHZ"] = 0.5
     seed_usage[f"{i}-GHZ"] = i
     # purity = 0.5
@@ -69,6 +73,9 @@ for i in range(4, 7, 2):
     )
     wave_adds_02.append(
         exp_method_02.add(TopologicalParamagnet(i, "period"), f"{i}-topological-period")
+    )
+    wave_adds_03.append(
+        exp_method_03.add(TopologicalParamagnet(i, "period"), f"{i}-topological-period")
     )
     answer[f"{i}-topological-period"] = 0.25
     seed_usage[f"{i}-topological-period"] = i
@@ -113,9 +120,9 @@ def test_multi_output_01():
             "wave": k,
             "degree": (0, 2),
         }
-        for k in wave_adds_01
+        for k in wave_adds_01[:3]
     ]
-    answer_list = [answer[k] for k in wave_adds_01]
+    answer_list = [answer[k] for k in wave_adds_01[:3]]
 
     summoner_id = exp_method_01.multiOutput(
         config_list,
@@ -163,9 +170,11 @@ def test_quantity_02(tgt):
         random_unitary_seeds={i: random_unitary_seeds[seed_usage[tgt]][i] for i in range(20)},
         backend=backend,
     )
-    analysis_01 = exp_method_02.exps[exp_id].analyze((0, 2))
+    analysis_01 = exp_method_02.exps[exp_id].analyze(list(range(int(tgt.split("-")[0])))[-2:])
     quantity_01 = analysis_01.content._asdict()
-    analysis_02 = exp_method_02.exps[exp_id].analyze((0, 2), counts_used=range(5))
+    analysis_02 = exp_method_02.exps[exp_id].analyze(
+        list(range(int(tgt.split("-")[0])))[-2:], counts_used=range(5)
+    )
     quantity_02 = analysis_02.content._asdict()
     assert all(
         ["entropy" in quantity_01, "purity" in quantity_01]
@@ -195,9 +204,9 @@ def test_multi_output_02():
             "times": 20,
             "random_unitary_seeds": {i: random_unitary_seeds[seed_usage[k]][i] for i in range(20)},
         }
-        for k in wave_adds_02
+        for k in wave_adds_02[:3]
     ]
-    answer_list = [answer[k] for k in wave_adds_01]
+    answer_list = [answer[k] for k in wave_adds_02[:3]]
 
     summoner_id = exp_method_02.multiOutput(
         config_list,
@@ -206,7 +215,18 @@ def test_multi_output_02():
         summoner_name="qurrent_randomized",
         save_location=os.path.join(os.path.dirname(__file__), "exports"),
     )
-    summoner_id = exp_method_02.multiAnalysis(summoner_id, degree=(0, 2))
+    summoner_id = exp_method_02.multiAnalysis(
+        summoner_id,
+        specific_analysis_args={
+            ck: {
+                "selected_qubits": list(range(int(wk.split("-")[0])))[-2:],
+            }
+            for wk, ck in zip(
+                wave_adds_02[:3],
+                exp_method_02.multimanagers[summoner_id].afterwards.allCounts.keys(),
+            )
+        },
+    )
     quantity_container = exp_method_02.multimanagers[summoner_id].quantity_container
     for rk, report in quantity_container.items():
         for qk, quantities in report.items():
@@ -224,6 +244,89 @@ def test_multi_output_02():
 
     read_summoner_id = exp_method_02.multiRead(
         summoner_name=exp_method_02.multimanagers[summoner_id].summoner_name,
+        save_location=os.path.join(os.path.dirname(__file__), "exports"),
+    )
+
+    assert (
+        read_summoner_id == summoner_id
+    ), f"The read summoner id is wrong: {read_summoner_id} != {summoner_id}."
+
+
+@pytest.mark.parametrize("tgt", wave_adds_03)
+def test_quantity_03(tgt):
+    """Test the quantity of entropy and purity.
+
+    Args:
+        tgt (Hashable): The target wave key in Qurry.
+    """
+
+    exp_id = exp_method_03.measure(
+        wave=tgt,
+        times=20,
+        random_unitary_seeds={i: random_unitary_seeds[seed_usage[tgt]][i] for i in range(20)},
+        backend=backend,
+    )
+    analysis_01 = exp_method_03.exps[exp_id].analyze((0, 2))
+    quantity_01 = analysis_01.content._asdict()
+    analysis_02 = exp_method_03.exps[exp_id].analyze((0, 2), counts_used=range(5))
+    quantity_02 = analysis_02.content._asdict()
+    assert all(
+        ["entropy" in quantity_01, "purity" in quantity_01]
+    ), f"The necessary quantities 'entropy', 'purity' are not found: {quantity_01.keys()}."
+    assert quantity_02["entropyAllSys"] != quantity_01["entropyAllSys"], (
+        "The all system entropy is not changed: "
+        + f"counts_used: {quantity_01['counts_used']}: {quantity_02['entropyAllSys']}, "
+        + f"counts_used: {quantity_02['counts_used']}: {quantity_02['entropyAllSys']},"
+    )
+    assert (not MANUAL_ASSERT_ERROR) and np.abs(quantity_01["purity"] - answer[tgt]) < THREDHOLD, (
+        "The randomized measurement result is wrong: "
+        + f"{np.abs(quantity_01['purity'] - answer[tgt])} !< {THREDHOLD}."
+        + f" {quantity_01['purity']} != {answer[tgt]}."
+    )
+
+
+def test_multi_output_03():
+    """Test the multi-output of purity and entropy.
+
+    Args:
+        tgt (Hashable): The target wave key in Qurry.
+    """
+
+    config_list = [
+        {
+            "wave": k,
+            "times": 20,
+            "random_unitary_seeds": {i: random_unitary_seeds[seed_usage[k]][i] for i in range(20)},
+        }
+        for k in wave_adds_03[:3]
+    ]
+    answer_list = [answer[k] for k in wave_adds_03[:3]]
+
+    summoner_id = exp_method_03.multiOutput(
+        config_list,
+        shots=4096,
+        backend=backend,
+        summoner_name="qurrent_randomized",
+        save_location=os.path.join(os.path.dirname(__file__), "exports"),
+    )
+    summoner_id = exp_method_03.multiAnalysis(summoner_id, degree=(0, 2))
+    quantity_container = exp_method_03.multimanagers[summoner_id].quantity_container
+    for rk, report in quantity_container.items():
+        for qk, quantities in report.items():
+            for qqi, quantity in enumerate(quantities):
+                assert isinstance(quantity, dict), f"The quantity is not a dict: {quantity}."
+                assert all(["entropy" in quantity, "purity" in quantity]), (
+                    "The necessary quantities 'entropy', 'purity' "
+                    + f"are not found: {quantity.keys()}-{qk}-{rk}."
+                )
+                assert np.abs(quantity["purity"] - answer_list[qqi]) < THREDHOLD, (
+                    "The randomized measurement result is wrong: "
+                    + f"{np.abs(quantity['purity'] - answer_list[qqi])} !< {THREDHOLD}."
+                    + f" {quantity['purity']} != {answer_list[qqi]}."
+                )
+
+    read_summoner_id = exp_method_03.multiRead(
+        summoner_name=exp_method_03.multimanagers[summoner_id].summoner_name,
         save_location=os.path.join(os.path.dirname(__file__), "exports"),
     )
 

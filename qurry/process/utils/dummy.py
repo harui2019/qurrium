@@ -15,10 +15,7 @@ from ..availability import (
     default_postprocessing_backend,
     PostProcessingBackendLabel,
 )
-from ..exceptions import (
-    PostProcessingRustImportError,
-    PostProcessingRustUnavailableWarning,
-)
+from ..exceptions import PostProcessingRustImportError, PostProcessingRustUnavailableWarning
 
 try:
     from ...boorust import dummy  # type: ignore

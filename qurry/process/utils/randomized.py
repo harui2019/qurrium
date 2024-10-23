@@ -1,28 +1,23 @@
 """
 ================================================================
-Randomized (:mod:`qurry.process.utils.randomized`)
+Postprocessing - Utils - Randomized
+(:mod:`qurry.process.utils.randomized`)
 ================================================================
 
 """
 
 import warnings
-from typing import Union, overload
+from typing import Union
 import numpy as np
 
 from ..availability import availablility
-from ..exceptions import (
-    PostProcessingCythonImportError,
-    PostProcessingCythonUnavailableWarning,
-    PostProcessingRustImportError,
-    PostProcessingRustUnavailableWarning,
-)
+from ..exceptions import PostProcessingRustImportError, PostProcessingRustUnavailableWarning
 
 try:
-    from ...boorust import construct, randomized  # type: ignore
+    from ...boorust import randomized  # type: ignore
 
     ensemble_cell_rust_source = randomized.ensemble_cell_rust  # type: ignore
     hamming_distance_rust_source = randomized.hamming_distance_rust  # type: ignore
-    cycling_slice_rust_source = construct.cycling_slice_rust  # type: ignore
 
     RUST_AVAILABLE = True
     FAILED_RUST_IMPORT = None
@@ -42,44 +37,12 @@ except ImportError as err:
             "Rust is not available, using python to calculate hamming distance."
         ) from FAILED_RUST_IMPORT
 
-    def cycling_slice_rust_source(*args, **kwargs):
-        """Dummy function for cycling_slice_rust."""
-        raise PostProcessingRustImportError(
-            "Rust is not available, using python to calculate cycling slice."
-        ) from FAILED_RUST_IMPORT
-
-
-try:
-    from ...boost.randomized import (
-        ensembleCell,  # type: ignore
-        cycling_slice as cycling_slice_cy_source,  # type: ignore
-    )
-
-    CYTHON_AVAILABLE = True
-    FAILED_PYX_IMPORT = None
-except ImportError as err:
-    FAILED_PYX_IMPORT = err
-    CYTHON_AVAILABLE = False
-    # pylint: disable=invalid-name, unused-argument
-
-    def ensembleCell(*args, **kwargs):
-        """Dummy function for ensembleCell."""
-        raise PostProcessingCythonImportError(
-            "Cython is not available, using python to calculate ensemble cell."
-        ) from FAILED_PYX_IMPORT
-
-    def cycling_slice_cy_source(*args, **kwargs):
-        """Dummy function for cycling_slice_cy."""
-        raise PostProcessingCythonImportError(
-            "Cython is not available, using python to calculate cycling slice."
-        ) from FAILED_PYX_IMPORT
-
 
 BACKEND_AVAILABLE = availablility(
     "utils.randomized",
     [
         ("Rust", RUST_AVAILABLE, FAILED_RUST_IMPORT),
-        ("Cython", CYTHON_AVAILABLE, FAILED_PYX_IMPORT),
+        ("Cython", "Depr.", None),
     ],
 )
 
@@ -162,43 +125,6 @@ def ensemble_cell(
     return tmp
 
 
-def ensemble_cell_cy(
-    s_i: str,
-    s_i_meas: int,
-    s_j: str,
-    s_j_meas: int,
-    a_num: int,
-    shots: int,
-) -> Union[float, np.float64]:
-    """Calculate the value of two counts from qubits in ensemble average.
-
-    - about `diff = hamming_distance(sAi, sAj)`:
-
-        It is `hamming_distance` from `qiskit.visualization.count_visualization`.
-        Due to frequently update of Qiskit and it's a simple function,
-        I decide not to use source code instead of calling from `qiskit`.
-
-    Args:
-        s_i (str): First count's qubits arrange.
-        s_i_meas (int): First count.
-        s_j (str): Second count's qubits arrange.
-        s_j_meas (int): Second count.
-        a_num (int): Degree of freedom.
-        shots (int): Shots of executation.
-
-    Returns:
-        Union[float, np.float64]: the value of two counts from qubits in ensemble average.
-    """
-    if CYTHON_AVAILABLE:
-        return ensembleCell(s_i, s_i_meas, s_j, s_j_meas, a_num, shots)
-    warnings.warn(
-        "Cython is not available, using python to calculate ensemble cell."
-        + f" Check: {FAILED_PYX_IMPORT}",
-        PostProcessingCythonUnavailableWarning,
-    )
-    return ensemble_cell(s_i, s_i_meas, s_j, s_j_meas, a_num, shots)
-
-
 def ensemble_cell_rust(
     s_i: str,
     s_i_meas: int,
@@ -229,99 +155,3 @@ def ensemble_cell_rust(
         PostProcessingRustUnavailableWarning,
     )
     return ensemble_cell(s_i, s_i_meas, s_j, s_j_meas, a_num, shots)
-
-
-@overload
-def cycling_slice(target: list, start: int, end: int, step: int = 1) -> list: ...
-
-
-@overload
-def cycling_slice(target: str, start: int, end: int, step: int = 1) -> str: ...
-
-
-@overload
-def cycling_slice(target: tuple, start: int, end: int, step: int = 1) -> tuple: ...
-
-
-def cycling_slice(target, start, end, step=1):
-    """Slice a iterable object with cycling.
-
-    Args:
-        target (_ListT): The target object.
-        start (int): Index of start.
-        end (int): Index of end.
-        step (int, optional): Step of slice. Defaults to 1.
-
-    Raises:
-        IndexError: Slice out of range.
-
-    Returns:
-        Iterable: The sliced object.
-    """
-    length = len(target)
-    slice_check = {
-        "start <= -length": (start <= -length),
-        "end >= length ": (end >= length),
-    }
-    if all(slice_check.values()):
-        raise IndexError(
-            "Slice out of range" + ", ".join([f" {k};" for k, v in slice_check.items() if not v])
-        )
-    if length <= 0:
-        return target
-    if start < 0 <= end:
-        new_string = target[start:] + target[:end]
-    else:
-        new_string = target[start:end]
-
-    return new_string[::step]
-
-
-def cycling_slice_cy(target: str, start: int, end: int, step: int = 1) -> str:
-    """Slice a iterable object with cycling.
-
-    Args:
-        target (Iterable): The target object.
-        start (int): Index of start.
-        end (int): Index of end.
-        step (int, optional): Step of slice. Defaults to 1.
-
-    Raises:
-        IndexError: Slice out of range.
-
-    Returns:
-        Iterable: The sliced object.
-    """
-    if CYTHON_AVAILABLE:
-        return cycling_slice_cy_source(target, start, end, step)
-    warnings.warn(
-        "Cython is not available, using python to calculate cycling slice."
-        + f" Check: {FAILED_PYX_IMPORT}",
-        PostProcessingCythonUnavailableWarning,
-    )
-    return cycling_slice(target, start, end, step)
-
-
-def cycling_slice_rust(target: str, start: int, end: int, step: int = 1) -> str:
-    """Slice a iterable object with cycling.
-
-    Args:
-        target (str): The target object.
-        start (int): Index of start.
-        end (int): Index of end.
-        step (int, optional): Step of slice. Defaults to 1.
-
-    Raises:
-        IndexError: Slice out of range.
-
-    Returns:
-        str: The sliced object.
-    """
-    if RUST_AVAILABLE:
-        return cycling_slice_rust_source(target, start, end, step)
-    warnings.warn(
-        "Rust is not available, using python to calculate cycling slice."
-        + f" Check: {FAILED_RUST_IMPORT}",
-        PostProcessingRustUnavailableWarning,
-    )
-    return cycling_slice(target, start, end, step)

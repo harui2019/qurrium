@@ -15,10 +15,13 @@ BACKEND_TYPES: list[PostProcessingBackendLabel] = ["Python", "Cython", "Rust"]
 
 def availablility(
     module_location: str,
-    import_statement: list[tuple[PostProcessingBackendLabel, bool, Optional[ImportError]]],
+    import_statement: list[
+        tuple[PostProcessingBackendLabel, Union[bool, Literal["Depr."]], Optional[ImportError]]
+    ],
 ) -> tuple[
     str,
-    dict[PostProcessingBackendLabel, Union[bool, Optional[ImportError]]],
+    dict[PostProcessingBackendLabel, Literal["Yes", "Error", "Depr.", "No"]],
+    dict[PostProcessingBackendLabel, Optional[ImportError]],
 ]:
     """Returns the availablility of the post-processing backend.
 
@@ -30,19 +33,30 @@ def availablility(
             The import statement for the post-processing backend.
 
     Returns:
-        tuple[str, dict[
-            PostProcessingBackendLabel,
-            Union[bool, Optional[QurryPostProcessingError]]]
+        tuple[
+            str,
+            dict[PostProcessingBackendLabel, Literal["Yes", "Error", "Depr.", "No"]],
+            dict[PostProcessingBackendLabel, Optional[QurryPostProcessingError]
         ]:
-            The location of the module and the availablility of the post-processing backend.
+            The location of the module,
+            the availablility of the post-processing backend and the errors.
     """
-    return module_location, {
-        "Python": True,
-        **{
-            backend: available if available else error
-            for backend, available, error in import_statement
-        },
+    avails: dict[PostProcessingBackendLabel, Literal["Yes", "Error", "Depr.", "No"]] = {
+        "Python": "Yes"
     }
+    errors: dict[PostProcessingBackendLabel, Optional[ImportError]] = {}
+    for backend, available, error in import_statement:
+        if available is True:
+            avails[backend] = "Yes"
+        elif error is not None:
+            avails[backend] = "Error"
+            errors[backend] = error
+        elif available == "Depr.":
+            avails[backend] = "Depr."
+        else:
+            avails[backend] = "No"
+
+    return module_location, avails, errors
 
 
 default_postprocessing_backend: Callable[[bool, bool], PostProcessingBackendLabel] = (

@@ -36,6 +36,10 @@ jobs:
           #   os: macos-latest
           #   archs: ARM64
 
+    environment:
+      name: pypi
+      url: https://pypi.org/p/qurrium
+
     steps:
       - uses: actions/checkout@v3
         with:
@@ -44,15 +48,26 @@ jobs:
 
       - name: Set up Python
         uses: actions/setup-python@v5
-        if: runner.os != 'Windows'
         with:
-          python-version: "3.12"
+          python-version: "3.10"
+        if: matrix.vers != 'macOS-ARM64'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          architecture: "arm64" # For MacOS ARM64
+        if: matrix.vers == 'macOS-ARM64'
 
-      # - name: Set up Python for Windows
-      #   uses: actions/setup-python@v3
-      #   if: runner.os == 'Windows'
-      #   with:
-      #     python-version: "3.9"
+      - name: MacOS Path Fix
+        if: runner.os == 'macOS'
+        run: |
+          export PATH="$pythonLocation:$PATH"
+
+      - name: Python Version and Architecture Check
+        run: |
+          python --version
+          python -c "from distutils import util; print(util.get_platform())"
+          python -c "import sys; print(sys.executable)"
 
       - name: Install Rust
         if: runner.os != 'Windows'
@@ -106,10 +121,18 @@ jobs:
             PYO3_CROSS_LIB_DIR="/Library/Frameworks/Python.framework/Versions/$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')/lib/python$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')"
 
       - name: Wheelhouse Upload
+        if: runner.os != 'Linux' || matrix.archs != 'X64'
         uses: actions/upload-artifact@v3
         with:
           path: ./wheelhouse/*.whl
           name: shared-wheel-builds
+
+      - name: Early Publish distribution 📦 to PyPI for Linux X86_64
+        if: runner.os == 'Linux' && matrix.archs == 'X64'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: wheelhouse
+          repository-url: https://test.pypi.org/legacy/
 
   publish-to-pypi:
     if: github.repository == 'harui2019/qurry'
@@ -122,13 +145,17 @@ jobs:
     permissions:
       id-token: write # IMPORTANT: mandatory for trusted publishing
 
+    environment:
+      name: pypi
+      url: https://pypi.org/p/qurrium
+
     steps:
       - name: Download all the dists ${{ matrix.archs }}
         uses: actions/download-artifact@v3
         with:
           name: shared-wheel-builds
           path: deploy
-      - name: Publish distribution 📦 to TestPyPI
+      - name: Publish distribution 📦 to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: deploy

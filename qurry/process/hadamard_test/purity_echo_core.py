@@ -17,6 +17,7 @@ from ..availability import (
 from ..exceptions import (
     PostProcessingRustImportError,
     PostProcessingRustUnavailableWarning,
+    PostProcessingBackendDeprecatedWarning,
 )
 
 try:
@@ -101,6 +102,12 @@ def purity_echo_core(
                 "Rust is not available, using python to calculate purity cell."
             )
         )
+    if backend == "Cython":
+        warnings.warn(
+            "Cython backend is deprecated, using Python or Rust to calculate purity cell.",
+            PostProcessingBackendDeprecatedWarning,
+        )
+        backend = DEFAULT_PROCESS_BACKEND
 
     only_counts = counts[0]
     sample_shots = sum(only_counts.values())

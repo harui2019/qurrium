@@ -18,21 +18,20 @@ from .arguments import EntropyMeasureRandomizedArguments, SHORT_NAME
 from .utils import circuit_method_core, randomized_entangled_entropy_complex
 from ...qurrium.experiment import ExperimentPrototype, Commonparams
 from ...qurrium.utils.randomized import (
-    local_random_unitary_operators,
-    local_random_unitary_pauli_coeff,
     random_unitary,
+    local_unitary_op_to_list,
+    local_unitary_op_to_pauli_coeff,
 )
 from ...qurrium.utils.random_unitary import check_input_for_experiment
-from ...process.utils import qubit_selector
-from ...process.randomized_measure.entangled_entropy import (
-    RandomizedEntangledEntropyMitigatedComplex,
+from ...process.utils import qubit_mapper
+from ...process.randomized_measure.entangled_entropy.container import (
+    EntangledEntropyResultMitigated,
 )
-from ...process.randomized_measure.entropy_core import (
+from ...process.randomized_measure.entangled_entropy.entropy_core_2 import (
     PostProcessingBackendLabel,
     DEFAULT_PROCESS_BACKEND,
 )
 from ...tools import qurry_progressbar, ParallelManager
-from ...exceptions import QurryArgumentsExpectedNotNone
 
 
 class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
@@ -58,8 +57,9 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
         targets: list[tuple[Hashable, QuantumCircuit]],
         exp_name: str = "exps",
         times: int = 100,
-        measure: Optional[Union[tuple[int, int], int]] = None,
-        unitary_loc: Optional[Union[tuple[int, int], int]] = None,
+        measure: Optional[Union[list[int], tuple[int, int], int]] = None,
+        unitary_loc: Optional[Union[list[int], tuple[int, int], int]] = None,
+        unitary_loc_not_cover_measure: bool = False,
         random_unitary_seeds: Optional[dict[int, dict[int, int]]] = None,
         **custom_kwargs: Any,
     ) -> tuple[EntropyMeasureRandomizedArguments, Commonparams, dict[str, Any]]:
@@ -73,14 +73,14 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
                 This name is also used for creating a folder to store the exports.
                 Defaults to `'experiment'`.
-            times (int):
+            times (int, optional):
                 The number of random unitary operator. Defaults to 100.
                 It will denote as `N_U` in the experiment name.
-            measure (Optional[Union[tuple[int, int], int]]):
+            measure (Optional[Union[list[int], tuple[int, int], int]], optional):
                 The measure range. Defaults to None.
-            unitary_loc (Optional[Union[tuple[int, int], int]]):
+            unitary_loc (Optional[Union[list[int], tuple[int, int], int]], optional):
                 The range of the unitary operator. Defaults to None.
-            random_unitary_seeds (Optional[dict[int, dict[int, int]]]):
+            random_unitary_seeds (Optional[dict[int, dict[int, int]]], optional):
                 The seeds for all random unitary operator.
                 This argument only takes input as type of `dict[int, dict[int, int]]`.
                 The first key is the index for the random unitary operator.
@@ -116,31 +116,37 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
             raise TypeError(f"times should be an integer, but got {times}.")
 
         target_key, target_circuit = targets[0]
-        num_qubits = target_circuit.num_qubits
+        actual_qubits = target_circuit.num_qubits
 
-        if measure is None:
-            measure = num_qubits
-        measure = qubit_selector(num_qubits, degree=measure)
-        if unitary_loc is None:
-            unitary_loc = num_qubits
-        unitary_loc = qubit_selector(num_qubits, degree=unitary_loc)
+        registers_mapping = qubit_mapper(actual_qubits, measure)
+        qubits_measured = list(registers_mapping)
 
-        if (min(measure) < min(unitary_loc)) or (max(measure) > max(unitary_loc)):
-            raise ValueError(
-                f"unitary_loc range '{unitary_loc}' does not contain measure range '{measure}'."
+        unitary_located = list(qubit_mapper(actual_qubits, unitary_loc))
+        measured_but_not_unitary_located = [
+            qi for qi in qubits_measured if qi not in unitary_located
+        ]
+        if len(measured_but_not_unitary_located) > 0 and not unitary_loc_not_cover_measure:
+            warnings.warn(
+                f"Some qubits {measured_but_not_unitary_located} are measured "
+                + "but not random unitary located. "
+                + f"unitary_loc: {unitary_loc}, measure: {measure} "
+                + "If you are sure about this, you can set `unitary_loc_not_cover_measure=True` "
+                + "to close this warning.",
             )
 
         exp_name = f"{exp_name}.N_U_{times}.{SHORT_NAME}"
 
-        check_input_for_experiment(times, num_qubits, random_unitary_seeds)
+        check_input_for_experiment(times, actual_qubits, random_unitary_seeds)
 
         # pylint: disable=protected-access
         return EntropyMeasureRandomizedArguments._filter(
             exp_name=exp_name,
             target_keys=[target_key],
             times=times,
-            measure=measure,
-            unitary_loc=unitary_loc,
+            qubits_measured=qubits_measured,
+            registers_mapping=registers_mapping,
+            actual_num_qubits=actual_qubits,
+            unitary_located=unitary_located,
             random_unitary_seeds=random_unitary_seeds,
             **custom_kwargs,
         )
@@ -180,23 +186,17 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
         target_key = "" if isinstance(target_key, int) else str(target_key)
         num_qubits = target_circuit.num_qubits
 
-        if arguments.unitary_loc is None:
-            actual_unitary_loc = (0, num_qubits)
-            warnings.warn(
-                f"| unitary_loc is not specified, using the whole qubits {actual_unitary_loc},"
-                + " but it should be not None anymore here.",
-                QurryArgumentsExpectedNotNone,
-            )
-        else:
-            actual_unitary_loc = arguments.unitary_loc
-        unitary_dict = {
+        actual_unitary_loc = (
+            range(num_qubits) if arguments.unitary_located is None else arguments.unitary_located
+        )
+        unitary_dicts = {
             i: {
                 j: (
                     random_unitary(2)
                     if arguments.random_unitary_seeds is None
                     else random_unitary(2, arguments.random_unitary_seeds[i][j])
                 )
-                for j in range(*actual_unitary_loc)
+                for j in actual_unitary_loc
             }
             for i in range(arguments.times)
         }
@@ -213,9 +213,8 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
                     target_circuit,
                     target_key,
                     arguments.exp_name,
-                    arguments.unitary_loc,
-                    unitary_dict[i],
-                    arguments.measure,
+                    arguments.registers_mapping,
+                    unitary_dicts[i],
                 )
                 for i in range(arguments.times)
             ],
@@ -228,8 +227,8 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
         #     for k, v in unitary_dict.items()
         # }
         unitary_operator_list = pool.starmap(
-            local_random_unitary_operators,
-            [(arguments.unitary_loc, unitary_dict[i]) for i in range(arguments.times)],
+            local_unitary_op_to_list,
+            [(unitary_dicts[i],) for i in range(arguments.times)],
         )
         side_product["unitaryOP"] = dict(enumerate(unitary_operator_list))
 
@@ -240,8 +239,8 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
         #     for i in range(arguments.times)
         # }
         randomized_list = pool.starmap(
-            local_random_unitary_pauli_coeff,
-            [(arguments.unitary_loc, unitary_operator_list[i]) for i in range(arguments.times)],
+            local_unitary_op_to_pauli_coeff,
+            [(unitary_operator_list[i],) for i in range(arguments.times)],
         )
         side_product["randomized"] = dict(enumerate(randomized_list))
 
@@ -249,11 +248,10 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
 
     def analyze(
         self,
-        degree: Optional[Union[tuple[int, int], int]] = None,
-        counts_used: Optional[Iterable[int]] = None,
-        workers_num: Optional[int] = None,
+        selected_qubits: Optional[list[int]] = None,
         independent_all_system: bool = False,
         backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
+        counts_used: Optional[Iterable[int]] = None,
         pbar: Optional[tqdm.tqdm] = None,
     ) -> EntropyMeasureRandomizedAnalysis:
         """Calculate entangled entropy with more information combined.
@@ -283,14 +281,16 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
                 a list of each overlap in all system, puritySD of all system,
                 degree, actual measure range, actual measure range in all system, bitstring range.
         """
-        if degree is None:
-            raise ValueError("degree should be specified.")
+        if selected_qubits is None:
+            raise ValueError("selected_qubits should be specified.")
 
         self.args: EntropyMeasureRandomizedArguments
         self.reports: dict[int, EntropyMeasureRandomizedAnalysis]
-        shots = self.commons.shots
-        measure = self.args.measure
-        unitary_loc = self.args.unitary_loc
+        registers_mapping = self.args.registers_mapping
+        assert isinstance(
+            registers_mapping, dict
+        ), f"registers_mapping {registers_mapping} is not dict."
+
         if isinstance(counts_used, Iterable):
             if max(counts_used) >= len(self.afterwards.counts):
                 raise ValueError(
@@ -298,31 +298,33 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
                     f"{len(self.afterwards.counts)}, but get {max(counts_used)}."
                 )
             counts = [self.afterwards.counts[i] for i in counts_used]
+        elif counts_used is not None:
+            raise ValueError(f"counts_used should be Iterable, but get {type(counts_used)}.")
         else:
-            if counts_used is not None:
-                raise ValueError(f"counts_used should be Iterable, but get {type(counts_used)}.")
             counts = self.afterwards.counts
 
         available_all_system_source = [
             k
             for k, v in self.reports.items()
-            if (v.content.allSystemSource == "independent" and v.content.counts_used == counts_used)
+            if (
+                v.content.all_system_source == "independent"
+                and v.content.counts_used == counts_used
+            )
         ]
-
         if len(available_all_system_source) > 0 and not independent_all_system:
             all_system_source = self.reports[available_all_system_source[-1]]
         else:
             all_system_source = None
 
+        selected_classical_registers = [registers_mapping[qi] for qi in selected_qubits]
+
         if isinstance(pbar, tqdm.tqdm):
             qs = self.quantities(
-                shots=shots,
+                shots=self.commons.shots,
                 counts=counts,
-                degree=degree,
-                measure=measure,
+                selected_classical_registers=selected_classical_registers,
                 all_system_source=all_system_source,
                 backend=backend,
-                workers_num=workers_num,
                 pbar=pbar,
             )
 
@@ -334,13 +336,11 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
 
             with pbar_selfhost as pb_self:
                 qs = self.quantities(
-                    shots=shots,
+                    shots=self.commons.shots,
                     counts=counts,
-                    degree=degree,
-                    measure=measure,
+                    selected_classical_registers=selected_classical_registers,
                     all_system_source=all_system_source,
                     backend=backend,
-                    workers_num=workers_num,
                     pbar=pb_self,
                 )
                 pb_self.update()
@@ -348,8 +348,11 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
         serial = len(self.reports)
         analysis = self.analysis_instance(
             serial=serial,
-            shots=shots,
-            unitary_loc=unitary_loc,
+            num_qubits=self.args.actual_num_qubits,
+            selected_qubits=selected_qubits,
+            registers_mapping=registers_mapping,
+            shots=self.commons.shots,
+            unitary_located=self.args.unitary_located,
             counts_used=counts_used,
             **qs,
         )
@@ -362,116 +365,29 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
         cls,
         shots: Optional[int] = None,
         counts: Optional[list[dict[str, int]]] = None,
-        degree: Optional[Union[tuple[int, int], int]] = None,
-        measure: Optional[tuple[int, int]] = None,
-        all_system_source: Optional["EntropyMeasureRandomizedAnalysis"] = None,
+        selected_classical_registers: Optional[list[int]] = None,
+        all_system_source: Optional[EntropyMeasureRandomizedAnalysis] = None,
         backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
-        workers_num: Optional[int] = None,
         pbar: Optional[tqdm.tqdm] = None,
-    ) -> RandomizedEntangledEntropyMitigatedComplex:
-        """Calculate entangled entropy.
-
-        - Which entropy:
-
-            The entropy we compute is the Second Order Rényi Entropy.
-
-        - Reference:
-
-            Probing Rényi entanglement entropy via randomized measurements -
-            Tiff Brydges, Andreas Elben, Petar Jurcevic, Benoît Vermersch,
-            Christine Maier, Ben P. Lanyon, Peter Zoller, Rainer Blatt ,and Christian F. Roos ,
-            [doi:10.1126/science.aau4963](
-                https://www.science.org/doi/abs/10.1126/science.aau4963)
-
-            Simple mitigation of global depolarizing errors in quantum simulations -
-            Vovrosh, Joseph and Khosla, Kiran E. and Greenaway, Sean and Self,
-            Christopher and Kim, M. S. and Knolle, Johannes,
-            [PhysRevE.104.035309](
-                https://link.aps.org/doi/10.1103/PhysRevE.104.035309)
-
-        - `bibtex`:
-
-        ```bibtex
-        @article{doi:10.1126/science.aau4963,
-            author = {Tiff Brydges  and Andreas Elben  and Petar Jurcevic
-            and Benoît Vermersch  and Christine Maier  and Ben P. Lanyon
-            and Peter Zoller  and Rainer Blatt  and Christian F. Roos },
-            title = {Probing Rényi entanglement entropy via randomized measurements},
-            journal = {Science},
-            volume = {364},
-            number = {6437},
-            pages = {260-263},
-            year = {2019},
-            doi = {10.1126/science.aau4963},
-            URL = {https://www.science.org/doi/abs/10.1126/science.aau4963},
-            eprint = {https://www.science.org/doi/pdf/10.1126/science.aau4963},
-            abstract = {Quantum systems are predicted to be better at information
-            processing than their classical counterparts, and quantum entanglement
-            is key to this superior performance. But how does one gauge the degree
-            of entanglement in a system? Brydges et al. monitored the build-up of
-            the so-called Rényi entropy in a chain of up to 10 trapped calcium ions,
-            each of which encoded a qubit. As the system evolved,
-            interactions caused entanglement between the chain and the rest of
-            the system to grow, which was reflected in the growth of
-            the Rényi entropy. Science, this issue p. 260 The buildup of entropy
-            in an ion chain reflects a growing entanglement between the chain
-            and its complement. Entanglement is a key feature of many-body quantum systems.
-            Measuring the entropy of different partitions of a quantum system
-            provides a way to probe its entanglement structure.
-            Here, we present and experimentally demonstrate a protocol
-            for measuring the second-order Rényi entropy based on statistical correlations
-            between randomized measurements. Our experiments, carried out with a trapped-ion
-            quantum simulator with partition sizes of up to 10 qubits,
-            prove the overall coherent character of the system dynamics and
-            reveal the growth of entanglement between its parts,
-            in both the absence and presence of disorder.
-            Our protocol represents a universal tool for probing and
-            characterizing engineered quantum systems in the laboratory,
-            which is applicable to arbitrary quantum states of up to
-            several tens of qubits.}}
-        ```
-
-        ```bibtex
-            @article{PhysRevE.104.035309,
-                title = {Simple mitigation of global depolarizing errors in quantum simulations},
-                author = {Vovrosh, Joseph and Khosla, Kiran E. and Greenaway, Sean and Self,
-                Christopher and Kim, M. S. and Knolle, Johannes},
-                journal = {Phys. Rev. E},
-                volume = {104},
-                issue = {3},
-                pages = {035309},
-                numpages = {8},
-                year = {2021},
-                month = {Sep},
-                publisher = {American Physical Society},
-                doi = {10.1103/PhysRevE.104.035309},
-                url = {https://link.aps.org/doi/10.1103/PhysRevE.104.035309}
-            }
-        ```
+    ) -> EntangledEntropyResultMitigated:
+        """Randomized entangled entropy with complex.
 
         Args:
-            shots (int): Shots of the experiment on quantum machine.
-            counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
-            degree (Optional[Union[tuple[int, int], int]]): Degree of the subsystem.
-            measure (Optional[tuple[int, int]], optional):
-                Measuring range on quantum circuits. Defaults to None.
-            all_system_source (Optional['EntropyRandomizedAnalysis'], optional):
-                The source of the all system. Defaults to None.
+            shots (int):
+                The number of shots.
+            counts (list[dict[str, int]]):
+                The counts of the experiment.
+            selected_classical_registers (Optional[list[int]], optional):
+                The selected classical registers. Defaults to None.
+            all_system_source (Optional[EntropyRandomizedAnalysis], optional):
+                The source of all system. Defaults to None.
             backend (PostProcessingBackendLabel, optional):
-                Backend for the process. Defaults to DEFAULT_PROCESS_BACKEND.
-            workers_num (Optional[int], optional):
-                Number of multi-processing workers, it will be ignored if backend is Rust.
-                if sets to 1, then disable to using multi-processing;
-                if not specified, then use the number of all cpu counts by `os.cpu_count()`.
-                Defaults to None.
-            pbar (Optional[tqdm.tqdm], optional): Progress bar. Defaults to None.
+                The backend label. Defaults to DEFAULT_PROCESS_BACKEND.
+            pbar (Optional[tqdm.tqdm], optional):
+                The progress bar. Defaults to None.
 
         Returns:
-            dict[str, float]: A dictionary contains
-                purity, entropy, a list of each overlap, puritySD,
-                purity of all system, entropy of all system,
-                a list of each overlap in all system, puritySD of all system,
-                degree, actual measure range, actual measure range in all system, bitstring range.
+            EntangledEntropyResultMitigated: The result of the entangled entropy.
         """
 
         if shots is None or counts is None:
@@ -480,10 +396,8 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
         return randomized_entangled_entropy_complex(
             shots=shots,
             counts=counts,
-            degree=degree,
-            measure=measure,
+            selected_classical_registers=selected_classical_registers,
             all_system_source=all_system_source,
             backend=backend,
-            workers_num=workers_num,
             pbar=pbar,
         )

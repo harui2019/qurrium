@@ -9,6 +9,7 @@ Qurrent - Second Renyi Entropy Measurement
 from typing import Literal, Union, overload
 
 from .randomized_measure import EntropyMeasureRandomized
+from .randomized_measure_v1 import EntropyMeasureRandomizedV1
 from .hadamard_test import EntropyMeasureHadamard
 
 
@@ -19,7 +20,13 @@ def EntropyMeasure(*args, method: Literal["hadamard"], **kwargs) -> EntropyMeasu
 
 @overload
 def EntropyMeasure(
-    *args, method: Union[Literal["randomized", "base"], str] = "randomized", **kwargs
+    *args, method: Literal["randomized_v1"], **kwargs
+) -> EntropyMeasureRandomizedV1: ...
+
+
+@overload
+def EntropyMeasure(
+    *args, method: Union[Literal["randomized", "haar", "base"], str] = "randomized", **kwargs
 ) -> EntropyMeasureRandomized: ...
 
 
@@ -43,6 +50,8 @@ def EntropyMeasure(
     """
     if method in ("randomized", "haar"):
         return EntropyMeasureRandomized(*args, **kwargs)
+    if method == "randomized_v1":
+        return EntropyMeasureRandomizedV1(*args, **kwargs)
     if method == "hadamard":
         return EntropyMeasureHadamard(*args, **kwargs)
     return EntropyMeasureRandomized(*args, **kwargs)
