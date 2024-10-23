@@ -10,13 +10,53 @@ from typing import Literal, Union
 import numpy as np
 
 from .unitary_set import U_M_MATRIX, OUTER_PRODUCT, IDENTITY
+from ..availability import (
+    availablility,
+    default_postprocessing_backend,
+    PostProcessingBackendLabel,
+)
+from ..exceptions import (
+    PostProcessingRustImportError,
+    PostProcessingRustUnavailableWarning,
+    PostProcessingBackendDeprecatedWarning,
+)
+
+# try:
+
+#     from ...boorust import randomized  # type: ignore
+
+#     purity_cell_2_rust_source = randomized.purity_cell_2_rust
+
+#     RUST_AVAILABLE = True
+#     FAILED_RUST_IMPORT = None
+# except ImportError as err:
+#     RUST_AVAILABLE = False
+#     FAILED_RUST_IMPORT = err
+
+#     def purity_cell_rust_source(*args, **kwargs):
+#         """Dummy function for purity_cell_rust."""
+#         raise PostProcessingRustImportError(
+#             "Rust is not available, using python to calculate purity cell."
+#         ) from FAILED_RUST_IMPORT
+
+
+RUST_AVAILABLE = False
+FAILED_RUST_IMPORT = None
+
+BACKEND_AVAILABLE = availablility(
+    "classical_shadow.rho_m_cell",
+    [
+        ("Rust", RUST_AVAILABLE, FAILED_RUST_IMPORT),
+    ],
+)
+DEFAULT_PROCESS_BACKEND = default_postprocessing_backend(RUST_AVAILABLE, False)
 
 
 def rho_m_cell_py(
     idx: int,
     single_counts: dict[str, int],
     nu_shadow_direction: dict[int, Union[Literal[0, 1, 2], int]],
-    selected_qubits: list[int],
+    selected_classical_registers: list[int],
 ) -> tuple[
     int,
     np.ndarray[tuple[int, int], np.dtype[np.complex128]],
@@ -41,8 +81,8 @@ def rho_m_cell_py(
             Counts measured by the single quantum circuit.
         nu_shadow_direction (dict[int, Union[Literal[0, 1, 2], int]]):
             The shadow direction of the unitary operators.
-        selected_qubits (list[int]):
-            The list of the selected qubits.
+        selected_classical_registers (list[int]):
+            The list of **the index of the selected_classical_registers**.
 
     Returns:
         tuple[
@@ -61,33 +101,37 @@ def rho_m_cell_py(
     ), "The number of qubits and the number of shadow directions should be the same."
 
     # subsystem making
-    selected_qubits_sorted = sorted(selected_qubits, reverse=True)
+    selected_classical_registers_sorted = sorted(selected_classical_registers, reverse=True)
     single_counts_under_degree = {}
     for bitstring_all, num_counts_all in single_counts.items():
-        bitstring = "".join(bitstring_all[num_qubits - q_i - 1] for q_i in selected_qubits_sorted)
+        bitstring = "".join(
+            bitstring_all[num_qubits - q_i - 1] for q_i in selected_classical_registers_sorted
+        )
         if bitstring in single_counts_under_degree:
             single_counts_under_degree[bitstring] += num_counts_all
         else:
             single_counts_under_degree[bitstring] = num_counts_all
 
     # core calculation
-    rho_m_i_k = {q_i: {} for q_i in selected_qubits_sorted}
+    rho_m_i_k = {q_i: {} for q_i in selected_classical_registers_sorted}
     for bitstring in single_counts:
-        for q_i, s_q in zip(selected_qubits_sorted, bitstring):
+        for q_i, s_q in zip(selected_classical_registers_sorted, bitstring):
             rho_m_i_k[q_i][bitstring] = (
                 3
                 * U_M_MATRIX[nu_shadow_direction[q_i]].conj().T
                 @ OUTER_PRODUCT[s_q]
                 @ U_M_MATRIX[nu_shadow_direction[q_i]]
             ) - IDENTITY
-    rho_m_i = {q_i: np.zeros((2, 2), dtype=np.complex128) for q_i in selected_qubits_sorted}
-    for q_i in selected_qubits_sorted:
+    rho_m_i = {
+        q_i: np.zeros((2, 2), dtype=np.complex128) for q_i in selected_classical_registers_sorted
+    }
+    for q_i in selected_classical_registers_sorted:
         for bitstring, num_counts in single_counts.items():
             rho_m_i[q_i] += rho_m_i_k[q_i][bitstring] * num_counts
         rho_m_i[q_i] /= shots
 
     rho_m = np.eye(2, dtype=np.complex128)
-    for q_i in selected_qubits_sorted:
+    for q_i in selected_classical_registers_sorted:
         rho_m = np.kron(rho_m, rho_m_i[q_i])
 
-    return idx, rho_m, rho_m_i, selected_qubits_sorted
+    return idx, rho_m, rho_m_i, selected_classical_registers_sorted
