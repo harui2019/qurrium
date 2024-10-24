@@ -8,5 +8,6 @@ Postprocessing - Randomized Measure - Wavefunction Overlap
 
 from .wavefunction_overlap import (
     randomized_overlap_echo,
+    PostProcessingBackendLabel,
     DEFAULT_PROCESS_BACKEND,
 )

@@ -1,7 +1,7 @@
 """
 =========================================================================================
-Postprocessing - Randomized Measure - Entangled Entropy - Purity Cell
-(:mod:`qurry.process.randomized_measure.entangled_entropy.purity_cell`)
+Postprocessing - Randomized Measure - Entangled Entropy V1 - Purity Cell
+(:mod:`qurry.process.randomized_measure.entangled_entropy_v1.purity_cell`)
 =========================================================================================
 
 """
