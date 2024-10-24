@@ -233,13 +233,6 @@ def qubit_mapper(
             )
         return qubit_mapper_2_int(actual_num_qubits, selected_qubits)
     if isinstance(selected_qubits, Sequence):
-        if len(selected_qubits) < 2:
-            raise ValueError(
-                "The number of selected qubits should be more than 1 "
-                + f"when inputs as list, but get '{selected_qubits}'."
-            )
-        if len(selected_qubits) == 2:
-            return qubit_mapper_2_int(actual_num_qubits, (selected_qubits[0], selected_qubits[1]))
         invalid_qubits_index = [
             qi
             for qi in selected_qubits
