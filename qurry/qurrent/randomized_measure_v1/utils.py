@@ -15,14 +15,10 @@ from qiskit.quantum_info import Operator
 
 
 from .analysis import EntropyMeasureRandomizedV1Analysis
-from ...process.randomized_measure.entangled_entropy.container import (
+from ...process.randomized_measure.entangled_entropy_v1 import (
+    randomized_entangled_entropy_mitigated_deprecated as randomized_entangled_entropy_mitigated,
     RandomizedEntangledEntropyMitigatedComplex,
     ExistingAllSystemSource,
-)
-from ...process.randomized_measure.entangled_entropy.entangled_entropy import (
-    randomized_entangled_entropy_mitigated_deprecated as randomized_entangled_entropy_mitigated,
-)
-from ...process.randomized_measure.entangled_entropy.entropy_core import (
     PostProcessingBackendLabel,
     DEFAULT_PROCESS_BACKEND,
 )

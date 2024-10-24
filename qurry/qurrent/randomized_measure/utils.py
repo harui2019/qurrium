@@ -17,13 +17,9 @@ from qiskit.quantum_info import Operator
 from .analysis import EntropyMeasureRandomizedAnalysis
 from ...process.randomized_measure.entangled_entropy import (
     randomized_entangled_entropy_mitigated,
-)
-from ...process.randomized_measure.entangled_entropy.container import (
     EntangledEntropyResultMitigated,
     ExistedAllSystemInfo,
     ExistedAllSystemInfoInput,
-)
-from ...process.randomized_measure.entangled_entropy.entropy_core_2 import (
     PostProcessingBackendLabel,
     DEFAULT_PROCESS_BACKEND,
 )
