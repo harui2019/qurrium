@@ -176,6 +176,11 @@ def test_quantity_02(tgt):
         list(range(int(tgt.split("-")[0])))[-2:], counts_used=range(5)
     )
     quantity_02 = analysis_02.content._asdict()
+    analysis_03 = exp_method_02.exps[exp_id].analyze(
+        list(range(int(tgt.split("-")[0])))[-2:], counts_used=range(5)
+    )
+    quantity_03 = analysis_03.content._asdict()
+
     assert all(
         ["entropy" in quantity_01, "purity" in quantity_01]
     ), f"The necessary quantities 'entropy', 'purity' are not found: {quantity_01.keys()}."
@@ -184,6 +189,16 @@ def test_quantity_02(tgt):
         + f"counts_used: {quantity_01['counts_used']}: {quantity_02['entropyAllSys']}, "
         + f"counts_used: {quantity_02['counts_used']}: {quantity_02['entropyAllSys']},"
     )
+    assert np.abs(quantity_03["entropyAllSys"] - quantity_02["entropyAllSys"]) < 1e-12, (
+        "The all system entropy is not changed: "
+        + f"{quantity_03['entropyAllSys']} != {quantity_02['entropyAllSys']}."
+    )
+    assert (
+        quantity_02["all_system_source"] == "independent"
+    ), f"The source of all system is not independent: {quantity_02['all_system_source']}."
+    assert (
+        "AnalysisHeader" in quantity_03["all_system_source"]
+    ), f"The source of all system is not from existed analysis: {quantity_03['all_system_source']}."
     assert (not MANUAL_ASSERT_ERROR) and np.abs(quantity_01["purity"] - answer[tgt]) < THREDHOLD, (
         "The randomized measurement result is wrong: "
         + f"{np.abs(quantity_01['purity'] - answer[tgt])} !< {THREDHOLD}."
@@ -270,6 +285,9 @@ def test_quantity_03(tgt):
     quantity_01 = analysis_01.content._asdict()
     analysis_02 = exp_method_03.exps[exp_id].analyze((0, 2), counts_used=range(5))
     quantity_02 = analysis_02.content._asdict()
+    analysis_03 = exp_method_03.exps[exp_id].analyze((0, 2), counts_used=range(5))
+    quantity_03 = analysis_03.content._asdict()
+
     assert all(
         ["entropy" in quantity_01, "purity" in quantity_01]
     ), f"The necessary quantities 'entropy', 'purity' are not found: {quantity_01.keys()}."
@@ -278,6 +296,16 @@ def test_quantity_03(tgt):
         + f"counts_used: {quantity_01['counts_used']}: {quantity_02['entropyAllSys']}, "
         + f"counts_used: {quantity_02['counts_used']}: {quantity_02['entropyAllSys']},"
     )
+    assert np.abs(quantity_03["entropyAllSys"] - quantity_02["entropyAllSys"]) < 1e-12, (
+        "The all system entropy is not changed: "
+        + f"{quantity_03['entropyAllSys']} != {quantity_02['entropyAllSys']}."
+    )
+    assert (
+        quantity_02["allSystemSource"] == "independent"
+    ), f"The source of all system is not independent: {quantity_02['allSystemSource']}."
+    assert (
+        "AnalysisHeader" in quantity_03["allSystemSource"]
+    ), f"The source of all system is not from existed analysis: {quantity_03['allSystemSource']}."
     assert (not MANUAL_ASSERT_ERROR) and np.abs(quantity_01["purity"] - answer[tgt]) < THREDHOLD, (
         "The randomized measurement result is wrong: "
         + f"{np.abs(quantity_01['purity'] - answer[tgt])} !< {THREDHOLD}."
