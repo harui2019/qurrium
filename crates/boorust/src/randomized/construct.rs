@@ -26,7 +26,7 @@ pub fn cycling_slice_rust(target: &str, start: i32, end: i32, step: i32) -> PyRe
         let invalid_ranges: Vec<String> = slice_check
             .iter()
             .filter(|&&(_, v)| !v)
-            .map(|&(k, _)| format!(" {}", k))
+            .map(|(k, _)| format!(" {}", k))
             .collect();
         return Err(PyValueError::new_err(format!(
             "Slice out of range: {}",
