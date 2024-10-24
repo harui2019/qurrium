@@ -15,11 +15,14 @@ pub enum QubitDegree {
 pub fn cycling_slice_rust(target: &str, start: i32, end: i32, step: i32) -> PyResult<String> {
     let length = target.len() as i32;
     let slice_check = vec![
-        ("start <= -length", start <= -length),
-        ("end >= length", end >= length),
+        (
+            format!("start: {} <= -length: {}", start, -length),
+            start <= -length,
+        ),
+        (format!("length: {} <= end: {}", length, end), length <= end),
     ];
 
-    if slice_check.iter().all(|&(_, v)| v) {
+    if slice_check.iter().any(|&(_, v)| v) {
         let invalid_ranges: Vec<String> = slice_check
             .iter()
             .filter(|&&(_, v)| !v)
@@ -101,13 +104,6 @@ pub fn qubit_selector_rust(num_qubits: i32, degree: Option<QubitDegree>) -> PyRe
                     })
                     .collect()
             };
-            // let mapped_values = raw_values.iter().map(|d: &i32| {
-            //     if d != &num_qubits {
-            //         (d + num_qubits) % num_qubits
-            //     } else {
-            //         num_qubits
-            //     }
-            // });
 
             let tmp: (i32, i32) = (
                 *mapped_values.iter().min().unwrap(),

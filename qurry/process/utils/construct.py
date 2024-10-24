@@ -7,7 +7,7 @@ Post-processing - Utils - Construct
 """
 
 import warnings
-from typing import Union, Optional, Sequence, overload
+from typing import Union, Optional, Sequence, TypeVar, overload
 
 from ..availability import availablility
 from ..exceptions import PostProcessingRustImportError, PostProcessingRustUnavailableWarning
@@ -146,6 +146,80 @@ def qubit_selector_rust(
     return qubit_selector(num_qubits, degree)
 
 
+_ItemT = TypeVar("_ItemT")
+
+
+@overload
+def cycling_slice(target: list[_ItemT], start: int, end: int, step: int = 1) -> list[_ItemT]: ...
+@overload
+def cycling_slice(target: tuple[_ItemT], start: int, end: int, step: int = 1) -> tuple[_ItemT]: ...
+@overload
+def cycling_slice(target: str, start: int, end: int, step: int = 1) -> str: ...
+
+
+def cycling_slice(target, start, end, step=1):
+    """Slice a iterable object with cycling.
+
+    Args:
+        target (_SliceableT): The target object.
+        start (int): Index of start.
+        end (int): Index of end.
+        step (int, optional): Step of slice. Defaults to 1.
+
+    Raises:
+        IndexError: Slice out of range.
+
+    Returns:
+        Iterable: The sliced object.
+    """
+    length = len(target)
+    slice_check = {
+        f"start: {start} <= -length: {-length}": (start <= -length),
+        f"length: {length} <= end: {end}": (length <= end),
+    }
+    if any(slice_check.values()):
+        raise IndexError(
+            "Slice out of range: " + ", ".join([f"{k}" for k, v in slice_check.items() if v]) + "."
+        )
+    if length <= 0:
+        return target
+    if start < 0 <= end:
+        new_string = target[start:] + target[:end]
+    else:
+        new_string = target[start:end]
+
+    return new_string[::step]
+
+
+def cycling_slice_rust(target: str, start: int, end: int, step: int = 1) -> str:
+    """Slice a iterable object with cycling.
+
+    Args:
+        target (str): The target object.
+        start (int): Index of start.
+        end (int): Index of end.
+        step (int, optional): Step of slice. Defaults to 1.
+
+    Raises:
+        IndexError: Slice out of range.
+
+    Returns:
+        str: The sliced object.
+    """
+    if not isinstance(target, str):
+        raise TypeError(
+            f"Expect 'str' but get '{type(target)}'. cycling_slice_rust only support 'str'."
+        )
+    if RUST_AVAILABLE:
+        return cycling_slice_rust_source(target, start, end, step)
+    warnings.warn(
+        "Rust is not available, using python to calculate cycling slice."
+        + f" Check: {FAILED_RUST_IMPORT}",
+        PostProcessingRustUnavailableWarning,
+    )
+    return cycling_slice(target, start, end, step)
+
+
 def qubit_mapper_2_int(
     actual_num_qubits: int,
     selected_qubits: tuple[int, int],
@@ -178,19 +252,14 @@ def qubit_mapper_2_int(
             f"The selected qubits {selected_qubits} "
             + f"are beyond the number of qubits {actual_num_qubits}."
         )
-    if selected_qubits[0] < 0 or selected_qubits[1] < 0:
-        raise ValueError(
-            "The range of qubits should be natural number when inputs as tuple, "
-            + f"but get '{selected_qubits}'. "
-            + "If you want to use negative number to select cycling bitstring slice, "
-            + "please use a list of the index of qubits instead, which is more clear to use."
-        )
     if selected_qubits[0] >= selected_qubits[1]:
         raise ValueError(
             "The first integer should be less than the second integer "
             + f"when inputs as tuple, but get '{selected_qubits}'."
         )
-    return {qi: ci for ci, qi in enumerate(range(selected_qubits[0], selected_qubits[1]))}
+
+    qi_list = cycling_slice(list(range(actual_num_qubits)), selected_qubits[0], selected_qubits[1])
+    return {qi: ci for ci, qi in enumerate(qi_list)}
 
 
 def qubit_mapper(
@@ -220,11 +289,13 @@ def qubit_mapper(
     """
     if selected_qubits is None:
         return {i: i for i in range(actual_num_qubits)}
+
     if isinstance(selected_qubits, int):
         return {
             qi: ci
             for ci, qi in enumerate(range(actual_num_qubits - selected_qubits, actual_num_qubits))
         }
+
     if isinstance(selected_qubits, tuple):
         if len(selected_qubits) != 2:
             raise ValueError(
@@ -232,97 +303,19 @@ def qubit_mapper(
                 + f"but there is {len(selected_qubits)} integers in '{selected_qubits}'."
             )
         return qubit_mapper_2_int(actual_num_qubits, selected_qubits)
+
     if isinstance(selected_qubits, Sequence):
-        invalid_qubits_index = [
-            qi
-            for qi in selected_qubits
-            if not ((0 <= qi < actual_num_qubits) and isinstance(qi, int))
-        ]
-        if invalid_qubits_index:
-            raise ValueError(
-                f"The following selected qubits index {invalid_qubits_index} "
-                + f"are beyond the number of qubits {actual_num_qubits}, not natural number, "
-                + "or even not integer."
-            )
         if len(dict.fromkeys(selected_qubits).keys()) != len(selected_qubits):
             raise ValueError(f"Duplicate selected qubits index {selected_qubits} are not allowed.")
         selected_qubits = sorted(list(selected_qubits))
-        return {qi: ci for ci, qi in enumerate(selected_qubits)}
+        all_qubits = list(range(actual_num_qubits))
+        selected_qubits_actual = [all_qubits[q_idx_raw] for q_idx_raw in selected_qubits]
+        return {qi: ci for ci, qi in enumerate(selected_qubits_actual)}
+
     raise ValueError(
         f"Invalid input for selected qubits: '{selected_qubits}'. "
         + "It should be 'int', 'tuple[int, int]', or 'list[int]'."
     )
-
-
-@overload
-def cycling_slice(target: list, start: int, end: int, step: int = 1) -> list: ...
-
-
-@overload
-def cycling_slice(target: str, start: int, end: int, step: int = 1) -> str: ...
-
-
-@overload
-def cycling_slice(target: tuple, start: int, end: int, step: int = 1) -> tuple: ...
-
-
-def cycling_slice(target, start, end, step=1):
-    """Slice a iterable object with cycling.
-
-    Args:
-        target (_ListT): The target object.
-        start (int): Index of start.
-        end (int): Index of end.
-        step (int, optional): Step of slice. Defaults to 1.
-
-    Raises:
-        IndexError: Slice out of range.
-
-    Returns:
-        Iterable: The sliced object.
-    """
-    length = len(target)
-    slice_check = {
-        "start <= -length": (start <= -length),
-        "end >= length ": (end >= length),
-    }
-    if all(slice_check.values()):
-        raise IndexError(
-            "Slice out of range" + ", ".join([f" {k};" for k, v in slice_check.items() if not v])
-        )
-    if length <= 0:
-        return target
-    if start < 0 <= end:
-        new_string = target[start:] + target[:end]
-    else:
-        new_string = target[start:end]
-
-    return new_string[::step]
-
-
-def cycling_slice_rust(target: str, start: int, end: int, step: int = 1) -> str:
-    """Slice a iterable object with cycling.
-
-    Args:
-        target (str): The target object.
-        start (int): Index of start.
-        end (int): Index of end.
-        step (int, optional): Step of slice. Defaults to 1.
-
-    Raises:
-        IndexError: Slice out of range.
-
-    Returns:
-        str: The sliced object.
-    """
-    if RUST_AVAILABLE:
-        return cycling_slice_rust_source(target, start, end, step)
-    warnings.warn(
-        "Rust is not available, using python to calculate cycling slice."
-        + f" Check: {FAILED_RUST_IMPORT}",
-        PostProcessingRustUnavailableWarning,
-    )
-    return cycling_slice(target, start, end, step)
 
 
 def degree_handler(
