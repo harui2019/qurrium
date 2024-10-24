@@ -174,8 +174,8 @@ def cycling_slice(target, start, end, step=1):
     """
     length = len(target)
     slice_check = {
-        f"start: {start} <= -length: {-length}": (start <= -length),
-        f"length: {length} <= end: {end}": (length <= end),
+        f"start: {start} < -length: {-length}": (start < -length),
+        f"length: {length} < end: {end}": (length < end),
     }
     if any(slice_check.values()):
         raise IndexError(

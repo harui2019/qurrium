@@ -16,10 +16,10 @@ pub fn cycling_slice_rust(target: &str, start: i32, end: i32, step: i32) -> PyRe
     let length = target.len() as i32;
     let slice_check = vec![
         (
-            format!("start: {} <= -length: {}", start, -length),
-            start <= -length,
+            format!("start: {} < -length: {}", start, -length),
+            start < -length,
         ),
-        (format!("length: {} <= end: {}", length, end), length <= end),
+        (format!("length: {} < end: {}", length, end), length < end),
     ];
 
     if slice_check.iter().any(|&(_, v)| v) {
