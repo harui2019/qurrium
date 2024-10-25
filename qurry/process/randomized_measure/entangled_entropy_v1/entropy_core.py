@@ -1,7 +1,7 @@
 """
 =========================================================================================
-Postprocessing - Randomized Measure - Entangled Entropy - Core
-(:mod:`qurry.process.randomized_measure.entangled_entropy.entropy_core`)
+Postprocessing - Randomized Measure - Entangled Entropy V1 - Core
+(:mod:`qurry.process.randomized_measure.entangled_entropy_v1.entropy_core`)
 =========================================================================================
 
 """

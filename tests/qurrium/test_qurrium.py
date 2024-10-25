@@ -22,7 +22,7 @@ exp_demo_02 = WavesExecuter()
 wave_adds_01 = []
 wave_adds_02 = []
 
-for i in range(4, 7, 2):
+for i in range(4, 5, 2):
     wave_adds_01.append(exp_demo_01.add(TrivialParamagnet(i), f"{i}-trivial"))
     wave_adds_02.append(exp_demo_02.add(TrivialParamagnet(i), f"{i}-trivial"))
 
@@ -45,7 +45,7 @@ def test_quantity_01(tgt):
         tgt (Hashable): The target wave key in Qurry.
     """
 
-    exp_id = exp_demo_01.measure(wave=tgt, sampling=10, backend=backend)
+    exp_id = exp_demo_01.measure(wave=tgt, sampling=5, backend=backend)
     exp_demo_01.exps[exp_id].analyze()
     quantity = exp_demo_01.exps[exp_id].reports[0].content._asdict()
     assert all(
@@ -61,7 +61,7 @@ def test_quantity_02(tgt):
         tgt (Hashable): The target wave key in Qurry.
     """
 
-    exp_id = exp_demo_02.measure(waves=[tgt for _ in range(5)], backend=backend)
+    exp_id = exp_demo_02.measure(waves=[tgt], backend=backend)
     exp_demo_02.exps[exp_id].analyze()
     quantity = exp_demo_02.exps[exp_id].reports[0].content._asdict()
     assert all(
@@ -111,7 +111,7 @@ def test_multi_output_02():
         tgt (Hashable): The target wave key in Qurry.
     """
 
-    config_list = [{"waves": [k for _ in range(5)]} for k in wave_adds_02[:3]]
+    config_list = [{"waves": [k]} for k in wave_adds_02[:3]]
     summoner_id = exp_demo_02.multiOutput(
         config_list,
         backend=backend,

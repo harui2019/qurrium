@@ -99,7 +99,12 @@ def echo_cell_py(
     shots2 = sum(second_counts.values())
     assert shots == shots2, f"shots {shots} does not match shots2 {shots2}"
 
-    _dummy_string = list(range(subsystem_size))
+    _dummy_string = list(range(len(list(first_counts.keys())[0])))
+    _dummy_string2 = list(range(len(list(second_counts.keys())[0])))
+    assert (
+        _dummy_string == _dummy_string2
+    ), f"first_counts {first_counts} != second_counts {second_counts}"
+
     if _dummy_string[bitstring_range[0] : bitstring_range[1]] == cycling_slice_py(
         _dummy_string, bitstring_range[0], bitstring_range[1], 1
     ):

@@ -1,7 +1,7 @@
 """
 =========================================================================================
-Postprocessing - Randomized Measure - Entangled Entropy - Entangled Entropy Deprecated
-(:mod:`qurry.process.randomized_measure.entangled_entropy.entangled_entropy`)
+Postprocessing - Randomized Measure - Entangled Entropy V1 - Entangled Entropy Deprecated
+(:mod:`qurry.process.randomized_measure.entangled_entropy_v1.entangled_entropy`)
 =========================================================================================
 
 """
@@ -16,7 +16,7 @@ from .container import (
     RandomizedEntangledEntropyMitigatedComplex,
     ExistingAllSystemSource,
 )
-from .error_mitigation import depolarizing_error_mitgation
+from ..entangled_entropy.error_mitigation import depolarizing_error_mitgation
 from ...availability import PostProcessingBackendLabel
 
 
