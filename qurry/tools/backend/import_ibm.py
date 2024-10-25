@@ -88,25 +88,6 @@ REAL_IMPORT_ERROR_INFOS: dict[ImportPointType, ImportError] = {}
 REAL_SOURCE_AVAILABLE: dict[ImportPointType, bool] = {}
 
 try:
-    from qiskit_ibm_provider import (
-        IBMProvider,
-        IBMBackend as IBMProviderBackend,
-        __version__ as qiskit_ibm_provider_version,
-    )
-
-    REAL_PROVIDER_SOURCES["qiskit_ibm_provider"] = IBMProvider
-    REAL_VERSION_INFOS["qiskit_ibm_provider"] = qiskit_ibm_provider_version
-    REAL_BACKEND_SOURCES["qiskit_ibm_provider"] = IBMProviderBackend
-except ImportError as err:
-    REAL_PROVIDER_SOURCES["qiskit_ibm_provider"] = None
-    REAL_VERSION_INFOS["qiskit_ibm_provider"] = None
-    REAL_BACKEND_SOURCES["qiskit_ibm_provider"] = None
-    REAL_IMPORT_ERROR_INFOS["qiskit_ibm_provider"] = err
-REAL_SOURCE_AVAILABLE["qiskit_ibm_provider"] = (
-    REAL_PROVIDER_SOURCES["qiskit_ibm_provider"] is not None
-)
-
-try:
     from qiskit_ibm_runtime import (
         QiskitRuntimeService,
         __version__ as qiskit_ibm_runtime_version,
@@ -125,20 +106,41 @@ REAL_SOURCE_AVAILABLE["qiskit_ibm_runtime"] = (
     REAL_PROVIDER_SOURCES["qiskit_ibm_runtime"] is not None
 )
 
-try:
-    from qiskit.providers.ibmq import IBMQBackend, AccountProvider  # type: ignore
+if len(REAL_BACKEND_SOURCES) == 0:
+    try:
+        from qiskit_ibm_provider import (  # type: ignore
+            IBMProvider,
+            IBMBackend as IBMProviderBackend,
+            __version__ as qiskit_ibm_provider_version,
+        )
 
-    REAL_PROVIDER_SOURCES["qiskit_ibmq_provider"] = AccountProvider
-    REAL_VERSION_INFOS["qiskit_ibmq_provider"] = QISKIT_VERSION.get("qiskit_ibmq_provider")
-    REAL_BACKEND_SOURCES["qiskit_ibmq_provider"] = IBMQBackend
-except ImportError as err:
-    REAL_PROVIDER_SOURCES["qiskit_ibmq_provider"] = None
-    REAL_VERSION_INFOS["qiskit_ibmq_provider"] = None
-    REAL_BACKEND_SOURCES["qiskit_ibmq_provider"] = None
-    REAL_IMPORT_ERROR_INFOS["qiskit_ibmq_provider"] = err
-REAL_SOURCE_AVAILABLE["qiskit_ibmq_provider"] = (
-    REAL_PROVIDER_SOURCES["qiskit_ibmq_provider"] is not None
-)
+        REAL_PROVIDER_SOURCES["qiskit_ibm_provider"] = IBMProvider
+        REAL_VERSION_INFOS["qiskit_ibm_provider"] = qiskit_ibm_provider_version
+        REAL_BACKEND_SOURCES["qiskit_ibm_provider"] = IBMProviderBackend
+    except ImportError as err:
+        REAL_PROVIDER_SOURCES["qiskit_ibm_provider"] = None
+        REAL_VERSION_INFOS["qiskit_ibm_provider"] = None
+        REAL_BACKEND_SOURCES["qiskit_ibm_provider"] = None
+        REAL_IMPORT_ERROR_INFOS["qiskit_ibm_provider"] = err
+    REAL_SOURCE_AVAILABLE["qiskit_ibm_provider"] = (
+        REAL_PROVIDER_SOURCES["qiskit_ibm_provider"] is not None
+    )
+
+if len(REAL_BACKEND_SOURCES) == 0:
+    try:
+        from qiskit.providers.ibmq import IBMQBackend, AccountProvider  # type: ignore
+
+        REAL_PROVIDER_SOURCES["qiskit_ibmq_provider"] = AccountProvider
+        REAL_VERSION_INFOS["qiskit_ibmq_provider"] = QISKIT_VERSION.get("qiskit_ibmq_provider")
+        REAL_BACKEND_SOURCES["qiskit_ibmq_provider"] = IBMQBackend
+    except ImportError as err:
+        REAL_PROVIDER_SOURCES["qiskit_ibmq_provider"] = None
+        REAL_VERSION_INFOS["qiskit_ibmq_provider"] = None
+        REAL_BACKEND_SOURCES["qiskit_ibmq_provider"] = None
+        REAL_IMPORT_ERROR_INFOS["qiskit_ibmq_provider"] = err
+    REAL_SOURCE_AVAILABLE["qiskit_ibmq_provider"] = (
+        REAL_PROVIDER_SOURCES["qiskit_ibmq_provider"] is not None
+    )
 
 
 def get_default_real_source() -> Optional[ImportPointType]:
