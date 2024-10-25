@@ -11,7 +11,10 @@ import pytest
 import numpy as np
 
 from qurry.capsule import quickRead
-from qurry.process.randomized_measure.entangled_entropy.entangled_entropy import (
+from qurry.process.utils import cycling_slice
+from qurry.process.utils.randomized import RUST_AVAILABLE as rust_available_randomized
+
+from qurry.process.randomized_measure.entangled_entropy_v1.entangled_entropy import (
     entangled_entropy_core,
 )
 from qurry.process.randomized_measure.entangled_entropy.entangled_entropy_2 import (
@@ -20,8 +23,6 @@ from qurry.process.randomized_measure.entangled_entropy.entangled_entropy_2 impo
 from qurry.process.randomized_measure.wavefunction_overlap.wavefunction_overlap import (
     overlap_echo_core,
 )
-from qurry.process.utils import cycling_slice
-from qurry.process.utils.randomized import RUST_AVAILABLE as rust_available_randomized
 
 
 FILE_LOCATION = os.path.join(os.path.dirname(__file__), "easy-dummy.json")
