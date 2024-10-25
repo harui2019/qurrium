@@ -24,10 +24,8 @@ from ...qurrium.utils.randomized import (
 )
 from ...qurrium.utils.random_unitary import check_input_for_experiment
 from ...process.utils import qubit_mapper
-from ...process.randomized_measure.entangled_entropy.container import (
+from ...process.randomized_measure.entangled_entropy import (
     EntangledEntropyResultMitigated,
-)
-from ...process.randomized_measure.entangled_entropy.entropy_core_2 import (
     PostProcessingBackendLabel,
     DEFAULT_PROCESS_BACKEND,
 )

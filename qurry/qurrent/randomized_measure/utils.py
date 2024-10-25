@@ -17,13 +17,9 @@ from qiskit.quantum_info import Operator
 from .analysis import EntropyMeasureRandomizedAnalysis
 from ...process.randomized_measure.entangled_entropy import (
     randomized_entangled_entropy_mitigated,
-)
-from ...process.randomized_measure.entangled_entropy.container import (
     EntangledEntropyResultMitigated,
     ExistedAllSystemInfo,
     ExistedAllSystemInfoInput,
-)
-from ...process.randomized_measure.entangled_entropy.entropy_core_2 import (
     PostProcessingBackendLabel,
     DEFAULT_PROCESS_BACKEND,
 )
@@ -61,20 +57,12 @@ def randomized_entangled_entropy_complex(
         existed_all_system = None
     elif isinstance(all_system_source, EntropyMeasureRandomizedAnalysis):
         checked_input: ExistedAllSystemInfoInput = {}
-        get_none_keys = []
         for k in ExistedAllSystemInfo._fields:
-            if k == "source":
-                continue
-            tmp_v = getattr(all_system_source.content, k)
-            if tmp_v is None:
-                get_none_keys.append(k)
-            else:
-                checked_input[k] = (
-                    str(all_system_source.header)
-                    if k == "source"
-                    else getattr(all_system_source.content, k)
-                )
-        assert len(get_none_keys) == 0, f"Get None keys: {get_none_keys}"
+            checked_input[k] = (
+                str(all_system_source.header)
+                if k == "source"
+                else getattr(all_system_source.content, k)
+            )
 
         existed_all_system = ExistedAllSystemInfo(**checked_input)
     else:
@@ -133,6 +121,9 @@ def circuit_method_core(
         else f".{target_key}" + "" if len(old_name) < 1 else f".{old_name}"
     )
 
+    # TODO: When tatget has more clbits or qubits than dest, it will raise an error.
+    # See qiskit/circuit/quantumcircuit.py:1961
+    # if other.num_qubits > dest.num_qubits or other.num_clbits > dest.num_clbits:
     qc_exp1.compose(target_circuit, [q_func1[i] for i in range(num_qubits)], inplace=True)
 
     qc_exp1.barrier()

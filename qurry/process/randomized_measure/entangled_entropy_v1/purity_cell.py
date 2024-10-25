@@ -1,7 +1,7 @@
 """
 =========================================================================================
-Postprocessing - Randomized Measure - Entangled Entropy - Purity Cell
-(:mod:`qurry.process.randomized_measure.entangled_entropy.purity_cell`)
+Postprocessing - Randomized Measure - Entangled Entropy V1 - Purity Cell
+(:mod:`qurry.process.randomized_measure.entangled_entropy_v1.purity_cell`)
 =========================================================================================
 
 """
@@ -78,7 +78,8 @@ def purity_cell_py(
 
     shots = sum(single_counts.values())
 
-    _dummy_string = list(range(subsystem_size))
+    _dummy_string = list(range(len(list(single_counts.keys())[0])))
+
     if _dummy_string[bitstring_range[0] : bitstring_range[1]] == cycling_slice_py(
         _dummy_string, bitstring_range[0], bitstring_range[1], 1
     ):
