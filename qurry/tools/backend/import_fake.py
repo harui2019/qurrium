@@ -106,9 +106,9 @@ def get_default_fake_provider() -> Optional[ImportPointType]:
     Returns:
         ImportPointType: The default fake provider.
     """
-    for point in ImportPointOrder:
-        if FAKE_PROVIDER_SOURCES.get(point) is not None:
-            return point
+    for source in ImportPointOrder:
+        if source in FAKE_PROVIDER_SOURCES:
+            return source
     return None
 
 

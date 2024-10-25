@@ -151,9 +151,9 @@ def get_default_real_source() -> Optional[ImportPointType]:
 
     """
 
-    for i in ImportPointOrder:
-        if REAL_SOURCE_AVAILABLE[i]:
-            return i
+    for source in ImportPointOrder:
+        if source in REAL_SOURCE_AVAILABLE:
+            return source
     return None
 
 
