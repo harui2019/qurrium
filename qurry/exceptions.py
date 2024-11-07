@@ -125,3 +125,7 @@ class QurryPendingTagTooMany(QurryWarning):
 
 class QurryDeprecatedWarning(QurryWarning, DeprecationWarning):
     """Deprecated warning."""
+
+
+class QurryUnknownExportOption(QurryWarning):
+    """Unknown export option warning."""

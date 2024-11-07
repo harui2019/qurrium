@@ -7,12 +7,15 @@ WaveContainer
 """
 
 from typing import Literal, Union, Optional, overload
-from collections.abc import Hashable
+from collections.abc import Hashable, Callable
+import warnings
+
 from qiskit import QuantumCircuit
 from qiskit.quantum_info import Operator
 from qiskit.circuit import Gate, Instruction
 
 from .waves_dynamic import _add, _remove, _process
+from ...exceptions import QurryUnknownExportOption
 
 
 class WaveContainer(dict[Hashable, QuantumCircuit]):
@@ -27,7 +30,7 @@ class WaveContainer(dict[Hashable, QuantumCircuit]):
         self,
         wave: QuantumCircuit,
         key: Optional[Hashable] = None,
-        replace: Literal[True, False, "duplicate"] = False,
+        replace: Literal[True, False, "duplicate"] = True,
     ) -> Hashable:
         """Add wave to container.
 
@@ -36,7 +39,8 @@ class WaveContainer(dict[Hashable, QuantumCircuit]):
             key (Optional[Hashable], optional):
                 The key of wave in 'fict' `.waves`. Defaults to None.
             replace (Literal[True, False, "duplicate"], optional):
-                Replace the wave with same key or not. Defaults to False.
+                Replace the wave with same key or not.
+                Defaults to True.
 
         Returns:
             Hashable: The key of wave in 'dict' `.waves`.
@@ -129,17 +133,24 @@ class WaveContainer(dict[Hashable, QuantumCircuit]):
         if wave not in self:
             raise KeyError(f"Wave {wave} not found in {self}")
 
-        if run_by == "operator":
-            return Operator(self[wave])
-        if run_by == "gate":
-            return self[wave].to_gate()
-        if run_by == "instruction":
-            return self[wave].to_instruction()
-        if run_by == "copy":
-            return self[wave].copy()
-        if run_by == "call":
-            return self[wave]
-        return self[wave].to_gate()
+        actions: dict[
+            str, Callable[[QuantumCircuit], Union[Gate, Operator, Instruction, QuantumCircuit]]
+        ] = {
+            "operator": Operator,
+            "gate": lambda w: w.to_gate(),
+            "instruction": lambda w: w.to_instruction(),
+            "copy": lambda w: w.copy(),
+            "call": lambda w: w,
+        }
+        run_by = "copy" if run_by is None else run_by
+        if run_by not in actions:
+            warnings.warn(
+                "run_by should be 'gate', 'operator', 'instruction', 'copy' or 'call', "
+                + f"but got {run_by}.",
+                category=QurryUnknownExportOption,
+            )
+
+        return actions.get(run_by, lambda w: w.copy())(self[wave])
 
     @overload
     def call(self, wave: list[Hashable]) -> list[QuantumCircuit]: ...
