@@ -27,7 +27,7 @@ class WaveContainer(dict[Hashable, QuantumCircuit]):
         self,
         wave: QuantumCircuit,
         key: Optional[Hashable] = None,
-        replace: Literal[True, False, "duplicate"] = False,
+        replace: Literal[True, False, "duplicate"] = True,
     ) -> Hashable:
         """Add wave to container.
 
@@ -36,7 +36,8 @@ class WaveContainer(dict[Hashable, QuantumCircuit]):
             key (Optional[Hashable], optional):
                 The key of wave in 'fict' `.waves`. Defaults to None.
             replace (Literal[True, False, "duplicate"], optional):
-                Replace the wave with same key or not. Defaults to False.
+                Replace the wave with same key or not.
+                Defaults to True.
 
         Returns:
             Hashable: The key of wave in 'dict' `.waves`.

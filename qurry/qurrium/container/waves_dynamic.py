@@ -18,12 +18,11 @@ def add(
     self: MutableMapping[Hashable, QuantumCircuit],
     wave: QuantumCircuit,
     key: Optional[Hashable] = None,
-    replace: Literal[True, False, "duplicate"] = False,
+    replace: Literal[True, False, "duplicate"] = True,
 ) -> Hashable:
     """Add new wave function to measure.
 
     Args:
-        _wave_container (WaveContainer): The container of waves.
         wave (QuantumCircuit): The wave function or circuit to add.
         key (Optional[Hashable], optional):
             Given a specific key to add to the wave function or circuit,
@@ -32,9 +31,8 @@ def add(
         replace (Literal[True, False, &#39;duplicate&#39;], optional):
             If the key is already in the wave function or circuit,
             then replace the old wave function or circuit when `True`,
-            or duplicate the wave function or circuit when `'duplicate'`,
-            otherwise only changes `.lastwave`.
-            Defaults to `False`.
+            or duplicate the wave function or circuit when `'duplicate'`.
+            Defaults to `True`.
 
     Returns:
         Optional[Hashable]: Key of given wave function in `.waves`.
@@ -330,7 +328,7 @@ def _add(
     _wave_container: MutableMapping[Hashable, QuantumCircuit],
     wave: QuantumCircuit,
     key: Optional[Hashable] = None,
-    replace: Literal[True, False, "duplicate"] = False,
+    replace: Literal[True, False, "duplicate"] = True,
 ) -> Hashable:
     """Add new wave function to measure.
 
@@ -344,9 +342,8 @@ def _add(
         replace (Literal[True, False, &#39;duplicate&#39;], optional):
             If the key is already in the wave function or circuit,
             then replace the old wave function or circuit when `True`,
-            or duplicate the wave function or circuit when `'duplicate'`,
-            otherwise only changes `.lastwave`.
-            Defaults to `False`.
+            or duplicate the wave function or circuit when `'duplicate'`.
+            Defaults to `True`.
 
     Returns:
         Optional[Hashable]: Key of given wave function in `.waves`.

@@ -52,7 +52,7 @@ class QurriumPrototype(ABC):
         self,
         wave: QuantumCircuit,
         key: Optional[Hashable] = None,
-        replace: Literal[True, False, "duplicate"] = False,
+        replace: Literal[True, False, "duplicate"] = True,
     ) -> Hashable:
         """Add new wave function to measure.
 
@@ -65,9 +65,8 @@ class QurriumPrototype(ABC):
             replace (Literal[True, False, &#39;duplicate&#39;], optional):
                 If the key is already in the wave function or circuit,
                 then replace the old wave function or circuit when `True`,
-                or duplicate the wave function or circuit when `'duplicate'`,
-                otherwise only changes `.lastwave`.
-                Defaults to `False`.
+                or duplicate the wave function or circuit when `'duplicate'`.
+                Defaults to `True`.
 
         Returns:
             Optional[Hashable]: Key of given wave function in `.waves`.
