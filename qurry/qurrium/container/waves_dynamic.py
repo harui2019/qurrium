@@ -13,6 +13,8 @@ from qiskit import QuantumCircuit
 from qiskit.quantum_info import Operator
 from qiskit.circuit import Gate, Instruction
 
+from ...exceptions import QurryUnknownExportOption
+
 
 def add(
     self: MutableMapping[Hashable, QuantumCircuit],
@@ -148,6 +150,13 @@ def get_wave(self, wave=None, run_by=None):
         "call": lambda w: w,
     }
     run_by = "copy" if run_by is None else run_by
+    if run_by not in actions:
+        warnings.warn(
+            "run_by should be 'gate', 'operator', 'instruction', 'copy' or 'call', "
+            + f"but got {run_by}.",
+            category=QurryUnknownExportOption,
+        )
+
     return actions.get(run_by, lambda w: w.copy())(self[wave])
 
 
