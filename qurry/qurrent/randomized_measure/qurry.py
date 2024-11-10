@@ -395,7 +395,7 @@ class EntropyMeasureRandomized(QurriumPrototype):
         summoner_id: Optional[str] = None,
         shots: int = 1024,
         backend: Backend = GeneralSimulator(),
-        tags: Optional[list[str]] = None,
+        tags: Optional[tuple[str, ...]] = None,
         manager_run_args: BaseRunArgs | dict[str, Any] | None = None,
         save_location: Union[Path, str] = Path("./"),
         compress: bool = False,
@@ -414,7 +414,7 @@ class EntropyMeasureRandomized(QurriumPrototype):
             backend (Backend, optional):
                 The quantum backend.
                 Defaults to AerSimulator().
-            tags (Optional[list[str]], optional):
+            tags (Optional[tuple[str, ...]], optional):
                 Tags of experiment of the MultiManager. Defaults to None.
             manager_run_args (Optional[Union[BaseRunArgs, dict[str, Any]]], optional):
                 The extra arguments for running the job,

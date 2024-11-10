@@ -285,7 +285,7 @@ class MultiManager:
         summoner_name: Optional[str] = None,
         shots: Optional[int] = None,
         backend: Backend = GeneralSimulator(),
-        tags: Optional[list[str]] = None,
+        tags: Optional[tuple[str, ...]] = None,
         manager_run_args: Optional[Union[BaseRunArgs, dict[str, Any]]] = None,
         jobstype: PendingTargetProviderLiteral = "local",
         pending_strategy: PendingStrategyLiteral = "tags",
@@ -301,7 +301,7 @@ class MultiManager:
                 Defaults to None.
             shots (Optional[int], optional): The shots of experiments. Defaults to None.
             backend (Backend, optional): The backend of experiments. Defaults to GeneralSimulator().
-            tags (Optional[list[str]], optional): The tags of experiments. Defaults to None.
+            tags (Optional[tuple[str, ...]], optional): The tags of experiments. Defaults to None.
             manager_run_args (Optional[Union[BaseRunArgs, dict[str, Any]]], optional):
                 The arguments of manager run. Defaults to None.
             jobstype (PendingTargetProviderLiteral, optional):
@@ -319,7 +319,7 @@ class MultiManager:
         if summoner_name is None:
             summoner_name = "multiexps"
         if tags is None:
-            tags = []
+            tags = ()
         if manager_run_args is None:
             manager_run_args = {}
 
