@@ -6,5 +6,5 @@ Qurry Experiment
 
 """
 
-from .experiment import ExperimentPrototype
+from .experiment import ExperimentPrototype, AnalyzeInputPrototype
 from .arguments import Commonparams, ArgumentsPrototype

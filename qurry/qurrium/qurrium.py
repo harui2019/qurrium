@@ -19,7 +19,7 @@ from qiskit.transpiler.passmanager import PassManager
 
 from .runner import RemoteAccessor, retrieve_counter
 from .utils import passmanager_processor
-from .experiment import ExperimentPrototype
+from .experiment import ExperimentPrototype, AnalyzeInputPrototype
 from .container import (
     WaveContainer,
     ExperimentContainer,
@@ -638,7 +638,9 @@ class QurriumPrototype(ABC):
         summoner_id: str,
         analysis_name: str = "report",
         no_serialize: bool = False,
-        specific_analysis_args: Optional[dict[Hashable, Union[dict[str, Any], bool]]] = None,
+        specific_analysis_args: Optional[
+            dict[Hashable, Union[dict[str, Any], AnalyzeInputPrototype, bool, Any]]
+        ] = None,
         compress: bool = False,
         write: bool = True,
         **analysis_args: Any,

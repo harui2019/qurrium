@@ -22,7 +22,7 @@ from .arguments import MultiCommonparams, PendingStrategyLiteral, PendingTargetP
 from .beforewards import Before
 from .afterwards import After
 from .process import multiprocess_exporter_and_writer, datetimedict_process
-from ..experiment import ExperimentPrototype
+from ..experiment import ExperimentPrototype, AnalyzeInputPrototype
 from ..container import ExperimentContainer, QuantityContainer, _ExpInst
 from ..utils.iocontrol import naming, RJUST_LEN, IOComplex
 from ...tools import qurry_progressbar
@@ -847,7 +847,9 @@ class MultiManager:
         exps_container: ExperimentContainer[_ExpInst],
         analysis_name: str = "report",
         no_serialize: bool = False,
-        specific_analysis_args: Optional[dict[Hashable, Union[dict[str, Any], bool]]] = None,
+        specific_analysis_args: Optional[
+            dict[Hashable, Union[dict[str, Any], AnalyzeInputPrototype, bool]]
+        ] = None,
         **analysis_args: dict[str, Any],
     ) -> str:
         """Analyze the experiments.

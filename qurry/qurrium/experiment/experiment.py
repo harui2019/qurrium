@@ -12,7 +12,7 @@ import os
 import json
 import warnings
 from abc import abstractmethod, ABC
-from typing import Union, Optional, Any, Type, Literal
+from typing import Union, Optional, Any, Type, Literal, TypedDict
 from collections.abc import Hashable
 from pathlib import Path
 import tqdm
@@ -1500,3 +1500,7 @@ class ExperimentPrototype(ABC):
         )
 
         return quene
+
+
+class AnalyzeInputPrototype(TypedDict):
+    """Analysis input prototype."""
