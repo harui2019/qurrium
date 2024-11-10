@@ -33,7 +33,7 @@ from .multimanager.multimanager import (
 )
 from ..tools import qurry_progressbar
 from ..tools.backend import GeneralSimulator
-from ..declare import BaseRunArgs, TranspileArgs, OutputArgs
+from ..declare import BaseRunArgs, TranspileArgs, OutputArgs, BasicArgs
 from ..exceptions import QurryResetAccomplished, QurryResetSecurityActivated
 
 
@@ -360,7 +360,7 @@ class QurriumPrototype(ABC):
     # pylint: disable=invalid-name
     def multiBuild(
         self,
-        config_list: list[dict[str, Any]],
+        config_list: list[Union[dict[str, Any], BasicArgs, Any]],
         summoner_name: str = "exps",
         summoner_id: Optional[str] = None,
         shots: int = 1024,
@@ -450,7 +450,7 @@ class QurriumPrototype(ABC):
 
     def multiOutput(
         self,
-        config_list: list[dict[str, Any]],
+        config_list: list[Union[dict[str, Any], BasicArgs, Any]],
         summoner_name: str = "exps",
         summoner_id: Optional[str] = None,
         shots: int = 1024,
