@@ -16,7 +16,7 @@ from qiskit import QuantumCircuit
 from .analysis import EntropyMeasureRandomizedAnalysis
 from .arguments import EntropyMeasureRandomizedArguments, SHORT_NAME
 from .utils import circuit_method_core, randomized_entangled_entropy_complex
-from ...qurrium.experiment import ExperimentPrototype, Commonparams
+from ...qurrium.experiment import ExperimentPrototype, Commonparams, AnalyzeInputPrototype
 from ...qurrium.utils.randomized import (
     random_unitary,
     local_unitary_op_to_list,
@@ -399,3 +399,16 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
             backend=backend,
             pbar=pbar,
         )
+
+
+class EntropyMeasureRandomizedAnalyze(AnalyzeInputPrototype, total=False):
+    """The input of the analyze method."""
+
+    selected_qubits: Optional[list[int]]
+    """The selected qubits."""
+    independent_all_system: bool
+    """If True, then calculate the all system independently."""
+    backend: PostProcessingBackendLabel
+    """The backend for the process."""
+    counts_used: Optional[Iterable[int]]
+    """The index of the counts used."""

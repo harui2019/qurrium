@@ -6,7 +6,7 @@ EntropyMeasureRandomized - Qurry
 
 """
 
-from typing import Union, Optional, Any, Type, Literal
+from typing import Union, Optional, Any, Type, Literal, Iterable
 from collections.abc import Hashable
 from pathlib import Path
 import tqdm
@@ -16,7 +16,12 @@ from qiskit.providers import Backend
 from qiskit.transpiler.passmanager import PassManager
 
 from .arguments import SHORT_NAME, EntropyMeasureRandomizedOutputArgs
-from .experiment import EntropyMeasureRandomizedExperiment
+from .experiment import (
+    EntropyMeasureRandomizedExperiment,
+    EntropyMeasureRandomizedAnalyze,
+    PostProcessingBackendLabel,
+    DEFAULT_PROCESS_BACKEND,
+)
 from ...qurrium.qurrium import QurriumPrototype
 from ...qurrium.container import ExperimentContainer
 from ...declare import BaseRunArgs, TranspileArgs
@@ -377,3 +382,63 @@ class EntropyMeasureRandomized(QurriumPrototype):
         )
 
         return self.output(**output_args)
+
+    def multiAnalysis(
+        self,
+        summoner_id: str,
+        analysis_name: str = "report",
+        no_serialize: bool = False,
+        specific_analysis_args: (
+            dict[Hashable, Union[dict[str, Any], EntropyMeasureRandomizedAnalyze, bool]] | None
+        ) = None,
+        compress: bool = False,
+        write: bool = True,
+        selected_qubits: Optional[list[int]] = None,
+        independent_all_system: bool = False,
+        backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
+        counts_used: Optional[Iterable[int]] = None,
+        **analysis_args,
+    ) -> str:
+        """Run the analysis for multiple experiments.
+
+        Args:
+            summoner_id (str): The summoner_id of multimanager.
+            analysis_name (str, optional):
+                The name of analysis. Defaults to 'report'.
+            no_serialize (bool, optional):
+                Whether to serialize the analysis. Defaults to False.
+            specific_analysis_args
+                Optional[dict[Hashable, Union[dict[str, Any], bool]]], optional
+            ):
+                The specific arguments for analysis. Defaults to None.
+            compress (bool, optional):
+                Whether to compress the export file. Defaults to False.
+            write (bool, optional):
+                Whether to write the export file. Defaults to True.
+
+            selected_qubits (Optional[list[int]], optional):
+                The selected qubits. Defaults to None.
+            independent_all_system (bool, optional):
+                Whether to treat all system as independent. Defaults to False.
+            backend (PostProcessingBackendLabel, optional):
+                The backend for the postprocessing. Defaults to DEFAULT_PROCESS_BACKEND.
+            counts_used (Optional[Iterable[int]], optional):
+                The counts used for the analysis. Defaults to None.
+
+        Returns:
+            str: The summoner_id of multimanager.
+        """
+
+        return super().multiAnalysis(
+            summoner_id=summoner_id,
+            analysis_name=analysis_name,
+            no_serialize=no_serialize,
+            specific_analysis_args=specific_analysis_args,
+            compress=compress,
+            write=write,
+            selected_qubits=selected_qubits,
+            independent_all_system=independent_all_system,
+            backend=backend,
+            counts_used=counts_used,
+            **analysis_args,
+        )
