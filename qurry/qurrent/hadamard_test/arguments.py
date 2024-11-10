@@ -29,7 +29,7 @@ class EntropyMeasureHadamardArguments(ArgumentsPrototype):
     """The degree range."""
 
 
-class EntropyMeasureHadamardMeasureArgs(BasicArgs):
+class EntropyMeasureHadamardMeasureArgs(BasicArgs, total=False):
     """Output arguments for :meth:`output`."""
 
     wave: Optional[Union[QuantumCircuit, Hashable]]

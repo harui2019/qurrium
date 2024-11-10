@@ -65,7 +65,7 @@ class EntropyMeasureRandomizedV1Arguments(ArgumentsPrototype):
     """The number of workers for multiprocessing."""
 
 
-class EntropyMeasureRandomizedV1MeasureArgs(BasicArgs):
+class EntropyMeasureRandomizedV1MeasureArgs(BasicArgs, total=False):
     """Output arguments for :meth:`output`."""
 
     wave: Optional[Union[QuantumCircuit, Hashable]]

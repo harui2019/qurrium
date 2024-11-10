@@ -63,7 +63,7 @@ class EchoListenRandomizedArguments(ArgumentsPrototype):
     """The number of workers for multiprocessing."""
 
 
-class EchoListenRandomizedMeasureArgs(BasicArgs):
+class EchoListenRandomizedMeasureArgs(BasicArgs, total=False):
     """Output arguments for :meth:`output`."""
 
     wave1: Optional[Union[QuantumCircuit, Hashable]]

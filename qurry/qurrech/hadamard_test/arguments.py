@@ -29,7 +29,7 @@ class EchoListenHadamardArguments(ArgumentsPrototype):
     """The degree range."""
 
 
-class EchoListenHadamardMeasureArgs(BasicArgs):
+class EchoListenHadamardMeasureArgs(BasicArgs, total=False):
     """Output arguments for :meth:`output`."""
 
     wave1: Optional[Union[QuantumCircuit, Hashable]]
