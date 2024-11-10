@@ -23,18 +23,19 @@ class MultiManagerContainer(dict[str, MultiManager]):
 
     def _repr_pretty_(self, p, cycle):
         # pylint: disable=protected-access
-        original_repr = repr({k: v._repr_oneline() for k, v in self.items()})
+        original = repr({k: v._repr_oneline() for k, v in self.items()})
         # pylint: enable=protected-access
-        original_repr_split = original_repr[1:-1].split(", ")
-        length = len(original_repr_split)
+        length = len(self)
 
         if cycle:
             p.text(f"{self.__name__}(" + "{...}" + f", num={length})")
         else:
             with p.group(2, f"{self.__name__}(num={length}" + ", {", "})"):
-                for i, item in enumerate(original_repr_split):
+                for i, (item_id, item) in enumerate(original):
                     p.breakable()
-                    p.text(item)
+                    p.text(f"{item_id}: ")
+                    p.breakable()
+                    p.pretty(f"  {item}")
                     if i < length - 1:
                         p.text(",")
 

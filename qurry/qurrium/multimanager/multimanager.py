@@ -216,6 +216,8 @@ class MultiManager:
         )
 
     def _repr_pretty_(self, p, cycle):
+        max_events = 5
+
         if cycle:
             p.text(
                 f"<{self.__name__}("
@@ -224,19 +226,23 @@ class MultiManager:
             )
         else:
             with p.group(2, f"<{type(self).__name__}(", ")>"):
-                p.text(f"id={self.multicommons.summoner_id}")
+                p.text(f"id={self.multicommons.summoner_id},")
                 p.breakable()
-                p.text(f"name={self.multicommons.summoner_name}")
+                p.text(f"name={self.multicommons.summoner_name},")
                 p.breakable()
-                p.text(f"tags={self.multicommons.tags}")
+                p.text(f"tags={self.multicommons.tags},")
                 p.breakable()
-                p.text(f"jobstype={self.multicommons.jobstype}")
+                p.text(f"jobstype={self.multicommons.jobstype},")
                 p.breakable()
-                p.text(f"pending_strategy={self.multicommons.pending_strategy}")
+                p.text(f"pending_strategy={self.multicommons.pending_strategy},")
                 p.breakable()
                 p.text("last_events={")
+                last_events = dict(self.multicommons.datetimes.last_events(max_events)).items()
+                if len(self.multicommons.datetimes) > max_events:
+                    p.breakable()
+                    p.text("  ...")
                 for i, (k, v) in enumerate(
-                    dict(self.multicommons.datetimes.last_events(5)).items()
+                    last_events,
                 ):
                     p.breakable()
                     p.text(f"  '{k}': '{v}'")
