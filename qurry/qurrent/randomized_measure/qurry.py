@@ -15,7 +15,11 @@ from qiskit import QuantumCircuit
 from qiskit.providers import Backend
 from qiskit.transpiler.passmanager import PassManager
 
-from .arguments import SHORT_NAME, EntropyMeasureRandomizedOutputArgs
+from .arguments import (
+    SHORT_NAME,
+    EntropyMeasureRandomizedOutputArgs,
+    EntropyMeasureRandomizedMeasureArgs,
+)
 from .experiment import (
     EntropyMeasureRandomizedExperiment,
     EntropyMeasureRandomizedAnalyze,
@@ -24,6 +28,7 @@ from .experiment import (
 )
 from ...qurrium.qurrium import QurriumPrototype
 from ...qurrium.container import ExperimentContainer
+from ...tools.backend import GeneralSimulator
 from ...declare import BaseRunArgs, TranspileArgs
 
 
@@ -382,6 +387,61 @@ class EntropyMeasureRandomized(QurriumPrototype):
         )
 
         return self.output(**output_args)
+
+    def multiOutput(
+        self,
+        config_list: list[Union[dict[str, Any], EntropyMeasureRandomizedMeasureArgs]],
+        summoner_name: str = "exps",
+        summoner_id: Optional[str] = None,
+        shots: int = 1024,
+        backend: Backend = GeneralSimulator(),
+        tags: Optional[list[str]] = None,
+        manager_run_args: BaseRunArgs | dict[str, Any] | None = None,
+        save_location: Union[Path, str] = Path("./"),
+        compress: bool = False,
+    ) -> str:
+        """Output the multiple experiments.
+
+        Args:
+            config_list (list[Union[dict[str, Any], EntropyMeasureRandomizedMeasureArgs]]):
+                The list of default configurations of multiple experiment. Defaults to [].
+            summoner_name (str, optional):
+                Name for multimanager. Defaults to 'exps'.
+            summoner_id (Optional[str], optional):
+                Name for multimanager. Defaults to None.
+            shots (int, optional):
+                Shots of the job. Defaults to `1024`.
+            backend (Backend, optional):
+                The quantum backend.
+                Defaults to AerSimulator().
+            tags (Optional[list[str]], optional):
+                Tags of experiment of the MultiManager. Defaults to None.
+            manager_run_args (Optional[Union[BaseRunArgs, dict[str, Any]]], optional):
+                The extra arguments for running the job,
+                but for all experiments in the multimanager.
+                For :meth:`backend.run()` from :cls:`qiskit.providers.backend`. Defaults to `{}`.
+            save_location (Union[Path, str], optional):
+                Where to save the export content as `json` file.
+                If `save_location == None`, then cancelled the file to be exported.
+                Defaults to Path('./').
+            compress (bool, optional):
+                Whether to compress the export file. Defaults to False.
+
+        Returns:
+            str: The summoner_id of multimanager.
+        """
+
+        return super().multiOutput(
+            config_list=config_list,
+            summoner_name=summoner_name,
+            summoner_id=summoner_id,
+            shots=shots,
+            backend=backend,
+            tags=tags,
+            manager_run_args=manager_run_args,
+            save_location=save_location,
+            compress=compress,
+        )
 
     def multiAnalysis(
         self,
