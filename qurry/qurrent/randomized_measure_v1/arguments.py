@@ -8,14 +8,17 @@ This is a deprecated version of the randomized measure module.
 
 """
 
-from typing import Optional, Union
+from typing import Optional, Union, Iterable
 from collections.abc import Hashable
 from dataclasses import dataclass
 
 from qiskit import QuantumCircuit
 
 from ...qurrium.experiment import ArgumentsPrototype
-from ...declare import BasicArgs, OutputArgs
+from ...process.randomized_measure.entangled_entropy_v1 import (
+    PostProcessingBackendLabel,
+)
+from ...declare import BasicArgs, OutputArgs, AnalyzeArgs
 from ...tools import DEFAULT_POOL_SIZE
 
 
@@ -141,6 +144,21 @@ class EntropyMeasureRandomizedV1OutputArgs(OutputArgs):
     ```
 
     """
+
+
+class EntropyMeasureRandomizedV1AnalyzeArgs(AnalyzeArgs, total=False):
+    """The input of the analyze method."""
+
+    degree: Optional[Union[tuple[int, int], int]]
+    """The degree range."""
+    counts_used: Optional[Iterable[int]]
+    """The index of the counts used."""
+    workers_num: Optional[int]
+    """The number of workers for multiprocessing."""
+    independent_all_system: bool
+    """If True, then calculate the all system independently."""
+    backend: PostProcessingBackendLabel
+    """The backend for the process."""
 
 
 SHORT_NAME = "qurrent_randomized_v1"

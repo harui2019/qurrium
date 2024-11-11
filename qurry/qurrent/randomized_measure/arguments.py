@@ -166,7 +166,7 @@ class EntropyMeasureRandomizedOutputArgs(OutputArgs):
     """
 
 
-class EntropyMeasureRandomizedAnalyze(AnalyzeArgs, total=False):
+class EntropyMeasureRandomizedAnalyzeArgs(AnalyzeArgs, total=False):
     """The input of the analyze method."""
 
     selected_qubits: Optional[list[int]]

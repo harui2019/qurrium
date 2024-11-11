@@ -19,7 +19,7 @@ from .arguments import (
     SHORT_NAME,
     EntropyMeasureRandomizedOutputArgs,
     EntropyMeasureRandomizedMeasureArgs,
-    EntropyMeasureRandomizedAnalyze,
+    EntropyMeasureRandomizedAnalyzeArgs,
 )
 from .experiment import (
     EntropyMeasureRandomizedExperiment,
@@ -449,7 +449,7 @@ class EntropyMeasureRandomized(QurriumPrototype):
         analysis_name: str = "report",
         no_serialize: bool = False,
         specific_analysis_args: Optional[
-            dict[Hashable, Union[dict[str, Any], EntropyMeasureRandomizedAnalyze, bool]]
+            dict[Hashable, Union[dict[str, Any], EntropyMeasureRandomizedAnalyzeArgs, bool]]
         ] = None,
         compress: bool = False,
         write: bool = True,
@@ -469,7 +469,9 @@ class EntropyMeasureRandomized(QurriumPrototype):
             no_serialize (bool, optional):
                 Whether to serialize the analysis. Defaults to False.
             specific_analysis_args
-                Optional[dict[Hashable, Union[dict[str, Any], bool]]], optional
+                Optional[dict[Hashable, Union[
+                    dict[str, Any], EntropyMeasureRandomizedAnalyzeArgs, bool]
+                ]]], optional
             ):
                 The specific arguments for analysis. Defaults to None.
             compress (bool, optional):
