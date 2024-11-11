@@ -22,7 +22,7 @@ from .arguments import MultiCommonparams, PendingStrategyLiteral, PendingTargetP
 from .beforewards import Before
 from .afterwards import After
 from .process import multiprocess_exporter_and_writer, datetimedict_process
-from ..experiment import ExperimentPrototype, AnalyzeArgs
+from ..experiment import ExperimentPrototype
 from ..container import ExperimentContainer, QuantityContainer, _ExpInst
 from ..utils.iocontrol import naming, RJUST_LEN, IOComplex
 from ...tools import qurry_progressbar
@@ -30,7 +30,7 @@ from ...tools.backend import GeneralSimulator
 from ...tools.datetime import DatetimeDict
 from ...capsule import quickJSON
 from ...capsule.mori import TagList, GitSyncControl
-from ...declare import BaseRunArgs
+from ...declare import BaseRunArgs, AnalyzeArgs
 from ...exceptions import (
     QurryProtectContent,
     QurryResetAccomplished,

@@ -19,7 +19,7 @@ from qiskit.transpiler.passmanager import PassManager
 
 from .runner import RemoteAccessor, retrieve_counter
 from .utils import passmanager_processor
-from .experiment import ExperimentPrototype, AnalyzeInputPrototype
+from .experiment import ExperimentPrototype
 from .container import (
     WaveContainer,
     ExperimentContainer,
@@ -33,7 +33,7 @@ from .multimanager.multimanager import (
 )
 from ..tools import qurry_progressbar
 from ..tools.backend import GeneralSimulator
-from ..declare import BaseRunArgs, TranspileArgs, OutputArgs, BasicArgs
+from ..declare import BaseRunArgs, TranspileArgs, OutputArgs, BasicArgs, AnalyzeArgs
 from ..exceptions import QurryResetAccomplished, QurryResetSecurityActivated
 
 
@@ -639,7 +639,7 @@ class QurriumPrototype(ABC):
         analysis_name: str = "report",
         no_serialize: bool = False,
         specific_analysis_args: Optional[
-            dict[Hashable, Union[dict[str, Any], AnalyzeInputPrototype, bool, Any]]
+            dict[Hashable, Union[dict[str, Any], AnalyzeArgs, bool, Any]]
         ] = None,
         compress: bool = False,
         write: bool = True,
