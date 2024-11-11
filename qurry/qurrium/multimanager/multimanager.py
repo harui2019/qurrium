@@ -22,7 +22,7 @@ from .arguments import MultiCommonparams, PendingStrategyLiteral, PendingTargetP
 from .beforewards import Before
 from .afterwards import After
 from .process import multiprocess_exporter_and_writer, datetimedict_process
-from ..experiment import ExperimentPrototype, AnalyzeInputPrototype
+from ..experiment import ExperimentPrototype, AnalyzeArgs
 from ..container import ExperimentContainer, QuantityContainer, _ExpInst
 from ..utils.iocontrol import naming, RJUST_LEN, IOComplex
 from ...tools import qurry_progressbar
@@ -189,11 +189,11 @@ class MultiManager:
     def __repr__(self):
         return (
             f"<{self.__name__}("
-            + f"id={self.multicommons.summoner_id}, "
-            + f"name={self.multicommons.summoner_name}, "
+            + f'id="{self.multicommons.summoner_id}", '
+            + f'name="{self.multicommons.summoner_name}", '
             + f"tags={self.multicommons.tags}, "
-            + f"jobstype={self.multicommons.jobstype}, "
-            + f"pending_strategy={self.multicommons.pending_strategy}, "
+            + f'jobstype="{self.multicommons.jobstype}", '
+            + f'pending_strategy="{self.multicommons.pending_strategy}", '
             + f"last_events={dict(self.multicommons.datetimes.last_events(3))}, "
             + f"exps_num={len(self.beforewards.exps_config)})>"
         )
@@ -201,18 +201,18 @@ class MultiManager:
     def _repr_oneline(self):
         return (
             f"<{self.__name__}("
-            + f"id={self.multicommons.summoner_id}, "
-            + f"name={self.multicommons.summoner_name}, "
-            + f"jobstype={self.multicommons.jobstype}, "
-            + "...)>"
+            + f'id="{self.multicommons.summoner_id}", '
+            + f'name="{self.multicommons.summoner_name}", '
+            + f'jobstype="{self.multicommons.jobstype}", ..., '
+            + f"exps_num={len(self.beforewards.exps_config)})>"
         )
 
     def _repr_oneline_no_id(self):
         return (
             f"<{self.__name__}("
-            + f"name={self.multicommons.summoner_name}, "
-            + f"jobstype={self.multicommons.jobstype}, "
-            + "...)>"
+            + f'name="{self.multicommons.summoner_name}", '
+            + f'jobstype="{self.multicommons.jobstype}", ..., '
+            + f"exps_num={len(self.beforewards.exps_config)})>"
         )
 
     def _repr_pretty_(self, p, cycle):
@@ -221,35 +221,31 @@ class MultiManager:
         if cycle:
             p.text(
                 f"<{self.__name__}("
-                + f"id={self.multicommons.summoner_id}, "
-                + f"name={self.multicommons.summoner_name}, ...)>"
+                + f'id="{self.multicommons.summoner_id}", '
+                + f'name="{self.multicommons.summoner_name}", '
+                + f'jobstype="{self.multicommons.jobstype}", ..., '
+                + f"exps_num={len(self.beforewards.exps_config)})>"
             )
         else:
             with p.group(2, f"<{type(self).__name__}(", ")>"):
-                p.text(f"id={self.multicommons.summoner_id},")
+                p.text(f'id="{self.multicommons.summoner_id}",')
                 p.breakable()
-                p.text(f"name={self.multicommons.summoner_name},")
+                p.text(f'name="{self.multicommons.summoner_name}",')
                 p.breakable()
                 p.text(f"tags={self.multicommons.tags},")
                 p.breakable()
-                p.text(f"jobstype={self.multicommons.jobstype},")
+                p.text(f'jobstype="{self.multicommons.jobstype}",')
                 p.breakable()
-                p.text(f"pending_strategy={self.multicommons.pending_strategy},")
+                p.text(f'pending_strategy="{self.multicommons.pending_strategy}",')
                 p.breakable()
                 p.text("last_events={")
-                last_events = dict(self.multicommons.datetimes.last_events(max_events)).items()
                 if len(self.multicommons.datetimes) > max_events:
                     p.breakable()
-                    p.text("  ...")
-                for i, (k, v) in enumerate(
-                    last_events,
-                ):
+                    p.text("  ...,")
+                for k, v in self.multicommons.datetimes.last_events(max_events):
                     p.breakable()
-                    p.text(f"  '{k}': '{v}'")
-                    if i < 4:
-                        p.text(",")
-                    else:
-                        p.text("},")
+                    p.text(f"  '{k}': '{v}',")
+                p.text("},")
                 p.breakable()
                 p.text(f"exps_num={len(self.beforewards.exps_config)}")
 
@@ -854,7 +850,7 @@ class MultiManager:
         analysis_name: str = "report",
         no_serialize: bool = False,
         specific_analysis_args: Optional[
-            dict[Hashable, Union[dict[str, Any], AnalyzeInputPrototype, bool]]
+            dict[Hashable, Union[dict[str, Any], AnalyzeArgs, bool]]
         ] = None,
         **analysis_args: dict[str, Any],
     ) -> str:
