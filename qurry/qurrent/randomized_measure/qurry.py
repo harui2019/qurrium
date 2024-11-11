@@ -19,10 +19,10 @@ from .arguments import (
     SHORT_NAME,
     EntropyMeasureRandomizedOutputArgs,
     EntropyMeasureRandomizedMeasureArgs,
+    EntropyMeasureRandomizedAnalyze,
 )
 from .experiment import (
     EntropyMeasureRandomizedExperiment,
-    EntropyMeasureRandomizedAnalyze,
     PostProcessingBackendLabel,
     DEFAULT_PROCESS_BACKEND,
 )
@@ -448,11 +448,12 @@ class EntropyMeasureRandomized(QurriumPrototype):
         summoner_id: str,
         analysis_name: str = "report",
         no_serialize: bool = False,
-        specific_analysis_args: (
-            dict[Hashable, Union[dict[str, Any], EntropyMeasureRandomizedAnalyze, bool]] | None
-        ) = None,
+        specific_analysis_args: Optional[
+            dict[Hashable, Union[dict[str, Any], EntropyMeasureRandomizedAnalyze, bool]]
+        ] = None,
         compress: bool = False,
         write: bool = True,
+        # analysis arguments
         selected_qubits: Optional[list[int]] = None,
         independent_all_system: bool = False,
         backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
