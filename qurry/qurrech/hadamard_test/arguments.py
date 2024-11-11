@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from qiskit import QuantumCircuit
 
 from ...qurrium.experiment import ArgumentsPrototype
-from ...declare import BasicArgs, OutputArgs
+from ...declare import BasicArgs, OutputArgs, AnalyzeArgs
 
 
 @dataclass(frozen=True)
@@ -45,6 +45,13 @@ class EchoListenHadamardOutputArgs(OutputArgs):
 
     degree: Union[int, tuple[int, int], None]
     """The degree range."""
+
+
+class EchoListenHadamardAnalyzeArgs(AnalyzeArgs, total=False):
+    """The input of the analyze method.
+
+    The post-processing of Hadamard test does not need any input.
+    """
 
 
 SHORT_NAME = "qurrech_hadamard"

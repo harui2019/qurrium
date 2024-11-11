@@ -6,14 +6,17 @@ EchoListenRandomized - Arguments
 
 """
 
-from typing import Optional, Union
+from typing import Optional, Union, Iterable
 from collections.abc import Hashable
 from dataclasses import dataclass
 
 from qiskit import QuantumCircuit
 
 from ...qurrium.experiment import ArgumentsPrototype
-from ...declare import BasicArgs, OutputArgs
+from ...process.randomized_measure.wavefunction_overlap import (
+    PostProcessingBackendLabel,
+)
+from ...declare import BasicArgs, OutputArgs, AnalyzeArgs
 from ...tools import DEFAULT_POOL_SIZE
 
 
@@ -141,6 +144,21 @@ class EchoListenRandomizedOutputArgs(OutputArgs):
     ```
 
     """
+
+
+class EchoListenRandomizedAnalyzeArgs(AnalyzeArgs, total=False):
+    """The input of the analyze method."""
+
+    degree: Optional[Union[tuple[int, int], int]]
+    """The degree range."""
+    counts_used: Optional[Iterable[int]]
+    """The index of the counts used."""
+    workers_num: Optional[int]
+    """The number of workers for multiprocessing."""
+    independent_all_system: bool
+    """If True, then calculate the all system independently."""
+    backend: PostProcessingBackendLabel
+    """The backend for the process."""
 
 
 SHORT_NAME = "qurrech_randomized"
