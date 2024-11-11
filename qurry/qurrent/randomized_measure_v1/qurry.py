@@ -446,10 +446,11 @@ class EntropyMeasureRandomizedV1(QurriumPrototype):
         compress: bool = False,
         write: bool = True,
         # analysis arguments
-        selected_qubits: Optional[list[int]] = None,
+        degree: Optional[Union[tuple[int, int], int]] = None,
+        counts_used: Optional[Iterable[int]] = None,
+        workers_num: Optional[int] = None,
         independent_all_system: bool = False,
         backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
-        counts_used: Optional[Iterable[int]] = None,
         **analysis_args,
     ) -> str:
         """Run the analysis for multiple experiments.
@@ -471,14 +472,21 @@ class EntropyMeasureRandomizedV1(QurriumPrototype):
             write (bool, optional):
                 Whether to write the export file. Defaults to True.
 
-            selected_qubits (Optional[list[int]], optional):
-                The selected qubits. Defaults to None.
-            independent_all_system (bool, optional):
-                Whether to treat all system as independent. Defaults to False.
-            backend (PostProcessingBackendLabel, optional):
-                The backend for the postprocessing. Defaults to DEFAULT_PROCESS_BACKEND.
+            degree (Union[tuple[int, int], int]): Degree of the subsystem.
             counts_used (Optional[Iterable[int]], optional):
-                The counts used for the analysis. Defaults to None.
+                The index of the counts used.
+                If not specified, then use all counts.
+                Defaults to None.
+            workers_num (Optional[int], optional):
+                Number of multi-processing workers,
+                if sets to 1, then disable to using multi-processing;
+                if not specified, then use the number of all cpu counts - 2 by `cpu_count() - 2`.
+                Defaults to None.
+            independent_all_system (bool, optional):
+                If True, then calculate the all system independently.
+                Otherwise, use the existed all system source with same `count_used`.
+            backend (PostProcessingBackendLabel, optional):
+                Backend for the process. Defaults to DEFAULT_PROCESS_BACKEND.
 
         Returns:
             str: The summoner_id of multimanager.
@@ -491,9 +499,11 @@ class EntropyMeasureRandomizedV1(QurriumPrototype):
             specific_analysis_args=specific_analysis_args,
             compress=compress,
             write=write,
-            selected_qubits=selected_qubits,
+            # analysis arguments
+            degree=degree,
+            counts_used=counts_used,
+            workers_num=workers_num,
             independent_all_system=independent_all_system,
             backend=backend,
-            counts_used=counts_used,
             **analysis_args,
         )
