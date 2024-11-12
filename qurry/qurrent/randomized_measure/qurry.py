@@ -396,7 +396,7 @@ class EntropyMeasureRandomized(QurriumPrototype):
         shots: int = 1024,
         backend: Backend = GeneralSimulator(),
         tags: Optional[tuple[str, ...]] = None,
-        manager_run_args: BaseRunArgs | dict[str, Any] | None = None,
+        manager_run_args: Optional[Union[BaseRunArgs, dict[str, Any]]] = None,
         save_location: Union[Path, str] = Path("./"),
         compress: bool = False,
     ) -> str:
