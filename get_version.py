@@ -133,6 +133,11 @@ if __name__ == "__main__":
         print("| Major and minor bump are only allowed by bumping manually.")
         print(f"| Version not changed: {'.'.join(version_txt_split)}")
         print("|" + "-" * 30)
+    else:
+        print("| The bump type should be one of the following: major, minor, patch, dev.")
+        print(f"| But got: '{args.bump}'")
+        print(f"| Version not changed: {'.'.join(version_txt_split)}")
+        print("|" + "-" * 30)
 
     if args.release == "stable":
         VERSION = ".".join(version_txt_split[:3])
@@ -142,7 +147,10 @@ if __name__ == "__main__":
             print(f"| Stable print, version: '{VERSION}', rewrite VERSION.txt and pyproject.toml")
 
     if (args.release == "stable" or args.bump in ["patch", "dev"]) and not args.test:
-        os.system(f'echo "{VERSION}" > ./qurry/VERSION.txt')
+        with open(
+            os.path.join("qurry", "VERSION.txt"), "w", encoding="utf-8"
+        ) as version_file:
+            version_file.write(VERSION)
         toml_rename()
 
     else:
