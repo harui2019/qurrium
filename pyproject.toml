@@ -27,8 +27,8 @@ classifiers = [
 requires-python = ">=3.9"
 
 [project.urls]
-Issues = "https://github.com/harui2019/qurry/issues"
-Homepage = "https://github.com/harui2019/qurry"
+Issues = "https://github.com/harui2019/qurrium/issues"
+Homepage = "https://github.com/harui2019/qurrium"
 
 [tool.setuptools.packages.find]
 include = ['qurry*', 'qurry.capsule*']
