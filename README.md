@@ -12,7 +12,7 @@ There are several additional features, such as measurement of magnetization and 
 
 ## Documentation
 
-More infomation can be found in [the documentation of Qurry](https://qurrium.projext.app).
+More infomation can be found in [the documentation of Qurry 🍛](https://docs.qurrium.org).
 
 ## Installation
 

@@ -6,14 +6,17 @@ EntropyMeasureRandomized - Arguments
 
 """
 
-from typing import Optional, Union
+from typing import Optional, Union, Iterable
 from collections.abc import Hashable
 from dataclasses import dataclass
 
 from qiskit import QuantumCircuit
 
 from ...qurrium.experiment import ArgumentsPrototype
-from ...declare import BasicArgs, OutputArgs
+from ...process.randomized_measure.entangled_entropy import (
+    PostProcessingBackendLabel,
+)
+from ...declare import BasicArgs, OutputArgs, AnalyzeArgs
 from ...tools import DEFAULT_POOL_SIZE
 
 
@@ -81,7 +84,7 @@ class EntropyMeasureRandomizedArguments(ArgumentsPrototype):
     """The number of workers for multiprocessing."""
 
 
-class EntropyMeasureRandomizedMeasureArgs(BasicArgs):
+class EntropyMeasureRandomizedMeasureArgs(BasicArgs, total=False):
     """Output arguments for :meth:`output`."""
 
     wave: Optional[Union[QuantumCircuit, Hashable]]
@@ -161,6 +164,19 @@ class EntropyMeasureRandomizedOutputArgs(OutputArgs):
     ```
 
     """
+
+
+class EntropyMeasureRandomizedAnalyzeArgs(AnalyzeArgs, total=False):
+    """The input of the analyze method."""
+
+    selected_qubits: Optional[list[int]]
+    """The selected qubits."""
+    independent_all_system: bool
+    """If True, then calculate the all system independently."""
+    backend: PostProcessingBackendLabel
+    """The backend for the process."""
+    counts_used: Optional[Iterable[int]]
+    """The index of the counts used."""
 
 
 SHORT_NAME = "qurrent_randomized"

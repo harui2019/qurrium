@@ -23,7 +23,7 @@ class WavesExecuterArguments(ArgumentsPrototype):
     which is overwritable by the inherition class."""
 
 
-class WavesExecuterMeasureArgs(BasicArgs):
+class WavesExecuterMeasureArgs(BasicArgs, total=False):
     """Output arguments for :meth:`output`."""
 
     waves: Optional[list[Union[QuantumCircuit, Hashable]]]

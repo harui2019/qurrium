@@ -30,7 +30,7 @@ from ...tools.backend import GeneralSimulator
 from ...tools.datetime import DatetimeDict
 from ...capsule import quickJSON
 from ...capsule.mori import TagList, GitSyncControl
-from ...declare import BaseRunArgs
+from ...declare import BaseRunArgs, AnalyzeArgs
 from ...exceptions import (
     QurryProtectContent,
     QurryResetAccomplished,
@@ -189,11 +189,11 @@ class MultiManager:
     def __repr__(self):
         return (
             f"<{self.__name__}("
-            + f"id={self.multicommons.summoner_id}, "
-            + f"name={self.multicommons.summoner_name}, "
+            + f'id="{self.multicommons.summoner_id}", '
+            + f'name="{self.multicommons.summoner_name}", '
             + f"tags={self.multicommons.tags}, "
-            + f"jobstype={self.multicommons.jobstype}, "
-            + f"pending_strategy={self.multicommons.pending_strategy}, "
+            + f'jobstype="{self.multicommons.jobstype}", '
+            + f'pending_strategy="{self.multicommons.pending_strategy}", '
             + f"last_events={dict(self.multicommons.datetimes.last_events(3))}, "
             + f"exps_num={len(self.beforewards.exps_config)})>"
         )
@@ -201,49 +201,51 @@ class MultiManager:
     def _repr_oneline(self):
         return (
             f"<{self.__name__}("
-            + f"id={self.multicommons.summoner_id}, "
-            + f"name={self.multicommons.summoner_name}, "
-            + f"jobstype={self.multicommons.jobstype}, "
-            + "...)>"
+            + f'id="{self.multicommons.summoner_id}", '
+            + f'name="{self.multicommons.summoner_name}", '
+            + f'jobstype="{self.multicommons.jobstype}", ..., '
+            + f"exps_num={len(self.beforewards.exps_config)})>"
         )
 
     def _repr_oneline_no_id(self):
         return (
             f"<{self.__name__}("
-            + f"name={self.multicommons.summoner_name}, "
-            + f"jobstype={self.multicommons.jobstype}, "
-            + "...)>"
+            + f'name="{self.multicommons.summoner_name}", '
+            + f'jobstype="{self.multicommons.jobstype}", ..., '
+            + f"exps_num={len(self.beforewards.exps_config)})>"
         )
 
     def _repr_pretty_(self, p, cycle):
+        max_events = 5
+
         if cycle:
             p.text(
                 f"<{self.__name__}("
-                + f"id={self.multicommons.summoner_id}, "
-                + f"name={self.multicommons.summoner_name}, ...)>"
+                + f'id="{self.multicommons.summoner_id}", '
+                + f'name="{self.multicommons.summoner_name}", '
+                + f'jobstype="{self.multicommons.jobstype}", ..., '
+                + f"exps_num={len(self.beforewards.exps_config)})>"
             )
         else:
             with p.group(2, f"<{type(self).__name__}(", ")>"):
-                p.text(f"id={self.multicommons.summoner_id}")
+                p.text(f'id="{self.multicommons.summoner_id}",')
                 p.breakable()
-                p.text(f"name={self.multicommons.summoner_name}")
+                p.text(f'name="{self.multicommons.summoner_name}",')
                 p.breakable()
-                p.text(f"tags={self.multicommons.tags}")
+                p.text(f"tags={self.multicommons.tags},")
                 p.breakable()
-                p.text(f"jobstype={self.multicommons.jobstype}")
+                p.text(f'jobstype="{self.multicommons.jobstype}",')
                 p.breakable()
-                p.text(f"pending_strategy={self.multicommons.pending_strategy}")
+                p.text(f'pending_strategy="{self.multicommons.pending_strategy}",')
                 p.breakable()
                 p.text("last_events={")
-                for i, (k, v) in enumerate(
-                    dict(self.multicommons.datetimes.last_events(5)).items()
-                ):
+                if len(self.multicommons.datetimes) > max_events:
                     p.breakable()
-                    p.text(f"  '{k}': '{v}'")
-                    if i < 4:
-                        p.text(",")
-                    else:
-                        p.text("},")
+                    p.text("  ...,")
+                for k, v in self.multicommons.datetimes.last_events(max_events):
+                    p.breakable()
+                    p.text(f"  '{k}': '{v}',")
+                p.text("},")
                 p.breakable()
                 p.text(f"exps_num={len(self.beforewards.exps_config)}")
 
@@ -285,7 +287,7 @@ class MultiManager:
         summoner_name: Optional[str] = None,
         shots: Optional[int] = None,
         backend: Backend = GeneralSimulator(),
-        tags: Optional[list[str]] = None,
+        tags: Optional[tuple[str, ...]] = None,
         manager_run_args: Optional[Union[BaseRunArgs, dict[str, Any]]] = None,
         jobstype: PendingTargetProviderLiteral = "local",
         pending_strategy: PendingStrategyLiteral = "tags",
@@ -301,7 +303,7 @@ class MultiManager:
                 Defaults to None.
             shots (Optional[int], optional): The shots of experiments. Defaults to None.
             backend (Backend, optional): The backend of experiments. Defaults to GeneralSimulator().
-            tags (Optional[list[str]], optional): The tags of experiments. Defaults to None.
+            tags (Optional[tuple[str, ...]], optional): The tags of experiments. Defaults to None.
             manager_run_args (Optional[Union[BaseRunArgs, dict[str, Any]]], optional):
                 The arguments of manager run. Defaults to None.
             jobstype (PendingTargetProviderLiteral, optional):
@@ -319,7 +321,7 @@ class MultiManager:
         if summoner_name is None:
             summoner_name = "multiexps"
         if tags is None:
-            tags = []
+            tags = ()
         if manager_run_args is None:
             manager_run_args = {}
 
@@ -847,7 +849,9 @@ class MultiManager:
         exps_container: ExperimentContainer[_ExpInst],
         analysis_name: str = "report",
         no_serialize: bool = False,
-        specific_analysis_args: Optional[dict[Hashable, Union[dict[str, Any], bool]]] = None,
+        specific_analysis_args: Optional[
+            dict[Hashable, Union[dict[str, Any], AnalyzeArgs, bool]]
+        ] = None,
         **analysis_args: dict[str, Any],
     ) -> str:
         """Analyze the experiments.

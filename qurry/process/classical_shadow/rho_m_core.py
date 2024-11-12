@@ -89,7 +89,7 @@ def rho_m_core_py(
     assert all(
         0 <= q_i < measured_system_size for q_i in selected_classical_registers
     ), f"Invalid selected classical registers: {selected_classical_registers}"
-    msg = f"| Selected  classical registers: {selected_classical_registers}"
+    msg = f"| Selected classical registers: {selected_classical_registers}"
 
     begin = time.time()
 
