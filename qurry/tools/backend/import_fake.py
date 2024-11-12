@@ -94,11 +94,6 @@ if len(FAKE_BACKEND_SOURCES) == 0:
     except ImportError as err:
         FAKE_IMPORT_ERROR_INFOS["qiskit.providers.fake_provider"] = err
 
-        FAKE_BACKEND_SOURCES["qiskit.providers.fake_provider"] = None
-        FAKE_BACKENDV2_SOURCES["qiskit.providers.fake_provider"] = None
-        FAKE_PROVIDER_SOURCES["qiskit.providers.fake_provider"] = None
-        FAKE_PROVIDERFORV2_SOURCES["qiskit.providers.fake_provider"] = None
-
 
 def get_default_fake_provider() -> Optional[ImportPointType]:
     """Get the default fake provider.
@@ -116,10 +111,9 @@ FAKE_DEFAULT_SOURCE: Optional[ImportPointType] = get_default_fake_provider()
 
 
 LUCKY_MSG = """
-No fake provider available for version conflict.
+No fake provider available. It may be caused by version conflict.
 For qiskit<1.0.0 please install qiskit-ibm-runtime<0.21.0 by
 'pip install qiskit-ibm-runtime<0.21.0'.
-More infomation can be found in https://github.com/harui2019/qurry/wiki/Qiskit-Version-Choosing.
 If you are still using qiskit 0.46.X and lower originally,
 then install newer qiskit-ibm-runtime at same time,
 please check whether the version of qiskit
@@ -133,7 +127,7 @@ Many of the fake backends are not available in qiskit-ibm-runtime.
 (This made me a lot problem to handle the fake backends in Qurry.)
 (If you see this error raised, good luck to you to fix environment. :smile:.)
 """.replace(
-    "\n", ""
+    "\n", " "
 ).strip()
 
 
@@ -180,7 +174,8 @@ def fack_backend_loader(version=None):
         return {}, {}, None
 
     if FAKE_DEFAULT_SOURCE is None:
-        raise ImportError(LUCKY_MSG)
+        warnings.warn(LUCKY_MSG, category=QurryDependenciesNotWorking)
+        return {}, {}, None
     _fake_provider_v1_becalled = FAKE_PROVIDER_SOURCES[FAKE_DEFAULT_SOURCE]
     _fake_provider_v2_becalled = FAKE_PROVIDERFORV2_SOURCES[FAKE_DEFAULT_SOURCE]
     assert _fake_provider_v1_becalled is not None, LUCKY_MSG
