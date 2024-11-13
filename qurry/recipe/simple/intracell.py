@@ -11,51 +11,49 @@ from ..n_body import TwoBody
 
 
 class Intracell(TwoBody):
-    """The entangled circuit `intracell`.
+    """The entangled circuit :cls:`Intracell`.
 
-    ### `intracell-minus`, `singlet` At 8 qubits:
+    .. code-block:: text
 
-    ```
-        ┌───┐┌───┐
-    q0: ┤ X ├┤ H ├──■──
-        ├───┤└───┘┌─┴─┐
-    q1: ┤ X ├─────┤ X ├
-        ├───┤┌───┐└───┘
-    q2: ┤ X ├┤ H ├──■──
-        ├───┤└───┘┌─┴─┐
-    q3: ┤ X ├─────┤ X ├
-        ├───┤┌───┐└───┘
-    q4: ┤ X ├┤ H ├──■──
-        ├───┤└───┘┌─┴─┐
-    q5: ┤ X ├─────┤ X ├
-        ├───┤┌───┐└───┘
-    q6: ┤ X ├┤ H ├──■──
-        ├───┤└───┘┌─┴─┐
-    q7: ┤ X ├─────┤ X ├
-        └───┘     └───┘
-    ```
+        # At state `singlet`, `minus` a.k.a. `Singlet` with 8 qubits:
+            ┌───┐┌───┐
+        q0: ┤ X ├┤ H ├──■──
+            ├───┤└───┘┌─┴─┐
+        q1: ┤ X ├─────┤ X ├
+            ├───┤┌───┐└───┘
+        q2: ┤ X ├┤ H ├──■──
+            ├───┤└───┘┌─┴─┐
+        q3: ┤ X ├─────┤ X ├
+            ├───┤┌───┐└───┘
+        q4: ┤ X ├┤ H ├──■──
+            ├───┤└───┘┌─┴─┐
+        q5: ┤ X ├─────┤ X ├
+            ├───┤┌───┐└───┘
+        q6: ┤ X ├┤ H ├──■──
+            ├───┤└───┘┌─┴─┐
+        q7: ┤ X ├─────┤ X ├
+            └───┘     └───┘
 
-    ### `intracell-plus` At 8 qubits:
+    .. code-block:: text
 
-    ```
-        ┌───┐
-    q0: ┤ H ├──■──
-        ├───┤┌─┴─┐
-    q1: ┤ X ├┤ X ├
-        ├───┤└───┘
-    q2: ┤ H ├──■──
-        ├───┤┌─┴─┐
-    q3: ┤ X ├┤ X ├
-        ├───┤└───┘
-    q4: ┤ H ├──■──
-        ├───┤┌─┴─┐
-    q5: ┤ X ├┤ X ├
-        ├───┤└───┘
-    q6: ┤ H ├──■──
-        ├───┤┌─┴─┐
-    q7: ┤ X ├┤ X ├
-        └───┘└───┘
-    ```
+        # At state `plus` with 8 qubits:
+            ┌───┐
+        q0: ┤ H ├──■──
+            ├───┤┌─┴─┐
+        q1: ┤ X ├┤ X ├
+            ├───┤└───┘
+        q2: ┤ H ├──■──
+            ├───┤┌─┴─┐
+        q3: ┤ X ├┤ X ├
+            ├───┤└───┘
+        q4: ┤ H ├──■──
+            ├───┤┌─┴─┐
+        q5: ┤ X ├┤ X ├
+            ├───┤└───┘
+        q6: ┤ H ├──■──
+            ├───┤┌─┴─┐
+        q7: ┤ X ├┤ X ├
+            └───┘└───┘
 
     Args:
         num_qubits (int): Number of qubits.
@@ -105,8 +103,8 @@ class Intracell(TwoBody):
         Raises:
             ValueError: When given number of qubits is not even.
             ValueError: When given state is invalid.
-
         """
+
         super().__init__(name=name)
         if state not in ["singlet", "minus", "plus"]:
             raise ValueError(f"Initial state is invalid: '{state}'.")
@@ -131,44 +129,43 @@ class Intracell(TwoBody):
 
 
 class Singlet(Intracell):
-    """One of the state 'singlet' of The entangled circuit `intracell`.
+    """:cls:`Siglet`, the entangled circuit :cls:`Intracell` with `singlet` state.
 
-    ### `intracell-minus`, `singlet` At 8 qubits:
+    .. code-block:: text
 
-    ```
-        ┌───┐┌───┐
-    q0: ┤ X ├┤ H ├──■──
-        ├───┤└───┘┌─┴─┐
-    q1: ┤ X ├─────┤ X ├
-        ├───┤┌───┐└───┘
-    q2: ┤ X ├┤ H ├──■──
-        ├───┤└───┘┌─┴─┐
-    q3: ┤ X ├─────┤ X ├
-        ├───┤┌───┐└───┘
-    q4: ┤ X ├┤ H ├──■──
-        ├───┤└───┘┌─┴─┐
-    q5: ┤ X ├─────┤ X ├
-        ├───┤┌───┐└───┘
-    q6: ┤ X ├┤ H ├──■──
-        ├───┤└───┘┌─┴─┐
-    q7: ┤ X ├─────┤ X ├
-        └───┘     └───┘
-    ```
+        # At 8 qubits:
+            ┌───┐┌───┐
+        q0: ┤ X ├┤ H ├──■──
+            ├───┤└───┘┌─┴─┐
+        q1: ┤ X ├─────┤ X ├
+            ├───┤┌───┐└───┘
+        q2: ┤ X ├┤ H ├──■──
+            ├───┤└───┘┌─┴─┐
+        q3: ┤ X ├─────┤ X ├
+            ├───┤┌───┐└───┘
+        q4: ┤ X ├┤ H ├──■──
+            ├───┤└───┘┌─┴─┐
+        q5: ┤ X ├─────┤ X ├
+            ├───┤┌───┐└───┘
+        q6: ┤ X ├┤ H ├──■──
+            ├───┤└───┘┌─┴─┐
+        q7: ┤ X ├─────┤ X ├
+            └───┘     └───┘
 
     Args:
         num_qubits (int): Number of qubits.
-        name (str, optional): Name of case. Defaults to "intracell".
+        name (str, optional): Name of case. Defaults to "singlet".
 
     Raises:
         ValueError: When given number of qubits is not even.
     """
 
-    def __init__(self, num_qubits: int, name: str = "intracell") -> None:
+    def __init__(self, num_qubits: int, name: str = "singlet") -> None:
         """Initializing the case.
 
         Args:
             num_qubits (int): Number of qubits.
-            name (str, optional): Name of case. Defaults to "intracell".
+            name (str, optional): Name of case. Defaults to "singlet".
 
         Raises:
             ValueError: When given number of qubits is not even.

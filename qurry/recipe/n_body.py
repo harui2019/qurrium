@@ -1,6 +1,6 @@
 """
 ================================================================
-Two Body Library (qurry.recipe.library.two_body)
+N Body Library (:cls:`qurry.recipe.library.n_body`)
 ================================================================
 
 """
