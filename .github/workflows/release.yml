@@ -19,17 +19,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           submodules: true
+
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.PASSPHRASE }}
+          git_user_signingkey: true
+          git_commit_gpgsign: true
+
       - name: Set up Git user
         run: |
           git config --global user.name ${{ github.repository_owner }}_action_bot
           git config --global user.email ${{ github.repository_owner }}@users.noreply.github.com
+
       - name: Update Pip
         run: |
-          pip install --upgrade pipenv pip
-          pip install toml
+          pip install --upgrade pipenv pip toml
 
       - name: Bump Patch Version and Create Tag
         if: contains(github.event.pull_request.title, 'patch:')
@@ -55,7 +64,7 @@ jobs:
           # FILE_TO_COMMIT: qurecipe/VERSION.txt
         run: |
           export TODAY=$( date -u '+%Y-%m-%d_%T' )
-          git add qurecipe/VERSION.txt
+          git add qurry/VERSION.txt
           git commit -m "chore(version): update version to ${{ env.VERSION }} for $TODAYs"
           git push origin
         # https://gist.github.com/swinton/03e84635b45c78353b1f71e41007fc7c
