@@ -23,9 +23,9 @@ jobs:
           - vers: macOS-x86_64 # Avaliability confirmed by act
             os: macos-13
             archs: X64
-          - vers: linux-aarch64 # Avaliability confirmed by act
-            os: ubuntu-latest
-            archs: X64
+          # - vers: linux-aarch64 # Avaliability confirmed by act
+          #   os: ubuntu-latest
+          #   archs: X64
           # - vers: macOS-ARM64 # Avaliability confirmed by act
           #   os: macos-latest
           #   archs: ARM64
