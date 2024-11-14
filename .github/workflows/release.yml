@@ -66,7 +66,7 @@ jobs:
         run: |
           export TODAY=$( date -u '+%Y-%m-%d_%T' )
           git add qurry/VERSION.txt
-          git commit -m "chore(version): update version to ${{ env.VERSION }} for $TODAYs"
+          git commit -m "chore(version): update version to ${{ env.VERSION }} for $TODAY"
           git push origin
         # https://gist.github.com/swinton/03e84635b45c78353b1f71e41007fc7c
         # run: |
