@@ -126,13 +126,13 @@ jobs:
 
       # Upload the wheelhouse as an artifact
       - name: Wheelhouse Upload
-        if: runner.os != 'Linux' || matrix.archs != 'X64'
+        if: runner.os != 'Linux' || matrix.archs != 'X64' || matrix.vers != 'linux-x86_64'
         uses: actions/upload-artifact@v3
         with:
           path: ./wheelhouse/*.whl
           name: shared-wheel-builds
       - name: Early Publish distribution 📦 to TestPyPI for Linux X86_64
-        if: runner.os == 'Linux' && matrix.archs == 'X64'
+        if: runner.os == 'Linux' && matrix.archs == 'X64' && matrix.vers == 'linux-aarch64'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: wheelhouse
