@@ -60,7 +60,7 @@ jobs:
       - name: Push Version Change
         if: (!contains(github.event.pull_request.title, 'skip-version:'))
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CI_TOKEN: ${{ secrets.CI_TOKEN }}
           # FILE_TO_COMMIT: qurecipe/VERSION.txt
         run: |
           export TODAY=$( date -u '+%Y-%m-%d_%T' )
