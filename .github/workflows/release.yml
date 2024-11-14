@@ -22,6 +22,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: true
+          token: ${{ secrets.CI_TOKEN }}
 
       - name: Import GPG key
         uses: crazy-max/ghaction-import-gpg@v6
@@ -60,7 +61,7 @@ jobs:
       - name: Push Version Change
         if: (!contains(github.event.pull_request.title, 'skip-version:'))
         env:
-          CI_TOKEN: ${{ secrets.CI_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.CI_TOKEN }}
           # FILE_TO_COMMIT: qurecipe/VERSION.txt
         run: |
           export TODAY=$( date -u '+%Y-%m-%d_%T' )
