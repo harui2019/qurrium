@@ -29,7 +29,7 @@ jobs:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.PASSPHRASE }}
           git_user_signingkey: true
-          git_commit_gpgsign: true
+          git_commit_gpgsign: false
 
       - name: Set up Git user
         run: |
@@ -89,7 +89,7 @@ jobs:
         run: |
           echo '| Version: ${{ env.VERSION }} in action'
       - name: Check Version Tag
-        uses: mukunku/tag-exists-action@v1.2.0
+        uses: mukunku/tag-exists-action@v1.6.0
         id: checkTag
         with:
           tag: ${{ env.VERSION }}
@@ -106,10 +106,10 @@ jobs:
 
       - name: Get custom tarball name
         id: get_tarball_name
-        run: echo ::set-output name=TARBALL_NAME::qurry-${{ github.ref_name }}
+        run: echo "TARBALL_NAME=qurry-${{ github.ref_name }}" >> $GITHUB_OUTPUT
       - name: Get archived folder name for custom tarball
         id: get_archived_folder_name
-        run: echo ::set-output name=ARCHIVED_FOLDER::${{ github.repository_owner }}-qurry-$(git rev-parse --short HEAD)
+        run: echo "ARCHIVED_FOLDER=${{ github.repository_owner }}-qurry-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
       - name: Create custom tarball artifact
         run: |
           mkdir -p artifacts

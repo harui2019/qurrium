@@ -10,7 +10,7 @@ on:
 
 jobs:
   build_wheels:
-    if: github.repository == 'harui2019/qurry' && contains(github.ref, 'dev')
+    if: github.repository == 'harui2019/qurry'
     name: Build wheels on ${{matrix.vers}} by ${{ matrix.os }}/${{ matrix.archs }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -139,7 +139,7 @@ jobs:
           repository-url: https://test.pypi.org/legacy/
 
   publish-to-testpypi:
-    if: github.repository == 'harui2019/qurry' && contains(github.ref, 'dev')
+    if: github.repository == 'harui2019/qurry'
     name: Publish Python 🐍 distribution 📦 to TestPyPI
     runs-on: ubuntu-latest
     needs:
