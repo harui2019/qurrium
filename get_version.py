@@ -66,7 +66,7 @@ def bump_version(
             else (version_split[:3] + ["dev" + str(int(version_split[3][3:]) + 1)])
         )
 
-    if bump_type == "patch":
+    elif bump_type == "patch":
         version_new_split = version_split[:2] + [str(int(version_split[2]) + 1)] + ["dev1"]
 
     elif bump_type == "minor":
@@ -81,7 +81,7 @@ def bump_version(
     else:
         raise ValueError(
             "| The bump type should be one of the following: "
-            + "major, minor, patch, dev, or skip."
+            + f"major, minor, patch, dev, or skip, but got: '{bump_type}'."
         )
 
     assert (
