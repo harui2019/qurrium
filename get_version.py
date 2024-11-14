@@ -56,7 +56,7 @@ def bump_version(
         tuple[str, str, str, str]: The bumped version number
     """
     assert (
-        len(version_split) == 3 or len(version_txt_split) == 4
+        len(version_split) == 3 or len(version_split) == 4
     ), f"| The version number should be split by dot and have 3 or 4 parts: {version_split}."
 
     if bump_type == "dev":
@@ -76,7 +76,9 @@ def bump_version(
         raise NotImplementedError("| The major bump are only allowed by bumping manually.")
 
     elif bump_type == "skip":
-        version_new_split = version_split
+        version_new_split = (
+            version_split if len(version_split) == 4 else (version_split + ["dev1"])
+        )
 
     else:
         raise ValueError(
@@ -147,7 +149,7 @@ if __name__ == "__main__":
         print(f"| Version not changed: {'.'.join(version_txt_split)}")
         print("|" + "-" * 30)
     else:
-        print("| The bump type should be one of the following: major, minor, patch.")
+        print("| The bump type should be one of the following: major, minor, patch, dev.")
         print(f"| But got: '{args.bump}'")
         print(f"| Version not changed: {'.'.join(version_txt_split)}")
         print("|" + "-" * 30)
