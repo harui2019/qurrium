@@ -113,7 +113,7 @@ jobs:
       # See: https://github.com/harui2019/qurry/issues/173
 
       - name: Build wheels on Linux of aarch64 series
-        if: runner.os == 'Linux' && matrix.archs == 'ARM64' && matrix.vers == 'linux-aarch64'
+        if: runner.os == 'Linux' && matrix.archs == 'X64' && matrix.vers == 'linux-aarch64'
         uses: pypa/cibuildwheel@v2.21.3
         env:
           # configure cibuildwheel to build native archs ('auto'), and some

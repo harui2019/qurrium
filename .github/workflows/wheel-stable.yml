@@ -121,7 +121,7 @@ jobs:
           CIBW_ARCHS_LINUX: aarch64
 
       - name: Build wheels on MacOS of ARM series
-        if: runner.os == 'macOS' && matrix.archs == 'ARM64' && matrix.vers == 'macOS-ARM64'
+        if: runner.os == 'Linux' && matrix.archs == 'X64' && matrix.vers == 'linux-aarch64'
         run: python -m cibuildwheel --output-dir wheelhouse --platform macos
 
       # Upload the wheelhouse as an artifact
