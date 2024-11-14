@@ -55,7 +55,7 @@ jobs:
           # FILE_TO_COMMIT: qurecipe/VERSION.txt
         run: |
           export TODAY=$( date -u '+%Y-%m-%d_%T' )
-          git add qurecipe/VERSION.txt
+          git add qurry/VERSION.txt
           git commit -m "chore(version): update version to ${{ env.VERSION }} for $TODAYs"
           git push origin
         # https://gist.github.com/swinton/03e84635b45c78353b1f71e41007fc7c
