@@ -170,6 +170,7 @@ if __name__ == "__main__":
     else:
         with open(os.path.join("qurry", "VERSION.txt"), "w", encoding="utf-8") as version_file:
             version_file.write(VERSION)
-        toml_rename()
+        if args.release == "stable":
+            toml_rename()
         print("| Rewrite VERSION.txt and pass the version to the environment variable.")
         os.system(f'echo "VERSION={VERSION}" >> $GITHUB_ENV')
