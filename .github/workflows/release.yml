@@ -44,19 +44,19 @@ jobs:
       - name: Bump Patch Version and Create Tag
         if: contains(github.event.pull_request.title, 'patch:')
         run: |
-          python get_version.py -b patch --release $([[ "${{ github.event.pull_request.base.ref }}" == stable* ]] && echo stable || echo nightly)
+          python get_version.py -b patch --release $([[ "${{ github.event.pull_request.base.ref }}" == main* ]] && echo stable || echo nightly)
       - name: Bump Minor Version and Create Tag
         if: contains(github.event.pull_request.title, 'minor:')
         run: |
-          python get_version.py -b minor --release $([[ "${{ github.event.pull_request.base.ref }}" == stable* ]] && echo stable || echo nightly)
+          python get_version.py -b minor --release $([[ "${{ github.event.pull_request.base.ref }}" == main* ]] && echo stable || echo nightly)
       - name: Bump Dev Version and Create Tag
         if: (!contains(github.event.pull_request.title, 'minor:') || !contains(github.event.pull_request.title, 'patch:'))
         run: |
-          python get_version.py -b dev --release $([[ "${{ github.event.pull_request.base.ref }}" == stable* ]] && echo stable || echo nightly)
+          python get_version.py -b dev --release $([[ "${{ github.event.pull_request.base.ref }}" == main* ]] && echo stable || echo nightly)
       - name: Skip Bump Version and Create Tag
         if: contains(github.event.pull_request.title, 'skip-version:')
         run: |
-          python get_version.py -b skip --release $([[ "${{ github.event.pull_request.base.ref }}" == stable* ]] && echo stable || echo nightly)
+          python get_version.py -b skip --release $([[ "${{ github.event.pull_request.base.ref }}" == main* ]] && echo stable || echo nightly)
 
       - name: Push Version Change
         if: (!contains(github.event.pull_request.title, 'skip-version:'))
