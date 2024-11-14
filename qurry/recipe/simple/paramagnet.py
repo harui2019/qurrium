@@ -11,64 +11,46 @@ from ..n_body import OneBody, TwoBody
 
 
 class TrivialParamagnet(OneBody):
-    """The product state circuit `trivial paramagnet`.
+    """The product state circuit :cls:`TrivialParamagnet`.
     Introduce in https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.121.086808 .
 
-    ### At 8 qubits:
+    .. code-block:: text
 
-    ```
-        ┌───┐
-    q0: ┤ H ├
-        ├───┤
-    q1: ┤ H ├
-        ├───┤
-    q2: ┤ H ├
-        ├───┤
-    q3: ┤ H ├
-        ├───┤
-    q4: ┤ H ├
-        ├───┤
-    q5: ┤ H ├
-        ├───┤
-    q6: ┤ H ├
-        ├───┤
-    q7: ┤ H ├
-        └───┘
-    ```
-
-    - Measureing entropy on `Aer.get_backend('aer_simulator')`.
-
-    ```txt
-    +----------------+---------+--------+---------------+
-    | Freedom degree | Entropy | Purity | Method        |
-    +================+=========+========+===============+
-    | half qubits    | 0       | 1      | hadamard test |
-    |                +---------+--------+---------------+
-    |                | 0       | 1      | haar measure  |
-    +----------------+---------+--------+---------------+
-    | any number     | 0       | 1      | hadamard test |
-    |                +---------+--------+---------------+
-    |                | 0       | 1      | haar measure  |
-    +----------------+---------+--------+---------------+
-    ```
+        # At 8 qubits:
+            ┌───┐
+        q0: ┤ H ├
+            ├───┤
+        q1: ┤ H ├
+            ├───┤
+        q2: ┤ H ├
+            ├───┤
+        q3: ┤ H ├
+            ├───┤
+        q4: ┤ H ├
+            ├───┤
+        q5: ┤ H ├
+            ├───┤
+        q6: ┤ H ├
+            ├───┤
+        q7: ┤ H ├
+            └───┘
 
     Args:
         num_qubits (int): Number of qubits.
-        name (str, optional): Name of case. Defaults to "trivialParamagnet".
+        name (str, optional): Name of case. Defaults to "trivial_paramagnet".
 
     """
 
     def __init__(
         self,
         num_qubits: int,
-        name: str = "trivialParamagnet",
+        name: str = "trivial_paramagnet",
     ) -> None:
         """Initializing the case.
 
         Args:
             num_qubits (int): Number of qubits.
-            name (str, optional): Name of case. Defaults to "trivialParamagnet".
-
+            name (str, optional): Name of case. Defaults to "trivial_paramagnet".
         """
         super().__init__(name=name)
         self.num_qubits = num_qubits
@@ -87,113 +69,60 @@ class TrivialParamagnet(OneBody):
 
 
 class TopologicalParamagnet(TwoBody):
-    """The entangled circuit `Topological paramagnet`.
+    """The entangled circuit :cls:`Topological paramagnet`.
     Introduce in https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.121.086808 .
 
-    - With ACTUAL `CZGate`.
+    .. code-block:: text
 
-    - Open boundary at 8 qubits:
+        # With ACTUAL CZGate, Open boundary at 8 qubits:
+            ┌───┐
+        q0: ┤ H ├─■────
+            ├───┤ │
+        q1: ┤ H ├─■──■─
+            ├───┤    │
+        q2: ┤ H ├─■──■─
+            ├───┤ │
+        q3: ┤ H ├─■──■─
+            ├───┤    │
+        q4: ┤ H ├─■──■─
+            ├───┤ │
+        q5: ┤ H ├─■──■─
+            ├───┤    │
+        q6: ┤ H ├─■──■─
+            ├───┤ │
+        q7: ┤ H ├─■────
+            └───┘
 
-    ```
-        ┌───┐
-    q0: ┤ H ├─■────
-        ├───┤ │
-    q1: ┤ H ├─■──■─
-        ├───┤    │
-    q2: ┤ H ├─■──■─
-        ├───┤ │
-    q3: ┤ H ├─■──■─
-        ├───┤    │
-    q4: ┤ H ├─■──■─
-        ├───┤ │
-    q5: ┤ H ├─■──■─
-        ├───┤    │
-    q6: ┤ H ├─■──■─
-        ├───┤ │
-    q7: ┤ H ├─■────
-        └───┘
-    ```
 
-    - Measureing entropy on `Aer.get_backend('aer_simulator')`.
-        - Haar measure of 1 degree is more stable than other.
+    .. code-block:: text
 
-    ```txt
-    +----------------+---------+--------+---------------+
-    | Freedom degree | Entropy | Purity | method        |
-    +================+=========+========+===============+
-    | half qubits    | 1       | 0.5    | hadamard test |
-    |                +---------+--------+---------------+
-    |                | 1       | 0.5    | haar measure  |
-    +----------------+---------+--------+---------------+
-    | other number   | 1       | 0.5    | hadamard test |
-    |                +---------+--------+---------------+
-    |                | 1       | 0.5    | haar measure  |
-    +----------------+---------+--------+---------------+
-    | 1              | 1       | 0.5    | hadamard test |
-    |                +---------+--------+---------------+
-    |                | 1       | 0.5    | haar measure  |
-    +----------------+---------+--------+---------------+
-    | 0              | 0       | 1      | hadamard test |
-    |                +---------+--------+---------------+
-    |                | 0       | 1      | haar measure  |
-    +----------------+---------+--------+---------------+
-    ```
-
-    - Period boundary at 8 qubits:
-
-    ```
-        ┌───┐
-    q0: ┤ H ├─■─────■─
-        ├───┤ │     │
-    q1: ┤ H ├─■──■──┼─
-        ├───┤    │  │
-    q2: ┤ H ├─■──■──┼─
-        ├───┤ │     │
-    q3: ┤ H ├─■──■──┼─
-        ├───┤    │  │
-    q4: ┤ H ├─■──■──┼─
-        ├───┤ │     │
-    q5: ┤ H ├─■──■──┼─
-        ├───┤    │  │
-    q6: ┤ H ├─■──■──┼─
-        ├───┤ │     │
-    q7: ┤ H ├─■─────■─
-        └───┘
-    ```
-
-    - Measureing entropy on `Aer.get_backend('aer_simulator')`.
-
-    ```txt
-    +----------------+---------+--------+---------------+
-    | Freedom degree | Entropy | Purity | method        |
-    +================+=========+========+===============+
-    | half qubits    | 2       | 0.25   | hadamard test |
-    |                +---------+--------+---------------+
-    |                | 2       | 0.25   | haar measure  |
-    +----------------+---------+--------+---------------+
-    | other number   | 2       | 0.25   | hadamard test |
-    |                +---------+--------+---------------+
-    |                | 2       | 0.25   | haar measure  |
-    +----------------+---------+--------+---------------+
-    | 1              | 1       | 0.5    | hadamard test |
-    |                +---------+--------+---------------+
-    |                | 1       | 0.5    | haar measure  |
-    +----------------+---------+--------+---------------+
-    | 0              | 0       | 1      | hadamard test |
-    |                +---------+--------+---------------+
-    |                | 0       | 1      | haar measure  |
-    +----------------+---------+--------+---------------+
-    ```
+        # With ACTUAL CZGate, Period boundary at 8 qubits:
+            ┌───┐
+        q0: ┤ H ├─■─────■─
+            ├───┤ │     │
+        q1: ┤ H ├─■──■──┼─
+            ├───┤    │  │
+        q2: ┤ H ├─■──■──┼─
+            ├───┤ │     │
+        q3: ┤ H ├─■──■──┼─
+            ├───┤    │  │
+        q4: ┤ H ├─■──■──┼─
+            ├───┤ │     │
+        q5: ┤ H ├─■──■──┼─
+            ├───┤    │  │
+        q6: ┤ H ├─■──■──┼─
+            ├───┤ │     │
+        q7: ┤ H ├─■─────■─
+            └───┘
 
     Args:
         num_qubits (int): Number of qubits.
         border_cond (str, optional): Boundary condition is `open` or `period`.
             Defaults to "period".
-            name (str, optional): Name of case. Defaults to "topParamagnet".
+        name (str, optional): Name of case. Defaults to "cluster".
 
     Raises:
         ValueError: When given number of qubits is not even.
-
     """
 
     @property
@@ -213,7 +142,7 @@ class TopologicalParamagnet(TwoBody):
         self,
         num_qubits: int,
         border_cond: Literal["open", "period"] = "period",
-        name: str = "topParamagnet",
+        name: str = "cluster",
     ) -> None:
         """Initializing the case.
 
@@ -221,7 +150,7 @@ class TopologicalParamagnet(TwoBody):
             num_qubits (int): Number of qubits.
             border_cond (str, optional): Boundary condition is `open` or `period`.
                 Defaults to "period".
-            name (str, optional): Name of case. Defaults to "topParamagnet".
+            name (str, optional): Name of case. Defaults to "cluster".
 
         Raises:
             ValueError: When given number of qubits is not even.
@@ -249,4 +178,59 @@ class TopologicalParamagnet(TwoBody):
 
 
 class Cluster(TopologicalParamagnet):
-    """Another name of The entangled circuit `Topological paramagnet`."""
+    """:cls:`Cluster`, another name of The entangled circuit :cls:`Topological paramagnet`.
+    Introduce in https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.121.086808 .
+
+    .. code-block:: text
+
+        # With ACTUAL `CZGate`, Open boundary at 8 qubits:
+            ┌───┐
+        q0: ┤ H ├─■────
+            ├───┤ │
+        q1: ┤ H ├─■──■─
+            ├───┤    │
+        q2: ┤ H ├─■──■─
+            ├───┤ │
+        q3: ┤ H ├─■──■─
+            ├───┤    │
+        q4: ┤ H ├─■──■─
+            ├───┤ │
+        q5: ┤ H ├─■──■─
+            ├───┤    │
+        q6: ┤ H ├─■──■─
+            ├───┤ │
+        q7: ┤ H ├─■────
+            └───┘
+
+
+    .. code-block:: text
+
+        # With ACTUAL `CZGate`, Period boundary at 8 qubits:
+            ┌───┐
+        q0: ┤ H ├─■─────■─
+            ├───┤ │     │
+        q1: ┤ H ├─■──■──┼─
+            ├───┤    │  │
+        q2: ┤ H ├─■──■──┼─
+            ├───┤ │     │
+        q3: ┤ H ├─■──■──┼─
+            ├───┤    │  │
+        q4: ┤ H ├─■──■──┼─
+            ├───┤ │     │
+        q5: ┤ H ├─■──■──┼─
+            ├───┤    │  │
+        q6: ┤ H ├─■──■──┼─
+            ├───┤ │     │
+        q7: ┤ H ├─■─────■─
+            └───┘
+
+    Args:
+        num_qubits (int): Number of qubits.
+        border_cond (str, optional): Boundary condition is `open` or `period`.
+            Defaults to "period".
+        name (str, optional): Name of case. Defaults to "cluster".
+
+    Raises:
+        ValueError: When given number of qubits is not even.
+
+    """

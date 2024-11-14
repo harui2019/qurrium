@@ -8,7 +8,7 @@ This is a deprecated version of the randomized measure module.
 
 """
 
-from typing import Union, Optional, Any, Type, Literal
+from typing import Union, Optional, Any, Type, Literal, Iterable
 from collections.abc import Hashable
 from pathlib import Path
 import tqdm
@@ -17,10 +17,20 @@ from qiskit import QuantumCircuit
 from qiskit.providers import Backend
 from qiskit.transpiler.passmanager import PassManager
 
-from .arguments import SHORT_NAME, EntropyMeasureRandomizedV1OutputArgs
-from .experiment import EntropyMeasureRandomizedV1Experiment
+from .arguments import (
+    SHORT_NAME,
+    EntropyMeasureRandomizedV1OutputArgs,
+    EntropyMeasureRandomizedV1MeasureArgs,
+    EntropyMeasureRandomizedV1AnalyzeArgs,
+)
+from .experiment import (
+    EntropyMeasureRandomizedV1Experiment,
+    PostProcessingBackendLabel,
+    DEFAULT_PROCESS_BACKEND,
+)
 from ...qurrium.qurrium import QurriumPrototype
 from ...qurrium.container import ExperimentContainer
+from ...tools.backend import GeneralSimulator
 from ...declare import BaseRunArgs, TranspileArgs
 
 
@@ -369,3 +379,131 @@ class EntropyMeasureRandomizedV1(QurriumPrototype):
         )
 
         return self.output(**output_args)
+
+    def multiOutput(
+        self,
+        config_list: list[Union[dict[str, Any], EntropyMeasureRandomizedV1MeasureArgs]],
+        summoner_name: str = "exps",
+        summoner_id: Optional[str] = None,
+        shots: int = 1024,
+        backend: Backend = GeneralSimulator(),
+        tags: Optional[tuple[str, ...]] = None,
+        manager_run_args: Optional[Union[BaseRunArgs, dict[str, Any]]] = None,
+        save_location: Union[Path, str] = Path("./"),
+        compress: bool = False,
+    ) -> str:
+        """Output the multiple experiments.
+
+        Args:
+            config_list (list[Union[dict[str, Any], EntropyMeasureRandomizedV1MeasureArgs]]):
+                The list of default configurations of multiple experiment. Defaults to [].
+            summoner_name (str, optional):
+                Name for multimanager. Defaults to 'exps'.
+            summoner_id (Optional[str], optional):
+                Name for multimanager. Defaults to None.
+            shots (int, optional):
+                Shots of the job. Defaults to `1024`.
+            backend (Backend, optional):
+                The quantum backend.
+                Defaults to AerSimulator().
+            tags (Optional[tuple[str, ...]], optional):
+                Tags of experiment of the MultiManager. Defaults to None.
+            manager_run_args (Optional[Union[BaseRunArgs, dict[str, Any]]], optional):
+                The extra arguments for running the job,
+                but for all experiments in the multimanager.
+                For :meth:`backend.run()` from :cls:`qiskit.providers.backend`. Defaults to `{}`.
+            save_location (Union[Path, str], optional):
+                Where to save the export content as `json` file.
+                If `save_location == None`, then cancelled the file to be exported.
+                Defaults to Path('./').
+            compress (bool, optional):
+                Whether to compress the export file. Defaults to False.
+
+        Returns:
+            str: The summoner_id of multimanager.
+        """
+
+        return super().multiOutput(
+            config_list=config_list,
+            summoner_name=summoner_name,
+            summoner_id=summoner_id,
+            shots=shots,
+            backend=backend,
+            tags=tags,
+            manager_run_args=manager_run_args,
+            save_location=save_location,
+            compress=compress,
+        )
+
+    def multiAnalysis(
+        self,
+        summoner_id: str,
+        analysis_name: str = "report",
+        no_serialize: bool = False,
+        specific_analysis_args: Optional[
+            dict[Hashable, Union[dict[str, Any], EntropyMeasureRandomizedV1AnalyzeArgs, bool]]
+        ] = None,
+        compress: bool = False,
+        write: bool = True,
+        # analysis arguments
+        degree: Optional[Union[tuple[int, int], int]] = None,
+        counts_used: Optional[Iterable[int]] = None,
+        workers_num: Optional[int] = None,
+        independent_all_system: bool = False,
+        backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
+        **analysis_args,
+    ) -> str:
+        """Run the analysis for multiple experiments.
+
+        Args:
+            summoner_id (str): The summoner_id of multimanager.
+            analysis_name (str, optional):
+                The name of analysis. Defaults to 'report'.
+            no_serialize (bool, optional):
+                Whether to serialize the analysis. Defaults to False.
+            specific_analysis_args
+                Optional[dict[Hashable, Union[
+                    dict[str, Any], EntropyMeasureRandomizedAnalyzeArgs, bool]
+                ]]], optional
+            ):
+                The specific arguments for analysis. Defaults to None.
+            compress (bool, optional):
+                Whether to compress the export file. Defaults to False.
+            write (bool, optional):
+                Whether to write the export file. Defaults to True.
+
+            degree (Union[tuple[int, int], int]): Degree of the subsystem.
+            counts_used (Optional[Iterable[int]], optional):
+                The index of the counts used.
+                If not specified, then use all counts.
+                Defaults to None.
+            workers_num (Optional[int], optional):
+                Number of multi-processing workers,
+                if sets to 1, then disable to using multi-processing;
+                if not specified, then use the number of all cpu counts - 2 by `cpu_count() - 2`.
+                Defaults to None.
+            independent_all_system (bool, optional):
+                If True, then calculate the all system independently.
+                Otherwise, use the existed all system source with same `count_used`.
+            backend (PostProcessingBackendLabel, optional):
+                Backend for the process. Defaults to DEFAULT_PROCESS_BACKEND.
+
+        Returns:
+            str: The summoner_id of multimanager.
+        """
+
+        return super().multiAnalysis(
+            summoner_id=summoner_id,
+            analysis_name=analysis_name,
+            no_serialize=no_serialize,
+            specific_analysis_args=specific_analysis_args,
+            compress=compress,
+            write=write,
+            # analysis arguments
+            degree=degree,
+            counts_used=counts_used,
+            workers_num=workers_num,
+            independent_all_system=independent_all_system,
+            backend=backend,
+            **analysis_args,
+        )

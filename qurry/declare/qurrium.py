@@ -50,3 +50,7 @@ class OutputArgs(BasicArgs):
     """Basic output arguments for :meth:`output`."""
 
     circuits: Optional[list[Union[QuantumCircuit, Hashable]]]
+
+
+class AnalyzeArgs(TypedDict):
+    """Analysis input prototype."""

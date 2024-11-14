@@ -19,37 +19,76 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           submodules: true
+          token: ${{ secrets.CI_TOKEN }}
+
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.PASSPHRASE }}
+          git_user_signingkey: true
+          git_commit_gpgsign: false
+
       - name: Set up Git user
         run: |
           git config --global user.name ${{ github.repository_owner }}_action_bot
           git config --global user.email ${{ github.repository_owner }}@users.noreply.github.com
+
       - name: Update Pip
         run: |
-          pip install --upgrade pipenv pip
-          pip install toml
+          pip install --upgrade pipenv pip toml
 
-      - name: Bump Dev Version and Create Tag
-        if: contains(github.event.pull_request.title, 'dev:')
-        run: python get_version.py -b dev
-      - name: Bump Minor Version and Create Tag
+      - name: Bump Patch Version and Create Tag
         if: contains(github.event.pull_request.title, 'patch:')
-        run: python get_version.py -b minor
+        run: |
+          python get_version.py -b patch --release $([[ "${{ github.event.pull_request.base.ref }}" == stable* ]] && echo stable || echo nightly)
+      - name: Bump Minor Version and Create Tag
+        if: contains(github.event.pull_request.title, 'minor:')
+        run: |
+          python get_version.py -b minor --release $([[ "${{ github.event.pull_request.base.ref }}" == stable* ]] && echo stable || echo nightly)
+      - name: Bump Dev Version and Create Tag
+        if: (!contains(github.event.pull_request.title, 'minor:') || !contains(github.event.pull_request.title, 'patch:'))
+        run: |
+          python get_version.py -b dev --release $([[ "${{ github.event.pull_request.base.ref }}" == stable* ]] && echo stable || echo nightly)
+      - name: Skip Bump Version and Create Tag
+        if: contains(github.event.pull_request.title, 'skip-version:')
+        run: |
+          python get_version.py -b skip --release $([[ "${{ github.event.pull_request.base.ref }}" == stable* ]] && echo stable || echo nightly)
 
-      - name: Read Version File Nightly
-        if: github.event.pull_request.base.ref == 'pre-release' || startsWith(github.event.pull_request.base.ref, 'pre-release-')
-        run: python get_version.py --release nightly
-      - name: Read Version File Stable
-        if: github.event.pull_request.base.ref == 'main' || startsWith(github.event.pull_request.base.ref, 'main-')
-        run: python get_version.py --release stable
+      - name: Push Version Change
+        if: (!contains(github.event.pull_request.title, 'skip-version:'))
+        env:
+          GITHUB_TOKEN: ${{ secrets.CI_TOKEN }}
+        run: |
+          git add qurry/VERSION.txt
+          git commit -m "chore(version): update version to ${{ env.VERSION }}"
+          git push origin
+        # https://gist.github.com/swinton/03e84635b45c78353b1f71e41007fc7c
+        # run: |
+        #   export TODAY=$( date -u '+%Y-%m-%d_%T' )
+        #   export MESSAGE="chore(version): update version to ${{ env.VERSION }} for $TODAY"
+        #   export CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+        #   export SHA=$( git rev-parse $CURRENT_BRANCH:$FILE_TO_COMMIT )
+
+        #   echo "MESSAGE: $MESSAGE"
+        #   echo "TODAY: $TODAY"
+        #   echo "CURRENT_BRANCH: $CURRENT_BRANCH"
+        #   echo "FILE_TO_COMMIT: $FILE_TO_COMMIT"
+
+        #   gh api --method PUT repos/harui2019/qurecipe/contents/$FILE_TO_COMMIT \
+        #     -F message="$MESSAGE" \
+        #     -F content="$(base64 -w 0 $FILE_TO_COMMIT)" \
+        #     -F branch="$CURRENT_BRANCH" \
+        #     -F sha="$SHA"
 
       - name: Check out Version
         run: |
           echo '| Version: ${{ env.VERSION }} in action'
       - name: Check Version Tag
-        uses: mukunku/tag-exists-action@v1.2.0
+        uses: mukunku/tag-exists-action@v1.6.0
         id: checkTag
         with:
           tag: ${{ env.VERSION }}
@@ -66,10 +105,10 @@ jobs:
 
       - name: Get custom tarball name
         id: get_tarball_name
-        run: echo ::set-output name=TARBALL_NAME::qurry-${{ github.ref_name }}
+        run: echo "TARBALL_NAME=qurry-${{ github.ref_name }}" >> $GITHUB_OUTPUT
       - name: Get archived folder name for custom tarball
         id: get_archived_folder_name
-        run: echo ::set-output name=ARCHIVED_FOLDER::${{ github.repository_owner }}-qurry-$(git rev-parse --short HEAD)
+        run: echo "ARCHIVED_FOLDER=${{ github.repository_owner }}-qurry-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
       - name: Create custom tarball artifact
         run: |
           mkdir -p artifacts
@@ -85,40 +124,26 @@ jobs:
       - name: Set release variables
         id: set_release_vars
         run: |
-          if [[ "${{ github.event.pull_request.base.ref }}" == "pre-release" || "${{ github.event.pull_request.base.ref }}" == pre-release-* ]]; then
-            echo "::set-output name=release_name::${{ env.VERSION }} nightly"
-            echo "::set-output name=release_body::NIGHTLY_DRAFT"
-            echo "::set-output name=prerelease::true"
-          elif [[ "${{ github.event.pull_request.base.ref }}" == "main" || "${{ github.event.pull_request.base.ref }}" == main-* ]]; then
-            echo "::set-output name=release_name::${{ env.VERSION }} stable"
-            echo "::set-output name=release_body::STABLE_DRAFT"
-            echo "::set-output name=prerelease::false"
+          if [[ "${{ github.event.pull_request.base.ref }}" == "main" || "${{ github.event.pull_request.base.ref }}" == main-* ]]; then
+            echo "release_name=${{ env.VERSION }} stable" >> $GITHUB_OUTPUT
+            echo "release_body=STABLE_DRAFT" >> $GITHUB_OUTPUT
+            echo "prerelease=false" >> $GITHUB_OUTPUT
           else
-            echo "::set-output name=release_name::"
-            echo "::set-output name=release_body::"
-            echo "::set-output name=prerelease::"
+            echo "release_name=${{ env.VERSION }} nightly" >> $GITHUB_OUTPUT
+            echo "release_body=NIGHTLY_DRAFT" >> $GITHUB_OUTPUT
+            echo "prerelease=true" >> $GITHUB_OUTPUT
           fi
 
       - name: Create Draft Release
         id: create_release
         uses: softprops/action-gh-release@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.CI_TOKEN }}
         with:
           tag_name: ${{ env.VERSION }}
           name: ${{steps.set_release_vars.outputs.release_name}}
           body: |
             ${{steps.set_release_vars.outputs.release_body}}
+          prerelease: ${{steps.set_release_vars.outputs.prerelease}}
           draft: true
-          prerelease: true
-
-      - name: Upload TAR.GZ release asset
-        id: upload-tar-gz-release-asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.CI_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.get_tarball_name.outputs.TARBALL_NAME }}-${{ env.VERSION }}.tar.gz
-          asset_name: ${{ steps.get_tarball_name.outputs.TARBALL_NAME }}-${{ env.VERSION }}.tar.gz
-          asset_content_type: application/gzip
+          generate_release_notes: true
+          files: |
+            ${{ steps.get_tarball_name.outputs.TARBALL_NAME }}-${{ env.VERSION }}.tar.gz

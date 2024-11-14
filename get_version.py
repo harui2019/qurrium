@@ -14,6 +14,10 @@ version_txt_split = raw_version_txt.split(".")
 print(f"| Get raw version: {raw_version_txt}")
 print(f"| Get version split: {version_txt_split}")
 
+assert (
+    len(version_txt_split) == 3 or len(version_txt_split) == 4
+), f"| The version number should be split by dot and have 3 or 4 parts: {version_txt_split}."
+
 
 class MyProgramArgs(argparse.Namespace):
     """args"""
@@ -35,47 +39,55 @@ def toml_rename():
 def bump_version(
     version_split: list[str],
     bump_type: Literal["major", "minor", "patch", "dev", "skip"],
-) -> list[str]:
+) -> tuple[str, str, str, str]:
     """Bump the version number.
     The version number is split by dot, and the release type is either stable or nightly.
     And it can be bumped by major, minor, patch, or dev.
     The input 'version_split' is the version number split by dot,
-    and it should be looked like ['0', '8', '1', 'dev2'].
+    and it should be looked like ['0', '3', '0', 'dev1'].
 
-    version_split: list[str]
-        The version number split by dot.
-    bump_type: Literal["major", "minor", "patch", "dev", "skip"]
-        The bump type of the version number.
-        "skip" means the version number is not bumped.
+    Args:
+        version_split (list[str]): The version number split by dot.
+        bump_type (Literal["major", "minor", "patch", "dev", "skip"]):
+            The bump type of the version number.
+            "skip" means the version number is not bumped.
 
     Returns:
-        str: The bumped version number
+        tuple[str, str, str, str]: The bumped version number
     """
     assert (
-        len(version_split) == 4
-    ), f"| The version number should be split by dot and have 4 parts: {version_split}."
+        len(version_split) == 3 or len(version_txt_split) == 4
+    ), f"| The version number should be split by dot and have 3 or 4 parts: {version_split}."
 
     if bump_type == "dev":
-        version_new_split = version_split[:3] + ["dev" + str(int(version_split[3][3:]) + 1)]
+        version_new_split = (
+            (version_split[:2] + [str(int(version_split[2]) + 1)] + ["dev1"])
+            if len(version_split) == 3
+            else (version_split[:3] + ["dev" + str(int(version_split[3][3:]) + 1)])
+        )
 
     elif bump_type == "patch":
         version_new_split = version_split[:2] + [str(int(version_split[2]) + 1)] + ["dev1"]
 
-    elif bump_type in ["major", "minor"]:
-        raise NotImplementedError(
-            "| The major and minor bump are only allowed by bumping manually."
-        )
+    elif bump_type == "minor":
+        version_new_split = version_split[:1] + [str(int(version_split[1]) + 1)] + ["0", "dev1"]
+
+    elif bump_type == "major":
+        raise NotImplementedError("| The major bump are only allowed by bumping manually.")
+
     elif bump_type == "skip":
         version_new_split = version_split
+
     else:
         raise ValueError(
-            "| The bump type should be one of the following: " + "major, minor, patch, dev."
+            "| The bump type should be one of the following: "
+            + f"major, minor, patch, dev, or skip, but got: '{bump_type}'."
         )
 
     assert (
         len(version_new_split) == 4
     ), f"| The bumped version number should have 4 parts: {version_new_split}."
-    return version_new_split
+    return (version_new_split[0], version_new_split[1], version_new_split[2], version_new_split[3])
 
 
 if __name__ == "__main__":
@@ -83,6 +95,7 @@ if __name__ == "__main__":
         description="| Get the version number from the VERSION.txt "
         + "file and pass it to the environment variable."
     )
+
     parser.add_argument(
         "-r",
         "--release",
@@ -115,7 +128,7 @@ if __name__ == "__main__":
     print(f"| Version split: {version_txt_split}")
     print("|" + "-" * 30)
 
-    if args.bump in ["patch", "dev"]:
+    if args.bump in ["minor", "patch", "dev", "skip"]:
         try:
             version_txt_split = bump_version(version_txt_split, args.bump)
         except NotImplementedError as e:
@@ -129,28 +142,35 @@ if __name__ == "__main__":
         else:
             print(f"| Bump '{args.bump}' version: {'.'.join(version_txt_split)}")
         print("|" + "-" * 30)
-    elif args.bump in ["major", "minor"]:
-        print("| Major and minor bump are only allowed by bumping manually.")
+    elif args.bump == "major":
+        print("| Major bump are only allowed by bumping manually.")
+        print(f"| Version not changed: {'.'.join(version_txt_split)}")
+        print("|" + "-" * 30)
+    else:
+        print("| The bump type should be one of the following: major, minor, patch.")
+        print(f"| But got: '{args.bump}'")
         print(f"| Version not changed: {'.'.join(version_txt_split)}")
         print("|" + "-" * 30)
 
     if args.release == "stable":
         VERSION = ".".join(version_txt_split[:3])
-        if args.test:
-            print(f"| Stable print, version: '{VERSION}'")
-        else:
-            print(f"| Stable print, version: '{VERSION}', rewrite VERSION.txt and pyproject.toml")
-
-    if (args.release == "stable" or args.bump in ["patch", "dev"]) and not args.test:
-        os.system(f'echo "{VERSION}" > ./qurry/VERSION.txt')
-        toml_rename()
-
+        print(
+            f"| Stable print, version: '{VERSION}'"
+            + (", test print." if args.test else ", rewrite VERSION.txt and pyproject.toml")
+        )
     else:
         VERSION = ".".join(version_txt_split)
-        print(f"| Nightly print, version: '{VERSION}'")
+        print(
+            f"| Nightly print, version: '{VERSION}'"
+            + (", test print." if args.test else ", rewrite VERSION.txt and pyproject.toml")
+        )
 
-    # 將版本號碼傳遞到環境變數中
     if args.test:
         print(f"| Test print, version: '{VERSION}'")
     else:
+        with open(os.path.join("qurry", "VERSION.txt"), "w", encoding="utf-8") as version_file:
+            version_file.write(VERSION)
+        if args.release == "stable":
+            toml_rename()
+        print("| Rewrite VERSION.txt and pass the version to the environment variable.")
         os.system(f'echo "VERSION={VERSION}" >> $GITHUB_ENV')

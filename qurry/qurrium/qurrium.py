@@ -33,7 +33,7 @@ from .multimanager.multimanager import (
 )
 from ..tools import qurry_progressbar
 from ..tools.backend import GeneralSimulator
-from ..declare import BaseRunArgs, TranspileArgs, OutputArgs
+from ..declare import BaseRunArgs, TranspileArgs, OutputArgs, BasicArgs, AnalyzeArgs
 from ..exceptions import QurryResetAccomplished, QurryResetSecurityActivated
 
 
@@ -52,7 +52,7 @@ class QurriumPrototype(ABC):
         self,
         wave: QuantumCircuit,
         key: Optional[Hashable] = None,
-        replace: Literal[True, False, "duplicate"] = False,
+        replace: Literal[True, False, "duplicate"] = True,
     ) -> Hashable:
         """Add new wave function to measure.
 
@@ -65,9 +65,8 @@ class QurriumPrototype(ABC):
             replace (Literal[True, False, &#39;duplicate&#39;], optional):
                 If the key is already in the wave function or circuit,
                 then replace the old wave function or circuit when `True`,
-                or duplicate the wave function or circuit when `'duplicate'`,
-                otherwise only changes `.lastwave`.
-                Defaults to `False`.
+                or duplicate the wave function or circuit when `'duplicate'`.
+                Defaults to `True`.
 
         Returns:
             Optional[Hashable]: Key of given wave function in `.waves`.
@@ -361,12 +360,12 @@ class QurriumPrototype(ABC):
     # pylint: disable=invalid-name
     def multiBuild(
         self,
-        config_list: list[dict[str, Any]],
+        config_list: list[Union[dict[str, Any], BasicArgs, Any]],
         summoner_name: str = "exps",
         summoner_id: Optional[str] = None,
         shots: int = 1024,
         backend: Backend = GeneralSimulator(),
-        tags: Optional[list[str]] = None,
+        tags: Optional[tuple[str, ...]] = None,
         manager_run_args: Optional[Union[BaseRunArgs, dict[str, Any]]] = None,
         save_location: Union[Path, str] = Path("./"),
         jobstype: Union[Literal["local"], PendingTargetProviderLiteral] = "local",
@@ -386,7 +385,7 @@ class QurriumPrototype(ABC):
             backend (Backend, optional):
                 The quantum backend.
                 Defaults to AerSimulator().
-            tags (Optional[list[str]], optional):
+            tags (Optional[tuple[str, ...]], optional):
                 Tags of experiment of the MultiManager. Defaults to None.
             manager_run_args (Optional[Union[BaseRunArgs, dict[str, Any]]], optional):
                 The extra arguments for running the job,
@@ -451,12 +450,12 @@ class QurriumPrototype(ABC):
 
     def multiOutput(
         self,
-        config_list: list[dict[str, Any]],
+        config_list: list[Union[dict[str, Any], BasicArgs, Any]],
         summoner_name: str = "exps",
         summoner_id: Optional[str] = None,
         shots: int = 1024,
         backend: Backend = GeneralSimulator(),
-        tags: Optional[list[str]] = None,
+        tags: Optional[tuple[str, ...]] = None,
         manager_run_args: Optional[Union[BaseRunArgs, dict[str, Any]]] = None,
         save_location: Union[Path, str] = Path("./"),
         compress: bool = False,
@@ -475,7 +474,7 @@ class QurriumPrototype(ABC):
             backend (Backend, optional):
                 The quantum backend.
                 Defaults to AerSimulator().
-            tags (Optional[list[str]], optional):
+            tags (Optional[tuple[str, ...]], optional):
                 Tags of experiment of the MultiManager. Defaults to None.
             manager_run_args (Optional[Union[BaseRunArgs, dict[str, Any]]], optional):
                 The extra arguments for running the job,
@@ -493,7 +492,7 @@ class QurriumPrototype(ABC):
         """
 
         if tags is None:
-            tags = []
+            tags = ()
 
         besummonned = self.multiBuild(
             config_list=config_list,
@@ -551,7 +550,7 @@ class QurriumPrototype(ABC):
         shots: int = 1024,
         backend: Backend = GeneralSimulator(),
         provider: Optional[Any] = None,
-        tags: Optional[list[str]] = None,
+        tags: Optional[tuple[str, ...]] = None,
         manager_run_args: Optional[dict[str, Any]] = None,
         save_location: Union[Path, str] = Path("./"),
         jobstype: PendingTargetProviderLiteral = "IBM",
@@ -572,7 +571,7 @@ class QurriumPrototype(ABC):
                 The quantum backend. Defaults to GeneralSimulator().
             provider (Optional[Any], optional):
                 The provider. Defaults to None.
-            tags (Optional[list[str]], optional):
+            tags (Optional[tuple[str, ...]], optional):
                 Tags of experiment of the MultiManager. Defaults to None.
             manager_run_args (Optional[dict[str, Any]], optional):
                 The extra arguments for running the job,
@@ -639,7 +638,9 @@ class QurriumPrototype(ABC):
         summoner_id: str,
         analysis_name: str = "report",
         no_serialize: bool = False,
-        specific_analysis_args: Optional[dict[Hashable, Union[dict[str, Any], bool]]] = None,
+        specific_analysis_args: Optional[
+            dict[Hashable, Union[dict[str, Any], AnalyzeArgs, bool, Any]]
+        ] = None,
         compress: bool = False,
         write: bool = True,
         **analysis_args: Any,
