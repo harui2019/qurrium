@@ -419,7 +419,7 @@ if __name__ == "__main__":
 
         if arguments.bump != "skip":
             raise ValueError(
-                "| The stable release should not bump the version number."
+                "| The stable release should not bump the version number. "
                 + f"bump type: {arguments.bump}, release type: {arguments.release}"
             )
 
@@ -481,17 +481,19 @@ if __name__ == "__main__":
                 raise ValueError(
                     f"| The version from the VERSION.txt is stable version {VERSION}. "
                     + "This means that it should be existing in the git tags "
-                    + "and waiting for for the version bumping after the pull request."
+                    + "and waiting for for the version bumping after the pull request. "
+                    + f"all versions: {RAWREAD_ALL_GIT_VERSIONS}"
                 )
         elif len(VERSION_SPLIT) == 4:
             if not is_existing_version(VERSION):
                 raise ValueError(
                     "| The version from the VERSION.txt is "
-                    + f"nightly version {VERSION} for proposed {PROPOSED_VERSION} ."
+                    + f"nightly version {VERSION} for proposed {PROPOSED_VERSION}. "
                     + f"This means the version {VERSION} should be existing in the git tags "
-                    + "for it has added last pull request."
+                    + "for it has added last pull request. "
                     + f"If this version {VERSION} is made by you, "
-                    + "you should recover to last version to make the workflow bump the version."
+                    + "you should recover to last version to make the workflow bump the version. "
+                    + f"all versions: {RAWREAD_ALL_GIT_VERSIONS}"
                 )
         else:
             raise ValueError(

@@ -41,6 +41,8 @@ jobs:
   test_skip:
     if: ${{ startsWith(github.event.pull_request.title, 'skip-test:') }}
     name: When Test is Skipped
+    needs:
+      - check_version
     runs-on: ubuntu-latest
     steps:
       - name: Skip Test
