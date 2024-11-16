@@ -69,7 +69,6 @@ before-build = [
     'echo "| Install dependencies..."',
     "pip install --upgrade pipenv wheel pip auditwheel auditwheel-symbols delocate",
     "pip install --upgrade setuptools setuptools_rust wheel",
-
 ]
 before-test = [
     "echo ''",
