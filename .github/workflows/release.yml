@@ -1,18 +1,18 @@
-# from https://github.com/dear-github/dear-github/issues/214#issuecomment-1060001840
-# from https://github.com/dear-github/dear-github/issues/214#issuecomment-1080042519
-
 name: Release
 on:
   pull_request:
     branches:
       - pre-release
       - pre-release-*
-      - main
-      - main-*
+      - stable
+      - stable-*
     types:
       - closed
 env:
   CARGO_TERM_COLOR: always
+
+permissions:
+  contents: write
 
 jobs:
   create_tag:
@@ -20,9 +20,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v2
         with:
-          submodules: true
-          token: ${{ secrets.CI_TOKEN }}
+          python-version: "3.12"
 
       - name: Import GPG key
         uses: crazy-max/ghaction-import-gpg@v6
@@ -30,33 +31,35 @@ jobs:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.PASSPHRASE }}
           git_user_signingkey: true
-          git_commit_gpgsign: false
+          git_commit_gpgsign: true
 
       - name: Set up Git user
         run: |
           git config --global user.name ${{ github.repository_owner }}_action_bot
           git config --global user.email ${{ github.repository_owner }}@users.noreply.github.com
 
-      - name: Update Pip
+      - name: Bump Version and Create Tag
+        id: create_tag
         run: |
-          pip install --upgrade pipenv pip toml
-
-      - name: Bump Patch Version and Create Tag
-        if: contains(github.event.pull_request.title, 'patch:')
-        run: |
-          python get_version.py -b patch --release $([[ "${{ github.event.pull_request.base.ref }}" == main* ]] && echo stable || echo nightly)
-      - name: Bump Minor Version and Create Tag
-        if: contains(github.event.pull_request.title, 'minor:')
-        run: |
-          python get_version.py -b minor --release $([[ "${{ github.event.pull_request.base.ref }}" == main* ]] && echo stable || echo nightly)
-      - name: Bump Dev Version and Create Tag
-        if: (!contains(github.event.pull_request.title, 'minor:') || !contains(github.event.pull_request.title, 'patch:'))
-        run: |
-          python get_version.py -b dev --release $([[ "${{ github.event.pull_request.base.ref }}" == main* ]] && echo stable || echo nightly)
-      - name: Skip Bump Version and Create Tag
-        if: contains(github.event.pull_request.title, 'skip-version:')
-        run: |
-          python get_version.py -b skip --release $([[ "${{ github.event.pull_request.base.ref }}" == main* ]] && echo stable || echo nightly)
+          if [["${{ github.event.pull_request.base.ref }}" == pre-release* ]] ; then
+            echo "| Pre-release branch: ${{github.event.pull_request.base.ref}}"
+            if [[ "${{ github.event.pull_request.title }}" == patch:* ]] ; then
+              python ./tools/set_version.py -b patch -r nightly
+            elif [[ "${{ github.event.pull_request.title }}" == minor:* ]] ; then
+              python ./tools/set_version.py -b minor -r nightly
+            elif [[ "${{ github.event.pull_request.title }}" == skip-version:* ]] ; then
+              python ./tools/set_version.py -b skip -r nightly
+            else 
+              python ./tools/set_version.py -b dev -r nightly
+            fi
+          elif [["${{ github.event.pull_request.base.ref }}" == stable* ]] ; then
+            echo "| Stable branch: ${{ github.event.pull_request.base.ref }}"
+            python ./tools/set_version.py -r stable
+          else
+            echo "| Invalid branch: ${{ github.event.pull_request.base.ref }}"
+            echo "| Exiting..."
+            exit 1
+          fi
 
       - name: Push Version Change
         if: (!contains(github.event.pull_request.title, 'skip-version:'))
@@ -64,51 +67,33 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.CI_TOKEN }}
         run: |
           git add qurry/VERSION.txt
-          git commit -m "chore(version): update version to ${{ env.VERSION }}"
+          git commit -m "chore(version): update version to ${{ steps.create_tag.outputs.VERSION }}"
           git push origin
-        # https://gist.github.com/swinton/03e84635b45c78353b1f71e41007fc7c
-        # run: |
-        #   export TODAY=$( date -u '+%Y-%m-%d_%T' )
-        #   export MESSAGE="chore(version): update version to ${{ env.VERSION }} for $TODAY"
-        #   export CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-        #   export SHA=$( git rev-parse $CURRENT_BRANCH:$FILE_TO_COMMIT )
-
-        #   echo "MESSAGE: $MESSAGE"
-        #   echo "TODAY: $TODAY"
-        #   echo "CURRENT_BRANCH: $CURRENT_BRANCH"
-        #   echo "FILE_TO_COMMIT: $FILE_TO_COMMIT"
-
-        #   gh api --method PUT repos/harui2019/qurecipe/contents/$FILE_TO_COMMIT \
-        #     -F message="$MESSAGE" \
-        #     -F content="$(base64 -w 0 $FILE_TO_COMMIT)" \
-        #     -F branch="$CURRENT_BRANCH" \
-        #     -F sha="$SHA"
 
       - name: Check out Version
         run: |
-          echo '| Version: ${{ env.VERSION }} in action'
-      - name: Check Version Tag
-        uses: mukunku/tag-exists-action@v1.6.0
-        id: checkTag
-        with:
-          tag: ${{ env.VERSION }}
+          echo "| Version: ${{ steps.create_tag.outputs.VERSION }} in action"
+          echo "| Tag exists: ${{ steps.create_tag.outputs.exists }}"
 
       - name: Create Version Tag
+        if: (!contains(github.event.pull_request.title, 'skip-version:'))
         run: |
-          if ${{ steps.checkTag.outputs.exists }} ; then
+          if ${{ steps.create_tag.outputs.exists }} ; then
             echo "| Tag exists, skipped add"
           else 
-            echo "| Tag doesn't exist or error in command"
-            git tag -a ${{ env.VERSION }} -m "chore(version): update version to ${{ env.VERSION }}"
-            git push origin ${{ env.VERSION }}
+            echo "| Tag doesn't exist, adding tag"
+            git tag -a ${{ steps.create_tag.outputs.VERSION }} -m "chore(version): update version to ${{ steps.create_tag.outputs.VERSION }}"
+            git push origin ${{ steps.create_tag.outputs.VERSION }}
           fi
 
       - name: Get custom tarball name
         id: get_tarball_name
-        run: echo "TARBALL_NAME=qurry-${{ github.ref_name }}" >> $GITHUB_OUTPUT
+        run: echo "TARBALL_NAME=qurecipe-${{ github.ref_name }}" >> $GITHUB_OUTPUT
+
       - name: Get archived folder name for custom tarball
         id: get_archived_folder_name
-        run: echo "ARCHIVED_FOLDER=${{ github.repository_owner }}-qurry-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+        run: echo "ARCHIVED_FOLDER=${{ github.repository_owner }}-qurecipe-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
       - name: Create custom tarball artifact
         run: |
           mkdir -p artifacts
@@ -124,12 +109,12 @@ jobs:
       - name: Set release variables
         id: set_release_vars
         run: |
-          if [[ "${{ github.event.pull_request.base.ref }}" == "main" || "${{ github.event.pull_request.base.ref }}" == main-* ]]; then
-            echo "release_name=${{ env.VERSION }} stable" >> $GITHUB_OUTPUT
+          if [[ "${{ github.event.pull_request.base.ref }}" == stable* ]]; then
+            echo "release_name=${{ steps.create_tag.outputs.VERSION }} stable" >> $GITHUB_OUTPUT
             echo "release_body=STABLE_DRAFT" >> $GITHUB_OUTPUT
             echo "prerelease=false" >> $GITHUB_OUTPUT
           else
-            echo "release_name=${{ env.VERSION }} nightly" >> $GITHUB_OUTPUT
+            echo "release_name=${{ steps.create_tag.outputs.VERSION }} nightly" >> $GITHUB_OUTPUT
             echo "release_body=NIGHTLY_DRAFT" >> $GITHUB_OUTPUT
             echo "prerelease=true" >> $GITHUB_OUTPUT
           fi
@@ -138,7 +123,7 @@ jobs:
         id: create_release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.VERSION }}
+          tag_name: ${{ steps.create_tag.outputs.VERSION }}
           name: ${{steps.set_release_vars.outputs.release_name}}
           body: |
             ${{steps.set_release_vars.outputs.release_body}}
@@ -146,4 +131,4 @@ jobs:
           draft: true
           generate_release_notes: true
           files: |
-            ${{ steps.get_tarball_name.outputs.TARBALL_NAME }}-${{ env.VERSION }}.tar.gz
+            ${{ steps.get_tarball_name.outputs.TARBALL_NAME }}-${{ steps.create_tag.outputs.VERSION }}.tar.gz
