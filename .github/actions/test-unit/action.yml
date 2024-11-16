@@ -1,6 +1,6 @@
 name: Test Unit
 author: Harui (Huai-Chun Chang)
-description: "The basic unit to test Qurry. Including the parts written in Cython and Rust"
+description: "The basic unit to test Qurry and Qurecipe. Including the parts written in Cython and Rust"
 
 runs:
   using: "composite"
@@ -20,15 +20,19 @@ runs:
     - name: Install dependencies
       shell: bash
       run: |
-        python -m pip install --upgrade pipenv wheel pip
-        python -m pip install flake8 pytest matplotlib pep440
-        python -m pip install --upgrade urllib3
-        python -m pip install --upgrade --user setuptools setuptools_rust
-        python -c "print('### Preparing setup.py '.ljust(70, '.'))"
+        python -m pip install --upgrade pipenv wheel pip urllib3
+        echo "| Installing dependencies"
+        if [[ -f requirements-dev.txt ]]; then
+          python -m pip install -r requirements-dev.txt
+        else
+          echo "| No requirements-dev.txt found, installing default dependencies"
+          python -m pip install flake8 pytest matplotlib pep440
+          python -m pip install --upgrade urllib3
+          python -m pip install --upgrade --user setuptools setuptools_rust
+        fi
+        python -c "print('| Preparing setup.py '.ljust(70, '.'))"
         python -m pip install -e .
-        # python -c "print('### Preparing requirements.txt '.ljust(70, '.'))
-        # if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-        python -c "print('### Dependencies are ready to go '.ljust(70, '.'))"
+        python -c "print('| Dependencies are ready to go '.ljust(70, '.'))"
     - name: Lint with flake8
       shell: bash
       run: |
