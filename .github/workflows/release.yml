@@ -41,7 +41,7 @@ jobs:
       - name: Bump Version and Create Tag
         id: create_tag
         run: |
-          if [["${{ github.event.pull_request.base.ref }}" == pre-release* ]] ; then
+          if [[ "${{ github.event.pull_request.base.ref }}" == pre-release* ]] ; then
             echo "| Pre-release branch: ${{github.event.pull_request.base.ref}}"
             if [[ "${{ github.event.pull_request.title }}" == patch:* ]] ; then
               python ./tools/set_version.py -b patch -r nightly
@@ -52,7 +52,7 @@ jobs:
             else 
               python ./tools/set_version.py -b dev -r nightly
             fi
-          elif [["${{ github.event.pull_request.base.ref }}" == stable* ]] ; then
+          elif [[ "${{ github.event.pull_request.base.ref }}" == stable* ]] ; then
             echo "| Stable branch: ${{ github.event.pull_request.base.ref }}"
             python ./tools/set_version.py -r stable
           else
