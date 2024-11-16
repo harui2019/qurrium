@@ -44,6 +44,7 @@ jobs:
       - name: Bump Version and Create Tag
         id: create_tag
         run: |
+          python -m pip install pep440
           if [[ "${{ github.event.pull_request.base.ref }}" == pre-release* ]] ; then
             echo "| Pre-release branch: ${{github.event.pull_request.base.ref}}"
             if [[ "${{ github.event.pull_request.title }}" == patch:* ]] ; then

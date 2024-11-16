@@ -63,7 +63,7 @@
   
         - name: Reversion Nightly
           run: |
-            python -m pip install toml
+            python -m pip install toml pep440
             python ./tools/set_version.py --release nightly
             python ./tools/set_pyproject_qurry.py --release nightly
   
