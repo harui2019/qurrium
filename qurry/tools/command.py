@@ -65,7 +65,6 @@ def pytorch_cuda_check() -> Optional[bool]:
 
 def fun_platform_check():
     """Check platform information."""
-    print("| Checking platform information...")
 
     platform_uname = platform.uname()
     if platform_uname.system == "Linux":
