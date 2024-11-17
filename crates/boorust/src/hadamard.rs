@@ -4,12 +4,9 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use std::collections::HashMap;
 
-#[allow(dead_code)]
 #[pyfunction]
-pub fn purity_echo_core_rust(
-    shots: i32,
-    counts: Vec<HashMap<String, i32>>,
-) -> PyResult<f64> {
+#[pyo3(signature = (shots, counts))]
+pub fn purity_echo_core_rust(shots: i32, counts: Vec<HashMap<String, i32>>) -> PyResult<f64> {
     let only_counts = &counts[0];
     let sample_shots: i32 = only_counts.values().sum();
 

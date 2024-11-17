@@ -10,6 +10,7 @@ use std::time::Instant;
 use crate::randomized::randomized::purity_cell_2_rust;
 
 #[pyfunction]
+#[pyo3(signature = (shots, counts, selected_classical_registers=None))]
 pub fn entangled_entropy_core_2_rust(
     shots: i32,
     counts: Vec<HashMap<String, i32>>,

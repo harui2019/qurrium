@@ -26,6 +26,7 @@ fn generate_bits(num: usize, bits: Option<Arc<Vec<String>>>) -> Arc<Vec<String>>
 }
 
 #[pyfunction]
+#[pyo3(signature = (bitlen, num=None))]
 pub fn make_two_bit_str_32(bitlen: usize, num: Option<usize>) -> PyResult<Vec<String>> {
     const ULTMAX: usize = 31;
     let mut is_less_than_16 = false;
@@ -153,11 +154,13 @@ pub fn make_two_bit_str_32(bitlen: usize, num: Option<usize>) -> PyResult<Vec<St
 }
 
 #[pyfunction]
+#[pyo3(signature = (num))]
 pub fn make_two_bit_str_unlimit(num: usize) -> Vec<String> {
     Arc::try_unwrap(generate_bits(num, None)).unwrap_or_else(|arc| (*arc).clone())
 }
 
 #[pyfunction]
+#[pyo3(signature = (n_a, shot_per_case, bitstring_num=None))]
 pub fn make_dummy_case_32(
     n_a: usize,
     shot_per_case: usize,
