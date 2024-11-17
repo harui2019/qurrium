@@ -4,7 +4,7 @@ Tools (:mod:`qurry.tools`)
 ================================================================
 """
 
-from .command import cmd_wrapper, pytorch_cuda_check
+from .command import cmd_wrapper, pytorch_cuda_check, fun_platform_check
 from .backend import (
     BackendWrapper,
     BackendManager,
