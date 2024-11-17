@@ -30,9 +30,9 @@ def read_all_versions_from_git():
     Returns:
         list[str]: The raw version numbers.
     """
-    get_all_tags = subprocess.check_output(["git", "fetch", "--tags"]).strip()
-    get_all_tags = get_all_tags.decode("utf-8")
-    print(get_all_tags)
+    # get_all_tags = subprocess.check_output(["git", "fetch", "--tags"]).strip()
+    # get_all_tags = get_all_tags.decode("utf-8")
+    # print(get_all_tags)
 
     all_versions_read = subprocess.check_output(["git", "tag", "-l"]).strip()
     all_versions_read = all_versions_read.decode("utf-8")
