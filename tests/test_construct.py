@@ -17,6 +17,14 @@ from qurry.process.utils.construct import (
     cycling_slice as cycling_slice_py,
     cycling_slice_rust,
 )
+from qurry.process.utils.test import test_construct, RUST_AVAILABLE as rust_available_test
+
+
+def test_test_construct():
+    """Test the test_construct function."""
+
+    assert rust_available_test, "Rust is not available."
+    test_construct()
 
 
 test_setup_selector: list[tuple[int, Union[int, tuple[int, int]], str]] = [

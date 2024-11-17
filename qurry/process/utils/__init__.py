@@ -19,3 +19,4 @@ from .randomized import (
     BACKEND_AVAILABLE as randomized_availability,
 )
 from .dummy import BACKEND_AVAILABLE as dummy_availability
+from .test import BACKEND_AVAILABLE as test_availability, test_construct

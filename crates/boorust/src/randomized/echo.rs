@@ -11,6 +11,7 @@ use crate::randomized::construct::{degree_handler_rust, QubitDegree};
 use crate::randomized::randomized::echo_cell_rust;
 
 #[pyfunction]
+#[pyo3(signature = (shots, counts, degree=None, measure=None))]
 pub fn overlap_echo_core_rust(
     shots: i32,
     counts: Vec<HashMap<String, i32>>,

@@ -42,7 +42,7 @@ version = { file = "qurry/VERSION.txt" }
 readme = { file = "README.md", content-type = "text/markdown" }
 dependencies = { file = "requirements.txt" }
 
-
+# cibuildwheel configuration for qurry
 [tool.cibuildwheel]
 manylinux-x86_64-image = "manylinux2014"
 manylinux-i686-image = "manylinux2014"
@@ -60,10 +60,15 @@ before-build = [
     'echo "======================================================================"',
     'echo "### Building ........................................................."',
     'echo "======================================================================"',
-    "which python",
-    "pip install --upgrade pipenv wheel pip",
-    "pip install --upgrade auditwheel auditwheel-symbols delocate",
-    "pip install --upgrade setuptools_rust Cython setuptools toml wheel",
+    'echo "| Which Python: "',
+    'python -c "import sys; print(sys.executable)"',
+    'echo "| Python Version: "',
+    'python --version',
+    'echo "| Platform: "',
+    'python -c "import platform; print(platform.platform())"',
+    'echo "| Install dependencies..."',
+    "pip install --upgrade pipenv wheel pip auditwheel auditwheel-symbols delocate",
+    "pip install --upgrade setuptools setuptools_rust wheel",
 ]
 before-test = [
     "echo ''",
@@ -94,9 +99,11 @@ before-all = [
     'echo "======================================================================"',
     'echo "### Linux Setup ......................................................"',
     'echo "======================================================================"',
-    "curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain=nightly --profile=minimal -y",
-    'source "$HOME/.cargo/env"',
+    'echo "| Installing Rust..."',
+    "command -v rustc >/dev/null 2>&1 || curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain=nightly --profile=minimal -y",
+    'command -v rustc >/dev/null 2>&1 || source "$HOME/.cargo/env"',
     "rustup show",
+    'echo "| Rust ready"',
 ]
 
 [tool.cibuildwheel.macos]
@@ -114,12 +121,11 @@ before-all = [
     'echo "======================================================================"',
     'echo "### MacOS Setup ......................................................"',
     'echo "======================================================================"',
-    # "export PYO3_CROSS_LIB_DIR=$(which python | sed 's|/bin/python|/lib/python|')$(python -c 'import sys; print(str(sys.version_info[0]) + \".\" + str(sys.version_info[1]))')",
-    # "echo $PYO3_CROSS_LIB_DIR",
-    # 'echo "----------------------------------------------------------------------"',
-    "curl https://sh.rustup.rs -sSf | bash -s -- --default-toolchain=nightly --profile=minimal -y",
-    'source "$HOME/.cargo/env"',
+    'echo "| Installing Rust..."',
+    "command -v rustc >/dev/null 2>&1 || curl https://sh.rustup.rs -sSf | bash -s -- --default-toolchain=nightly --profile=minimal -y",
+    'command -v rustc >/dev/null 2>&1 || source "$HOME/.cargo/env"',
     "rustup show",
+    'echo "| Rust ready"',
     # "rustup target add aarch64-apple-darwin",
 ]
 
@@ -150,34 +156,14 @@ before-all = [
     'echo "======================================================================"',
     'echo "### Windows Setup ...................................................."',
     'echo "======================================================================"',
-    "echo Downloading...",
-    "curl -o rustup-init.exe https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe",
-    "echo Installing Rust...",
-    "rustup-init.exe --default-toolchain nightly --profile minimal -y",
-    "del rustup-init.exe",
-    'set PATH=%USERPROFILE%\.cargo\bin;%PATH%',
+    'echo "| Downloading Rust..."',
+    'where rustc >nul 2>&1 || (curl -o rustup-init.exe https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe)',
+    'echo "| Installing Rust..."',
+    "where rustc >nul 2>&1 || (rustup-init.exe --default-toolchain nightly --profile minimal -y)",
+    "where rustc >nul 2>&1 || (del rustup-init.exe)",
+    'where rustc >nul 2>&1 || (set PATH=%USERPROFILE%\.cargo\bin;%PATH%)',
     "rustup show",
-]
-before-build = [
-    'echo "======================================================================"',
-    'echo "### Building ........................................................."',
-    'echo "======================================================================"',
-    "python -m pip install --upgrade pipenv wheel pip",
-    "python -m pip install --upgrade auditwheel auditwheel-symbols",
-    "python -m pip install --upgrade setuptools_rust Cython setuptools toml wheel",
-]
-before-test = [
-    "echo ''",
-    'echo "======================================================================"',
-    'echo "### Testing Environment Preparing ...................................."',
-    'echo "======================================================================"',
-    "python -m pip install scipy",
-    "python -m pip install pytest",
-    "cd {project} && python -m pip install . --upgrade && cd ..",
-    'echo "======================================================================"',
-    'echo "### Test Start ......................................................."',
-    'echo "======================================================================"',
-    "echo ''",
+    'echo "| Rust ready"',
 ]
 
 [tool.pylint."messages control"]
@@ -196,4 +182,4 @@ disable = [
 
 [tool.black]
 line-length = 100
-target-version = ['py39', 'py310', 'py311', 'py312']
+target-version = ['py39', 'py310', 'py311', 'py312', 'py313']

@@ -7,7 +7,7 @@ Paramagnet (:mod:`qurry.recipe.library.simple.paramagnet`)
 
 from typing import Literal
 
-from ..n_body import OneBody, TwoBody
+from ..n_body import OneBody
 
 
 class TrivialParamagnet(OneBody):
@@ -68,7 +68,7 @@ class TrivialParamagnet(OneBody):
             self.h(i)
 
 
-class TopologicalParamagnet(TwoBody):
+class TopologicalParamagnet(OneBody):
     """The entangled circuit :cls:`Topological paramagnet`.
     Introduce in https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.121.086808 .
 
@@ -93,6 +93,21 @@ class TopologicalParamagnet(TwoBody):
         q7: ┤ H ├─■────
             └───┘
 
+    .. code-block:: text
+
+        # With ACTUAL CZGate, Open boundary at 5 qubits:
+            ┌───┐
+        q0: ┤ H ├─■────
+            ├───┤ │
+        q1: ┤ H ├─■──■─
+            ├───┤    │
+        q2: ┤ H ├─■──■─
+            ├───┤ │
+        q3: ┤ H ├─■──■─
+            ├───┤    │
+        q4: ┤ H ├────■─
+            └───┘
+
 
     .. code-block:: text
 
@@ -113,6 +128,21 @@ class TopologicalParamagnet(TwoBody):
         q6: ┤ H ├─■──■──┼─
             ├───┤ │     │
         q7: ┤ H ├─■─────■─
+            └───┘
+
+    .. code-block:: text
+
+        # With ACTUAL CZGate, Period boundary at 5 qubits:
+            ┌───┐
+        q0: ┤ H ├─■──■────
+            ├───┤ │  │
+        q1: ┤ H ├─■──┼──■─
+            ├───┤    │  │
+        q2: ┤ H ├─■──┼──■─
+            ├───┤ │  │
+        q3: ┤ H ├─■──┼──■─
+            ├───┤    │  │
+        q4: ┤ H ├────■──■─
             └───┘
 
     Args:
@@ -171,9 +201,10 @@ class TopologicalParamagnet(TwoBody):
 
         for i in range(num_qubits):
             self.h(i)
-        for i in range(0, num_qubits, 2):
+        iter_range = num_qubits - 1 if self.border_cond == "open" else num_qubits
+        for i in range(0, iter_range, 2):
             self.cz(i, (i + 1) % num_qubits)
-        for i in range(1, (num_qubits - 1 if self.border_cond == "open" else num_qubits), 2):
+        for i in range(1, iter_range, 2):
             self.cz(i, (i + 1) % num_qubits)
 
 

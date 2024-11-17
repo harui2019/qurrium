@@ -9,6 +9,7 @@ use std::panic;
 use crate::randomized::construct::cycling_slice_rust;
 
 #[pyfunction]
+#[pyo3(signature = (s_i, s_j))]
 pub fn hamming_distance_rust(s_i: &str, s_j: &str) -> i32 {
     // Proved to be correct
     s_i.chars()
@@ -18,6 +19,7 @@ pub fn hamming_distance_rust(s_i: &str, s_j: &str) -> i32 {
 }
 
 #[pyfunction]
+#[pyo3(signature = (s_i, s_i_meas, s_j, s_j_meas, a_num, shots))]
 pub fn ensemble_cell_rust(
     s_i: &str,
     s_i_meas: i32,
@@ -38,6 +40,7 @@ pub fn ensemble_cell_rust(
 }
 
 #[pyfunction]
+#[pyo3(signature = (idx, single_counts, bit_string_range, subsystem_size))]
 pub fn purity_cell_rust(
     idx: i32,
     single_counts: HashMap<String, i32>,
@@ -89,6 +92,7 @@ pub fn purity_cell_rust(
 }
 
 #[pyfunction]
+#[pyo3(signature = (idx, single_counts, selected_classical_registers))]
 pub fn purity_cell_2_rust(
     idx: i32,
     single_counts: HashMap<String, i32>,
@@ -133,6 +137,7 @@ pub fn purity_cell_2_rust(
 }
 
 #[pyfunction]
+#[pyo3(signature = (idx, single_counts, second_counts, bit_string_range, subsystem_size))]
 pub fn echo_cell_rust(
     idx: i32,
     single_counts: HashMap<String, i32>,

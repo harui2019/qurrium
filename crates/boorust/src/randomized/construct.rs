@@ -12,6 +12,7 @@ pub enum QubitDegree {
 }
 
 #[pyfunction]
+#[pyo3(signature = (target, start, end, step))]
 pub fn cycling_slice_rust(target: &str, start: i32, end: i32, step: i32) -> PyResult<String> {
     let length = target.len() as i32;
     let slice_check = vec![
@@ -63,6 +64,7 @@ pub fn cycling_slice_rust(target: &str, start: i32, end: i32, step: i32) -> PyRe
 }
 
 #[pyfunction]
+#[pyo3(signature = (num_qubits, degree=None))]
 pub fn qubit_selector_rust(num_qubits: i32, degree: Option<QubitDegree>) -> PyResult<(i32, i32)> {
     let full_subsystem: Vec<i32> = (0..num_qubits).collect();
 
@@ -125,6 +127,7 @@ pub fn qubit_selector_rust(num_qubits: i32, degree: Option<QubitDegree>) -> PyRe
 }
 
 #[pyfunction]
+#[pyo3(signature = (allsystems_size, degree=None, measure=None))]
 pub fn degree_handler_rust(
     allsystems_size: i32,
     degree: Option<QubitDegree>,
@@ -180,8 +183,9 @@ pub fn degree_handler_rust(
     (bitstring_range, actual_measure, subsystems_size)
 }
 
-#[allow(dead_code)]
-pub fn construct_test() {
+#[pyfunction]
+#[pyo3(signature = ())]
+pub fn test_construct() {
     // Example usage
     let qubit_select_target: Vec<Option<QubitDegree>> = vec![
         Some(QubitDegree::Single(0)),
