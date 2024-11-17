@@ -48,9 +48,9 @@ jobs:
       - name: Skip Test
         run: echo "Skip Test"
 
-  test_py:
+  test_py_latest_and_oldest:
     if: ${{ !startsWith(github.event.pull_request.title, 'skip-test:') }}
-    name: Test on Python
+    name: Test on Python Latest and Oldest
     runs-on: ubuntu-latest
     needs:
       - check_version
@@ -63,6 +63,29 @@ jobs:
           - step: python-oldest
             depends_on: [python-latest]
             python-version: "3.9"
+      fail-fast: false
+      max-parallel: 3
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Run Test Unit
+        uses: ./.github/actions/test-unit
+
+  test_py:
+    if: ${{ !startsWith(github.event.pull_request.title, 'skip-test:') }}
+    name: Test on Python
+    runs-on: ubuntu-latest
+    needs:
+      - check_version
+      - test_py_latest_and_oldest
+    strategy:
+      matrix:
+        include:
           - step: python-other-310
             depends_on: [python-oldest]
             python-version: "3.10"
