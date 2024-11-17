@@ -67,8 +67,9 @@ before-build = [
     'echo "| Platform: "',
     'python -c "import platform; print(platform.platform())"',
     'echo "| Install dependencies..."',
-    "pip install --upgrade pipenv wheel pip auditwheel auditwheel-symbols delocate",
-    "pip install --upgrade setuptools setuptools_rust wheel",
+    "python -m pip install --upgrade pipenv wheel pip",
+    "python -m pip install --upgrade auditwheel auditwheel-symbols delocate",
+    "python -m pip install --upgrade setuptools_rust setuptools wheel",
 ]
 before-test = [
     "echo ''",
@@ -157,13 +158,22 @@ before-all = [
     'echo "### Windows Setup ...................................................."',
     'echo "======================================================================"',
     'echo "| Downloading Rust..."',
-    'where rustc >nul 2>&1 || (curl -o rustup-init.exe https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe)',
+    "curl -o rustup-init.exe https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe",
     'echo "| Installing Rust..."',
-    "where rustc >nul 2>&1 || (rustup-init.exe --default-toolchain nightly --profile minimal -y)",
-    "where rustc >nul 2>&1 || (del rustup-init.exe)",
-    'where rustc >nul 2>&1 || (set PATH=%USERPROFILE%\.cargo\bin;%PATH%)',
+    "rustup-init.exe --default-toolchain nightly --profile minimal -y",
+    "del rustup-init.exe",
+    'set PATH=%USERPROFILE%\.cargo\bin;%PATH%',
     "rustup show",
     'echo "| Rust ready"',
+]
+before-build = [
+    'echo "======================================================================"',
+    'echo "### Building ........................................................."',
+    'echo "======================================================================"',
+    'echo "| Install dependencies..."',
+    "python -m pip install --upgrade pipenv wheel pip",
+    "python -m pip install --upgrade auditwheel auditwheel-symbols delocate",
+    "python -m pip install --upgrade setuptools_rust setuptools wheel",
 ]
 
 [tool.pylint."messages control"]
