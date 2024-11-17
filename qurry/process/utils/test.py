@@ -41,8 +41,8 @@ def test_construct():
 
     if RUST_AVAILABLE:
         test_construct_source()
-
-    warnings.warn(
-        f"Rust is not available, Check: {FAILED_RUST_IMPORT}",
-        PostProcessingRustUnavailableWarning,
-    )
+    else:
+        warnings.warn(
+            f"Rust is not available, Check: {FAILED_RUST_IMPORT}",
+            PostProcessingRustUnavailableWarning,
+        )
