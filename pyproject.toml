@@ -62,14 +62,15 @@ before-build = [
     'echo "======================================================================"',
     'echo "| Which Python: "',
     'python -c "import sys; print(sys.executable)"',
+    'python -c "from distutils import util; print(util.get_platform())"',
     'echo "| Python Version: "',
     'python --version',
     'echo "| Platform: "',
     'python -c "import platform; print(platform.platform())"',
     'echo "| Install dependencies..."',
-    "python -m pip install --upgrade pipenv wheel pip",
-    "python -m pip install --upgrade auditwheel auditwheel-symbols delocate",
-    "python -m pip install --upgrade setuptools_rust setuptools wheel",
+    "pip install --upgrade pipenv wheel pip",
+    "pip install --upgrade auditwheel auditwheel-symbols delocate",
+    "pip install --upgrade setuptools_rust setuptools wheel",
 ]
 before-test = [
     "echo ''",
@@ -127,8 +128,15 @@ before-all = [
     'command -v rustc >/dev/null 2>&1 || source "$HOME/.cargo/env"',
     "rustup show",
     'echo "| Rust ready"',
+    # "rustup target add x86_64-apple-darwin",
     # "rustup target add aarch64-apple-darwin",
+    "pip install delocate pipx",
 ]
+repair-wheel-command = "delocate-wheel --require-archs {delocate_archs} -w {dest_dir} -v {wheel} && pipx run abi3audit --strict --report {wheel}"
+# Attention: If you are building universal2 binaries, 
+# confirm that you are using universal2 Python since version 3.9
+# It can be check by `python -c "from distutils import util; print(util.get_platform())"`
+# You should see something like `macosx-10.*-universal2` in the output.
 
 [tool.cibuildwheel.windows]
 # PowerShell script
