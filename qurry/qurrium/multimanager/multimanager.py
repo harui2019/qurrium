@@ -705,9 +705,10 @@ class MultiManager:
                 export_progress.set_description_str(f"{k} as {exporting_name[k]}")
                 tmp: TagList = self[k]
                 filename = tmp.export(
+                    name=None,
                     save_location=self.multicommons.export_location,
-                    taglist_name=f"{exporting_name[k]}",
                     filetype=self.multicommons.filetype,
+                    taglist_name=f"{exporting_name[k]}",
                     open_args={
                         "mode": "w+",
                         "encoding": encoding,
@@ -784,6 +785,7 @@ class MultiManager:
             for id_exec, files in all_qurryinfo.items():
                 self.beforewards.files_taglist[exps_container[id_exec].commons.tags].append(files)
             self.beforewards.files_taglist.export(
+                name=None,
                 save_location=self.multicommons.export_location,
                 taglist_name=f"{exporting_name['files_taglist']}",
                 filetype=self.multicommons.filetype,

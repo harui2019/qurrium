@@ -15,6 +15,10 @@ from qiskit.providers import Backend
 from ...tools.datetime import DatetimeDict
 from ...declare import BaseRunArgs
 
+ExportFiletypeLiteral = Literal["json"]
+"""Type of exporting filetype."""
+DEFAULT_EXPORT_FILETYPE: ExportFiletypeLiteral = "json"
+"""The default exporting filetype."""
 PendingStrategyLiteral = Literal["onetime", "each", "tags"]
 """Type of pending strategy."""
 PENDING_STRATEGY: list[PendingStrategyLiteral] = ["onetime", "each", "tags"]
@@ -74,7 +78,7 @@ class MultiCommonparamsRawdDict(TypedDict):
     jobstype: PendingTargetProviderLiteral
     pending_strategy: PendingStrategyLiteral
     manager_run_args: Union[BaseRunArgs, dict[str, Any]]
-    filetype: Literal["json"]
+    filetype: ExportFiletypeLiteral
     datetimes: Union[DatetimeDict, dict[str, str]]
     outfields: dict[str, Any]
 
@@ -93,7 +97,7 @@ class MultiCommonparamsDict(TypedDict):
     jobstype: PendingTargetProviderLiteral
     pending_strategy: PendingStrategyLiteral
     manager_run_args: Union[BaseRunArgs, dict[str, Any]]
-    filetype: Literal["json"]
+    filetype: ExportFiletypeLiteral
     datetimes: DatetimeDict
 
 
@@ -131,7 +135,7 @@ class MultiCommonparams(NamedTuple):
     manager_run_args: Union[BaseRunArgs, dict[str, Any]]
     """Other arguments will be passed to `IBMQJobManager()`"""
 
-    filetype: Literal["json"]
+    filetype: ExportFiletypeLiteral
 
     # header
     datetimes: DatetimeDict
@@ -151,7 +155,7 @@ class MultiCommonparams(NamedTuple):
             "jobstype": "local",
             "pending_strategy": "tags",
             "manager_run_args": {},
-            "filetype": "json",
+            "filetype": DEFAULT_EXPORT_FILETYPE,
             "datetimes": DatetimeDict(),
         }
 
