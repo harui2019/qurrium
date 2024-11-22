@@ -70,12 +70,15 @@ jobs:
       # Build wheels
       - name: Build wheels
         if: matrix.vers != 'linux-aarch64'
-        uses: pypa/cibuildwheel@v2.21.3
+        run: |
+          python -m cibuildwheel --output-dir wheelhouse
       - name: Build wheels (Linux aarch64)
         if: matrix.vers == 'linux-aarch64'
-        uses: pypa/cibuildwheel@v2.21.3
-        env:
-          CIBW_ARCHS_LINUX: "aarch64"
+        run: |
+          python -m cibuildwheel --output-dir wheelhouse --platform linux --arch aarch64
+      # Since we have some self-hosted runners,
+      # some of them may not work with the github actions workflow of cibuildwheel.
+      # So, we only use command line to build.
 
       # Upload the wheelhouse as an artifact
       - name: Wheelhouse Upload
