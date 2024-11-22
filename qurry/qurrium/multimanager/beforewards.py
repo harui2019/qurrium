@@ -114,7 +114,7 @@ class Before(NamedTuple):
                 save_location=export_location,
             ),
             job_id=quickRead(
-                filename=(real_file_location["jobID"]),
+                filename=(real_file_location["job_id"]),
                 save_location=export_location,
             ),
             job_taglist=TagList.read(
