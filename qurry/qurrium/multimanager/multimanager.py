@@ -495,9 +495,9 @@ class MultiManager:
             for qk in files["tagMapQuantity"].keys():
                 quantity_container.read(
                     key=qk,
-                    save_location=naming_complex.export_location,
-                    taglist_name="tagMapQuantity",
                     name=f"{naming_complex.expsName}.{qk}",
+                    save_location=naming_complex.export_location,
+                    version="v5",
                 )
 
         elif multiconfig_name_v7.exists():
@@ -517,7 +517,6 @@ class MultiManager:
                 quantity_container.read(
                     key=qk,
                     save_location=naming_complex.export_location,
-                    taglist_name="quantity",
                     name=f"{qk}",
                 )
         else:

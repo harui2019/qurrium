@@ -5,7 +5,7 @@ The container for quantities of analysis for :cls:`MultiManager`.
 ================================================================
 """
 
-from typing import Union, Optional, Literal
+from typing import Union, Literal
 from collections.abc import Hashable
 from pathlib import Path
 
@@ -31,22 +31,26 @@ class QuantityContainer(dict[str, TagList[Hashable, dict[str, float]]]):
     def read(
         self,
         key: str,
+        name: str,
         save_location: Union[str, Path],
-        taglist_name: str,
-        name: Optional[str] = None,
+        filetype: Literal["json", "csv"] = "json",
+        version: Literal["v5", "v7"] = "v7",
     ):
         """Reads the analysis.
 
         Args:
             key (str): The key of the analysis.
-            save_location (Union[str, Path]): The save location of the analysis.
-            taglist_name (str): The name of the taglist.
             name (Optional[str], optional): The name of the analysis. Defaults to None.
+            taglist_name (str): The name of the taglist.
+            save_location (Union[str, Path]): The save location of the analysis.
         """
+        assert version in ["v5", "v7"], "version must be 'v5' or 'v7'"
+        taglist_name = "quantity" if version == "v7" else "tagMapQuantity"
+
         self[key] = TagList.read(
-            save_location=save_location,
+            filename=f"{name}.{taglist_name}.{filetype}",
             taglist_name=taglist_name,
-            name=name,
+            save_location=save_location,
         )
 
     def write(
