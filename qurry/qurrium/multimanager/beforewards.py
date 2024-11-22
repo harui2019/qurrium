@@ -91,7 +91,7 @@ class Before(NamedTuple):
             real_file_location = {
                 "exps_config": Path(file_location["exps_config"]).name,
                 "circuits_num": Path(file_location["circuits_num"]).name,
-                "jobID": Path(file_location["job_id"]).name,
+                "job_id": Path(file_location["job_id"]).name,
             }
 
         return cls(
@@ -118,17 +118,17 @@ class Before(NamedTuple):
                 save_location=export_location,
             ),
             job_taglist=TagList.read(
-                filename=real_file_location["job_tagList"],
+                filename=real_file_location["job_taglist"],
                 taglist_name=("job.tagList" if version == "v7" else "tagMapExpsID"),
                 save_location=export_location,
             ),
             files_taglist=TagList.read(
-                filename=real_file_location["files_tagList"],
+                filename=real_file_location["files_taglist"],
                 taglist_name=("files.tagList" if version == "v7" else "tagMapFiles"),
                 save_location=export_location,
             ),
             index_taglist=TagList.read(
-                filename=real_file_location["index_tagList"],
+                filename=real_file_location["index_taglist"],
                 taglist_name=("index.tagList" if version == "v7" else "tagMapIndex"),
                 save_location=export_location,
             ),
