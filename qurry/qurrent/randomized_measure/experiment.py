@@ -174,11 +174,9 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
         """
         side_product = {}
 
-        pool = ParallelManager(arguments.workers_num)
+        pool = ParallelManager()
         if isinstance(pbar, tqdm.tqdm):
-            pbar.set_description_str(
-                f"Preparing {arguments.times} random unitary with {arguments.workers_num} workers."
-            )
+            pbar.set_description_str(f"Preparing {arguments.times} random unitary.")
 
         target_key, target_circuit = targets[0]
         target_key = "" if isinstance(target_key, int) else str(target_key)
@@ -200,9 +198,7 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
         }
 
         if isinstance(pbar, tqdm.tqdm):
-            pbar.set_description_str(
-                f"Building {arguments.times} circuits with {arguments.workers_num} workers."
-            )
+            pbar.set_description_str(f"Building {arguments.times} circuits.")
         circ_list = pool.starmap(
             circuit_method_core,
             [
@@ -219,7 +215,7 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
         )
 
         if isinstance(pbar, tqdm.tqdm):
-            pbar.set_description_str(f"Writing 'unitaryOP' with {arguments.workers_num} workers.")
+            pbar.set_description_str("Writing 'unitaryOP'.")
         # side_product["unitaryOP"] = {
         #     k: {i: np.array(v[i]).tolist() for i in range(*arguments.unitary_loc)}
         #     for k, v in unitary_dict.items()
@@ -231,7 +227,7 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
         side_product["unitaryOP"] = dict(enumerate(unitary_operator_list))
 
         if isinstance(pbar, tqdm.tqdm):
-            pbar.set_description_str(f"Writing 'randomized' with {arguments.workers_num} workers.")
+            pbar.set_description_str("Writing 'randomized'.")
         # side_product["randomized"] = {
         #     i: {j: qubitOpToPauliCoeff(unitary_dict[i][j]) for j in range(*arguments.unitary_loc)}
         #     for i in range(arguments.times)

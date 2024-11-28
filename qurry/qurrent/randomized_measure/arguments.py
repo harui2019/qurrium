@@ -17,7 +17,6 @@ from ...process.randomized_measure.entangled_entropy import (
     PostProcessingBackendLabel,
 )
 from ...declare import BasicArgs, OutputArgs, AnalyzeArgs
-from ...tools import DEFAULT_POOL_SIZE
 
 
 @dataclass(frozen=True)
@@ -80,8 +79,6 @@ class EntropyMeasureRandomizedArguments(ArgumentsPrototype):
     ```
 
     """
-    workers_num: int = DEFAULT_POOL_SIZE
-    """The number of workers for multiprocessing."""
 
 
 class EntropyMeasureRandomizedMeasureArgs(BasicArgs, total=False):
