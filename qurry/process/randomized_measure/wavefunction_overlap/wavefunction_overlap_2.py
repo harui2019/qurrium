@@ -52,12 +52,12 @@ def randomized_overlap_echo(
 
     .. note::
 
-            - Statistical correlations between locally randomized measurements:
-            A toolbox for probing entanglement in many-body quantum states -
-            A. Elben, B. Vermersch, C. F. Roos, and P. Zoller,
-            [PhysRevA.99.052323](
-                https://doi.org/10.1103/PhysRevA.99.052323
-            )
+        - Statistical correlations between locally randomized measurements:
+        A toolbox for probing entanglement in many-body quantum states -
+        A. Elben, B. Vermersch, C. F. Roos, and P. Zoller,
+        [PhysRevA.99.052323](
+            https://doi.org/10.1103/PhysRevA.99.052323
+        )
 
     .. code-block:: bibtex
 
