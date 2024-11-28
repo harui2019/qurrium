@@ -35,7 +35,7 @@ from ...declare import BaseRunArgs, TranspileArgs
 
 
 class EntropyMeasureRandomizedV1(QurriumPrototype):
-    """Randomized Measure Experiment.
+    """Randomized Measure for entangled entropy.
     The entropy we compute is the Second Order Rényi Entropy.
 
     .. note::
@@ -91,21 +91,21 @@ class EntropyMeasureRandomizedV1(QurriumPrototype):
             which is applicable to arbitrary quantum states of up to
             several tens of qubits.}}
 
-            @article{PhysRevE.104.035309,
-                title = {Simple mitigation of global depolarizing errors in quantum simulations},
-                author = {Vovrosh, Joseph and Khosla, Kiran E. and Greenaway, Sean and Self,
-                Christopher and Kim, M. S. and Knolle, Johannes},
-                journal = {Phys. Rev. E},
-                volume = {104},
-                issue = {3},
-                pages = {035309},
-                numpages = {8},
-                year = {2021},
-                month = {Sep},
-                publisher = {American Physical Society},
-                doi = {10.1103/PhysRevE.104.035309},
-                url = {https://link.aps.org/doi/10.1103/PhysRevE.104.035309}
-            }
+        @article{PhysRevE.104.035309,
+            title = {Simple mitigation of global depolarizing errors in quantum simulations},
+            author = {Vovrosh, Joseph and Khosla, Kiran E. and Greenaway, Sean and Self,
+            Christopher and Kim, M. S. and Knolle, Johannes},
+            journal = {Phys. Rev. E},
+            volume = {104},
+            issue = {3},
+            pages = {035309},
+            numpages = {8},
+            year = {2021},
+            month = {Sep},
+            publisher = {American Physical Society},
+            doi = {10.1103/PhysRevE.104.035309},
+            url = {https://link.aps.org/doi/10.1103/PhysRevE.104.035309}
+        }
     """
 
     __name__ = "EntropyRandomizedMeasureV1"
