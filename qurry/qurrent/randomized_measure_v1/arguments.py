@@ -1,7 +1,7 @@
 """
 ===========================================================
-EntropyMeasureRandomized - Arguments
-(:mod:`qurry.qurrent.randomized_measure.arguments`)
+EntropyMeasureRandomizedV1 - Arguments
+(:mod:`qurry.qurrent.randomized_measure_v1.arguments`)
 ===========================================================
 
 This is a deprecated version of the randomized measure module.

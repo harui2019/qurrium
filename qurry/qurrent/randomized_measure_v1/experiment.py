@@ -1,7 +1,7 @@
 """
 ===========================================================
 EntropyMeasureRandomizedV1 - Experiment
-(:mod:`qurry.qurrent.randomized_measure.experiment`)
+(:mod:`qurry.qurrent.randomized_measure_v1.experiment`)
 ===========================================================
 
 This is a deprecated version of the randomized measure module.
@@ -38,7 +38,7 @@ from ...exceptions import QurryArgumentsExpectedNotNone, QurryDeprecatedWarning
 class EntropyMeasureRandomizedV1Experiment(ExperimentPrototype):
     """The instance of experiment."""
 
-    __name__ = "EntropyMeasureRandomizedExperiment"
+    __name__ = "EntropyMeasureRandomizedV1Experiment"
 
     @property
     def arguments_instance(self) -> Type[EntropyMeasureRandomizedV1Arguments]:
