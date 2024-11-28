@@ -1,7 +1,7 @@
 """
 =========================================================================================
-Postprocessing - Randomized Measure - Wavefunction Overlap - Echo Cell
-(:mod:`qurry.process.randomized_measure.wavefunction_overlap.echo_cell`)
+Postprocessing - Randomized Measure - Wavefunction Overlap V1 - Echo Cell
+(:mod:`qurry.process.randomized_measure.wavefunction_overlap_v1.echo_cell`)
 =========================================================================================
 
 """
@@ -41,7 +41,7 @@ except ImportError as err:
 
 
 BACKEND_AVAILABLE = availablility(
-    "randomized_measure.echo_cell",
+    "randomized_measure.wavefunction_overlap.echo_cell",
     [
         ("Rust", RUST_AVAILABLE, FAILED_RUST_IMPORT),
         ("Cython", "Depr.", None),
@@ -51,28 +51,6 @@ DEFAULT_PROCESS_BACKEND = default_postprocessing_backend(
     RUST_AVAILABLE,
     False,
 )
-
-
-def echo_cell_rust(
-    idx: int,
-    first_counts: dict[str, int],
-    second_counts: dict[str, int],
-    bitstring_range: tuple[int, int],
-    subsystem_size: int,
-) -> tuple[int, float]:
-    """Calculate the echo cell, one of overlap, of a subsystem by Rust.
-
-    Args:
-        idx (int): Index of the cell (counts).
-        first_counts (dict[str, int]): Counts measured by the first quantum circuit.
-        second_counts (dict[str, int]): Counts measured by the second quantum circuit.
-        bitstring_range (tuple[int, int]): The range of the subsystem.
-        subsystem_size (int): Subsystem size included.
-
-    Returns:
-        tuple[int, float]: Index, one of overlap purity.
-    """
-    return idx, echo_cell_rust_source(first_counts, second_counts, bitstring_range, subsystem_size)
 
 
 def echo_cell_py(
@@ -86,8 +64,8 @@ def echo_cell_py(
 
     Args:
         idx (int): Index of the cell (counts).
-        first_counts (dict[str, int]): Counts measured by the first quantum circuit.
-        second_counts (dict[str, int]): Counts measured by the second quantum circuit.
+        first_counts (dict[str, int]): Counts measured from the first quantum circuit.
+        second_counts (dict[str, int]): Counts measured from the second quantum circuit.
         bitstring_range (tuple[int, int]): The range of the subsystem.
         subsystem_size (int): Subsystem size included.
 
@@ -150,6 +128,28 @@ def echo_cell_py(
     return idx, _echo_cell
 
 
+def echo_cell_rust(
+    idx: int,
+    first_counts: dict[str, int],
+    second_counts: dict[str, int],
+    bitstring_range: tuple[int, int],
+    subsystem_size: int,
+) -> tuple[int, float]:
+    """Calculate the echo cell, one of overlap, of a subsystem by Rust.
+
+    Args:
+        idx (int): Index of the cell (counts).
+        first_counts (dict[str, int]): Counts measured from the first quantum circuit.
+        second_counts (dict[str, int]): Counts measured from the second quantum circuit.
+        bitstring_range (tuple[int, int]): The range of the subsystem.
+        subsystem_size (int): Subsystem size included.
+
+    Returns:
+        tuple[int, float]: Index, one of overlap purity.
+    """
+    return echo_cell_rust_source(idx, first_counts, second_counts, bitstring_range, subsystem_size)
+
+
 def echo_cell(
     idx: int,
     first_counts: dict[str, int],
@@ -162,8 +162,8 @@ def echo_cell(
 
     Args:
         idx (int): Index of the cell (counts).
-        first_counts (dict[str, int]): Counts measured by the first quantum circuit.
-        second_counts (dict[str, int]): Counts measured by the second quantum circuit.
+        first_counts (dict[str, int]): Counts measured from the first quantum circuit.
+        second_counts (dict[str, int]): Counts measured from the second quantum circuit.
         bitstring_range (tuple[int, int]): The range of the subsystem.
         subsystem_size (int): Subsystem size included.
 
