@@ -44,25 +44,20 @@ class EntropyMeasureRandomizedV1Arguments(ArgumentsPrototype):
     The first key is the index for the random unitary operator.
     The second key is the index for the qubit.
 
-    Example:
-    ```python
-    {
-        0: {0: 1234, 1: 5678},
-        1: {0: 2345, 1: 6789},
-        2: {0: 3456, 1: 7890},
-    }
-    ```
+    .. code-block:: python
+        {
+            0: {0: 1234, 1: 5678},
+            1: {0: 2345, 1: 6789},
+            2: {0: 3456, 1: 7890},
+        }
 
     If you want to generate the seeds for all random unitary operator,
     you can use the function `generate_random_unitary_seeds` 
     in `qurry.qurrium.utils.random_unitary`.
 
-    Example:
-    ```python
-    from qurry.qurrium.utils.random_unitary import generate_random_unitary_seeds
-    random_unitary_seeds = generate_random_unitary_seeds(100, 2)
-    ```
-
+    .. code-block:: python
+        from qurry.qurrium.utils.random_unitary import generate_random_unitary_seeds
+        random_unitary_seeds = generate_random_unitary_seeds(100, 2)
     """
     workers_num: int = DEFAULT_POOL_SIZE
     """The number of workers for multiprocessing."""
@@ -86,25 +81,20 @@ class EntropyMeasureRandomizedV1MeasureArgs(BasicArgs, total=False):
     The first key is the index for the random unitary operator.
     The second key is the index for the qubit.
 
-    Example:
-    ```python
-    {
-        0: {0: 1234, 1: 5678},
-        1: {0: 2345, 1: 6789},
-        2: {0: 3456, 1: 7890},
-    }
-    ```
+    .. code-block:: python
+        {
+            0: {0: 1234, 1: 5678},
+            1: {0: 2345, 1: 6789},
+            2: {0: 3456, 1: 7890},
+        }
 
     If you want to generate the seeds for all random unitary operator,
     you can use the function `generate_random_unitary_seeds` 
     in `qurry.qurrium.utils.random_unitary`.
 
-    Example:
-    ```python
-    from qurry.qurrium.utils.random_unitary import generate_random_unitary_seeds
-    random_unitary_seeds = generate_random_unitary_seeds(100, 2)
-    ```
-
+    .. code-block:: python
+        from qurry.qurrium.utils.random_unitary import generate_random_unitary_seeds
+        random_unitary_seeds = generate_random_unitary_seeds(100, 2)
     """
 
 
@@ -124,25 +114,20 @@ class EntropyMeasureRandomizedV1OutputArgs(OutputArgs):
     The first key is the index for the random unitary operator.
     The second key is the index for the qubit.
 
-    Example:
-    ```python
-    {
-        0: {0: 1234, 1: 5678},
-        1: {0: 2345, 1: 6789},
-        2: {0: 3456, 1: 7890},
-    }
-    ```
+    .. code-block:: python
+        {
+            0: {0: 1234, 1: 5678},
+            1: {0: 2345, 1: 6789},
+            2: {0: 3456, 1: 7890},
+        }
 
     If you want to generate the seeds for all random unitary operator,
     you can use the function `generate_random_unitary_seeds` 
     in `qurry.qurrium.utils.random_unitary`.
 
-    Example:
-    ```python
-    from qurry.qurrium.utils.random_unitary import generate_random_unitary_seeds
-    random_unitary_seeds = generate_random_unitary_seeds(100, 2)
-    ```
-
+    .. code-block:: python
+        from qurry.qurrium.utils.random_unitary import generate_random_unitary_seeds
+        random_unitary_seeds = generate_random_unitary_seeds(100, 2)
     """
 
 

@@ -18,7 +18,7 @@ from qiskit.quantum_info import Operator
 
 from .analysis import EntropyMeasureRandomizedV1Analysis
 from ...process.randomized_measure.entangled_entropy_v1 import (
-    randomized_entangled_entropy_mitigated_deprecated as randomized_entangled_entropy_mitigated,
+    randomized_entangled_entropy_mitigated_v1,
     RandomizedEntangledEntropyMitigatedComplex,
     ExistingAllSystemSource,
     PostProcessingBackendLabel,
@@ -26,7 +26,7 @@ from ...process.randomized_measure.entangled_entropy_v1 import (
 )
 
 
-def randomized_entangled_entropy_complex(
+def randomized_entangled_entropy_complex_v1(
     shots: int,
     counts: list[dict[str, int]],
     degree: Optional[Union[tuple[int, int], int]],
@@ -75,7 +75,7 @@ def randomized_entangled_entropy_complex(
     else:
         existed_all_system = None
 
-    return randomized_entangled_entropy_mitigated(
+    return randomized_entangled_entropy_mitigated_v1(
         shots=shots,
         counts=counts,
         degree=degree,
@@ -87,7 +87,7 @@ def randomized_entangled_entropy_complex(
     )
 
 
-def circuit_method_core(
+def circuit_method_core_v1(
     idx: int,
     target_circuit: QuantumCircuit,
     target_key: Hashable,

@@ -17,7 +17,7 @@ from qiskit import QuantumCircuit
 
 from .analysis import EntropyMeasureRandomizedV1Analysis
 from .arguments import EntropyMeasureRandomizedV1Arguments, SHORT_NAME
-from .utils import circuit_method_core, randomized_entangled_entropy_complex
+from .utils import circuit_method_core_v1, randomized_entangled_entropy_complex_v1
 from ...qurrium.experiment import ExperimentPrototype, Commonparams
 from ...qurrium.utils.randomized import (
     local_random_unitary_operators,
@@ -210,7 +210,7 @@ class EntropyMeasureRandomizedV1Experiment(ExperimentPrototype):
                 f"Building {arguments.times} circuits with {arguments.workers_num} workers."
             )
         circ_list = pool.starmap(
-            circuit_method_core,
+            circuit_method_core_v1,
             [
                 (
                     i,
@@ -481,7 +481,7 @@ class EntropyMeasureRandomizedV1Experiment(ExperimentPrototype):
         if shots is None or counts is None:
             raise ValueError("shots and counts should be specified.")
 
-        return randomized_entangled_entropy_complex(
+        return randomized_entangled_entropy_complex_v1(
             shots=shots,
             counts=counts,
             degree=degree,
