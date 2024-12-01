@@ -33,7 +33,36 @@ from ...declare import BaseRunArgs, TranspileArgs
 
 
 class EchoListenRandomized(QurriumPrototype):
-    """The class for the randomized experiment of EchoListen."""
+    """Randomized Measure for wave function overlap.
+    a.k.a. loschmidt echo when processes time evolution system.
+
+    .. note::
+
+        - Statistical correlations between locally randomized measurements:
+        A toolbox for probing entanglement in many-body quantum states -
+        A. Elben, B. Vermersch, C. F. Roos, and P. Zoller,
+        [PhysRevA.99.052323](
+            https://doi.org/10.1103/PhysRevA.99.052323
+        )
+
+    .. code-block:: bibtex
+
+        @article{PhysRevA.99.052323,
+            title = {Statistical correlations between locally randomized measurements:
+            A toolbox for probing entanglement in many-body quantum states},
+            author = {Elben, A. and Vermersch, B. and Roos, C. F. and Zoller, P.},
+            journal = {Phys. Rev. A},
+            volume = {99},
+            issue = {5},
+            pages = {052323},
+            numpages = {12},
+            year = {2019},
+            month = {May},
+            publisher = {American Physical Society},
+            doi = {10.1103/PhysRevA.99.052323},
+            url = {https://link.aps.org/doi/10.1103/PhysRevA.99.052323}
+        }
+    """
 
     __name__ = "EchoListenRandomized"
     short_name = SHORT_NAME
@@ -50,8 +79,12 @@ class EchoListenRandomized(QurriumPrototype):
         wave1: Optional[Union[QuantumCircuit, Hashable]] = None,
         wave2: Optional[Union[QuantumCircuit, Hashable]] = None,
         times: int = 100,
-        measure: Union[int, tuple[int, int], None] = None,
-        unitary_loc: Union[int, tuple[int, int], None] = None,
+        measure_1: Union[int, tuple[int, int], None] = None,
+        measure_2: Union[int, tuple[int, int], None] = None,
+        unitary_loc_1: Union[int, tuple[int, int], None] = None,
+        unitary_loc_2: Union[int, tuple[int, int], None] = None,
+        unitary_loc_not_cover_measure: bool = False,
+        second_backend: Optional[Backend] = None,
         random_unitary_seeds: Optional[dict[int, dict[int, int]]] = None,
         # basic inputs
         shots: int = 1024,
@@ -82,18 +115,43 @@ class EchoListenRandomized(QurriumPrototype):
                 The number of random unitary operator.
                 It will denote as `N_U` in the experiment name.
                 Defaults to `100`.
-            measure (Union[int, tuple[int, int], None], optional):
-                The measure range. Defaults to `None`.
-            unitary_loc (Union[int, tuple[int, int], None], optional):
-                The range of the unitary operator. Defaults to `None`.
+            measure_1 (Union[int, tuple[int, int], None], optional):
+                The measure range for the first quantum circuit. Defaults to `None`.
+            measure_2 (Union[int, tuple[int, int], None], optional):
+                The measure range for the second quantum circuit. Defaults to `None`.
+            unitary_loc_1 (Union[int, tuple[int, int], None], optional):
+                The range of the unitary operator for the first quantum circuit.
+                Defaults to `None`.
+            unitary_loc_2 (Union[int, tuple[int, int], None], optional):
+                The range of the unitary operator for the second quantum circuit.
+                Defaults to `None`.
+            unitary_loc_not_cover_measure (bool, optional):
+                Whether the range of the unitary operator is not cover the measure range.
+                Defaults to False.
+            second_backend (Optional[Backend], optional):
+                The extra backend for the second quantum circuit.
+                If None, then use the same backend as the first quantum circuit.
+                Defaults to None.
             random_unitary_seeds (Optional[dict[int, dict[int, int]]], optional):
                 The seeds for all random unitary operator.
                 This argument only takes input as type of `dict[int, dict[int, int]]`.
                 The first key is the index for the random unitary operator.
                 The second key is the index for the qubit.
+
+                .. code-block:: python
+                    {
+                        0: {0: 1234, 1: 5678},
+                        1: {0: 2345, 1: 6789},
+                        2: {0: 3456, 1: 7890},
+                    }
+
                 If you want to generate the seeds for all random unitary operator,
                 you can use the function `generate_random_unitary_seeds`
                 in `qurry.qurrium.utils.random_unitary`.
+
+                .. code-block:: python
+                    from qurry.qurrium.utils.random_unitary import generate_random_unitary_seeds
+                    random_unitary_seeds = generate_random_unitary_seeds(100, 2)
             shots (int, optional):
                 Shots of the job. Defaults to `1024`.
             backend (Optional[Backend], optional):
@@ -111,15 +169,6 @@ class EchoListenRandomized(QurriumPrototype):
                 The passmanager. Defaults to None.
             tags (Optional[tuple[str, ...]], optional):
                 The tags of the experiment. Defaults to None.
-
-            exp_id (Optional[str], optional):
-                The ID of experiment. Defaults to None.
-            new_backend (Optional[Backend], optional):
-                The new backend. Defaults to None.
-            revive (bool, optional):
-                Whether to revive the circuit. Defaults to False.
-            replace_circuits (bool, optional):
-                Whether to replace the circuits during revive. Defaults to False.
 
             qasm_version (Literal["qasm2", "qasm3"], optional):
                 The version of OpenQASM. Defaults to "qasm3".
@@ -139,16 +188,6 @@ class EchoListenRandomized(QurriumPrototype):
                 The progress bar for showing the progress of the experiment.
                 Defaults to None.
 
-        Example:
-            random_unitary_seeds (Optional[dict[int, dict[int, int]]]):
-                ```python
-                {
-                    0: {0: 1234, 1: 5678},
-                    1: {0: 2345, 1: 6789},
-                    2: {0: 3456, 1: 7890},
-                }
-                ```
-
         Returns:
             EchoListenRandomizedOutputArgs: The output arguments.
         """
@@ -160,8 +199,12 @@ class EchoListenRandomized(QurriumPrototype):
         return {
             "circuits": [wave1, wave2],
             "times": times,
-            "measure": measure,
-            "unitary_loc": unitary_loc,
+            "measure_1": measure_1,
+            "measure_2": measure_2,
+            "unitary_loc_1": unitary_loc_1,
+            "unitary_loc_2": unitary_loc_2,
+            "unitary_loc_not_cover_measure": unitary_loc_not_cover_measure,
+            "second_backend": second_backend,
             "random_unitary_seeds": random_unitary_seeds,
             "shots": shots,
             "backend": backend,
@@ -186,8 +229,12 @@ class EchoListenRandomized(QurriumPrototype):
         wave1: Optional[Union[QuantumCircuit, Hashable]] = None,
         wave2: Optional[Union[QuantumCircuit, Hashable]] = None,
         times: int = 100,
-        measure: Union[int, tuple[int, int], None] = None,
-        unitary_loc: Union[int, tuple[int, int], None] = None,
+        measure_1: Union[int, tuple[int, int], None] = None,
+        measure_2: Union[int, tuple[int, int], None] = None,
+        unitary_loc_1: Union[int, tuple[int, int], None] = None,
+        unitary_loc_2: Union[int, tuple[int, int], None] = None,
+        unitary_loc_not_cover_measure: bool = False,
+        second_backend: Optional[Backend] = None,
         random_unitary_seeds: Optional[dict[int, dict[int, int]]] = None,
         # basic inputs
         shots: int = 1024,
@@ -218,18 +265,43 @@ class EchoListenRandomized(QurriumPrototype):
                 The number of random unitary operator.
                 It will denote as `N_U` in the experiment name.
                 Defaults to `100`.
-            measure (Union[int, tuple[int, int], None], optional):
-                The measure range. Defaults to `None`.
-            unitary_loc (Union[int, tuple[int, int], None], optional):
-                The range of the unitary operator. Defaults to `None`.
+            measure_1 (Union[int, tuple[int, int], None], optional):
+                The measure range for the first quantum circuit. Defaults to `None`.
+            measure_2 (Union[int, tuple[int, int], None], optional):
+                The measure range for the second quantum circuit. Defaults to `None`.
+            unitary_loc_1 (Union[int, tuple[int, int], None], optional):
+                The range of the unitary operator for the first quantum circuit.
+                Defaults to `None`.
+            unitary_loc_2 (Union[int, tuple[int, int], None], optional):
+                The range of the unitary operator for the second quantum circuit.
+                Defaults to `None`.
+            unitary_loc_not_cover_measure (bool, optional):
+                Whether the range of the unitary operator is not cover the measure range.
+                Defaults to False.
+            second_backend (Optional[Backend], optional):
+                The extra backend for the second quantum circuit.
+                If None, then use the same backend as the first quantum circuit.
+                Defaults to None.
             random_unitary_seeds (Optional[dict[int, dict[int, int]]], optional):
                 The seeds for all random unitary operator.
                 This argument only takes input as type of `dict[int, dict[int, int]]`.
                 The first key is the index for the random unitary operator.
                 The second key is the index for the qubit.
+
+                .. code-block:: python
+                    {
+                        0: {0: 1234, 1: 5678},
+                        1: {0: 2345, 1: 6789},
+                        2: {0: 3456, 1: 7890},
+                    }
+
                 If you want to generate the seeds for all random unitary operator,
                 you can use the function `generate_random_unitary_seeds`
                 in `qurry.qurrium.utils.random_unitary`.
+
+                .. code-block:: python
+                    from qurry.qurrium.utils.random_unitary import generate_random_unitary_seeds
+                    random_unitary_seeds = generate_random_unitary_seeds(100, 2)
             shots (int, optional):
                 Shots of the job. Defaults to `1024`.
             backend (Optional[Backend], optional):
@@ -247,15 +319,6 @@ class EchoListenRandomized(QurriumPrototype):
                 The passmanager. Defaults to None.
             tags (Optional[tuple[str, ...]], optional):
                 The tags of the experiment. Defaults to None.
-
-            exp_id (Optional[str], optional):
-                The ID of experiment. Defaults to None.
-            new_backend (Optional[Backend], optional):
-                The new backend. Defaults to None.
-            revive (bool, optional):
-                Whether to revive the circuit. Defaults to False.
-            replace_circuits (bool, optional):
-                Whether to replace the circuits during revive. Defaults to False.
 
             qasm_version (Literal["qasm2", "qasm3"], optional):
                 The version of OpenQASM. Defaults to "qasm3".
@@ -283,8 +346,12 @@ class EchoListenRandomized(QurriumPrototype):
             wave1=wave1,
             wave2=wave2,
             times=times,
-            measure=measure,
-            unitary_loc=unitary_loc,
+            measure_1=measure_1,
+            measure_2=measure_2,
+            unitary_loc_1=unitary_loc_1,
+            unitary_loc_2=unitary_loc_2,
+            unitary_loc_not_cover_measure=unitary_loc_not_cover_measure,
+            second_backend=second_backend,
             random_unitary_seeds=random_unitary_seeds,
             shots=shots,
             backend=backend,
@@ -372,10 +439,9 @@ class EchoListenRandomized(QurriumPrototype):
         compress: bool = False,
         write: bool = True,
         # analysis arguments
-        degree: Optional[Union[tuple[int, int], int]] = None,
-        counts_used: Optional[Iterable[int]] = None,
-        workers_num: Optional[int] = None,
+        selected_classical_registers: Optional[Iterable[int]] = None,
         backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
+        counts_used: Optional[Iterable[int]] = None,
         **analysis_args,
     ) -> str:
         """Run the analysis for multiple experiments.
@@ -397,18 +463,15 @@ class EchoListenRandomized(QurriumPrototype):
             write (bool, optional):
                 Whether to write the export file. Defaults to True.
 
-            degree (Union[tuple[int, int], int]): Degree of the subsystem.
-            counts_used (Optional[Iterable[int]], optional):
-                The index of the counts used.
-                If not specified, then use all counts.
-                Defaults to None.
-            workers_num (Optional[int], optional):
-                Number of multi-processing workers,
-                if sets to 1, then disable to using multi-processing;
-                if not specified, then use the number of all cpu counts - 2 by `cpu_count() - 2`.
+            selected_classical_registers (Optional[Iterable[int]], optional):
+                The list of **the index of the selected_classical_registers**.
+                It's not the qubit index of first or second quantum circuit,
+                but their corresponding classical registers.
                 Defaults to None.
             backend (PostProcessingBackendLabel, optional):
-                Backend for the process. Defaults to DEFAULT_PROCESS_BACKEND.
+                The backend for the process. Defaults to DEFAULT_PROCESS_BACKEND.
+            counts_used (Optional[Iterable[int]], optional):
+                The index of the counts used. Defaults to None.
 
         Returns:
             str: The summoner_id of multimanager.
@@ -421,9 +484,8 @@ class EchoListenRandomized(QurriumPrototype):
             specific_analysis_args=specific_analysis_args,
             compress=compress,
             write=write,
-            degree=degree,
+            selected_classical_registers=selected_classical_registers,
             counts_used=counts_used,
-            workers_num=workers_num,
             backend=backend,
             **analysis_args,
         )
