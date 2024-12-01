@@ -10,11 +10,16 @@ from typing import Literal, Union, overload
 
 from .hadamard_test import EchoListenHadamard
 from .randomized_measure import EchoListenRandomized
+from .randomized_measure_v1 import EchoListenRandomizedV1
 
 
 # pylint: disable=invalid-name
 @overload
 def EchoListen(*args, method: Literal["hadamard"], **kwargs) -> EchoListenHadamard: ...
+
+
+@overload
+def EchoListen(*args, method: Literal["randomized_v1"], **kwargs) -> EchoListenHadamard: ...
 
 
 @overload
@@ -42,11 +47,19 @@ def EchoListen(
     """
     if method == "hadamard":
         return EchoListenHadamard(*args, **kwargs)
+    if method == "randomized_v1":
+        return EchoListenRandomizedV1(*args, **kwargs)
     return EchoListenRandomized(*args, **kwargs)
 
 
 @overload
 def WaveFunctionOverlap(*args, method: Literal["hadamard"], **kwargs) -> EchoListenHadamard: ...
+
+
+@overload
+def WaveFunctionOverlap(
+    *args, method: Literal["randomized_v1"], **kwargs
+) -> EchoListenHadamard: ...
 
 
 @overload
@@ -74,4 +87,6 @@ def WaveFunctionOverlap(
     """
     if method == "hadamard":
         return EchoListenHadamard(*args, **kwargs)
+    if method == "randomized_v1":
+        return EchoListenRandomizedV1(*args, **kwargs)
     return EchoListenRandomized(*args, **kwargs)
