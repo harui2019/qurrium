@@ -7,7 +7,6 @@ Postprocessing - Randomized Measure - Wavefunction Overlap - Echo Cell 2
 """
 
 import warnings
-from typing import Union
 import numpy as np
 
 from ...utils import ensemble_cell as ensemble_cell_py

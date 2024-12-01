@@ -95,7 +95,7 @@ def randomized_overlap_echo(
 
 
     Returns:
-        dict[str, float]: A dictionary contains purity, entropy,
+        WaveFuctionOverlapResult: A dictionary contains purity, entropy,
             a list of each overlap, puritySD, degree, actual measure range, bitstring range.
     """
 
