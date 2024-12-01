@@ -587,20 +587,11 @@ class ExperimentPrototype(ABC):
     # local execution
     def run(
         self,
-        new_backend: Optional[Backend] = None,
-        revive: bool = False,
-        replace_circuits: bool = False,
         pbar: Optional[tqdm.tqdm] = None,
     ) -> str:
         """Export the result after running the job.
 
         Args:
-            new_backend (Optional[Backend], optional):
-                The new backend for running the job. Defaults to None.
-            revive (bool, optional):
-                Whether to revive the circuit. Defaults to False.
-            replace_circuits (bool, optional):
-                Whether to replace the circuits during revive. Defaults to False.
             pbar (Optional[tqdm.tqdm], optional):
                 The progress bar for showing the progress of the experiment.
                 Defaults to None.
@@ -612,20 +603,7 @@ class ExperimentPrototype(ABC):
         Returns:
             str: The ID of the experiment.
         """
-        if new_backend is not None:
-            set_pbar_description(
-                pbar, f"Backend replacing from {self.commons.backend} to {new_backend}..."
-            )
-            self.replace_backend(new_backend)
-
-        if revive:
-            datenote, date = self.commons.datetimes.add_serial("revive")
-            set_pbar_description(pbar, f"Reviving, denoted '{datenote}' date: {date}...")
-            self.beforewards.revive_circuit(replace_circuits)
-
         if len(self.beforewards.circuit) == 0:
-            if len(self.beforewards.circuit_qasm) > 0:
-                raise ValueError("No circuit ready, please revive the circuit first.")
             raise ValueError("The circuit has not been constructed yet.")
 
         assert isinstance(self.commons.backend, Backend), (
@@ -1290,8 +1268,7 @@ class ExperimentPrototype(ABC):
         Returns:
             tuple[str, dict[str, str]]: The id of the experiment and the files location.
         """
-        if _pbar is not None:
-            _pbar.set_description_str("Preparing to export...")
+        set_pbar_description(_pbar, "Preparing to export...")
 
         # experiment write
         export_material = self.export(

@@ -196,15 +196,6 @@ class EntropyMeasureRandomized(QurriumPrototype):
             tags (Optional[tuple[str, ...]], optional):
                 The tags of the experiment. Defaults to None.
 
-            exp_id (Optional[str], optional):
-                The ID of experiment. Defaults to None.
-            new_backend (Optional[Backend], optional):
-                The new backend. Defaults to None.
-            revive (bool, optional):
-                Whether to revive the circuit. Defaults to False.
-            replace_circuits (bool, optional):
-                Whether to replace the circuits during revive. Defaults to False.
-
             qasm_version (Literal["qasm2", "qasm3"], optional):
                 The version of OpenQASM. Defaults to "qasm3".
             export (bool, optional):
@@ -343,15 +334,6 @@ class EntropyMeasureRandomized(QurriumPrototype):
                 The passmanager. Defaults to None.
             tags (Optional[tuple[str, ...]], optional):
                 The tags of the experiment. Defaults to None.
-
-            exp_id (Optional[str], optional):
-                The ID of experiment. Defaults to None.
-            new_backend (Optional[Backend], optional):
-                The new backend. Defaults to None.
-            revive (bool, optional):
-                Whether to revive the circuit. Defaults to False.
-            replace_circuits (bool, optional):
-                Whether to replace the circuits during revive. Defaults to False.
 
             qasm_version (Literal["qasm2", "qasm3"], optional):
                 The version of OpenQASM. Defaults to "qasm3".
