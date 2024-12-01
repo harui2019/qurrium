@@ -122,16 +122,6 @@ class EchoListenRandomizedExperiment(ExperimentPrototype):
             custom_kwargs (Any):
                 The custom parameters.
 
-        Example:
-            random_unitary_seeds (Optional[dict[int, dict[int, int]]]):
-                ```python
-                {
-                    0: {0: 1234, 1: 5678},
-                    1: {0: 2345, 1: 6789},
-                    2: {0: 3456, 1: 7890},
-                }
-                ```
-
         Raises:
             ValueError: If the number of target circuits is not two.
             TypeError: If times is not an integer.

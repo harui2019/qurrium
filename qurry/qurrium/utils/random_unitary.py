@@ -191,18 +191,17 @@ def check_input_for_experiment(
         times (int): The number of random unitary operator.
         num_qubits (int): The number of qubits.
         random_unitary_seeds (Optional[dict[int, dict[int, int]]]):
-            The random unitary seeds.
+            The seeds for all random unitary operator.
             This argument only takes input as type of `dict[int, dict[int, int]]`.
             The first key is the index for the random unitary operator.
             The second key is the index for the qubit.
-            Example:
-    ```python
-    {
-        0: {0: 1234, 1: 5678},
-        1: {0: 2345, 1: 6789},
-        2: {0: 3456, 1: 7890},
-    }
-    ```
+
+            .. code-block:: python
+                {
+                    0: {0: 1234, 1: 5678},
+                    1: {0: 2345, 1: 6789},
+                    2: {0: 3456, 1: 7890},
+                }
 
     Raises:
         TypeError: If the random_unitary_seeds is not dict.

@@ -173,16 +173,6 @@ class EchoListenRandomizedV1(QurriumPrototype):
                 The progress bar for showing the progress of the experiment.
                 Defaults to None.
 
-        Example:
-            random_unitary_seeds (Optional[dict[int, dict[int, int]]]):
-                ```python
-                {
-                    0: {0: 1234, 1: 5678},
-                    1: {0: 2345, 1: 6789},
-                    2: {0: 3456, 1: 7890},
-                }
-                ```
-
         Returns:
             EchoListenRandomizedOutputArgs: The output arguments.
         """
