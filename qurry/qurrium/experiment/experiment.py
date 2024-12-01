@@ -65,7 +65,7 @@ class ExperimentPrototype(ABC):
     @abstractmethod
     def arguments_instance(self) -> Type[ArgumentsPrototype]:
         """The arguments instance for this experiment."""
-        raise NotImplementedError
+        raise NotImplementedError("This method should be implemented.")
 
     args: ArgumentsPrototype
     """The arguments of the experiment."""
@@ -75,7 +75,7 @@ class ExperimentPrototype(ABC):
     @abstractmethod
     def analysis_instance(self) -> Type[AnalysisPrototype]:
         """The analysis instance for this experiment."""
-        raise NotImplementedError
+        raise NotImplementedError("This method should be implemented.")
 
     commons: Commonparams
     outfields: dict[str, Any]
@@ -216,7 +216,7 @@ class ExperimentPrototype(ABC):
             NotImplementedError: This method should be implemented.
         """
 
-        raise NotImplementedError
+        raise NotImplementedError("This method should be implemented.")
 
     @classmethod
     def _params_control_core(
@@ -386,7 +386,7 @@ class ExperimentPrototype(ABC):
             tuple[list[QuantumCircuit], dict[str, Any]]:
                 The circuits of the experiment and the outfields.
         """
-        raise NotImplementedError
+        raise NotImplementedError("This method should be implemented.")
 
     @classmethod
     def build(
@@ -861,7 +861,7 @@ class ExperimentPrototype(ABC):
         Returns:
             analysis: Analysis of the counts from measurement.
         """
-        raise NotImplementedError
+        raise NotImplementedError("This method should be implemented.")
 
     def clear_analysis(self, *args, security: bool = False, mute: bool = False) -> None:
         """Reset the measurement and release memory.
