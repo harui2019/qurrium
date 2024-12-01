@@ -24,8 +24,8 @@ from .entangled_entropy import (
     ExistedAllSystemInfoInput,
 )
 from .entangled_entropy_v1 import (
-    randomized_entangled_entropy_deprecated as randomized_entangled_entropy_v1,
-    randomized_entangled_entropy_mitigated_deprecated as randomized_entangled_entropy_mitigated_v1,
+    randomized_entangled_entropy_v1,
+    randomized_entangled_entropy_mitigated_v1,
     RandomizedEntangledEntropyComplex,
     RandomizedEntangledEntropyMitigatedComplex,
     ExistingAllSystemSource,
