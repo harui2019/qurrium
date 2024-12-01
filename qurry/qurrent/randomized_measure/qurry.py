@@ -163,9 +163,21 @@ class EntropyMeasureRandomized(QurriumPrototype):
                 This argument only takes input as type of `dict[int, dict[int, int]]`.
                 The first key is the index for the random unitary operator.
                 The second key is the index for the qubit.
+
+                .. code-block:: python
+                    {
+                        0: {0: 1234, 1: 5678},
+                        1: {0: 2345, 1: 6789},
+                        2: {0: 3456, 1: 7890},
+                    }
+
                 If you want to generate the seeds for all random unitary operator,
-                you can use the function `generate_random_unitary_seeds`
+                you can use the function `generate_random_unitary_seeds` 
                 in `qurry.qurrium.utils.random_unitary`.
+
+                .. code-block:: python
+                    from qurry.qurrium.utils.random_unitary import generate_random_unitary_seeds
+                    random_unitary_seeds = generate_random_unitary_seeds(100, 2)
             shots (int, optional):
                 Shots of the job. Defaults to `1024`.
             backend (Optional[Backend], optional):
@@ -299,9 +311,21 @@ class EntropyMeasureRandomized(QurriumPrototype):
                 This argument only takes input as type of `dict[int, dict[int, int]]`.
                 The first key is the index for the random unitary operator.
                 The second key is the index for the qubit.
+
+                .. code-block:: python
+                    {
+                        0: {0: 1234, 1: 5678},
+                        1: {0: 2345, 1: 6789},
+                        2: {0: 3456, 1: 7890},
+                    }
+
                 If you want to generate the seeds for all random unitary operator,
-                you can use the function `generate_random_unitary_seeds`
+                you can use the function `generate_random_unitary_seeds` 
                 in `qurry.qurrium.utils.random_unitary`.
+
+                .. code-block:: python
+                    from qurry.qurrium.utils.random_unitary import generate_random_unitary_seeds
+                    random_unitary_seeds = generate_random_unitary_seeds(100, 2)
             shots (int, optional):
                 Shots of the job. Defaults to `1024`.
             backend (Optional[Backend], optional):

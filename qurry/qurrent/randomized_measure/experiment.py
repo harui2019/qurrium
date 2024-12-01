@@ -8,7 +8,6 @@ EntropyMeasureRandomized - Experiment
 
 from typing import Union, Optional, Type, Any
 from collections.abc import Iterable, Hashable
-import warnings
 import tqdm
 
 from qiskit import QuantumCircuit
@@ -29,7 +28,8 @@ from ...process.randomized_measure.entangled_entropy import (
     PostProcessingBackendLabel,
     DEFAULT_PROCESS_BACKEND,
 )
-from ...tools import qurry_progressbar, ParallelManager
+from ...tools import qurry_progressbar, ParallelManager, set_pbar_description
+from ...exceptions import RandomizedMeasureUnitaryOperatorNotFullCovering
 
 
 class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
@@ -70,7 +70,7 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
                 The name of the experiment.
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
                 This name is also used for creating a folder to store the exports.
-                Defaults to `'experiment'`.
+                Defaults to `'exps'`.
             times (int, optional):
                 The number of random unitary operator. Defaults to 100.
                 It will denote as `N_U` in the experiment name.
@@ -78,26 +78,33 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
                 The measure range. Defaults to None.
             unitary_loc (Optional[Union[list[int], tuple[int, int], int]], optional):
                 The range of the unitary operator. Defaults to None.
+            unitary_loc_not_cover_measure (bool, optional):
+                Confirm that not all unitary operator are covered by the measure.
+                If True, then close the warning.
+                Defaults to False.
             random_unitary_seeds (Optional[dict[int, dict[int, int]]], optional):
                 The seeds for all random unitary operator.
                 This argument only takes input as type of `dict[int, dict[int, int]]`.
                 The first key is the index for the random unitary operator.
                 The second key is the index for the qubit.
+
+                .. code-block:: python
+                    {
+                        0: {0: 1234, 1: 5678},
+                        1: {0: 2345, 1: 6789},
+                        2: {0: 3456, 1: 7890},
+                    }
+
                 If you want to generate the seeds for all random unitary operator,
                 you can use the function `generate_random_unitary_seeds`
                 in `qurry.qurrium.utils.random_unitary`.
+
+                .. code-block:: python
+                    from qurry.qurrium.utils.random_unitary import generate_random_unitary_seeds
+                    random_unitary_seeds = generate_random_unitary_seeds(100, 2)
+
             custom_kwargs (Any):
                 The custom parameters.
-
-        Example:
-            random_unitary_seeds (Optional[dict[int, dict[int, int]]]):
-                ```python
-                {
-                    0: {0: 1234, 1: 5678},
-                    1: {0: 2345, 1: 6789},
-                    2: {0: 3456, 1: 7890},
-                }
-                ```
 
         Raises:
             ValueError: If the number of targets is not one.
@@ -124,17 +131,17 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
             qi for qi in qubits_measured if qi not in unitary_located
         ]
         if len(measured_but_not_unitary_located) > 0 and not unitary_loc_not_cover_measure:
-            warnings.warn(
+            raise RandomizedMeasureUnitaryOperatorNotFullCovering(
                 f"Some qubits {measured_but_not_unitary_located} are measured "
                 + "but not random unitary located. "
                 + f"unitary_loc: {unitary_loc}, measure: {measure} "
                 + "If you are sure about this, you can set `unitary_loc_not_cover_measure=True` "
-                + "to close this warning.",
+                + "to close this warning."
             )
 
         exp_name = f"{exp_name}.N_U_{times}.{SHORT_NAME}"
 
-        check_input_for_experiment(times, actual_qubits, random_unitary_seeds)
+        check_input_for_experiment(times, len(unitary_located), random_unitary_seeds)
 
         # pylint: disable=protected-access
         return EntropyMeasureRandomizedArguments._filter(
@@ -175,66 +182,59 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
         side_product = {}
 
         pool = ParallelManager()
-        if isinstance(pbar, tqdm.tqdm):
-            pbar.set_description_str(f"Preparing {arguments.times} random unitary.")
+        set_pbar_description(pbar, f"Preparing {arguments.times} random unitary.")
 
         target_key, target_circuit = targets[0]
         target_key = "" if isinstance(target_key, int) else str(target_key)
-        num_qubits = target_circuit.num_qubits
 
-        actual_unitary_loc = (
-            range(num_qubits) if arguments.unitary_located is None else arguments.unitary_located
-        )
+        assert arguments.unitary_located is not None, "unitary_located should be specified."
         unitary_dicts = {
-            i: {
-                j: (
+            n_u_i: {
+                n_u_qi: (
                     random_unitary(2)
                     if arguments.random_unitary_seeds is None
-                    else random_unitary(2, arguments.random_unitary_seeds[i][j])
+                    else random_unitary(2, arguments.random_unitary_seeds[n_u_i][seed_i])
                 )
-                for j in actual_unitary_loc
+                for seed_i, n_u_qi in enumerate(arguments.unitary_located)
             }
-            for i in range(arguments.times)
+            for n_u_i in range(arguments.times)
         }
 
-        if isinstance(pbar, tqdm.tqdm):
-            pbar.set_description_str(f"Building {arguments.times} circuits.")
+        set_pbar_description(pbar, f"Building {arguments.times} circuits.")
         circ_list = pool.starmap(
             circuit_method_core,
             [
                 (
-                    i,
+                    n_u_i,
                     target_circuit,
                     target_key,
                     arguments.exp_name,
                     arguments.registers_mapping,
-                    unitary_dicts[i],
+                    unitary_dicts[n_u_i],
                 )
-                for i in range(arguments.times)
+                for n_u_i in range(arguments.times)
             ],
         )
 
-        if isinstance(pbar, tqdm.tqdm):
-            pbar.set_description_str("Writing 'unitaryOP'.")
+        set_pbar_description(pbar, "Writing 'unitaryOP'.")
         # side_product["unitaryOP"] = {
         #     k: {i: np.array(v[i]).tolist() for i in range(*arguments.unitary_loc)}
         #     for k, v in unitary_dict.items()
         # }
         unitary_operator_list = pool.starmap(
             local_unitary_op_to_list,
-            [(unitary_dicts[i],) for i in range(arguments.times)],
+            [(unitary_dicts[n_u_i],) for n_u_i in range(arguments.times)],
         )
         side_product["unitaryOP"] = dict(enumerate(unitary_operator_list))
 
-        if isinstance(pbar, tqdm.tqdm):
-            pbar.set_description_str("Writing 'randomized'.")
+        set_pbar_description(pbar, "Writing 'randomized'.")
         # side_product["randomized"] = {
         #     i: {j: qubitOpToPauliCoeff(unitary_dict[i][j]) for j in range(*arguments.unitary_loc)}
         #     for i in range(arguments.times)
         # }
         randomized_list = pool.starmap(
             local_unitary_op_to_pauli_coeff,
-            [(unitary_operator_list[i],) for i in range(arguments.times)],
+            [(unitary_operator_list[n_u_i],) for n_u_i in range(arguments.times)],
         )
         side_product["randomized"] = dict(enumerate(randomized_list))
 
@@ -242,7 +242,7 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
 
     def analyze(
         self,
-        selected_qubits: Optional[list[int]] = None,
+        selected_qubits: Optional[Iterable[int]] = None,
         independent_all_system: bool = False,
         backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
         counts_used: Optional[Iterable[int]] = None,
@@ -251,29 +251,19 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
         """Calculate entangled entropy with more information combined.
 
         Args:
-            degree (Union[tuple[int, int], int]): Degree of the subsystem.
-            counts_used (Optional[Iterable[int]], optional):
-                The index of the counts used.
-                If not specified, then use all counts.
-                Defaults to None.
-            workers_num (Optional[int], optional):
-                Number of multi-processing workers,
-                if sets to 1, then disable to using multi-processing;
-                if not specified, then use the number of all cpu counts - 2 by `cpu_count() - 2`.
-                Defaults to None.
+            selected_qubits (Optional[Iterable[int]], optional):
+                The selected qubits. Defaults to None.
             independent_all_system (bool, optional):
-                If True, then calculate the all system independently.
-                Otherwise, use the existed all system source with same `count_used`.
+                If True, then calculate the all system independently. Defaults to False.
             backend (PostProcessingBackendLabel, optional):
-                Backend for the process. Defaults to DEFAULT_PROCESS_BACKEND.
-            pbar (Optional[tqdm.tqdm], optional): Progress bar. Defaults to None.
+                The backend for the process. Defaults to DEFAULT_PROCESS_BACKEND.
+            counts_used (Optional[Iterable[int]], optional):
+                The index of the counts used. Defaults to None.
+            pbar (Optional[tqdm.tqdm], optional):
+                The progress bar. Defaults to None.
 
         Returns:
-            dict[str, float]: A dictionary contains
-                purity, entropy, a list of each overlap, puritySD,
-                purity of all system, entropy of all system,
-                a list of each overlap in all system, puritySD of all system,
-                degree, actual measure range, actual measure range in all system, bitstring range.
+            EntropyMeasureRandomizedAnalysis: The result of the analysis.
         """
         if selected_qubits is None:
             raise ValueError("selected_qubits should be specified.")
@@ -359,7 +349,7 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
         cls,
         shots: Optional[int] = None,
         counts: Optional[list[dict[str, int]]] = None,
-        selected_classical_registers: Optional[list[int]] = None,
+        selected_classical_registers: Optional[Iterable[int]] = None,
         all_system_source: Optional[EntropyMeasureRandomizedAnalysis] = None,
         backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
         pbar: Optional[tqdm.tqdm] = None,
@@ -371,7 +361,7 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
                 The number of shots.
             counts (list[dict[str, int]]):
                 The counts of the experiment.
-            selected_classical_registers (Optional[list[int]], optional):
+            selected_classical_registers (Optional[Iterable[int]], optional):
                 The selected classical registers. Defaults to None.
             all_system_source (Optional[EntropyRandomizedAnalysis], optional):
                 The source of all system. Defaults to None.
