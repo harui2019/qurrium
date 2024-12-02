@@ -20,8 +20,6 @@ class EchoListenRandomizedAnalysis(AnalysisPrototype):
     class AnalysisInput(NamedTuple):
         """To set the analysis."""
 
-        num_qubits: int
-        """The number of qubits."""
         registers_mapping_1: dict[int, int]
         """The mapping of the classical registers with quantum registers.
         for the first quantum circuit.
