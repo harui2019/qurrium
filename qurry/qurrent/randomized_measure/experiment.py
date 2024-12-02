@@ -295,11 +295,16 @@ class EntropyMeasureRandomizedExperiment(ExperimentPrototype):
                 and v.content.counts_used == counts_used
             )
         ]
-        if len(available_all_system_source) > 0 and not independent_all_system:
-            all_system_source = self.reports[available_all_system_source[-1]]
-        else:
-            all_system_source = None
+        all_system_source = (
+            self.reports[available_all_system_source[-1]]
+            if len(available_all_system_source) > 0 and not independent_all_system
+            else None
+        )
 
+        selected_qubits = [qi % self.args.actual_num_qubits for qi in selected_qubits]
+        assert len(set(selected_qubits)) == len(
+            selected_qubits
+        ), f"selected_qubits should not have duplicated elements, but got {selected_qubits}."
         selected_classical_registers = [registers_mapping[qi] for qi in selected_qubits]
 
         if isinstance(pbar, tqdm.tqdm):
