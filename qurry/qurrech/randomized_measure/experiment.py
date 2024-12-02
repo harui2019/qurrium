@@ -9,6 +9,7 @@ EchoListenRandomized - Experiment
 from typing import Union, Optional, Type, Any
 from collections.abc import Iterable, Hashable
 from pathlib import Path
+import warnings
 import tqdm
 
 from qiskit import QuantumCircuit
@@ -32,8 +33,11 @@ from ...process.randomized_measure.wavefunction_overlap import (
     DEFAULT_PROCESS_BACKEND,
     WaveFuctionOverlapResult,
 )
-from ...tools import qurry_progressbar, ParallelManager, set_pbar_description
-from ...exceptions import RandomizedMeasureUnitaryOperatorNotFullCovering
+from ...tools import qurry_progressbar, ParallelManager, set_pbar_description, backend_name_getter
+from ...exceptions import (
+    RandomizedMeasureUnitaryOperatorNotFullCovering,
+    SeperatedExecutingOverlapResult,
+)
 
 
 class EchoListenRandomizedExperiment(ExperimentPrototype):
@@ -154,6 +158,9 @@ class EchoListenRandomizedExperiment(ExperimentPrototype):
         registers_mapping_1 = qubit_mapper(actual_qubits_1, measure_1)
         qubits_measured_1 = list(registers_mapping_1)
         unitary_located_mapping_1 = qubit_mapper(actual_qubits_1, unitary_loc_1)
+        assert list(unitary_located_mapping_1.values()) == list(
+            range(len(unitary_located_mapping_1))
+        ), "The unitary_located_mapping_1 should be continuous."
         measured_but_not_unitary_located_1 = [
             qi for qi in qubits_measured_1 if qi not in unitary_located_mapping_1
         ]
@@ -161,6 +168,9 @@ class EchoListenRandomizedExperiment(ExperimentPrototype):
         registers_mapping_2 = qubit_mapper(actual_qubits_2, measure_2)
         qubits_measured_2 = list(registers_mapping_2)
         unitary_located_mapping_2 = qubit_mapper(actual_qubits_2, unitary_loc_2)
+        assert list(unitary_located_mapping_2.values()) == list(
+            range(len(unitary_located_mapping_2))
+        ), "The unitary_located_mapping_2 should be continuous."
         measured_but_not_unitary_located_2 = [
             qi for qi in qubits_measured_2 if qi not in unitary_located_mapping_2
         ]
@@ -368,41 +378,69 @@ class EchoListenRandomizedExperiment(ExperimentPrototype):
             + f"{type({self.commons.backend})}."
         )
         assert hasattr(self.commons.backend, "run"), "Current backend is not runnable."
-        first_backend = self.commons.backend
 
         if self.args.second_backend is None:
-            second_backend = self.commons.backend
+            set_pbar_description(pbar, "Executing with single backend...")
+            event_name, date = self.commons.datetimes.add_serial("run")
+            execution_1: Job = self.commons.backend.run(  # type: ignore
+                self.beforewards.circuit,
+                shots=self.commons.shots,
+                **self.commons.run_args,
+            )
+            # commons
+            set_pbar_description(
+                pbar, f"Executing completed '{event_name}', denoted date: {date}..."
+            )
+            # beforewards
+            self["job_id"] = f"{execution_1.job_id()}"
+            # afterwards
+            result_1 = execution_1.result()
+            self.afterwards.result.append(result_1)
+
         elif not isinstance(self.args.second_backend, Backend):
             raise ValueError(
                 "second_backend should be Backend or not given, "
                 + f"but got {type(self.args.second_backend)}."
             )
+
         elif not hasattr(self.args.second_backend, "run"):
             raise ValueError("second_backend is not runnable.")
-        else:
-            second_backend = self.args.second_backend
 
-        set_pbar_description(pbar, "Executing...")
-        event_name, date = self.commons.datetimes.add_serial("run")
-        execution_1: Job = first_backend.run(  # type: ignore
-            self.beforewards.circuit[: self.args.times],
-            shots=self.commons.shots,
-            **self.commons.run_args,
-        )
-        execution_2: Job = second_backend.run(  # type: ignore
-            self.beforewards.circuit[self.args.times :],
-            shots=self.commons.shots,
-            **self.commons.run_args,
-        )
-        # commons
-        set_pbar_description(pbar, f"Executing completed '{event_name}', denoted date: {date}...")
-        # beforewards
-        self["job_id"] = f"{execution_1.job_id()}_{execution_2.job_id()}"
-        # afterwards
-        result_1 = execution_1.result()
-        self.afterwards.result.append(result_1)
-        result_2 = execution_2.result()
-        self.afterwards.result.append(result_2)
+        else:
+            if backend_name_getter(self.args.second_backend) == backend_name_getter(
+                self.commons.backend
+            ):
+                warnings.warn(
+                    f"The second backend {self.args.second_backend} is seem to be "
+                    + f"the same as the first backend {self.commons.backend}. "
+                    + "But since they will excute separately, "
+                    + "it will return different results although the same backend",
+                    category=SeperatedExecutingOverlapResult,
+                )
+
+            set_pbar_description(pbar, "Executing with two backends...")
+            event_name, date = self.commons.datetimes.add_serial("run")
+            execution_1: Job = self.commons.backend.run(  # type: ignore
+                self.beforewards.circuit[: self.args.times],
+                shots=self.commons.shots,
+                **self.commons.run_args,
+            )
+            execution_2: Job = self.args.second_backend.run(  # type: ignore
+                self.beforewards.circuit[self.args.times :],
+                shots=self.commons.shots,
+                **self.commons.run_args,
+            )
+            # commons
+            set_pbar_description(
+                pbar, f"Executing completed '{event_name}', denoted date: {date}..."
+            )
+            # beforewards
+            self["job_id"] = f"{execution_1.job_id()}_{execution_2.job_id()}"
+            # afterwards
+            result_1 = execution_1.result()
+            self.afterwards.result.append(result_1)
+            result_2 = execution_2.result()
+            self.afterwards.result.append(result_2)
 
         return self.exp_id
 
@@ -439,29 +477,47 @@ class EchoListenRandomizedExperiment(ExperimentPrototype):
             str: The ID of the experiment.
         """
 
-        if len(self.afterwards.result) == 0:
-            raise ValueError("The job has not been executed yet.")
-        assert len(self.afterwards.result) == 2, "The number of results should be two."
+        if len(self.afterwards.result) == 1:
+            set_pbar_description(pbar, "Result loading from single job...")
+            counts_1, exceptions_1 = get_counts_and_exceptions(
+                result=self.afterwards.result[0], num=self.args.times * 2
+            )
+            if len(exceptions_1) > 0:
+                if "exceptions" not in self.outfields:
+                    self.outfields["exceptions"] = {}
+                for result_id, exception_item in exceptions_1.items():
+                    self.outfields["exceptions"][result_id] = exception_item
 
-        set_pbar_description(pbar, "Result loading from two circuits...")
-        counts_1, exceptions_1 = get_counts_and_exceptions(
-            result=self.afterwards.result[0],
-            num=self.args.times,
-        )
-        counts_2, exceptions_2 = get_counts_and_exceptions(
-            result=self.afterwards.result[1],
-            num=self.args.times,
-        )
-        exceptions = {**exceptions_1, **exceptions_2}
-        if len(exceptions) > 0:
-            if "exceptions" not in self.outfields:
-                self.outfields["exceptions"] = {}
-            for result_id, exception_item in exceptions.items():
-                self.outfields["exceptions"][result_id] = exception_item
+            set_pbar_description(pbar, "Counts loading from single job...")
+            for _c in counts_1:
+                self.afterwards.counts.append(_c)
 
-        set_pbar_description(pbar, "Counts loading from two circuits...")
-        for _c in counts_1 + counts_2:
-            self.afterwards.counts.append(_c)
+        elif len(self.afterwards.result) == 2:
+            set_pbar_description(pbar, "Result loading from two jobs...")
+            counts_1, exceptions_1 = get_counts_and_exceptions(
+                result=self.afterwards.result[0],
+                num=self.args.times,
+            )
+            counts_2, exceptions_2 = get_counts_and_exceptions(
+                result=self.afterwards.result[1],
+                num=self.args.times,
+            )
+            exceptions = {**exceptions_1, **exceptions_2}
+            if len(exceptions) > 0:
+                if "exceptions" not in self.outfields:
+                    self.outfields["exceptions"] = {}
+                for result_id, exception_item in exceptions.items():
+                    self.outfields["exceptions"][result_id] = exception_item
+
+            set_pbar_description(pbar, "Counts loading from two jobs...")
+            for _c in counts_1 + counts_2:
+                self.afterwards.counts.append(_c)
+
+        else:
+            raise ValueError(
+                "The number of results should be one or two, "
+                + f"but got {len(self.afterwards.result)}."
+            )
 
         if len(self.commons.default_analysis) > 0:
             for i, _analysis in enumerate(self.commons.default_analysis):
@@ -523,12 +579,23 @@ class EchoListenRandomizedExperiment(ExperimentPrototype):
             + f"from registers_mapping_1: {self.args.registers_mapping_1} and "
             + f"registers_mapping_2: {self.args.registers_mapping_2}."
         )
+        assert existed_classical_registers == list(range(len(existed_classical_registers))), (
+            "The classical registers should be continuous, "
+            + f"but got {existed_classical_registers}."
+        )
 
-        if selected_classical_registers is None:
-            selected_classical_registers = list(self.args.registers_mapping_1.values())
-
+        classical_registers_num = len(existed_classical_registers)
+        selected_classical_registers = (
+            list(self.args.registers_mapping_1.values())
+            if selected_classical_registers is None
+            else [ci % classical_registers_num for ci in selected_classical_registers]
+        )
+        assert len(set(selected_classical_registers)) == len(selected_classical_registers), (
+            "The selected_classical_registers should not have duplicated elements, "
+            + f"but got {selected_classical_registers}."
+        )
         not_existed_classical_registers = [
-            qi for qi in selected_classical_registers if qi not in existed_classical_registers
+            ci for ci in selected_classical_registers if ci not in existed_classical_registers
         ]
         if not_existed_classical_registers:
             raise ValueError(
@@ -543,7 +610,7 @@ class EchoListenRandomizedExperiment(ExperimentPrototype):
         second_counts = self.afterwards.counts[self.args.times :]
         assert len(first_counts) == len(second_counts), (
             "The number of first and second counts should be the same, "
-            + f"but got {len(first_counts)} and {len(second_counts)}."
+            + f"but got {len(first_counts)} and {len(second_counts)}. "
             + f"from counts with length {len(self.afterwards.counts)}, "
             + f"times: {self.args.times}."
         )

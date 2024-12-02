@@ -134,3 +134,7 @@ class QurryDeprecatedWarning(QurryWarning, DeprecationWarning):
 
 class QurryUnknownExportOption(QurryWarning):
     """Unknown export option warning."""
+
+
+class SeperatedExecutingOverlapResult(QurryWarning):
+    """When the seperated executing overlap the result with the same backend"""
