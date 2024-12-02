@@ -512,9 +512,6 @@ class EchoListenRandomizedExperiment(ExperimentPrototype):
             EchoListenRandomizedAnalysis: The result of the experiment
         """
 
-        if selected_classical_registers is None:
-            raise ValueError("degree must be specified, but get None.")
-
         shots = self.commons.shots
         assert self.args.registers_mapping_1 is not None, "registers_mapping_1 should be not None."
         assert self.args.registers_mapping_2 is not None, "registers_mapping_2 should be not None."
@@ -526,6 +523,10 @@ class EchoListenRandomizedExperiment(ExperimentPrototype):
             + f"from registers_mapping_1: {self.args.registers_mapping_1} and "
             + f"registers_mapping_2: {self.args.registers_mapping_2}."
         )
+
+        if selected_classical_registers is None:
+            selected_classical_registers = list(self.args.registers_mapping_1.values())
+
         not_existed_classical_registers = [
             qi for qi in selected_classical_registers if qi not in existed_classical_registers
         ]
