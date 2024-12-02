@@ -31,14 +31,14 @@ else:
         return ensemble_cell_py(s_i, s_i_meas, s_j, s_j_meas, a_num, shots)
 
 
-class TestItemEnsembleCell(TypedDict):
+class TargetItemEnsembleCell(TypedDict):
     """Test item for the purity_echo_core function."""
 
     target: tuple[str, int, str, int, int, int]
     answer: Union[float, int]
 
 
-test_setup_ensemble: list[TestItemEnsembleCell] = [
+test_setup_ensemble: list[TargetItemEnsembleCell] = [
     {
         "target": ("10010101", 421, "10010101", 421, 8, 4096),
         "answer": (np.float64(421) ** 2) / np.float_power(2, 16, dtype=np.float64),
@@ -53,7 +53,7 @@ test_setup_ensemble: list[TestItemEnsembleCell] = [
 
 
 @pytest.mark.parametrize("test_items", test_setup_ensemble)
-def test_ensemble_cell_rust(test_items: TestItemEnsembleCell):
+def test_ensemble_cell_rust(test_items: TargetItemEnsembleCell):
     """Test the ensemble_cell_rust function."""
 
     assert rust_available_randomized, "Rust is not available."

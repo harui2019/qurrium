@@ -19,14 +19,14 @@ class HadamardTest(TypedDict):
     counts: list[dict[str, int]]
 
 
-class TestItemHadamardTest(TypedDict):
+class TargetItemHadamardTest(TypedDict):
     """Test item for the purity_echo_core function."""
 
     target: HadamardTest
     answer: Union[float, int]
 
 
-test_setup_hadamard: list[TestItemHadamardTest] = [
+test_setup_hadamard: list[TargetItemHadamardTest] = [
     {"target": {"shots": 100, "counts": [{"0": 50, "1": 50}]}, "answer": 0},
     {"target": {"shots": 100, "counts": [{"0": 100}]}, "answer": 1},
     {"target": {"shots": 100, "counts": [{"1": 100}]}, "answer": 1},
@@ -34,7 +34,7 @@ test_setup_hadamard: list[TestItemHadamardTest] = [
 
 
 @pytest.mark.parametrize("test_input", test_setup_hadamard)
-def test_hadamard(test_input: TestItemHadamardTest):
+def test_hadamard(test_input: TargetItemHadamardTest):
     """Test the purity_echo_core function."""
 
     purity_echo_rust_result = purity_echo_core(**test_input["target"], backend="Rust")
