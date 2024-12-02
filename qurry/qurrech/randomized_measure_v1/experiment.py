@@ -27,7 +27,7 @@ from ...qurrium.utils.randomized import (
 )
 from ...qurrium.utils.random_unitary import check_input_for_experiment
 from ...process.randomized_measure.wavefunction_overlap_v1 import (
-    randomized_overlap_echo_deprecated,
+    randomized_overlap_echo_v1,
     DEFAULT_PROCESS_BACKEND,
 )
 from ...process.availability import PostProcessingBackendLabel
@@ -308,9 +308,6 @@ class EchoListenRandomizedV1Experiment(ExperimentPrototype):
         if degree is None:
             raise ValueError("degree must be specified, but get None.")
 
-        shots = self.commons.shots
-        measure = self.args.measure
-        unitary_loc = self.args.unitary_loc
         len_counts = len(self.afterwards.counts)
         assert len_counts % 2 == 0, "The counts should be even."
         len_counts_half = int(len_counts / 2)
@@ -330,10 +327,10 @@ class EchoListenRandomizedV1Experiment(ExperimentPrototype):
 
         if isinstance(pbar, tqdm.tqdm):
             qs = self.quantities(
-                shots=shots,
+                shots=self.commons.shots,
                 counts=counts,
                 degree=degree,
-                measure=measure,
+                measure=self.args.measure,
                 backend=backend,
                 workers_num=workers_num,
                 pbar=pbar,
@@ -347,10 +344,10 @@ class EchoListenRandomizedV1Experiment(ExperimentPrototype):
 
             with pbar_selfhost as pb_self:
                 qs = self.quantities(
-                    shots=shots,
+                    shots=self.commons.shots,
                     counts=counts,
                     degree=degree,
-                    measure=measure,
+                    measure=self.args.measure,
                     backend=backend,
                     workers_num=workers_num,
                     pbar=pb_self,
@@ -360,8 +357,8 @@ class EchoListenRandomizedV1Experiment(ExperimentPrototype):
         serial = len(self.reports)
         analysis = self.analysis_instance(
             serial=serial,
-            shots=shots,
-            unitary_loc=unitary_loc,
+            shots=self.commons.shots,
+            unitary_loc=self.args.unitary_loc,
             counts_used=counts_used,
             **qs,  # type: ignore
         )
@@ -407,7 +404,7 @@ class EchoListenRandomizedV1Experiment(ExperimentPrototype):
         if shots is None or counts is None:
             raise ValueError("shots and counts should be specified.")
 
-        return randomized_overlap_echo_deprecated(
+        return randomized_overlap_echo_v1(
             shots=shots,
             counts=counts,
             degree=degree,

@@ -14,7 +14,7 @@ from .echo_core import overlap_echo_core, DEFAULT_PROCESS_BACKEND
 from ...availability import PostProcessingBackendLabel
 
 
-def randomized_overlap_echo_deprecated(
+def randomized_overlap_echo_v1(
     shots: int,
     counts: list[dict[str, int]],
     degree: Optional[Union[tuple[int, int], int]] = None,

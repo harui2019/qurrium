@@ -32,5 +32,5 @@ from .entangled_entropy_v1 import (
 )
 from .wavefunction_overlap import randomized_overlap_echo
 from .wavefunction_overlap_v1 import (
-    randomized_overlap_echo_deprecated as randomized_overlap_echo_v1,
+    randomized_overlap_echo_v1,
 )
