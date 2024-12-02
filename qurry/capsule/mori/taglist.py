@@ -257,9 +257,7 @@ class TagList(defaultdict[_K, list[Union[_V, Any]]]):
         if json_dump_args is None:
             json_dump_args = defaultJsonDumpArgs.copy()
         else:
-            json_dump_args = {
-                k: v for k, v in json_dump_args.items() if k != "obj" or k != "fp"
-            }
+            json_dump_args = {k: v for k, v in json_dump_args.items() if k != "obj" or k != "fp"}
             json_dump_args = {**defaultJsonDumpArgs.copy(), **json_dump_args}
 
         # save_location
@@ -273,9 +271,7 @@ class TagList(defaultdict[_K, list[Union[_V, Any]]]):
 
         # file type check
         if filetype not in cls.availableFile:
-            raise ValueError(
-                f"Instead of '{filetype}', Only {cls.availableFile} can be exported."
-            )
+            raise ValueError(f"Instead of '{filetype}', Only {cls.availableFile} can be exported.")
 
         # return {
         #     "open_args": open_args,
@@ -355,9 +351,7 @@ class TagList(defaultdict[_K, list[Union[_V, Any]]]):
         assert isinstance(encoding, str), "encoding must be str"
 
         filename = (
-            f"{taglist_name}.{filetype}"
-            if name is None
-            else f"{name}.{taglist_name}.{filetype}"
+            f"{taglist_name}.{filetype}" if name is None else f"{name}.{taglist_name}.{filetype}"
         )
 
         if filetype == "json":
@@ -489,6 +483,4 @@ class TagList(defaultdict[_K, list[Union[_V, Any]]]):
                     obj[kt].append(v)  # type: ignore
             return obj
 
-        raise ValueError(
-            f"Instead of '{filetype}', Only {cls.availableFile} can be exported."
-        )
+        raise ValueError(f"Instead of '{filetype}', Only {cls.availableFile} can be exported.")

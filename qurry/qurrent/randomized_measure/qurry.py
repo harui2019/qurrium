@@ -172,7 +172,7 @@ class EntropyMeasureRandomized(QurriumPrototype):
                     }
 
                 If you want to generate the seeds for all random unitary operator,
-                you can use the function `generate_random_unitary_seeds` 
+                you can use the function `generate_random_unitary_seeds`
                 in `qurry.qurrium.utils.random_unitary`.
 
                 .. code-block:: python
@@ -301,7 +301,7 @@ class EntropyMeasureRandomized(QurriumPrototype):
                     }
 
                 If you want to generate the seeds for all random unitary operator,
-                you can use the function `generate_random_unitary_seeds` 
+                you can use the function `generate_random_unitary_seeds`
                 in `qurry.qurrium.utils.random_unitary`.
 
                 .. code-block:: python
