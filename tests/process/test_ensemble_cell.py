@@ -6,29 +6,14 @@ Tests - qurry.process.utils.randomized
 """
 
 from typing import TypedDict, Union
-import warnings
 import pytest
 import numpy as np
 
-from qurry.process.exceptions import PostProcessingRustUnavailableWarning
 from qurry.process.utils.randomized import (
     RUST_AVAILABLE as rust_available_randomized,
     ensemble_cell as ensemble_cell_py,
+    ensemble_cell_rust,
 )
-
-if rust_available_randomized:
-    from qurry.process.utils.randomized import ensemble_cell_rust
-else:
-
-    def ensemble_cell_rust(
-        s_i: str, s_i_meas: int, s_j: str, s_j_meas: int, a_num: int, shots: int
-    ) -> Union[float, np.float64]:
-        """Dummy function."""
-        warnings.warn(
-            "Rust is not available, ensemble_cell_rust is a dummy function.",
-            category=PostProcessingRustUnavailableWarning,
-        )
-        return ensemble_cell_py(s_i, s_i_meas, s_j, s_j_meas, a_num, shots)
 
 
 class TargetItemEnsembleCell(TypedDict):
