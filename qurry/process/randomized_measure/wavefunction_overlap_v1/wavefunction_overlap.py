@@ -1,7 +1,7 @@
 """
 =========================================================================================
-Postprocessing - Randomized Measure - Wavefunction Overlap - Wavefunction Overlap
-(:mod:`qurry.process.randomized_measure.wavefunction_overlap.wavefunction_overlap`)
+Postprocessing - Randomized Measure - Wavefunction Overlap V1 - Wavefunction Overlap
+(:mod:`qurry.process.randomized_measure.wavefunction_overlap_v1.wavefunction_overlap`)
 =========================================================================================
 
 """
@@ -14,7 +14,7 @@ from .echo_core import overlap_echo_core, DEFAULT_PROCESS_BACKEND
 from ...availability import PostProcessingBackendLabel
 
 
-def randomized_overlap_echo(
+def randomized_overlap_echo_v1(
     shots: int,
     counts: list[dict[str, int]],
     degree: Optional[Union[tuple[int, int], int]] = None,
@@ -23,18 +23,20 @@ def randomized_overlap_echo(
     workers_num: Optional[int] = None,
     pbar: Optional[tqdm.tqdm] = None,
 ) -> dict[str, float]:
-    """Calculate entangled entropy.
+    """Calculate wavefunction overlap
+    a.k.a. loschmidt echo when processes time evolution system.
 
-    - Reference:
-        - Used in:
-            Statistical correlations between locally randomized measurements:
+    .. note::
+
+            - Statistical correlations between locally randomized measurements:
             A toolbox for probing entanglement in many-body quantum states -
             A. Elben, B. Vermersch, C. F. Roos, and P. Zoller,
-            [PhysRevA.99.052323](https://doi.org/10.1103/PhysRevA.99.052323)
+            [PhysRevA.99.052323](
+                https://doi.org/10.1103/PhysRevA.99.052323
+            )
 
-        - `bibtex`:
+    .. code-block:: bibtex
 
-    ```bibtex
         @article{PhysRevA.99.052323,
             title = {Statistical correlations between locally randomized measurements:
             A toolbox for probing entanglement in many-body quantum states},
@@ -50,22 +52,33 @@ def randomized_overlap_echo(
             doi = {10.1103/PhysRevA.99.052323},
             url = {https://link.aps.org/doi/10.1103/PhysRevA.99.052323}
         }
-        ```
 
     Args:
-        shots (int): Shots of the experiment on quantum machine.
-        counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
-        degree (Union[tuple[int, int], int]): Degree of the subsystem.
-        measure (tuple[int, int], optional): Measuring range on quantum circuits. Defaults to None.
-        workers_num (Optional[int], optional):
-            Number of multi-processing workers,
-            if sets to 1, then disable to using multi-processing;
-            if not specified, then use the number of all cpu counts - 2 by `cpu_count() - 2`.
+        shots (int):
+            Shots of the counts.
+        counts (list[dict[str, int]]):
+            Counts from randomized measurement results.
+        degree (Optional[Union[tuple[int, int], int]]):
+            The range of partition.
+        measure (Optional[tuple[int, int]], optional):
+            The range that implemented the measuring gate.
+            If not specified, then use all qubits.
+            This will affect the range of partition
+            when you not implement the measuring gate on all qubit.
             Defaults to None.
-        pbar (Optional[tqdm.tqdm], optional): Progress bar. Defaults to None.
-        all_system_source (Optional['EntropyRandomizedAnalysis'], optional):
-            The source of the all system. Defaults to None.
-        use_cython (bool, optional): Use cython to calculate purity cell. Defaults to True.
+        backend (PostProcessingBackendLabel, optional):
+            Backend for the post-processing.
+            Defaults to DEFAULT_PROCESS_BACKEND.
+        workers_num (Optional[int], optional):
+            Number of multi-processing workers, it will be ignored if backend is Rust.
+            if sets to 1, then disable to using multi-processing;
+            if not specified, then use the number of all cpu counts by `os.cpu_count()`.
+            This only works for Python and Cython backend.
+            Defaults to None.
+        pbar (Optional[tqdm.tqdm], optional):
+            The progress bar API, you can use put a :cls:`tqdm` object here.
+            This function will update the progress bar description.
+            Defaults to None.
 
     Returns:
         dict[str, float]: A dictionary contains purity, entropy,

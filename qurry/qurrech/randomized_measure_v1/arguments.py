@@ -1,8 +1,10 @@
 """
 ===========================================================
-EntropyMeasureRandomized - Arguments
-(:mod:`qurry.qurrent.randomized_measure.arguments`)
+EchoListenRandomizedV1 - Arguments
+(:mod:`qurry.qurrech.randomized_measure_v1.arguments`)
 ===========================================================
+
+This is a deprecated version of the randomized measure module.
 
 """
 
@@ -13,14 +15,15 @@ from dataclasses import dataclass
 from qiskit import QuantumCircuit
 
 from ...qurrium.experiment import ArgumentsPrototype
-from ...process.randomized_measure.entangled_entropy import (
+from ...process.randomized_measure.wavefunction_overlap import (
     PostProcessingBackendLabel,
 )
 from ...declare import BasicArgs, OutputArgs, AnalyzeArgs
+from ...tools import DEFAULT_POOL_SIZE
 
 
 @dataclass(frozen=True)
-class EntropyMeasureRandomizedArguments(ArgumentsPrototype):
+class EchoListenRandomizedV1Arguments(ArgumentsPrototype):
     """Arguments for the experiment."""
 
     exp_name: str = "exps"
@@ -31,25 +34,9 @@ class EntropyMeasureRandomizedArguments(ArgumentsPrototype):
     times: int = 100
     """The number of random unitary operator. 
     It will denote as `N_U` in the experiment name."""
-    qubits_measured: Optional[list[int]] = None
+    measure: Optional[tuple[int, int]] = None
     """The measure range."""
-    registers_mapping: Optional[dict[int, int]] = None
-    """The mapping of the classical registers with quantum registers.
-
-    .. code-block:: python
-        {
-            0: 0, # The quantum register 0 is mapped to the classical register 0.
-            1: 1, # The quantum register 1 is mapped to the classical register 1.
-            5: 2, # The quantum register 5 is mapped to the classical register 2.
-            7: 3, # The quantum register 7 is mapped to the classical register 3.
-        }
-
-    The key is the index of the quantum register with the numerical order.
-    The value is the index of the classical register with the numerical order.
-    """
-    actual_num_qubits: int = 0
-    """The actual number of qubits."""
-    unitary_located: Optional[list[int]] = None
+    unitary_loc: Optional[tuple[int, int]] = None
     """The range of the unitary operator."""
     random_unitary_seeds: Optional[dict[int, dict[int, int]]] = None
     """The seeds for all random unitary operator.
@@ -72,22 +59,24 @@ class EntropyMeasureRandomizedArguments(ArgumentsPrototype):
         from qurry.qurrium.utils.random_unitary import generate_random_unitary_seeds
         random_unitary_seeds = generate_random_unitary_seeds(100, 2)
     """
+    workers_num: int = DEFAULT_POOL_SIZE
+    """The number of workers for multiprocessing."""
 
 
-class EntropyMeasureRandomizedMeasureArgs(BasicArgs, total=False):
+class EchoListenRandomizedV1MeasureArgs(BasicArgs, total=False):
     """Output arguments for :meth:`output`."""
 
-    wave: Optional[Union[QuantumCircuit, Hashable]]
+    wave1: Optional[Union[QuantumCircuit, Hashable]]
+    """The key or the circuit to execute."""
+    wave2: Optional[Union[QuantumCircuit, Hashable]]
     """The key or the circuit to execute."""
     times: int
     """The number of random unitary operator. 
     It will denote as `N_U` in the experiment name."""
-    measure: Optional[Union[tuple[int, int], int, list[int]]]
+    measure: Union[int, tuple[int, int], None]
     """The measure range."""
-    unitary_loc: Optional[Union[tuple[int, int], int, list[int]]]
+    unitary_loc: Union[int, tuple[int, int], None]
     """The range of the unitary operator."""
-    unitary_loc_not_cover_measure: bool
-    """Whether the range of the unitary operator is not cover the measure range."""
     random_unitary_seeds: Optional[dict[int, dict[int, int]]]
     """The seeds for all random unitary operator.
     This argument only takes input as type of `dict[int, dict[int, int]]`.
@@ -111,18 +100,16 @@ class EntropyMeasureRandomizedMeasureArgs(BasicArgs, total=False):
     """
 
 
-class EntropyMeasureRandomizedOutputArgs(OutputArgs):
+class EchoListenRandomizedV1OutputArgs(OutputArgs):
     """Output arguments for :meth:`output`."""
 
     times: int
     """The number of random unitary operator. 
     It will denote as `N_U` in the experiment name."""
-    measure: Optional[Union[tuple[int, int], int, list[int]]]
+    measure: Union[int, tuple[int, int], None]
     """The measure range."""
-    unitary_loc: Optional[Union[tuple[int, int], int, list[int]]]
+    unitary_loc: Union[int, tuple[int, int], None]
     """The range of the unitary operator."""
-    unitary_loc_not_cover_measure: bool
-    """Whether the range of the unitary operator is not cover the measure range."""
     random_unitary_seeds: Optional[dict[int, dict[int, int]]]
     """The seeds for all random unitary operator.
     This argument only takes input as type of `dict[int, dict[int, int]]`.
@@ -146,17 +133,19 @@ class EntropyMeasureRandomizedOutputArgs(OutputArgs):
     """
 
 
-class EntropyMeasureRandomizedAnalyzeArgs(AnalyzeArgs, total=False):
+class EchoListenRandomizedV1AnalyzeArgs(AnalyzeArgs, total=False):
     """The input of the analyze method."""
 
-    selected_qubits: Optional[list[int]]
-    """The selected qubits."""
+    degree: Optional[Union[tuple[int, int], int]]
+    """The degree range."""
+    counts_used: Optional[Iterable[int]]
+    """The index of the counts used."""
+    workers_num: Optional[int]
+    """The number of workers for multiprocessing."""
     independent_all_system: bool
     """If True, then calculate the all system independently."""
     backend: PostProcessingBackendLabel
     """The backend for the process."""
-    counts_used: Optional[Iterable[int]]
-    """The index of the counts used."""
 
 
-SHORT_NAME = "qurrent_randomized"
+SHORT_NAME = "qurrech_randomized_v1"

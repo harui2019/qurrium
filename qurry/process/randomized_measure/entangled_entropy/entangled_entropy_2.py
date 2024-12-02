@@ -8,7 +8,7 @@ This version introduces another way to process subsystems.
 
 """
 
-from typing import Union, Optional
+from typing import Union, Optional, Iterable
 import warnings
 import numpy as np
 import tqdm
@@ -26,7 +26,7 @@ from ...availability import PostProcessingBackendLabel
 def randomized_entangled_entropy(
     shots: int,
     counts: list[dict[str, int]],
-    selected_classical_registers: Optional[list[int]] = None,
+    selected_classical_registers: Optional[Iterable[int]] = None,
     backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
     pbar: Optional[tqdm.tqdm] = None,
 ) -> EntangledEntropyResult:
@@ -86,7 +86,7 @@ def randomized_entangled_entropy(
             Shots of the experiment on quantum machine.
         counts (list[dict[str, int]]):
             Counts of the experiment on quantum machine.
-        selected_classical_registers (Optional[list[int]], optional):
+        selected_classical_registers (Optional[Iterable[int]], optional):
             The list of **the index of the selected_classical_registers**.
         backend (ExistingProcessBackendLabel, optional):
             Backend for the process. Defaults to DEFAULT_PROCESS_BACKEND.
@@ -135,7 +135,11 @@ def randomized_entangled_entropy(
         "purityCells": purity_cell_dict,
         # new added
         "num_classical_registers": num_classical_registers,
-        "classical_registers": selected_classical_registers,
+        "classical_registers": (
+            selected_classical_registers
+            if selected_classical_registers is None
+            else list(selected_classical_registers)
+        ),
         "classical_registers_actually": selected_classical_registers_actual,
         # refactored
         "counts_num": len(counts),
@@ -229,7 +233,7 @@ def preparing_all_system(
 def randomized_entangled_entropy_mitigated(
     shots: int,
     counts: list[dict[str, int]],
-    selected_classical_registers: Optional[list[int]] = None,
+    selected_classical_registers: Optional[Iterable[int]] = None,
     backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
     existed_all_system: Optional[ExistedAllSystemInfo] = None,
     pbar: Optional[tqdm.tqdm] = None,
@@ -311,7 +315,7 @@ def randomized_entangled_entropy_mitigated(
             Shots of the counts.
         counts (list[dict[str, int]]):
             Counts from randomized measurement results.
-        selected_classical_registers (Optional[list[int]], optional):
+        selected_classical_registers (Optional[Iterable[int]], optional):
             The list of **the index of the selected_classical_registers**.
         backend (ExistingProcessBackendLabel, optional):
             Backend for the process. Defaults to DEFAULT_PROCESS_BACKEND.
@@ -356,7 +360,11 @@ def randomized_entangled_entropy_mitigated(
             # new systems info
             "num_classical_registers": 0,
             "num_classical_registers_all_sys": 0,
-            "classical_registers": selected_classical_registers,
+            "classical_registers": (
+                selected_classical_registers
+                if selected_classical_registers is None
+                else list(selected_classical_registers)
+            ),
             "classical_registers_actually": [],
             "classical_registers_all_sys": None,
             "classical_registers_actually_all_sys": [],
@@ -440,7 +448,11 @@ def randomized_entangled_entropy_mitigated(
         # new systems info
         "num_classical_registers": num_classical_registers,
         "num_classical_registers_all_sys": all_system.num_classical_registers_all_sys,
-        "classical_registers": selected_classical_registers,
+        "classical_registers": (
+            selected_classical_registers
+            if selected_classical_registers is None
+            else list(selected_classical_registers)
+        ),
         "classical_registers_actually": selected_qubits_sorted,
         "classical_registers_all_sys": all_system.classical_registers_all_sys,
         "classical_registers_actually_all_sys": all_system.classical_registers_actually_all_sys,

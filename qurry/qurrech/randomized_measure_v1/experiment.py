@@ -1,10 +1,10 @@
 """
 ===========================================================
-EntropyMeasureRandomizedV1 - Experiment
-(:mod:`qurry.qurrent.randomized_measure_v1.experiment`)
+EchoListenRandomizedV1 - Experiment
+(:mod:`qurry.qurrech.randomized_measure_v1.experiment`)
 ===========================================================
 
-This is a deprecated version of the randomized measure module.
+The deprecated version of the randomized measure experiment.
 
 """
 
@@ -15,42 +15,42 @@ import tqdm
 
 from qiskit import QuantumCircuit
 
-from .analysis import EntropyMeasureRandomizedV1Analysis
-from .arguments import EntropyMeasureRandomizedV1Arguments, SHORT_NAME
-from .utils import circuit_method_core_v1, randomized_entangled_entropy_complex_v1
+from .analysis import EchoListenRandomizedV1Analysis
+from .arguments import EchoListenRandomizedV1Arguments, SHORT_NAME
+from ...qurrent.randomized_measure_v1.utils import circuit_method_core_v1
 from ...qurrium.experiment import ExperimentPrototype, Commonparams
+from ...process.utils import qubit_selector
 from ...qurrium.utils.randomized import (
     local_random_unitary_operators,
     local_random_unitary_pauli_coeff,
     random_unitary,
 )
 from ...qurrium.utils.random_unitary import check_input_for_experiment
-from ...process.utils import qubit_selector
-from ...process.randomized_measure.entangled_entropy_v1 import (
-    RandomizedEntangledEntropyMitigatedComplex,
-    PostProcessingBackendLabel,
+from ...process.randomized_measure.wavefunction_overlap_v1 import (
+    randomized_overlap_echo_v1,
     DEFAULT_PROCESS_BACKEND,
 )
+from ...process.availability import PostProcessingBackendLabel
 from ...tools import qurry_progressbar, ParallelManager
-from ...exceptions import QurryArgumentsExpectedNotNone, QurryDeprecatedWarning
+from ...exceptions import QurryArgumentsExpectedNotNone
 
 
-class EntropyMeasureRandomizedV1Experiment(ExperimentPrototype):
+class EchoListenRandomizedV1Experiment(ExperimentPrototype):
     """The instance of experiment."""
 
-    __name__ = "EntropyMeasureRandomizedV1Experiment"
+    __name__ = "EchoListenRandomizedV1Experiment"
 
     @property
-    def arguments_instance(self) -> Type[EntropyMeasureRandomizedV1Arguments]:
+    def arguments_instance(self) -> Type[EchoListenRandomizedV1Arguments]:
         """The arguments instance for this experiment."""
-        return EntropyMeasureRandomizedV1Arguments
+        return EchoListenRandomizedV1Arguments
 
-    args: EntropyMeasureRandomizedV1Arguments
+    args: EchoListenRandomizedV1Arguments
 
     @property
-    def analysis_instance(self) -> Type[EntropyMeasureRandomizedV1Analysis]:
+    def analysis_instance(self) -> Type[EchoListenRandomizedV1Analysis]:
         """The analysis instance for this experiment."""
-        return EntropyMeasureRandomizedV1Analysis
+        return EchoListenRandomizedV1Analysis
 
     @classmethod
     def params_control(
@@ -62,7 +62,7 @@ class EntropyMeasureRandomizedV1Experiment(ExperimentPrototype):
         unitary_loc: Optional[Union[tuple[int, int], int]] = None,
         random_unitary_seeds: Optional[dict[int, dict[int, int]]] = None,
         **custom_kwargs: Any,
-    ) -> tuple[EntropyMeasureRandomizedV1Arguments, Commonparams, dict[str, Any]]:
+    ) -> tuple[EchoListenRandomizedV1Arguments, Commonparams, dict[str, Any]]:
         """Handling all arguments and initializing a single experiment.
 
         Args:
@@ -104,46 +104,45 @@ class EntropyMeasureRandomizedV1Experiment(ExperimentPrototype):
                 The custom parameters.
 
         Raises:
-            ValueError: If the number of targets is not one.
+            ValueError: If the number of target circuits is not two.
             TypeError: If times is not an integer.
-            ValueError: If the range of measure is not in the range of unitary_loc.
+            ValueError: If the number of qubits in two circuits is not the same.
 
         Returns:
             tuple[EntropyMeasureRandomizedArguments, Commonparams, dict[str, Any]]:
                 The arguments of the experiment, the common parameters, and the custom parameters.
         """
-        if len(targets) > 1:
-            raise ValueError("The number of target circuits should be only one.")
+        if len(targets) != 2:
+            raise ValueError("The number of target circuits should be two.")
         if not isinstance(times, int):
             raise TypeError(f"times should be an integer, but got {times}.")
 
-        target_key, target_circuit = targets[0]
-        num_qubits = target_circuit.num_qubits
+        target_key_01, target_circuit_01 = targets[0]
+        num_qubits_01 = target_circuit_01.num_qubits
+        target_key_02, target_circuit_02 = targets[1]
+        num_qubits_02 = target_circuit_02.num_qubits
 
-        if measure is not None:
-            warnings.warn(
-                "The measure range is not available anymore, "
-                + "it will be set to the whole qubits range.",
-                QurryDeprecatedWarning,
-            )
-        measure = qubit_selector(num_qubits, degree=None)
-        if unitary_loc is None:
-            unitary_loc = num_qubits
-        unitary_loc = qubit_selector(num_qubits, degree=unitary_loc)
-
-        if (min(measure) < min(unitary_loc)) or (max(measure) > max(unitary_loc)):
+        if num_qubits_01 != num_qubits_02:
             raise ValueError(
-                f"unitary_loc range '{unitary_loc}' does not contain measure range '{measure}'."
+                "The number of qubits in two circuits should be the same, "
+                + f"but got {target_key_01}: {num_qubits_01} and {target_key_02}: {num_qubits_02}."
             )
+
+        if measure is None:
+            measure = num_qubits_01
+        measure = qubit_selector(num_qubits_01, degree=measure)
+        if unitary_loc is None:
+            unitary_loc = num_qubits_01
+        unitary_loc = qubit_selector(num_qubits_01, degree=unitary_loc)
 
         exp_name = f"{exp_name}.N_U_{times}.{SHORT_NAME}"
 
-        check_input_for_experiment(times, num_qubits, random_unitary_seeds)
+        check_input_for_experiment(times, num_qubits_01, random_unitary_seeds)
 
         # pylint: disable=protected-access
-        return EntropyMeasureRandomizedV1Arguments._filter(
+        return EchoListenRandomizedV1Arguments._filter(
             exp_name=exp_name,
-            target_keys=[target_key],
+            target_keys=[target_key_01, target_key_02],
             times=times,
             measure=measure,
             unitary_loc=unitary_loc,
@@ -156,7 +155,7 @@ class EntropyMeasureRandomizedV1Experiment(ExperimentPrototype):
     def method(
         cls,
         targets: list[tuple[Hashable, QuantumCircuit]],
-        arguments: EntropyMeasureRandomizedV1Arguments,
+        arguments: EchoListenRandomizedV1Arguments,
         pbar: Optional[tqdm.tqdm] = None,
     ) -> tuple[list[QuantumCircuit], dict[str, Any]]:
         """The method to construct circuit.
@@ -164,7 +163,7 @@ class EntropyMeasureRandomizedV1Experiment(ExperimentPrototype):
         Args:
             targets (list[tuple[Hashable, QuantumCircuit]]):
                 The circuits of the experiment.
-            arguments (EntropyMeasureRandomizedArguments):
+            arguments (EchoListenRandomizedArguments):
                 The arguments of the experiment.
             pbar (Optional[tqdm.tqdm], optional):
                 The progress bar for showing the progress of the experiment.
@@ -182,12 +181,19 @@ class EntropyMeasureRandomizedV1Experiment(ExperimentPrototype):
                 f"Preparing {arguments.times} random unitary with {arguments.workers_num} workers."
             )
 
-        target_key, target_circuit = targets[0]
-        target_key = "" if isinstance(target_key, int) else str(target_key)
-        num_qubits = target_circuit.num_qubits
+        target_key_01, target_circuit_01 = targets[0]
+        target_key_01 = "" if isinstance(target_key_01, int) else str(target_key_01)
+        num_qubits_01 = target_circuit_01.num_qubits
+        target_key_02, target_circuit_02 = targets[1]
+        target_key_02 = "" if isinstance(target_key_02, int) else str(target_key_02)
+        num_qubits_02 = target_circuit_02.num_qubits
+
+        assert (
+            num_qubits_01 == num_qubits_02
+        ), "The number of qubits in two circuits should be the same."
 
         if arguments.unitary_loc is None:
-            actual_unitary_loc = (0, num_qubits)
+            actual_unitary_loc = (0, num_qubits_01)
             warnings.warn(
                 f"| unitary_loc is not specified, using the whole qubits {actual_unitary_loc},"
                 + " but it should be not None anymore here.",
@@ -209,15 +215,27 @@ class EntropyMeasureRandomizedV1Experiment(ExperimentPrototype):
 
         if isinstance(pbar, tqdm.tqdm):
             pbar.set_description_str(
-                f"Building {arguments.times} circuits with {arguments.workers_num} workers."
+                f"Building {2 * arguments.times} circuits with {arguments.workers_num} workers."
             )
         circ_list = pool.starmap(
             circuit_method_core_v1,
             [
                 (
                     i,
-                    target_circuit,
-                    target_key,
+                    target_circuit_01,
+                    target_key_01,
+                    arguments.exp_name,
+                    arguments.unitary_loc,
+                    unitary_dict[i],
+                    arguments.measure,
+                )
+                for i in range(arguments.times)
+            ]
+            + [
+                (
+                    i + arguments.times,
+                    target_circuit_02,
+                    target_key_02,
                     arguments.exp_name,
                     arguments.unitary_loc,
                     unitary_dict[i],
@@ -226,6 +244,7 @@ class EntropyMeasureRandomizedV1Experiment(ExperimentPrototype):
                 for i in range(arguments.times)
             ],
         )
+        assert len(circ_list) == 2 * arguments.times, "The number of circuits is not correct."
 
         if isinstance(pbar, tqdm.tqdm):
             pbar.set_description_str(f"Writing 'unitaryOP' with {arguments.workers_num} workers.")
@@ -258,10 +277,9 @@ class EntropyMeasureRandomizedV1Experiment(ExperimentPrototype):
         degree: Optional[Union[tuple[int, int], int]] = None,
         counts_used: Optional[Iterable[int]] = None,
         workers_num: Optional[int] = None,
-        independent_all_system: bool = False,
         backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
         pbar: Optional[tqdm.tqdm] = None,
-    ) -> EntropyMeasureRandomizedV1Analysis:
+    ) -> EchoListenRandomizedV1Analysis:
         """Calculate entangled entropy with more information combined.
 
         Args:
@@ -275,9 +293,6 @@ class EntropyMeasureRandomizedV1Experiment(ExperimentPrototype):
                 if sets to 1, then disable to using multi-processing;
                 if not specified, then use the number of all cpu counts - 2 by `cpu_count() - 2`.
                 Defaults to None.
-            independent_all_system (bool, optional):
-                If True, then calculate the all system independently.
-                Otherwise, use the existed all system source with same `count_used`.
             backend (PostProcessingBackendLabel, optional):
                 Backend for the process. Defaults to DEFAULT_PROCESS_BACKEND.
             pbar (Optional[tqdm.tqdm], optional): Progress bar. Defaults to None.
@@ -289,44 +304,33 @@ class EntropyMeasureRandomizedV1Experiment(ExperimentPrototype):
                 a list of each overlap in all system, puritySD of all system,
                 degree, actual measure range, actual measure range in all system, bitstring range.
         """
-        if degree is None:
-            raise ValueError("degree should be specified.")
 
-        self.args: EntropyMeasureRandomizedV1Arguments
-        self.reports: dict[int, EntropyMeasureRandomizedV1Analysis]
-        shots = self.commons.shots
-        measure = self.args.measure
-        unitary_loc = self.args.unitary_loc
+        if degree is None:
+            raise ValueError("degree must be specified, but get None.")
+
+        len_counts = len(self.afterwards.counts)
+        assert len_counts % 2 == 0, "The counts should be even."
+        len_counts_half = int(len_counts / 2)
         if isinstance(counts_used, Iterable):
-            if max(counts_used) >= len(self.afterwards.counts):
+            if max(counts_used) >= len_counts_half:
                 raise ValueError(
                     "counts_used should be less than "
-                    f"{len(self.afterwards.counts)}, but get {max(counts_used)}."
+                    f"{len_counts_half}, but get {max(counts_used)}."
                 )
-            counts = [self.afterwards.counts[i] for i in counts_used]
+            counts = [self.afterwards.counts[i] for i in counts_used] + [
+                self.afterwards.counts[i + len_counts_half] for i in counts_used
+            ]
         else:
             if counts_used is not None:
                 raise ValueError(f"counts_used should be Iterable, but get {type(counts_used)}.")
             counts = self.afterwards.counts
 
-        available_all_system_source = [
-            k
-            for k, v in self.reports.items()
-            if (v.content.allSystemSource == "independent" and v.content.counts_used == counts_used)
-        ]
-
-        if len(available_all_system_source) > 0 and not independent_all_system:
-            all_system_source = self.reports[available_all_system_source[-1]]
-        else:
-            all_system_source = None
-
         if isinstance(pbar, tqdm.tqdm):
             qs = self.quantities(
-                shots=shots,
+                shots=self.commons.shots,
                 counts=counts,
                 degree=degree,
-                measure=measure,
-                all_system_source=all_system_source,
+                measure=self.args.measure,
                 backend=backend,
                 workers_num=workers_num,
                 pbar=pbar,
@@ -340,11 +344,10 @@ class EntropyMeasureRandomizedV1Experiment(ExperimentPrototype):
 
             with pbar_selfhost as pb_self:
                 qs = self.quantities(
-                    shots=shots,
+                    shots=self.commons.shots,
                     counts=counts,
                     degree=degree,
-                    measure=measure,
-                    all_system_source=all_system_source,
+                    measure=self.args.measure,
                     backend=backend,
                     workers_num=workers_num,
                     pbar=pb_self,
@@ -354,10 +357,10 @@ class EntropyMeasureRandomizedV1Experiment(ExperimentPrototype):
         serial = len(self.reports)
         analysis = self.analysis_instance(
             serial=serial,
-            shots=shots,
-            unitary_loc=unitary_loc,
+            shots=self.commons.shots,
+            unitary_loc=self.args.unitary_loc,
             counts_used=counts_used,
-            **qs,
+            **qs,  # type: ignore
         )
 
         self.reports[serial] = analysis
@@ -370,27 +373,24 @@ class EntropyMeasureRandomizedV1Experiment(ExperimentPrototype):
         counts: Optional[list[dict[str, int]]] = None,
         degree: Optional[Union[tuple[int, int], int]] = None,
         measure: Optional[tuple[int, int]] = None,
-        all_system_source: Optional["EntropyMeasureRandomizedV1Analysis"] = None,
         backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
         workers_num: Optional[int] = None,
         pbar: Optional[tqdm.tqdm] = None,
-    ) -> RandomizedEntangledEntropyMitigatedComplex:
-        """Calculate entangled entropy.
+    ) -> dict[str, float]:
+        """Calculate entangled entropy with more information combined.
 
         Args:
             shots (int): Shots of the experiment on quantum machine.
             counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
-            degree (Optional[Union[tuple[int, int], int]]): Degree of the subsystem.
-            measure (Optional[tuple[int, int]], optional):
+            degree (Union[tuple[int, int], int]): Degree of the subsystem.
+            measure (tuple[int, int], optional):
                 Measuring range on quantum circuits. Defaults to None.
-            all_system_source (Optional['EntropyRandomizedAnalysis'], optional):
-                The source of the all system. Defaults to None.
             backend (PostProcessingBackendLabel, optional):
                 Backend for the process. Defaults to DEFAULT_PROCESS_BACKEND.
             workers_num (Optional[int], optional):
-                Number of multi-processing workers, it will be ignored if backend is Rust.
+                Number of multi-processing workers,
                 if sets to 1, then disable to using multi-processing;
-                if not specified, then use the number of all cpu counts by `os.cpu_count()`.
+                if not specified, then use the number of all cpu counts - 2 by `cpu_count() - 2`.
                 Defaults to None.
             pbar (Optional[tqdm.tqdm], optional): Progress bar. Defaults to None.
 
@@ -401,16 +401,14 @@ class EntropyMeasureRandomizedV1Experiment(ExperimentPrototype):
                 a list of each overlap in all system, puritySD of all system,
                 degree, actual measure range, actual measure range in all system, bitstring range.
         """
-
         if shots is None or counts is None:
             raise ValueError("shots and counts should be specified.")
 
-        return randomized_entangled_entropy_complex_v1(
+        return randomized_overlap_echo_v1(
             shots=shots,
             counts=counts,
             degree=degree,
             measure=measure,
-            all_system_source=all_system_source,
             backend=backend,
             workers_num=workers_num,
             pbar=pbar,

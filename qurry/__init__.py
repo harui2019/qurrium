@@ -39,7 +39,7 @@ the functions used acceleration will run by Cython or Python instead of Rust.
 import sys
 
 # from .qurmagsq import MagnetSquare
-from .qurrech import EchoListen
+from .qurrech import EchoListen, WaveFunctionOverlap
 from .qurrent import EntropyMeasure
 
 # from .qurstrop import StringOperator

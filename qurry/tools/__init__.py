@@ -16,5 +16,5 @@ from .backend import (
     backend_name_getter,
 )
 from .parallelmanager import ParallelManager, workers_distribution, DEFAULT_POOL_SIZE
-from .progressbar import qurry_progressbar
+from .progressbar import qurry_progressbar, set_pbar_description
 from .datetime import current_time, DatetimeDict

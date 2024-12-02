@@ -67,6 +67,19 @@ jobs:
         with:
           platforms: all
 
+      - name: Prepare CIBW
+        run: |
+          python -m pip install cibuildwheel==2.21.3 --upgrade
+          echo "| $(python -m pip --version)"
+          echo "| $(python -m pip list | grep cibuildwheel)"
+      # Hint:
+      # > Since we have some self-hosted runners,
+      # > some of them may not work with the github actions workflow of cibuildwheel.
+      # > Due to actions/setup-python@v5 cannot configure
+      # > the environment of self-hosted runners properly in most of the cases.
+      # > It made pypa/cibuildwheel@v2.21.3 can not install itself.
+      # > So, we only use command line to build.
+
       # Build wheels
       - name: Build wheels
         if: matrix.vers != 'linux-aarch64'
@@ -76,9 +89,6 @@ jobs:
         if: matrix.vers == 'linux-aarch64'
         run: |
           python -m cibuildwheel --output-dir wheelhouse --platform linux --arch aarch64
-      # Since we have some self-hosted runners,
-      # some of them may not work with the github actions workflow of cibuildwheel.
-      # So, we only use command line to build.
 
       # Upload the wheelhouse as an artifact
       - name: Wheelhouse Upload

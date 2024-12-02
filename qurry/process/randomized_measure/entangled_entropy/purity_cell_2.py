@@ -66,7 +66,7 @@ def purity_cell_2_py(
         idx (int):
             Index of the cell (counts).
         single_counts (dict[str, int]):
-            Counts measured by the single quantum circuit.
+            Counts measured from the single quantum circuit.
         selected_classical_registers (list[int]):
             The list of **the index of the selected_classical_registers**.
 
@@ -113,7 +113,7 @@ def purity_cell_2_rust(
         idx (int):
             Index of the cell (counts).
         single_counts (dict[str, int]):
-            Counts measured by the single quantum circuit.
+            Counts measured from the single quantum circuit.
         selected_classical_registers (list[int]):
             The list of **the index of the selected_classical_registers**.
 
@@ -138,7 +138,7 @@ def purity_cell_2(
         idx (int):
             Index of the cell (counts).
         single_counts (dict[str, int]):
-            Counts measured by the single quantum circuit.
+            Counts measured from the single quantum circuit.
         selected_bitstrings (list[int]):
             The list of **the index of the selected classical registers**.
         backend (ExistingProcessBackendLabel, optional):

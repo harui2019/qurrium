@@ -32,7 +32,7 @@ def cmd_wrapper(cmd: str = "") -> None:
 
 
 def pytorch_cuda_check() -> Optional[bool]:
-    """Via pytorch to check Nvidia CUDA available.
+    """Via pytorch to check the availability of Nvidia CUDA.
 
     Returns:
         bool: Available of CUDA by pytorch if pytorch is available, else 'None'.
@@ -43,7 +43,7 @@ def pytorch_cuda_check() -> Optional[bool]:
 
         # pylint: disable=import-outside-toplevel
 
-        print(f" - Torch CUDA available --------- {torch.cuda.is_available()}")
+        print(f" - CUDA availability check by Torch --------- {torch.cuda.is_available()}")
         print(
             ">>> Using torch "
             + " ".join(

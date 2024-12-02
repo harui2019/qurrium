@@ -33,7 +33,7 @@ from ...declare import BaseRunArgs, TranspileArgs
 
 
 class EntropyMeasureRandomized(QurriumPrototype):
-    """Randomized Measure Experiment.
+    """Randomized Measure for entangled entropy.
     The entropy we compute is the Second Order Rényi Entropy.
 
     .. note::
@@ -89,21 +89,21 @@ class EntropyMeasureRandomized(QurriumPrototype):
             which is applicable to arbitrary quantum states of up to
             several tens of qubits.}}
 
-            @article{PhysRevE.104.035309,
-                title = {Simple mitigation of global depolarizing errors in quantum simulations},
-                author = {Vovrosh, Joseph and Khosla, Kiran E. and Greenaway, Sean and Self,
-                Christopher and Kim, M. S. and Knolle, Johannes},
-                journal = {Phys. Rev. E},
-                volume = {104},
-                issue = {3},
-                pages = {035309},
-                numpages = {8},
-                year = {2021},
-                month = {Sep},
-                publisher = {American Physical Society},
-                doi = {10.1103/PhysRevE.104.035309},
-                url = {https://link.aps.org/doi/10.1103/PhysRevE.104.035309}
-            }
+        @article{PhysRevE.104.035309,
+            title = {Simple mitigation of global depolarizing errors in quantum simulations},
+            author = {Vovrosh, Joseph and Khosla, Kiran E. and Greenaway, Sean and Self,
+            Christopher and Kim, M. S. and Knolle, Johannes},
+            journal = {Phys. Rev. E},
+            volume = {104},
+            issue = {3},
+            pages = {035309},
+            numpages = {8},
+            year = {2021},
+            month = {Sep},
+            publisher = {American Physical Society},
+            doi = {10.1103/PhysRevE.104.035309},
+            url = {https://link.aps.org/doi/10.1103/PhysRevE.104.035309}
+        }
     """
 
     __name__ = "EntropyRandomizedMeasure"
@@ -163,9 +163,21 @@ class EntropyMeasureRandomized(QurriumPrototype):
                 This argument only takes input as type of `dict[int, dict[int, int]]`.
                 The first key is the index for the random unitary operator.
                 The second key is the index for the qubit.
+
+                .. code-block:: python
+                    {
+                        0: {0: 1234, 1: 5678},
+                        1: {0: 2345, 1: 6789},
+                        2: {0: 3456, 1: 7890},
+                    }
+
                 If you want to generate the seeds for all random unitary operator,
                 you can use the function `generate_random_unitary_seeds`
                 in `qurry.qurrium.utils.random_unitary`.
+
+                .. code-block:: python
+                    from qurry.qurrium.utils.random_unitary import generate_random_unitary_seeds
+                    random_unitary_seeds = generate_random_unitary_seeds(100, 2)
             shots (int, optional):
                 Shots of the job. Defaults to `1024`.
             backend (Optional[Backend], optional):
@@ -184,15 +196,6 @@ class EntropyMeasureRandomized(QurriumPrototype):
             tags (Optional[tuple[str, ...]], optional):
                 The tags of the experiment. Defaults to None.
 
-            exp_id (Optional[str], optional):
-                The ID of experiment. Defaults to None.
-            new_backend (Optional[Backend], optional):
-                The new backend. Defaults to None.
-            revive (bool, optional):
-                Whether to revive the circuit. Defaults to False.
-            replace_circuits (bool, optional):
-                Whether to replace the circuits during revive. Defaults to False.
-
             qasm_version (Literal["qasm2", "qasm3"], optional):
                 The version of OpenQASM. Defaults to "qasm3".
             export (bool, optional):
@@ -210,16 +213,6 @@ class EntropyMeasureRandomized(QurriumPrototype):
             pbar (Optional[tqdm.tqdm], optional):
                 The progress bar for showing the progress of the experiment.
                 Defaults to None.
-
-        Example:
-            random_unitary_seeds (Optional[dict[int, dict[int, int]]]):
-                ```python
-                {
-                    0: {0: 1234, 1: 5678},
-                    1: {0: 2345, 1: 6789},
-                    2: {0: 3456, 1: 7890},
-                }
-                ```
 
         Returns:
             EntropyMeasureRandomizedOutputArgs: The output arguments.
@@ -299,9 +292,21 @@ class EntropyMeasureRandomized(QurriumPrototype):
                 This argument only takes input as type of `dict[int, dict[int, int]]`.
                 The first key is the index for the random unitary operator.
                 The second key is the index for the qubit.
+
+                .. code-block:: python
+                    {
+                        0: {0: 1234, 1: 5678},
+                        1: {0: 2345, 1: 6789},
+                        2: {0: 3456, 1: 7890},
+                    }
+
                 If you want to generate the seeds for all random unitary operator,
                 you can use the function `generate_random_unitary_seeds`
                 in `qurry.qurrium.utils.random_unitary`.
+
+                .. code-block:: python
+                    from qurry.qurrium.utils.random_unitary import generate_random_unitary_seeds
+                    random_unitary_seeds = generate_random_unitary_seeds(100, 2)
             shots (int, optional):
                 Shots of the job. Defaults to `1024`.
             backend (Optional[Backend], optional):
@@ -320,15 +325,6 @@ class EntropyMeasureRandomized(QurriumPrototype):
             tags (Optional[tuple[str, ...]], optional):
                 The tags of the experiment. Defaults to None.
 
-            exp_id (Optional[str], optional):
-                The ID of experiment. Defaults to None.
-            new_backend (Optional[Backend], optional):
-                The new backend. Defaults to None.
-            revive (bool, optional):
-                Whether to revive the circuit. Defaults to False.
-            replace_circuits (bool, optional):
-                Whether to replace the circuits during revive. Defaults to False.
-
             qasm_version (Literal["qasm2", "qasm3"], optional):
                 The version of OpenQASM. Defaults to "qasm3".
             export (bool, optional):
@@ -346,16 +342,6 @@ class EntropyMeasureRandomized(QurriumPrototype):
             pbar (Optional[tqdm.tqdm], optional):
                 The progress bar for showing the progress of the experiment.
                 Defaults to None.
-
-        Example:
-            random_unitary_seeds (Optional[dict[int, dict[int, int]]]):
-                ```python
-                {
-                    0: {0: 1234, 1: 5678},
-                    1: {0: 2345, 1: 6789},
-                    2: {0: 3456, 1: 7890},
-                }
-                ```
 
         Returns:
             str: The experiment ID.

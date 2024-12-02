@@ -31,7 +31,7 @@ class QurryExtraPackageRequired(QurryError, ImportError):
     """Extra package required for Qurry."""
 
 
-class QurryInvalidArgument(QurryError):
+class QurryInvalidArgument(QurryError, ValueError):
     """Invalid argument for Qurry."""
 
 
@@ -45,6 +45,11 @@ class QurryCountLost(QurryError):
 
 class QurryDependenciesFailureError(QurryError):
     """The dependencies of Qurry like Qiskit raise some error."""
+
+
+class RandomizedMeasureUnitaryOperatorNotFullCovering(QurryError, ValueError):
+    """Randomized measure unitary operator warning
+    for not full covering the measure range."""
 
 
 # General Warning
@@ -129,3 +134,7 @@ class QurryDeprecatedWarning(QurryWarning, DeprecationWarning):
 
 class QurryUnknownExportOption(QurryWarning):
     """Unknown export option warning."""
+
+
+class SeperatedExecutingOverlapResult(QurryWarning):
+    """When the seperated executing overlap the result with the same backend"""

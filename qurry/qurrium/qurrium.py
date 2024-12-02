@@ -228,9 +228,6 @@ class QurriumPrototype(ABC):
         tags: Optional[tuple[str, ...]] = None,
         # already built exp
         exp_id: Optional[str] = None,
-        new_backend: Optional[Backend] = None,
-        revive: bool = False,
-        replace_circuits: bool = False,
         # process tool
         qasm_version: Literal["qasm2", "qasm3"] = "qasm3",
         export: bool = False,
@@ -268,12 +265,6 @@ class QurriumPrototype(ABC):
 
             exp_id (Optional[str], optional):
                 The ID of experiment. Defaults to None.
-            new_backend (Optional[Backend], optional):
-                The new backend. Defaults to None.
-            revive (bool, optional):
-                Whether to revive the circuit. Defaults to False.
-            replace_circuits (bool, optional):
-                Whether to replace the circuits during revive. Defaults to False.
 
             qasm_version (Literal["qasm2", "qasm3"], optional):
                 The export version of OpenQASM. Defaults to 'qasm3'.
@@ -329,12 +320,7 @@ class QurriumPrototype(ABC):
                 **custom_and_main_kwargs,
             )
 
-        runned_exp_id = self.exps[exp_id].run(
-            new_backend=new_backend,
-            revive=revive,
-            replace_circuits=replace_circuits,
-            pbar=pbar,
-        )
+        runned_exp_id = self.exps[exp_id].run(pbar=pbar)
 
         resulted_exp_id = self.exps[runned_exp_id].result(
             export=export,

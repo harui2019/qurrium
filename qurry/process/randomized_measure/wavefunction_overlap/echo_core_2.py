@@ -1,10 +1,8 @@
 """
 =========================================================================================
-Postprocessing - Randomized Measure - Entangled Entropy - Core 2
-(:mod:`qurry.process.randomized_measure.entangled_entropy.entropy_core_2`)
+Postprocessing - Randomized Measure - Wavefunction Overlap - Echo Core 2
+(:mod:`qurry.process.randomized_measure.wavefunction_overlap.echo_core_2`)
 =========================================================================================
-
-This version introduces another way to process subsystems.
 
 """
 
@@ -13,7 +11,7 @@ import warnings
 from typing import Optional, Iterable
 import numpy as np
 
-from .purity_cell_2 import purity_cell_2_py, purity_cell_2_rust
+from .echo_cell_2 import echo_cell_2_py, echo_cell_2_rust
 from ...availability import (
     availablility,
     default_postprocessing_backend,
@@ -26,11 +24,10 @@ from ...exceptions import (
 )
 from ....tools import ParallelManager, workers_distribution
 
-
 try:
     from ....boorust import randomized  # type: ignore
 
-    entangled_entropy_core_2_rust_source = randomized.entangled_entropy_core_2_rust
+    overlap_echo_core_2_rust_source = randomized.overlap_echo_core_2_rust
 
     RUST_AVAILABLE = True
     FAILED_RUST_IMPORT = None
@@ -38,26 +35,30 @@ except ImportError as err:
     RUST_AVAILABLE = False
     FAILED_RUST_IMPORT = err
 
-    def entangled_entropy_core_2_rust_source(*args, **kwargs):
+    def overlap_echo_core_2_rust_source(*args, **kwargs):
         """Dummy function for entangled_entropy_core_rust."""
         raise PostProcessingRustImportError(
-            "Rust is not available, using python to calculate entangled entropy."
+            "Rust is not available, using python to calculate overlap echo."
         ) from FAILED_RUST_IMPORT
 
 
 BACKEND_AVAILABLE = availablility(
-    "randomized_measure.entangled_entropy.entropy_core_2",
+    "randomized_measure.wavefunction_overlap.echo_core_2",
     [
         ("Rust", RUST_AVAILABLE, FAILED_RUST_IMPORT),
         ("Cython", "Depr.", None),
     ],
 )
-DEFAULT_PROCESS_BACKEND = default_postprocessing_backend(RUST_AVAILABLE, False)
+DEFAULT_PROCESS_BACKEND = default_postprocessing_backend(
+    RUST_AVAILABLE,
+    False,
+)
 
 
-def entangled_entropy_core_2_pyrust(
+def overlap_echo_core_2_pyrust(
     shots: int,
-    counts: list[dict[str, int]],
+    first_counts: list[dict[str, int]],
+    second_counts: list[dict[str, int]],
     selected_classical_registers: Optional[Iterable[int]] = None,
     backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
 ) -> tuple[
@@ -66,12 +67,14 @@ def entangled_entropy_core_2_pyrust(
     str,
     float,
 ]:
-    """The core function of entangled entropy by Python or Rust for just purity cell part.
+    """The core function of wavefunction overlap by Python or Rust for just purity cell part.
 
     Args:
         shots (int):
             Shots of the experiment on quantum machine.
-        counts (list[dict[str, int]]):
+        first_counts (list[dict[str, int]]):
+            Counts of the experiment on quantum machine.
+        second_counts (list[dict[str, int]]):
             Counts of the experiment on quantum machine.
         selected_classical_registers (Optional[Iterable[int]], optional):
             The list of **the index of the selected_classical_registers**.
@@ -82,16 +85,36 @@ def entangled_entropy_core_2_pyrust(
         tuple[dict[int, np.float64], list[int], str, float]:
             Purity of each cell, Selected classical registers, Message, Time to calculate.
     """
+    assert len(first_counts) == len(second_counts), (
+        "The number of counts must be equal, "
+        + f"but the first counts is {len(first_counts)}, "
+        + f"and the second counts is {len(second_counts)}"
+    )
 
     # check shots
-    sample_shots = sum(counts[0].values())
-    assert sample_shots == shots, f"shots {shots} does not match sample_shots {sample_shots}"
+    sample_shots_01 = sum(first_counts[0].values())
+    sample_shots_02 = sum(second_counts[0].values())
+    for tmp01, tmp02, tmp01_name, tmp02_name in [
+        (sample_shots_01, shots, "first counts", "shots"),
+        (sample_shots_02, shots, "second counts", "shots"),
+        (sample_shots_01, sample_shots_02, "first counts", "second counts"),
+    ]:
+        assert tmp01 == tmp02, (
+            "The number of shots must be equal, "
+            + f"but the {tmp01_name} is {tmp01}, and the {tmp02_name} is {tmp02}"
+        )
 
     # Determine worker number
     launch_worker = workers_distribution()
 
     # Determine subsystem size
-    measured_system_size = len(list(counts[0].keys())[0])
+    measured_system_size = len(list(first_counts[0].keys())[0])
+    measured_system_size_02 = len(list(second_counts[0].keys())[0])
+    assert measured_system_size == measured_system_size_02, (
+        "The number of bitstrings must be equal, "
+        + f"but the first counts is {measured_system_size}, "
+        + f"and the second counts is {measured_system_size_02}",
+    )
 
     if selected_classical_registers is None:
         selected_classical_registers = list(range(measured_system_size))
@@ -100,6 +123,8 @@ def entangled_entropy_core_2_pyrust(
             "selected_classical_registers should be Iterable, "
             + f"but get {type(selected_classical_registers)}"
         )
+    else:
+        selected_classical_registers = list(selected_classical_registers)
     # dummy_list = range(measured_system_size)
     # selected_classical_registers_actual = [
     # dummy_list[c_i] for c_i in selected_classical_registers]
@@ -115,6 +140,8 @@ def entangled_entropy_core_2_pyrust(
     ), f"Invalid selected classical registers: {selected_classical_registers}"
     msg = f"| Selected classical registers: {selected_classical_registers}"
 
+    counts_pair = list(zip(first_counts, second_counts))
+
     begin = time.time()
 
     if backend == "Cython":
@@ -123,25 +150,26 @@ def entangled_entropy_core_2_pyrust(
             PostProcessingBackendDeprecatedWarning,
         )
         backend = DEFAULT_PROCESS_BACKEND
-    cell_calculation = purity_cell_2_rust if backend == "Rust" else purity_cell_2_py
+    cell_calculation = echo_cell_2_rust if backend == "Rust" else echo_cell_2_py
 
     pool = ParallelManager(launch_worker)
-    purity_cell_result_list = pool.starmap(
+    echo_cell_result_list = pool.starmap(
         cell_calculation,
-        [(i, c, selected_classical_registers) for i, c in enumerate(counts)],
+        [(i, c1, c2, selected_classical_registers) for i, (c1, c2) in enumerate(counts_pair)],
     )
+
     taken = round(time.time() - begin, 3)
 
     selected_classical_registers_sorted = sorted(selected_classical_registers, reverse=True)
 
-    purity_cell_dict: dict[int, np.float64] = {}
+    echo_cell_dict: dict[int, np.float64] = {}
     selected_classical_registers_checked: dict[int, bool] = {}
     for (
         idx,
-        purity_cell_value,
+        echo_cell_value,
         selected_classical_registers_sorted_result,
-    ) in purity_cell_result_list:
-        purity_cell_dict[idx] = purity_cell_value
+    ) in echo_cell_result_list:
+        echo_cell_dict[idx] = echo_cell_value
         if selected_classical_registers_sorted_result != selected_classical_registers_sorted:
             selected_classical_registers_checked[idx] = False
 
@@ -152,12 +180,13 @@ def entangled_entropy_core_2_pyrust(
             RuntimeWarning,
         )
 
-    return purity_cell_dict, selected_classical_registers_sorted, msg, taken
+    return echo_cell_dict, selected_classical_registers_sorted, msg, taken
 
 
-def entangled_entropy_core_2_allrust(
+def overlap_echo_core_2_allrust(
     shots: int,
-    counts: list[dict[str, int]],
+    first_counts: list[dict[str, int]],
+    second_counts: list[dict[str, int]],
     selected_classical_registers: Optional[Iterable[int]] = None,
 ) -> tuple[
     dict[int, np.float64],
@@ -165,24 +194,27 @@ def entangled_entropy_core_2_allrust(
     str,
     float,
 ]:
-    """The core function of entangled entropy by Rust for just purity cell part.
+    """The core function of wavefunction overlap by Rust for just purity cell part.
 
     Args:
         shots (int):
             Shots of the experiment on quantum machine.
-        counts (list[dict[str, int]]):
+        first_counts (list[dict[str, int]]):
+            Counts of the experiment on quantum machine.
+        second_counts (list[dict[str, int]]):
             Counts of the experiment on quantum machine.
         selected_classical_registers (Optional[Iterable[int]], optional):
             The list of **the index of the selected_classical_registers**.
 
     Returns:
         tuple[dict[int, np.float64], list[int], str, float]:
-            Purity of each cell, Selected qubits, Message, Time to calculate.
+            Purity of each cell, Selected classical registers, Message, Time to calculate.
     """
 
-    return entangled_entropy_core_2_rust_source(
+    return overlap_echo_core_2_rust_source(
         shots,
-        counts,
+        first_counts,
+        second_counts,
         (
             selected_classical_registers
             if selected_classical_registers is None
@@ -191,9 +223,10 @@ def entangled_entropy_core_2_allrust(
     )
 
 
-def entangled_entropy_core_2(
+def overlap_echo_core_2(
     shots: int,
-    counts: list[dict[str, int]],
+    first_counts: list[dict[str, int]],
+    second_counts: list[dict[str, int]],
     selected_classical_registers: Optional[Iterable[int]] = None,
     backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
 ) -> tuple[
@@ -202,12 +235,14 @@ def entangled_entropy_core_2(
     str,
     float,
 ]:
-    """The core function of entangled entropy.
+    """The core function of wavefunction overlap for just purity cell part.
 
     Args:
         shots (int):
             Shots of the experiment on quantum machine.
-        counts (list[dict[str, int]]):
+        first_counts (list[dict[str, int]]):
+            Counts of the experiment on quantum machine.
+        second_counts (list[dict[str, int]]):
             Counts of the experiment on quantum machine.
         selected_classical_registers (Optional[Iterable[int]], optional):
             The list of **the index of the selected_classical_registers**.
@@ -216,24 +251,28 @@ def entangled_entropy_core_2(
 
     Returns:
         tuple[dict[int, np.float64], list[int], str, float]:
-            Purity of each cell, Selected qubits, Message, Time to calculate.
+            Purity of each cell, Selected classical registers, Message, Time to calculate.
     """
 
     if backend == "Cython":
         warnings.warn(
-            f"The Cython is deprecated, using {DEFAULT_PROCESS_BACKEND} to calculate purity cell.",
+            "Cython backend is deprecated, using Python or Rust to calculate purity cell.",
             PostProcessingBackendDeprecatedWarning,
         )
         backend = DEFAULT_PROCESS_BACKEND
 
     if backend == "Rust":
         if RUST_AVAILABLE:
-            return entangled_entropy_core_2_allrust(shots, counts, selected_classical_registers)
+            return overlap_echo_core_2_allrust(
+                shots, first_counts, second_counts, selected_classical_registers
+            )
+        backend = "Python"
         warnings.warn(
-            "Rust is not available, using Python to calculate purity cell."
-            + f"Check the error: {FAILED_RUST_IMPORT}",
+            f"Rust is not available, using {backend} to calculate purity cell."
+            + f" Check the error: {FAILED_RUST_IMPORT}",
             PostProcessingRustUnavailableWarning,
         )
-        backend = "Python"
 
-    return entangled_entropy_core_2_pyrust(shots, counts, selected_classical_registers, backend)
+    return overlap_echo_core_2_pyrust(
+        shots, first_counts, second_counts, selected_classical_registers, backend
+    )
