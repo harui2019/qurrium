@@ -19,7 +19,7 @@ def EchoListen(*args, method: Literal["hadamard"], **kwargs) -> EchoListenHadama
 
 
 @overload
-def EchoListen(*args, method: Literal["randomized_v1"], **kwargs) -> EchoListenHadamard: ...
+def EchoListen(*args, method: Literal["randomized_v1"], **kwargs) -> EchoListenRandomizedV1: ...
 
 
 @overload
@@ -59,7 +59,7 @@ def WaveFunctionOverlap(*args, method: Literal["hadamard"], **kwargs) -> EchoLis
 @overload
 def WaveFunctionOverlap(
     *args, method: Literal["randomized_v1"], **kwargs
-) -> EchoListenHadamard: ...
+) -> EchoListenRandomizedV1: ...
 
 
 @overload
