@@ -125,7 +125,7 @@ def test_multi_output_01():
     answer_list = [answer[k] for k in wave_adds_01[:3]]
 
     summoner_id = exp_method_01.multiOutput(
-        config_list,
+        config_list,  # type: ignore
         backend=backend,
         summoner_name="qurrent_hadamard",
         save_location=os.path.join(os.path.dirname(__file__), "exports"),
@@ -170,15 +170,11 @@ def test_quantity_02(tgt):
         random_unitary_seeds={i: random_unitary_seeds[seed_usage[tgt]][i] for i in range(20)},
         backend=backend,
     )
-    analysis_01 = exp_method_02.exps[exp_id].analyze(list(range(int(tgt.split("-")[0])))[-2:])
+    analysis_01 = exp_method_02.exps[exp_id].analyze(range(-2, 0))
     quantity_01 = analysis_01.content._asdict()
-    analysis_02 = exp_method_02.exps[exp_id].analyze(
-        list(range(int(tgt.split("-")[0])))[-2:], counts_used=range(5)
-    )
+    analysis_02 = exp_method_02.exps[exp_id].analyze(range(-2, 0), counts_used=range(5))
     quantity_02 = analysis_02.content._asdict()
-    analysis_03 = exp_method_02.exps[exp_id].analyze(
-        list(range(int(tgt.split("-")[0])))[-2:], counts_used=range(5)
-    )
+    analysis_03 = exp_method_02.exps[exp_id].analyze(range(-2, 0), counts_used=range(5))
     quantity_03 = analysis_03.content._asdict()
 
     assert all(
@@ -224,7 +220,7 @@ def test_multi_output_02():
     answer_list = [answer[k] for k in wave_adds_02[:3]]
 
     summoner_id = exp_method_02.multiOutput(
-        config_list,
+        config_list,  # type: ignore
         shots=4096,
         backend=backend,
         summoner_name="qurrent_randomized",
@@ -234,7 +230,7 @@ def test_multi_output_02():
         summoner_id,
         specific_analysis_args={
             ck: {
-                "selected_qubits": list(range(int(wk.split("-")[0])))[-2:],
+                "selected_qubits": range(-2, 0),
             }
             for wk, ck in zip(
                 wave_adds_02[:3],
@@ -331,7 +327,7 @@ def test_multi_output_03():
     answer_list = [answer[k] for k in wave_adds_03[:3]]
 
     summoner_id = exp_method_03.multiOutput(
-        config_list,
+        config_list,  # type: ignore
         shots=4096,
         backend=backend,
         summoner_name="qurrent_randomized",
