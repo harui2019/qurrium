@@ -6,7 +6,7 @@ EchoListenRandomized - Arguments
 
 """
 
-from typing import Optional, Union, Iterable
+from typing import Optional, Union, Iterable, Any
 from collections.abc import Hashable
 from dataclasses import dataclass
 
@@ -17,6 +17,7 @@ from ...qurrium.experiment import ArgumentsPrototype
 from ...process.randomized_measure.wavefunction_overlap import (
     PostProcessingBackendLabel,
 )
+from ...tools import backend_name_getter
 from ...declare import BasicArgs, OutputArgs, AnalyzeArgs
 
 
@@ -123,6 +124,17 @@ class EchoListenRandomizedArguments(ArgumentsPrototype):
         from qurry.qurrium.utils.random_unitary import generate_random_unitary_seeds
         random_unitary_seeds = generate_random_unitary_seeds(100, 2)
     """
+
+    def _asdict(self) -> dict[str, Any]:
+        """The arguments as dictionary."""
+        tmp = self.__dict__.copy()
+        if isinstance(self.second_backend, Backend):
+            tmp["second_backend"] = backend_name_getter(self.second_backend)
+        elif isinstance(self.second_backend, str):
+            tmp["second_backend"] = self.second_backend
+        else:
+            tmp["second_backend"] = None
+        return tmp
 
 
 class EchoListenRandomizedMeasureArgs(BasicArgs, total=False):
