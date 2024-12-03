@@ -178,10 +178,17 @@ def trace_rho_square_core(
 
     num_n_u = len(rho_m_dict)
     rho_traced_sum = 0
+    num_n_u_combinations = 0
 
     rho_m_dict_combinations = combinations(rho_m_dict.items(), 2)
     for (_idx1, rho_m1), (_idx2, rho_m2) in rho_m_dict_combinations:
-        rho_traced_sum += np.trace(np.dot(rho_m1, rho_m2))
+        rho_traced_sum += np.trace((rho_m1 @ rho_m2))
+        rho_traced_sum += np.trace((rho_m2 @ rho_m1))
+        num_n_u_combinations += 2
+    assert num_n_u_combinations == num_n_u * (num_n_u - 1), (
+        f"The number of combinations: {num_n_u_combinations} "
+        + f"and the number of rho_m_dict: {num_n_u} are different."
+    )
     rho_traced_sum /= num_n_u * (num_n_u - 1)
 
     return rho_traced_sum
@@ -240,7 +247,7 @@ def trace_rho_square(
         pbar.set_description(msg)
 
     trace_rho_sum = trace_rho_square_core(rho_m_dict=rho_m_dict)
-    entropy = -np.log2(trace_rho_sum, dtype=np.float64)
+    entropy = -np.log2(trace_rho_sum)
 
     return ClassicalShadowPurity(
         purity=trace_rho_sum,
@@ -322,7 +329,7 @@ def classical_shadow_complex(
     )
 
     trace_rho_sum = trace_rho_square_core(rho_m_dict=rho_m_dict)
-    entropy = -np.log2(trace_rho_sum, dtype=np.float64)
+    entropy = -np.log2(trace_rho_sum)
 
     return ClassicalShadowComplex(
         expect_rho=expect_rho,
