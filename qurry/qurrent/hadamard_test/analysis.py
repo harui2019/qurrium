@@ -15,8 +15,7 @@ from ...process.hadamard_test import hadamard_entangled_entropy
 class EntropyMeasureHadamardAnalysis(AnalysisPrototype):
     """The instance for the analysis of :cls:`EntropyHadamardExperiment`."""
 
-    __name__ = "qurrentHadamard.Analysis"
-    shortName = "qurrent_hadamard.report"
+    __name__ = "EntropyMeasureHadamardAnalysis"
 
     class AnalysisInput(NamedTuple):
         """To set the analysis."""

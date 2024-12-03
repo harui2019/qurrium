@@ -14,8 +14,7 @@ from ...qurrium.analysis import AnalysisPrototype
 class EchoListenRandomizedAnalysis(AnalysisPrototype):
     """The analysis of loschmidt echo."""
 
-    __name__ = "qurrechRandomized.Analysis"
-    shortName = "qurrech_haar.report"
+    __name__ = "EchoListenRandomizedAnalysis"
 
     class AnalysisInput(NamedTuple):
         """To set the analysis."""
