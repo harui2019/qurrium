@@ -6,7 +6,7 @@ Postprocessing - Classical Shadow - Classical Shadow
 
 """
 
-from typing import Literal, Union, Optional, TypedDict
+from typing import Literal, Union, Optional, TypedDict, Iterable
 import warnings
 from itertools import combinations
 import tqdm
@@ -41,9 +41,9 @@ class ClassicalShadowBasic(TypedDict):
         int, dict[int, np.ndarray[tuple[Literal[2], Literal[2]], np.dtype[np.complex128]]]
     ]
     """The dictionary of Rho M I."""
-    selected_classical_registers_sorted: list[int]
+    classical_registers_actually: list[int]
     """The list of the selected_classical_registers."""
-    taken: float
+    taking_time: float
     """The time taken for the calculation."""
 
 
@@ -89,7 +89,7 @@ def expectation_rho(
     shots: int,
     counts: list[dict[str, int]],
     random_unitary_um: dict[int, dict[int, Union[Literal[0, 1, 2], int]]],
-    selected_classical_registers: list[int],
+    selected_classical_registers: Iterable[int],
     backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
     pbar: Optional[tqdm.tqdm] = None,
 ) -> ClassicalShadowExpectation:
@@ -102,7 +102,7 @@ def expectation_rho(
             The list of the counts.
         random_unitary_um (dict[int, dict[int, Union[Literal[0, 1, 2], int]]]):
             The shadow direction of the unitary operators.
-        selected_classical_registers (list[int]):
+        selected_classical_registers (Iterable[int]):
             The list of **the index of the selected_classical_registers**.
         backend (PostProcessingBackendLabel, optional):
             The backend for the postprocessing.
@@ -120,6 +120,13 @@ def expectation_rho(
             "Rust is not available, using python to calculate classical shadow.",
         )
         backend = "Python"
+    if isinstance(selected_classical_registers, Iterable):
+        selected_classical_registers = list(selected_classical_registers)
+    else:
+        raise TypeError(
+            "The selected_classical_registers should be Iterable, "
+            + f"not {type(selected_classical_registers)}."
+        )
 
     rho_m_dict, rho_m_i_dict, selected_classical_registers_sorted, msg, taken = rho_m_core_py(
         shots,
@@ -142,8 +149,8 @@ def expectation_rho(
         expect_rho=expect_rho,
         rho_m_dict=rho_m_dict,
         rho_m_i_dict=rho_m_i_dict,
-        selected_classical_registers_sorted=selected_classical_registers_sorted,
-        taken=taken,
+        classical_registers_actually=selected_classical_registers_sorted,
+        taking_time=taken,
     )
 
 
@@ -152,6 +159,8 @@ class ClassicalShadowPurity(ClassicalShadowBasic):
 
     purity: float
     """The purity calculated by classical shadow."""
+    entropy: float
+    """The entropy calculated by classical shadow."""
 
 
 def trace_rho_square_core(
@@ -182,15 +191,27 @@ def trace_rho_square(
     shots: int,
     counts: list[dict[str, int]],
     random_unitary_um: dict[int, dict[int, Union[Literal[0, 1, 2], int]]],
-    selected_classical_registers: list[int],
+    selected_classical_registers: Iterable[int],
     backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
     pbar: Optional[tqdm.tqdm] = None,
 ) -> ClassicalShadowPurity:
     """Trace of Rho square.
 
     Args:
-        expect_rho (np.ndarray[tuple[int, int], np.dtype[np.complex128]]):
-            The expectation value of Rho.
+        shots (int):
+            The number of shots.
+        counts (list[dict[str, int]]):
+            The list of the counts.
+        random_unitary_um (dict[int, dict[int, Union[Literal[0, 1, 2], int]]]):
+            The shadow direction of the unitary operators.
+        selected_classical_registers (Iterable[int]):
+            The list of **the index of the selected_classical_registers**.
+        backend (PostProcessingBackendLabel, optional):
+            The backend for the postprocessing.
+            Defaults to DEFAULT_PROCESS_BACKEND.
+        pbar (Optional[tqdm.tqdm], optional):
+            The progress bar.
+            Defaults to None.
 
     Returns:
         float: The trace of Rho.
@@ -201,6 +222,13 @@ def trace_rho_square(
             "Rust is not available, using python to calculate classical shadow.",
         )
         backend = "Python"
+    if isinstance(selected_classical_registers, Iterable):
+        selected_classical_registers = list(selected_classical_registers)
+    else:
+        raise TypeError(
+            "The selected_classical_registers should be Iterable, "
+            + f"not {type(selected_classical_registers)}."
+        )
 
     rho_m_dict, rho_m_i_dict, selected_classical_registers_sorted, msg, taken = rho_m_core_py(
         shots,
@@ -211,14 +239,16 @@ def trace_rho_square(
     if pbar is not None:
         pbar.set_description(msg)
 
-    rho_traced_sum = trace_rho_square_core(rho_m_dict=rho_m_dict)
+    trace_rho_sum = trace_rho_square_core(rho_m_dict=rho_m_dict)
+    entropy = -np.log2(trace_rho_sum, dtype=np.float64)
 
     return ClassicalShadowPurity(
-        purity=rho_traced_sum,
+        purity=trace_rho_sum,
+        entropy=entropy,
         rho_m_dict=rho_m_dict,
         rho_m_i_dict=rho_m_i_dict,
-        selected_classical_registers_sorted=selected_classical_registers_sorted,
-        taken=taken,
+        classical_registers_actually=selected_classical_registers_sorted,
+        taking_time=taken,
     )
 
 
@@ -229,13 +259,15 @@ class ClassicalShadowComplex(ClassicalShadowBasic):
     """The expectation value of Rho."""
     purity: float
     """The purity calculated by classical shadow."""
+    entropy: float
+    """The entropy calculated by classical shadow."""
 
 
 def classical_shadow_complex(
     shots: int,
     counts: list[dict[str, int]],
     random_unitary_um: dict[int, dict[int, Union[Literal[0, 1, 2], int]]],
-    selected_classical_registers: list[int],
+    selected_classical_registers: Iterable[int],
     backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
     pbar: Optional[tqdm.tqdm] = None,
 ) -> ClassicalShadowComplex:
@@ -248,7 +280,7 @@ def classical_shadow_complex(
             The list of the counts.
         random_unitary_um (dict[int, dict[int, Union[Literal[0, 1, 2], int]]]):
             The shadow direction of the unitary operators.
-        selected_classical_registers (list[int]):
+        selected_classical_registers (Iterable[int]):
             The list of **the index of the selected_classical_registers**.
         backend (PostProcessingBackendLabel, optional):
             The backend for the postprocessing.
@@ -267,6 +299,13 @@ def classical_shadow_complex(
             "Rust is not available, using python to calculate classical shadow.",
         )
         backend = "Python"
+    if isinstance(selected_classical_registers, Iterable):
+        selected_classical_registers = list(selected_classical_registers)
+    else:
+        raise TypeError(
+            "The selected_classical_registers should be Iterable, "
+            + f"not {type(selected_classical_registers)}."
+        )
 
     rho_m_dict, rho_m_i_dict, selected_classical_registers_sorted, msg, taken = rho_m_core_py(
         shots,
@@ -283,12 +322,14 @@ def classical_shadow_complex(
     )
 
     trace_rho_sum = trace_rho_square_core(rho_m_dict=rho_m_dict)
+    entropy = -np.log2(trace_rho_sum, dtype=np.float64)
 
     return ClassicalShadowComplex(
         expect_rho=expect_rho,
         purity=trace_rho_sum,
+        entropy=entropy,
         rho_m_dict=rho_m_dict,
         rho_m_i_dict=rho_m_i_dict,
-        selected_classical_registers_sorted=selected_classical_registers_sorted,
-        taken=taken,
+        classical_registers_actually=selected_classical_registers_sorted,
+        taking_time=taken,
     )
