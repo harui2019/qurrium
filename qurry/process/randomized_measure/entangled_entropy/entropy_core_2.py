@@ -10,7 +10,7 @@ This version introduces another way to process subsystems.
 
 import time
 import warnings
-from typing import Optional
+from typing import Optional, Iterable
 import numpy as np
 
 from .purity_cell_2 import purity_cell_2_py, purity_cell_2_rust
@@ -58,7 +58,7 @@ DEFAULT_PROCESS_BACKEND = default_postprocessing_backend(RUST_AVAILABLE, False)
 def entangled_entropy_core_2_pyrust(
     shots: int,
     counts: list[dict[str, int]],
-    selected_classical_registers: Optional[list[int]] = None,
+    selected_classical_registers: Optional[Iterable[int]] = None,
     backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
 ) -> tuple[
     dict[int, np.float64],
@@ -73,7 +73,7 @@ def entangled_entropy_core_2_pyrust(
             Shots of the experiment on quantum machine.
         counts (list[dict[str, int]]):
             Counts of the experiment on quantum machine.
-        selected_classical_registers (Optional[list[int]], optional):
+        selected_classical_registers (Optional[Iterable[int]], optional):
             The list of **the index of the selected_classical_registers**.
         backend (ExistingProcessBackendLabel, optional):
             Backend for the process. Defaults to DEFAULT_PROCESS_BACKEND.
@@ -95,11 +95,21 @@ def entangled_entropy_core_2_pyrust(
 
     if selected_classical_registers is None:
         selected_classical_registers = list(range(measured_system_size))
-    elif not isinstance(selected_classical_registers, list):
+    elif not isinstance(selected_classical_registers, Iterable):
         raise ValueError(
-            "selected_classical_registers should be list, "
+            "selected_classical_registers should be Iterable, "
             + f"but get {type(selected_classical_registers)}"
         )
+    # dummy_list = range(measured_system_size)
+    # selected_classical_registers_actual = [
+    # dummy_list[c_i] for c_i in selected_classical_registers]
+    # assert len(selected_classical_registers_actual) == len(
+    #     set(selected_classical_registers_actual)
+    # ), (
+    #     "The selected_classical_registers should not have duplicated values, "
+    #     + f"but get {selected_classical_registers_actual} from {selected_classical_registers}"
+    # )
+    # msg = f"| Selected qubits: {selected_classical_registers_actual}"
     assert all(
         0 <= q_i < measured_system_size for q_i in selected_classical_registers
     ), f"Invalid selected classical registers: {selected_classical_registers}"
@@ -148,7 +158,7 @@ def entangled_entropy_core_2_pyrust(
 def entangled_entropy_core_2_allrust(
     shots: int,
     counts: list[dict[str, int]],
-    selected_classical_registers: Optional[list[int]] = None,
+    selected_classical_registers: Optional[Iterable[int]] = None,
 ) -> tuple[
     dict[int, np.float64],
     list[int],
@@ -162,7 +172,7 @@ def entangled_entropy_core_2_allrust(
             Shots of the experiment on quantum machine.
         counts (list[dict[str, int]]):
             Counts of the experiment on quantum machine.
-        selected_classical_registers (Optional[list[int]], optional):
+        selected_classical_registers (Optional[Iterable[int]], optional):
             The list of **the index of the selected_classical_registers**.
 
     Returns:
@@ -170,13 +180,21 @@ def entangled_entropy_core_2_allrust(
             Purity of each cell, Selected qubits, Message, Time to calculate.
     """
 
-    return entangled_entropy_core_2_rust_source(shots, counts, selected_classical_registers)
+    return entangled_entropy_core_2_rust_source(
+        shots,
+        counts,
+        (
+            selected_classical_registers
+            if selected_classical_registers is None
+            else list(selected_classical_registers)
+        ),
+    )
 
 
 def entangled_entropy_core_2(
     shots: int,
     counts: list[dict[str, int]],
-    selected_classical_registers: Optional[list[int]] = None,
+    selected_classical_registers: Optional[Iterable[int]] = None,
     backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
 ) -> tuple[
     dict[int, np.float64],
@@ -191,7 +209,7 @@ def entangled_entropy_core_2(
             Shots of the experiment on quantum machine.
         counts (list[dict[str, int]]):
             Counts of the experiment on quantum machine.
-        selected_classical_registers (Optional[list[int]], optional):
+        selected_classical_registers (Optional[Iterable[int]], optional):
             The list of **the index of the selected_classical_registers**.
         backend (ExistingProcessBackendLabel, optional):
             Backend for the process. Defaults to DEFAULT_PROCESS_BACKEND.

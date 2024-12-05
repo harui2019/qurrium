@@ -20,8 +20,11 @@ from qurry.process.randomized_measure.entangled_entropy_v1.entangled_entropy imp
 from qurry.process.randomized_measure.entangled_entropy.entangled_entropy_2 import (
     entangled_entropy_core_2,
 )
-from qurry.process.randomized_measure.wavefunction_overlap.wavefunction_overlap import (
+from qurry.process.randomized_measure.wavefunction_overlap_v1.wavefunction_overlap import (
     overlap_echo_core,
+)
+from qurry.process.randomized_measure.wavefunction_overlap.wavefunction_overlap_2 import (
+    overlap_echo_core_2,
 )
 
 
@@ -146,14 +149,91 @@ def test_overlap_echo_core(
     """Test the overlap_echo_core function."""
 
     assert rust_available_randomized, "Rust is not available."
+
+    selected_classical_registers = sorted(
+        list(range(*test_items[3]))
+        if test_items[2] is None
+        else (
+            [
+                test_items[3][1] - i % test_items[3][1] - 1
+                for i in range(
+                    *(
+                        test_items[2]
+                        if test_items[2][0] < test_items[2][1]
+                        else tuple(ci % test_items[3][1] for ci in test_items[2])
+                    )
+                )
+            ]
+            if isinstance(test_items[2], tuple)
+            else list(range(test_items[2]))
+        )
+    )
+    selected_classical_registers_by_cycling = sorted(
+        list(range(test_items[3][1] - 1, test_items[3][0] - 1, -1))
+        if test_items[2] is None
+        else (
+            cycling_slice(
+                list(range(test_items[3][1] - 1, test_items[3][0] - 1, -1)),
+                test_items[2][0],
+                test_items[2][1],
+            )
+            if isinstance(test_items[2], tuple)
+            else list(range(test_items[2]))
+        )
+    )
     py = overlap_echo_core(*test_items, backend="Python")
+    py_2 = overlap_echo_core_2(
+        test_items[0],
+        test_items[1],
+        test_items[1],
+        selected_classical_registers,
+        backend="Python",
+    )
     rust = overlap_echo_core(*test_items, backend="Rust")
+    rust_2 = overlap_echo_core_2(
+        test_items[0],
+        test_items[1],
+        test_items[1],
+        selected_classical_registers,
+        backend="Rust",
+    )
 
     py_result = np.average(np.array(list(py[0].values())))
     rust_result = np.average(np.array(list(rust[0].values())))
+    py_2_result = np.average(np.array(list(py_2[0].values())))
+    rust_2_result = np.average(np.array(list(rust_2[0].values())))
 
-    assert np.abs(py_result - rust_result) < 1e-12, (
+    assert np.abs(py_result - py_2_result) < 1e-12, (
+        "New Python and Python results are not equal in overlap_echo_core: "
+        + f"py_2: {py_2_result}, py: {py_result} - "
+        + f"py_2: {py_2[1]}, py: {py[1]}, {py[2]}"
+    )
+    assert np.abs(rust_result - py_result) < 1e-12, (
         "Rust and Python results are not equal in overlap_echo_core: "
         + f"rust: {rust_result}, py: {py_result} - "
-        + f"rust: {rust[1]}, {rust[2]}, py: {py[1]}, {py[2]}"
+        + f"rust: {rust[1]}, py: {py[1]}, {py[2]}"
+    )
+    assert np.abs(rust_2_result - py_2_result) < 1e-12, (
+        "New Rust and New Python results are not equal in overlap_echo_core: "
+        + f"rust_2: {rust_2_result}, py_2: {py_2_result} - "
+        + f"rust_2: {rust_2[1]}, py_2: {py_2[1]}"
+    )
+    assert np.abs(rust_result - rust_2_result) < 1e-12, (
+        "Rust and New Rust results are not equal in overlap_echo_core: "
+        + f"rust: {rust_result}, rust_2: {rust_2_result} - "
+        + f"rust: {rust[1]}, {rust[2]} rust_2: {rust_2[1]}"
+    )
+    assert np.abs(py_result - rust_2_result) < 1e-12, (
+        "Python and New Rust results are not equal in overlap_echo_core: "
+        + f"py: {py_result}, rust_2: {rust_2_result} - "
+        + f"py: {py[1]}, {py[2]} rust_2: {rust_2[1]}"
+    )
+    assert np.abs(py_2_result - rust_result) < 1e-12, (
+        "New Python and Rust results are not equal in overlap_echo_core: "
+        + f"py_2: {py_2_result}, rust: {rust_result} - "
+        + f"py_2: {py_2[1]}, rust: {rust[1]}, {rust[2]}"
+    )
+    assert selected_classical_registers == selected_classical_registers_by_cycling, (
+        f"selected_classical_registers: {selected_classical_registers} != "
+        + f"selected_classical_registers_by_cycling: {selected_classical_registers_by_cycling}"
     )

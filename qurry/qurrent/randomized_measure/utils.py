@@ -7,7 +7,7 @@ EntropyMeasureRandomized - Utility
 """
 
 from typing import Optional
-from collections.abc import Hashable
+from collections.abc import Hashable, Iterable
 import tqdm
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
@@ -28,7 +28,7 @@ from ...process.randomized_measure.entangled_entropy import (
 def randomized_entangled_entropy_complex(
     shots: int,
     counts: list[dict[str, int]],
-    selected_classical_registers: Optional[list[int]] = None,
+    selected_classical_registers: Optional[Iterable[int]] = None,
     all_system_source: Optional[EntropyMeasureRandomizedAnalysis] = None,
     backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
     pbar: Optional[tqdm.tqdm] = None,
@@ -40,7 +40,7 @@ def randomized_entangled_entropy_complex(
             The number of shots.
         counts (list[dict[str, int]]):
             The counts of the experiment.
-        selected_classical_registers (Optional[list[int]], optional):
+        selected_classical_registers (Optional[Iterable[int]], optional):
             The selected classical registers. Defaults to None.
         all_system_source (Optional[EntropyRandomizedAnalysis], optional):
             The source of all system. Defaults to None.
@@ -127,8 +127,8 @@ def circuit_method_core(
     qc_exp1.compose(target_circuit, [q_func1[i] for i in range(num_qubits)], inplace=True)
 
     qc_exp1.barrier()
-    for qj, opertor in single_unitary_dict.items():
-        qc_exp1.append(opertor.to_instruction(), [qj])
+    for qi, opertor in single_unitary_dict.items():
+        qc_exp1.append(opertor.to_instruction(), [qi])
 
     for qi, ci in registers_mapping.items():
         qc_exp1.measure(q_func1[qi], c_meas1[ci])

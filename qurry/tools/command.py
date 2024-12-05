@@ -6,6 +6,8 @@ Command tools (:mod:`qurry.tools.command`)
 
 import os
 import warnings
+import platform
+import subprocess
 from typing import Optional
 
 from ..exceptions import QurryImportWarning
@@ -30,7 +32,7 @@ def cmd_wrapper(cmd: str = "") -> None:
 
 
 def pytorch_cuda_check() -> Optional[bool]:
-    """Via pytorch to check Nvidia CUDA available.
+    """Via pytorch to check the availability of Nvidia CUDA.
 
     Returns:
         bool: Available of CUDA by pytorch if pytorch is available, else 'None'.
@@ -41,7 +43,7 @@ def pytorch_cuda_check() -> Optional[bool]:
 
         # pylint: disable=import-outside-toplevel
 
-        print(f" - Torch CUDA available --------- {torch.cuda.is_available()}")
+        print(f" - CUDA availability check by Torch --------- {torch.cuda.is_available()}")
         print(
             ">>> Using torch "
             + " ".join(
@@ -59,3 +61,32 @@ def pytorch_cuda_check() -> Optional[bool]:
             category=QurryImportWarning,
         )
         return None
+
+
+def fun_platform_check():
+    """Check platform information."""
+
+    platform_uname = platform.uname()
+    if platform_uname.system == "Linux":
+        try:
+            uname_all_read = subprocess.check_output(["uname", "-a"]).strip()
+            uname_all_read = uname_all_read.decode("utf-8")
+            uname_all_split = uname_all_read.split("\n")
+            uname_all = uname_all_split[0]
+        # pylint: disable=broad-except
+        except Exception:
+            uname_all = platform_uname.version
+        # pylint: enable=broad-except
+    else:
+        uname_all = platform_uname.version
+
+    if "PRoot-Distro" in platform_uname.release:
+        print(f"| Whao! You are using '{platform_uname.release}' !!!")
+        print("| Is it on Termux on Android Phone or Tablet?")
+        print('| "The Quantum Computing Right At Your Fingertips" :smile:')
+
+        if "synology" in uname_all.lower():
+            print(f"| uname -a: '{uname_all}'")
+            print("| Seriously? You're running Quantum Computing on a Synology NAS?")
+            print('| "Your NAS can also perform Quantum Computing!" :smile:')
+            print("| You're a true geek! :smile:")

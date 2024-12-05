@@ -1,7 +1,7 @@
 """
 =========================================================================================
-Postprocessing - Randomized Measure - Wavefunction Overlap - Echo Core
-(:mod:`qurry.process.randomized_measure.wavefunction_overlap.echo_core`)
+Postprocessing - Randomized Measure - Wavefunction Overlap V1 - Echo Core
+(:mod:`qurry.process.randomized_measure.wavefunction_overlap_v1.echo_core`)
 =========================================================================================
 
 """
@@ -44,7 +44,7 @@ except ImportError as err:
 
 
 BACKEND_AVAILABLE = availablility(
-    "randomized_measure.wavefunction_overlap",
+    "randomized_measure.wavefunction_overlap.echo_core",
     [
         ("Rust", RUST_AVAILABLE, FAILED_RUST_IMPORT),
         ("Cython", "Depr.", None),

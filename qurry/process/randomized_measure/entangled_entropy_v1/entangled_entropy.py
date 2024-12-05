@@ -20,7 +20,7 @@ from ..entangled_entropy.error_mitigation import depolarizing_error_mitgation
 from ...availability import PostProcessingBackendLabel
 
 
-def randomized_entangled_entropy_deprecated(
+def randomized_entangled_entropy_v1(
     shots: int,
     counts: list[dict[str, int]],
     degree: Optional[Union[tuple[int, int], int]],
@@ -154,7 +154,7 @@ def randomized_entangled_entropy_deprecated(
     return quantity
 
 
-def randomized_entangled_entropy_mitigated_deprecated(
+def randomized_entangled_entropy_mitigated_v1(
     shots: int,
     counts: list[dict[str, int]],
     degree: Optional[Union[tuple[int, int], int]],

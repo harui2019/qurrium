@@ -1,17 +1,14 @@
 ---
-name: Wheel Builds
+name: Wheel Builds Stable
 on:
   push:
-    # branches:
-    #   - main
-    #   - main-*
     tags:
       - 0.[0-9]+.[0-9]+
 
 jobs:
   build_wheels:
     if: github.repository == 'harui2019/qurry'
-    name: Build wheels on ${{matrix.vers}} by ${{ matrix.os }}/${{ matrix.archs }}
+    name: Build wheels on ${{ matrix.vers }} by ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -20,23 +17,18 @@ jobs:
           - vers: linux-x86_64
             os: ubuntu-latest
             archs: X64
-          - vers: macOS-x86_64 # Avaliability confirmed by act
+          # - vers: linux-aarch64
+          #   os: ubuntu-latest
+          #   archs: ARM64 # Corss-compiling in test
+          - vers: macOS-x86_64
             os: macos-13
             archs: X64
-          # - vers: linux-aarch64 # Avaliability confirmed by act
-          #   os: ubuntu-latest
-          #   archs: X64
-          # - vers: macOS-ARM64 # Avaliability confirmed by act
-          #   os: macos-latest
+          # - vers: macOS-arm64
+          #   os: macos-14
           #   archs: ARM64
-          # Disabled for runner setup is not completed
-          # See: https://github.com/harui2019/qurry/issues/200
-          # - vers: Windows-x86
+          # - vers: windows-x86_64
           #   os: windows-latest
           #   archs: X64
-          # - vers: Windows-arm64
-          #   os: windows-latest
-          #   archs: ARM64
     permissions:
       id-token: write # IMPORTANT: mandatory for trusted publishing
 
@@ -54,90 +46,65 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.10"
-        if: matrix.vers != 'macOS-ARM64'
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.10"
-          architecture: "arm64" # For MacOS ARM64
-        if: matrix.vers == 'macOS-ARM64'
-
-      # Set up
+          architecture: ${{ matrix.os == 'macos-14' && 'arm64' || 'x64' }}
       - name: MacOS Path Fix
         if: runner.os == 'macOS'
+        run: export PATH="$pythonLocation:$PATH"
+
+      - name: Reversion Stable
         run: |
-          export PATH="$pythonLocation:$PATH"
+          python -m pip install toml pep440
+          python ./tools/set_version.py --release stable
+          python ./tools/set_pyproject_qurry.py --release stable
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      # Set up
       - name: Set up QEMU
-        if: runner.os == 'Linux' && matrix.vers == 'linux-aarch64'
+        if: matrix.vers == 'linux-aarch64'
         uses: docker/setup-qemu-action@v3
         with:
           platforms: all
 
-      # Python Version and Architecture Check
-      - name: Python Version and Architecture Check
+      - name: Prepare CIBW
         run: |
-          python --version
-          python -c "from distutils import util; print(util.get_platform())"
-          python -c "import sys; print(sys.executable)"
-
-      - name: Install Rust
-        if: runner.os != 'Windows'
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Install Required Python Packages
-        run: |
-          python -m pip install --upgrade pip pipenv wheel
-          python -m pip install --upgrade auditwheel auditwheel-symbols
-          python -m pip install --upgrade setuptools_rust Cython setuptools toml wheel cibuildwheel
-
-      - name: Reversion Stable
-        run: python get_version.py --release stable
+          python -m pip install cibuildwheel==2.21.3 --upgrade
+          echo "| $(python -m pip --version)"
+          echo "| $(python -m pip list | grep cibuildwheel)"
+      # Hint:
+      # > Since we have some self-hosted runners,
+      # > some of them may not work with the github actions workflow of cibuildwheel.
+      # > Due to actions/setup-python@v5 cannot configure
+      # > the environment of self-hosted runners properly in most of the cases.
+      # > It made pypa/cibuildwheel@v2.21.3 can not install itself.
+      # > So, we only use command line to build.
 
       # Build wheels
-      - name: Build wheels on Linux of x86 series
-        if: runner.os == 'Linux' && matrix.archs == 'X64' && matrix.vers == 'linux-x86_64'
-        run: python -m cibuildwheel --output-dir wheelhouse
-
-      - name: Build wheels on MacOS of x86 series
-        if: runner.os == 'macOS' && matrix.archs == 'X64'
+      - name: Build wheels
+        if: matrix.vers != 'linux-aarch64'
         run: |
-          python -m cibuildwheel --output-dir wheelhouse --platform macos --archs x86_64
-        env:
-          CIBW_ARCHS_MACOS: x86_64
-
-      - name: Build wheels on Windows of x86 series
-        if: runner.os == 'Windows' && matrix.archs == 'X64'
-        run: python -m cibuildwheel --output-dir wheelhouse
-      # Attention: Windows runner requires Rust already installed
-      # For there is not reliable way to install Rust on Windows runner
-      # See: https://github.com/harui2019/qurry/issues/173
-
-      - name: Build wheels on Linux of aarch64 series
-        if: runner.os == 'Linux' && matrix.archs == 'ARM64' && matrix.vers == 'linux-aarch64'
-        uses: pypa/cibuildwheel@v2.21.3
-        env:
-          # configure cibuildwheel to build native archs ('auto'), and some
-          # emulated ones
-          CIBW_ARCHS_LINUX: aarch64
-
-      - name: Build wheels on MacOS of ARM series
-        if: runner.os == 'Linux' && matrix.archs == 'X64' && matrix.vers == 'linux-aarch64'
-        run: python -m cibuildwheel --output-dir wheelhouse --platform macos
+          python -m cibuildwheel --output-dir wheelhouse
+      - name: Build wheels (Linux aarch64)
+        if: matrix.vers == 'linux-aarch64'
+        run: |
+          python -m cibuildwheel --output-dir wheelhouse --platform linux --arch aarch64
 
       # Upload the wheelhouse as an artifact
       - name: Wheelhouse Upload
-        if: runner.os != 'Linux' || matrix.archs != 'X64' || matrix.vers != 'linux-x86_64'
+        if: matrix.vers != 'linux-x86_64'
         uses: actions/upload-artifact@v3
         with:
           path: ./wheelhouse/*.whl
           name: shared-wheel-builds
+
       - name: Early Publish distribution 📦 to PyPI for Linux X86_64
-        if: runner.os == 'Linux' && matrix.archs == 'X64' && matrix.vers == 'linux-aarch64'
+        if: matrix.vers == 'linux-x86_64'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: wheelhouse
 
-  publish-to-pypi:
+  publish-to-testpypi:
     if: github.repository == 'harui2019/qurry'
     name: Publish Python 🐍 distribution 📦 to PyPI
     runs-on: ubuntu-latest

@@ -15,8 +15,7 @@ from ...process.hadamard_test import hadamard_overlap_echo as overlap_echo
 class EchoListenHadamardAnalysis(AnalysisPrototype):
     """The analysis for calculating entangled entropy with more information combined."""
 
-    __name__ = "qurrechHadamard.Analysis"
-    shortName = "qurrech_hadamard.report"
+    __name__ = "EchoListenHadamardAnalysis"
 
     class AnalysisInput(NamedTuple):
         """To set the analysis."""

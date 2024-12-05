@@ -1,7 +1,7 @@
 """
 ===========================================================
 EntropyMeasureRandomizedV1 - Experiment
-(:mod:`qurry.qurrent.randomized_measure.experiment`)
+(:mod:`qurry.qurrent.randomized_measure_v1.experiment`)
 ===========================================================
 
 This is a deprecated version of the randomized measure module.
@@ -17,7 +17,7 @@ from qiskit import QuantumCircuit
 
 from .analysis import EntropyMeasureRandomizedV1Analysis
 from .arguments import EntropyMeasureRandomizedV1Arguments, SHORT_NAME
-from .utils import circuit_method_core, randomized_entangled_entropy_complex
+from .utils import circuit_method_core_v1, randomized_entangled_entropy_complex_v1
 from ...qurrium.experiment import ExperimentPrototype, Commonparams
 from ...qurrium.utils.randomized import (
     local_random_unitary_operators,
@@ -38,7 +38,7 @@ from ...exceptions import QurryArgumentsExpectedNotNone, QurryDeprecatedWarning
 class EntropyMeasureRandomizedV1Experiment(ExperimentPrototype):
     """The instance of experiment."""
 
-    __name__ = "EntropyMeasureRandomizedExperiment"
+    __name__ = "EntropyMeasureRandomizedV1Experiment"
 
     @property
     def arguments_instance(self) -> Type[EntropyMeasureRandomizedV1Arguments]:
@@ -80,26 +80,28 @@ class EntropyMeasureRandomizedV1Experiment(ExperimentPrototype):
                 The measure range. Defaults to None.
             unitary_loc (Optional[Union[tuple[int, int], int]]):
                 The range of the unitary operator. Defaults to None.
-            random_unitary_seeds (Optional[dict[int, dict[int, int]]]):
+            random_unitary_seeds (Optional[dict[int, dict[int, int]]], optional):
                 The seeds for all random unitary operator.
                 This argument only takes input as type of `dict[int, dict[int, int]]`.
                 The first key is the index for the random unitary operator.
                 The second key is the index for the qubit.
+
+                .. code-block:: python
+                    {
+                        0: {0: 1234, 1: 5678},
+                        1: {0: 2345, 1: 6789},
+                        2: {0: 3456, 1: 7890},
+                    }
+
                 If you want to generate the seeds for all random unitary operator,
                 you can use the function `generate_random_unitary_seeds`
                 in `qurry.qurrium.utils.random_unitary`.
+
+                .. code-block:: python
+                    from qurry.qurrium.utils.random_unitary import generate_random_unitary_seeds
+                    random_unitary_seeds = generate_random_unitary_seeds(100, 2)
             custom_kwargs (Any):
                 The custom parameters.
-
-        Example:
-            random_unitary_seeds (Optional[dict[int, dict[int, int]]]):
-                ```python
-                {
-                    0: {0: 1234, 1: 5678},
-                    1: {0: 2345, 1: 6789},
-                    2: {0: 3456, 1: 7890},
-                }
-                ```
 
         Raises:
             ValueError: If the number of targets is not one.
@@ -210,7 +212,7 @@ class EntropyMeasureRandomizedV1Experiment(ExperimentPrototype):
                 f"Building {arguments.times} circuits with {arguments.workers_num} workers."
             )
         circ_list = pool.starmap(
-            circuit_method_core,
+            circuit_method_core_v1,
             [
                 (
                     i,
@@ -375,84 +377,6 @@ class EntropyMeasureRandomizedV1Experiment(ExperimentPrototype):
     ) -> RandomizedEntangledEntropyMitigatedComplex:
         """Calculate entangled entropy.
 
-        - Which entropy:
-
-            The entropy we compute is the Second Order Rényi Entropy.
-
-        - Reference:
-
-            Probing Rényi entanglement entropy via randomized measurements -
-            Tiff Brydges, Andreas Elben, Petar Jurcevic, Benoît Vermersch,
-            Christine Maier, Ben P. Lanyon, Peter Zoller, Rainer Blatt ,and Christian F. Roos ,
-            [doi:10.1126/science.aau4963](
-                https://www.science.org/doi/abs/10.1126/science.aau4963)
-
-            Simple mitigation of global depolarizing errors in quantum simulations -
-            Vovrosh, Joseph and Khosla, Kiran E. and Greenaway, Sean and Self,
-            Christopher and Kim, M. S. and Knolle, Johannes,
-            [PhysRevE.104.035309](
-                https://link.aps.org/doi/10.1103/PhysRevE.104.035309)
-
-        - `bibtex`:
-
-        ```bibtex
-        @article{doi:10.1126/science.aau4963,
-            author = {Tiff Brydges  and Andreas Elben  and Petar Jurcevic
-            and Benoît Vermersch  and Christine Maier  and Ben P. Lanyon
-            and Peter Zoller  and Rainer Blatt  and Christian F. Roos },
-            title = {Probing Rényi entanglement entropy via randomized measurements},
-            journal = {Science},
-            volume = {364},
-            number = {6437},
-            pages = {260-263},
-            year = {2019},
-            doi = {10.1126/science.aau4963},
-            URL = {https://www.science.org/doi/abs/10.1126/science.aau4963},
-            eprint = {https://www.science.org/doi/pdf/10.1126/science.aau4963},
-            abstract = {Quantum systems are predicted to be better at information
-            processing than their classical counterparts, and quantum entanglement
-            is key to this superior performance. But how does one gauge the degree
-            of entanglement in a system? Brydges et al. monitored the build-up of
-            the so-called Rényi entropy in a chain of up to 10 trapped calcium ions,
-            each of which encoded a qubit. As the system evolved,
-            interactions caused entanglement between the chain and the rest of
-            the system to grow, which was reflected in the growth of
-            the Rényi entropy. Science, this issue p. 260 The buildup of entropy
-            in an ion chain reflects a growing entanglement between the chain
-            and its complement. Entanglement is a key feature of many-body quantum systems.
-            Measuring the entropy of different partitions of a quantum system
-            provides a way to probe its entanglement structure.
-            Here, we present and experimentally demonstrate a protocol
-            for measuring the second-order Rényi entropy based on statistical correlations
-            between randomized measurements. Our experiments, carried out with a trapped-ion
-            quantum simulator with partition sizes of up to 10 qubits,
-            prove the overall coherent character of the system dynamics and
-            reveal the growth of entanglement between its parts,
-            in both the absence and presence of disorder.
-            Our protocol represents a universal tool for probing and
-            characterizing engineered quantum systems in the laboratory,
-            which is applicable to arbitrary quantum states of up to
-            several tens of qubits.}}
-        ```
-
-        ```bibtex
-            @article{PhysRevE.104.035309,
-                title = {Simple mitigation of global depolarizing errors in quantum simulations},
-                author = {Vovrosh, Joseph and Khosla, Kiran E. and Greenaway, Sean and Self,
-                Christopher and Kim, M. S. and Knolle, Johannes},
-                journal = {Phys. Rev. E},
-                volume = {104},
-                issue = {3},
-                pages = {035309},
-                numpages = {8},
-                year = {2021},
-                month = {Sep},
-                publisher = {American Physical Society},
-                doi = {10.1103/PhysRevE.104.035309},
-                url = {https://link.aps.org/doi/10.1103/PhysRevE.104.035309}
-            }
-        ```
-
         Args:
             shots (int): Shots of the experiment on quantum machine.
             counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
@@ -481,7 +405,7 @@ class EntropyMeasureRandomizedV1Experiment(ExperimentPrototype):
         if shots is None or counts is None:
             raise ValueError("shots and counts should be specified.")
 
-        return randomized_entangled_entropy_complex(
+        return randomized_entangled_entropy_complex_v1(
             shots=shots,
             counts=counts,
             degree=degree,

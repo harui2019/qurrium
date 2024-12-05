@@ -76,9 +76,7 @@ def bump_version(
         raise NotImplementedError("| The major bump are only allowed by bumping manually.")
 
     elif bump_type == "skip":
-        version_new_split = (
-            version_split if len(version_split) == 4 else (version_split + ["dev1"])
-        )
+        version_new_split = version_split if len(version_split) == 4 else (version_split + ["dev1"])
 
     else:
         raise ValueError(

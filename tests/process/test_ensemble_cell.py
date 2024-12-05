@@ -6,39 +6,24 @@ Tests - qurry.process.utils.randomized
 """
 
 from typing import TypedDict, Union
-import warnings
 import pytest
 import numpy as np
 
-from qurry.process.exceptions import PostProcessingRustUnavailableWarning
 from qurry.process.utils.randomized import (
     RUST_AVAILABLE as rust_available_randomized,
     ensemble_cell as ensemble_cell_py,
+    ensemble_cell_rust,
 )
 
-if rust_available_randomized:
-    from qurry.process.utils.randomized import ensemble_cell_rust
-else:
 
-    def ensemble_cell_rust(
-        s_i: str, s_i_meas: int, s_j: str, s_j_meas: int, a_num: int, shots: int
-    ) -> Union[float, np.float64]:
-        """Dummy function."""
-        warnings.warn(
-            "Rust is not available, ensemble_cell_rust is a dummy function.",
-            category=PostProcessingRustUnavailableWarning,
-        )
-        return ensemble_cell_py(s_i, s_i_meas, s_j, s_j_meas, a_num, shots)
-
-
-class TestItemEnsembleCell(TypedDict):
+class TargetItemEnsembleCell(TypedDict):
     """Test item for the purity_echo_core function."""
 
     target: tuple[str, int, str, int, int, int]
     answer: Union[float, int]
 
 
-test_setup_ensemble: list[TestItemEnsembleCell] = [
+test_setup_ensemble: list[TargetItemEnsembleCell] = [
     {
         "target": ("10010101", 421, "10010101", 421, 8, 4096),
         "answer": (np.float64(421) ** 2) / np.float_power(2, 16, dtype=np.float64),
@@ -53,7 +38,7 @@ test_setup_ensemble: list[TestItemEnsembleCell] = [
 
 
 @pytest.mark.parametrize("test_items", test_setup_ensemble)
-def test_ensemble_cell_rust(test_items: TestItemEnsembleCell):
+def test_ensemble_cell_rust(test_items: TargetItemEnsembleCell):
     """Test the ensemble_cell_rust function."""
 
     assert rust_available_randomized, "Rust is not available."

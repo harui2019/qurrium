@@ -16,8 +16,7 @@ from ...qurrium.analysis import AnalysisPrototype
 class EntropyMeasureRandomizedV1Analysis(AnalysisPrototype):
     """The container for the analysis of :cls:`EntropyRandomizedExperiment`."""
 
-    __name__ = "qurrentRandomized.Analysis"
-    shortName = "qurrent_haar.report"
+    __name__ = "EntropyMeasureRandomizedV1Analysis"
 
     class AnalysisInput(NamedTuple):
         """To set the analysis."""

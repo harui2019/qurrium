@@ -120,8 +120,8 @@ class GeneralSimulator(SIMULATOR_SOURCES[SIM_DEFAULT_SOURCE]):
             return f"<QasmSimulatorPy('{backend_name_getter(self)}')>"
         if SIM_DEFAULT_SOURCE == "qiskit.providers.basic_provider":
             return f"<BasicSimulator('{backend_name_getter(self)}')>"
-        if isinstance(self, BackendV1):
-            return f"<AerSimulator('{self.name()}')>"
+        if SIM_DEFAULT_SOURCE == "qiskit_aer":
+            return f"<AerSimulator('{backend_name_getter(self)}')>"
         return f"<UnknownSimulator('{backend_name_getter(self)}')>"
 
 

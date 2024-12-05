@@ -132,8 +132,8 @@ def rho_m_cell_py(
             rho_m_i[q_i] += rho_m_i_k[q_i][bitstring] * num_counts
         rho_m_i[q_i] /= shots
 
-    rho_m = np.eye(2, dtype=np.complex128)
-    for q_i in selected_classical_registers_sorted:
+    rho_m = rho_m_i[selected_classical_registers_sorted[0]]
+    for q_i in selected_classical_registers_sorted[1:]:
         rho_m = np.kron(rho_m, rho_m_i[q_i])
 
     return idx, rho_m, rho_m_i, selected_classical_registers_sorted

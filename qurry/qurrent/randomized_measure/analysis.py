@@ -14,8 +14,7 @@ from ...qurrium.analysis import AnalysisPrototype
 class EntropyMeasureRandomizedAnalysis(AnalysisPrototype):
     """The container for the analysis of :cls:`EntropyRandomizedExperiment`."""
 
-    __name__ = "qurrentRandomized.Analysis"
-    shortName = "qurrent_haar.report"
+    __name__ = "EntropyMeasureRandomizedAnalysis"
 
     class AnalysisInput(NamedTuple):
         """To set the analysis."""
@@ -27,15 +26,13 @@ class EntropyMeasureRandomizedAnalysis(AnalysisPrototype):
         registers_mapping: dict[int, int]
         """The mapping of the classical registers with quantum registers.
 
-        Example:
-        ```python
-        {
-            0: 0, # The quantum register 0 is mapped to the classical register 0.
-            1: 1, # The quantum register 1 is mapped to the classical register 1.
-            5: 2, # The quantum register 5 is mapped to the classical register 2.
-            7: 3, # The quantum register 7 is mapped to the classical register 3.
-        }
-        ```
+        .. code-block:: python
+            {
+                0: 0, # The quantum register 0 is mapped to the classical register 0.
+                1: 1, # The quantum register 1 is mapped to the classical register 1.
+                5: 2, # The quantum register 5 is mapped to the classical register 2.
+                7: 3, # The quantum register 7 is mapped to the classical register 3.
+            }
 
         The key is the index of the quantum register with the numerical order.
         The value is the index of the classical register with the numerical order.
