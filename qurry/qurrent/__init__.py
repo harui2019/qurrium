@@ -34,6 +34,7 @@ from typing import Literal, Union, overload
 from .randomized_measure import EntropyMeasureRandomized
 from .randomized_measure_v1 import EntropyMeasureRandomizedV1
 from .hadamard_test import EntropyMeasureHadamard
+from .classical_shadow import ShadowUnveil
 
 # from .classical_shadow import ShadowUnveil
 
@@ -53,6 +54,10 @@ def EntropyMeasure(
 def EntropyMeasure(
     *args, method: Union[Literal["randomized", "haar", "base"], str] = "randomized", **kwargs
 ) -> EntropyMeasureRandomized: ...
+
+
+@overload
+def EntropyMeasure(*args, method: Literal["classical_shadow"], **kwargs) -> ShadowUnveil: ...
 
 
 def EntropyMeasure(
@@ -79,6 +84,8 @@ def EntropyMeasure(
         return EntropyMeasureRandomizedV1(*args, **kwargs)
     if method == "hadamard":
         return EntropyMeasureHadamard(*args, **kwargs)
+    if method == "classical_shadow":
+        return ShadowUnveil(*args, **kwargs)
     return EntropyMeasureRandomized(*args, **kwargs)
 
 
