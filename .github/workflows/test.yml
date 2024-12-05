@@ -8,8 +8,8 @@ on:
     branches:
       - pre-release
       - pre-release-*
-      - stable
-      - stable-*
+      - main
+      - main-*
       - dev
       - dev-*
 
