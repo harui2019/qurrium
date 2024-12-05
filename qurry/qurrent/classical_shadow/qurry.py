@@ -33,7 +33,7 @@ from ...declare import BaseRunArgs, TranspileArgs
 
 
 class ShadowUnveil(QurriumPrototype):
-    """Classical Shadow with The Results of Second Order Renyi Entropy.
+    r"""Classical Shadow with The Results of Second Order Renyi Entropy.
 
     .. note::
         - Predicting many properties of a quantum system from very few measurements -
