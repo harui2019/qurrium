@@ -276,12 +276,19 @@ class ShadowUnveilExperiment(ExperimentPrototype):
             selected_qubits
         ), f"selected_qubits should not have duplicated elements, but got {selected_qubits}."
         selected_classical_registers = [self.args.registers_mapping[qi] for qi in selected_qubits]
+        random_unitary_ids_classical_registers = {
+            n_u_i: {
+                ci: random_unitary_id[n_u_qi]
+                for n_u_qi, ci in self.args.registers_mapping.items()
+            }
+            for n_u_i, random_unitary_id in random_unitary_ids.items()
+        }
 
         if isinstance(pbar, tqdm.tqdm):
             qs = self.quantities(
                 shots=self.commons.shots,
                 counts=counts,
-                random_unitary_ids=random_unitary_ids,
+                random_unitary_ids=random_unitary_ids_classical_registers,
                 selected_classical_registers=selected_classical_registers,
                 backend=backend,
                 pbar=pbar,
