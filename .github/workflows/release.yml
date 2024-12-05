@@ -56,7 +56,7 @@ jobs:
             else 
               python ./tools/set_version.py -b dev -r nightly
             fi
-          elif [[ "${{ github.event.pull_request.base.ref }}" == stable* ]] ; then
+          elif [[ "${{ github.event.pull_request.base.ref }}" == main* ]] ; then
             echo "| Stable branch: ${{ github.event.pull_request.base.ref }}"
             python ./tools/set_version.py -r stable
           else
