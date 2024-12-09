@@ -26,6 +26,16 @@ from qurry.process.randomized_measure.wavefunction_overlap_v1.wavefunction_overl
 from qurry.process.randomized_measure.wavefunction_overlap.wavefunction_overlap_2 import (
     overlap_echo_core_2,
 )
+from qurry.process.randomized_measure import (
+    entangled_availability,
+    purity_cell_availability,
+    entangled_v1_availability,
+    purity_cell_v1_availability,
+    overlap_availability,
+    echo_cell_availability,
+    overlap_v1_availability,
+    echo_cell_v1_availability,
+)
 
 
 FILE_LOCATION = os.path.join(os.path.dirname(__file__), "easy-dummy.json")
@@ -54,6 +64,10 @@ def test_entangled_entropy_core(
     """Test the entangled_entropy_core function."""
 
     assert rust_available_randomized, "Rust is not available."
+    assert entangled_availability[1]["Rust"], "Rust is not available."
+    assert entangled_v1_availability[1]["Rust"], "Rust is not available."
+    assert purity_cell_availability[1]["Rust"], "Rust is not available."
+    assert purity_cell_v1_availability[1]["Rust"], "Rust is not available."
 
     selected_classical_registers = sorted(
         list(range(*test_items[3]))
@@ -149,6 +163,10 @@ def test_overlap_echo_core(
     """Test the overlap_echo_core function."""
 
     assert rust_available_randomized, "Rust is not available."
+    assert overlap_availability[1]["Rust"], "Rust is not available."
+    assert overlap_v1_availability[1]["Rust"], "Rust is not available."
+    assert echo_cell_availability[1]["Rust"], "Rust is not available."
+    assert echo_cell_v1_availability[1]["Rust"], "Rust is not available."
 
     selected_classical_registers = sorted(
         list(range(*test_items[3]))

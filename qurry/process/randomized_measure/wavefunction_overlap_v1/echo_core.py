@@ -44,7 +44,7 @@ except ImportError as err:
 
 
 BACKEND_AVAILABLE = availablility(
-    "randomized_measure.wavefunction_overlap.echo_core",
+    "randomized_measure.wavefunction_overlap_v1.echo_core",
     [
         ("Rust", RUST_AVAILABLE, FAILED_RUST_IMPORT),
         ("Cython", "Depr.", None),
