@@ -22,7 +22,7 @@ from ...exceptions import (
 
 
 try:
-    from ...boorust import randomized  # type: ignore
+    from ....boorust import randomized  # type: ignore
 
     echo_cell_2_rust_source = randomized.echo_cell_2_rust
 

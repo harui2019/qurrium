@@ -23,7 +23,7 @@ from ...exceptions import (
 
 
 try:
-    from ...boorust import randomized  # type: ignore
+    from ....boorust import randomized  # type: ignore
 
     echo_cell_rust_source = randomized.echo_cell_rust
 
@@ -41,7 +41,7 @@ except ImportError as err:
 
 
 BACKEND_AVAILABLE = availablility(
-    "randomized_measure.wavefunction_overlap.echo_cell",
+    "randomized_measure.wavefunction_overlap_v1.echo_cell",
     [
         ("Rust", RUST_AVAILABLE, FAILED_RUST_IMPORT),
         ("Cython", "Depr.", None),
