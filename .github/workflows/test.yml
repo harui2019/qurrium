@@ -29,7 +29,7 @@ jobs:
 
       - name: Fetch all tags
         run: |
-          git fetch --prune --unshallow --tags
+          git fetch --prune --tags
 
       - name: Check Version
         id: check_version
