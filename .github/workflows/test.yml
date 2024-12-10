@@ -42,15 +42,11 @@ jobs:
           echo "| Version: ${{ steps.check_version.outputs.VERSION }} in action"
           echo "| Tag exists: ${{ steps.check_version.outputs.exists }}"
 
-  test_skip:
-    if: ${{ startsWith(github.event.pull_request.title, 'skip-test:') }}
-    name: When Test is Skipped
-    needs:
-      - check_version
-    runs-on: ubuntu-latest
-    steps:
-      - name: Skip Test
-        run: echo "Skip Test"
+      - name: Whether Skip Test
+        run: |
+          if [[ ${{ github.event.pull_request.title }} == "skip-test:*" ]]; then
+            echo "| Skip Test"
+          fi
 
   test_py_latest_and_oldest:
     if: ${{ !startsWith(github.event.pull_request.title, 'skip-test:') }}
