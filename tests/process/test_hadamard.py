@@ -9,7 +9,10 @@ from typing import TypedDict, Union
 import pytest
 import numpy as np
 
-from qurry.process.hadamard_test.purity_echo_core import purity_echo_core
+from qurry.process.hadamard_test.purity_echo_core import (
+    purity_echo_core,
+    BACKEND_AVAILABLE as purity_echo_core_availability,
+)
 
 
 class HadamardTest(TypedDict):
@@ -39,6 +42,10 @@ def test_hadamard(test_input: TargetItemHadamardTest):
 
     purity_echo_rust_result = purity_echo_core(**test_input["target"], backend="Rust")
     purity_echo_py_result = purity_echo_core(**test_input["target"], backend="Python")
+
+    assert purity_echo_core_availability[1]["Rust"], (
+        "Rust is not available." + f" Check the error: {purity_echo_core_availability[2]}"
+    )
 
     assert (
         np.abs(purity_echo_rust_result - purity_echo_py_result) < 1e-10

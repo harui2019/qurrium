@@ -278,8 +278,7 @@ class ShadowUnveilExperiment(ExperimentPrototype):
         selected_classical_registers = [self.args.registers_mapping[qi] for qi in selected_qubits]
         random_unitary_ids_classical_registers = {
             n_u_i: {
-                ci: random_unitary_id[n_u_qi]
-                for n_u_qi, ci in self.args.registers_mapping.items()
+                ci: random_unitary_id[n_u_qi] for n_u_qi, ci in self.args.registers_mapping.items()
             }
             for n_u_i, random_unitary_id in random_unitary_ids.items()
         }

@@ -48,7 +48,7 @@ except ImportError as err:
 
 
 BACKEND_AVAILABLE = availablility(
-    "randomized_measure.entangle_entropy.purity_cell",
+    "randomized_measure.entangle_entropy_v1.purity_cell",
     [
         ("Rust", RUST_AVAILABLE, FAILED_RUST_IMPORT),
         ("Cython", "Depr.", None),
