@@ -7,24 +7,35 @@ Test the qurry.boorust module.
 
 from typing import Union
 import pytest
-from qurry.process.utils.randomized import (
-    RUST_AVAILABLE as rust_available_randomized,
+
+from qurry.process.utils import (
+    construct_availability,
+    dummy_availability,
+    test_availability,
 )
 from qurry.process.utils.construct import (
-    RUST_AVAILABLE as rust_available_construct,
     qubit_selector as qubit_selector_py,
     qubit_selector_rust,
     cycling_slice as cycling_slice_py,
     cycling_slice_rust,
 )
-from qurry.process.utils.test import test_construct, RUST_AVAILABLE as rust_available_test
+from qurry.process.utils.test import test_construct
 
 
 def test_test_construct():
     """Test the test_construct function."""
 
-    assert rust_available_test, "Rust is not available."
+    assert test_availability[1]["Rust"], (
+        "Rust is not available." + f" Check the error: {test_availability[2]}"
+    )
     test_construct()
+
+
+def test_dummy_availability():
+
+    assert dummy_availability[1]["Rust"], (
+        "Rust is not available." + f" Check the error: {dummy_availability[2]}"
+    )
 
 
 test_setup_selector: list[tuple[int, Union[int, tuple[int, int]], str]] = [
@@ -43,7 +54,9 @@ test_setup_cycling: list[tuple[Union[int, tuple[int, int]], str]] = []
 def test_qubit_selector(test_items: tuple[int, Union[int, tuple[int, int]], str]):
     """Test the qubit_selector function."""
 
-    assert rust_available_construct, "Rust is not available."
+    assert construct_availability[1]["Rust"], (
+        "Rust is not available." + f" Check the error: {construct_availability[2]}"
+    )
     qubit_selector_py_result = qubit_selector_py(*test_items[:1])
     qubit_selector_rust_result = qubit_selector_rust(*test_items[:1])
 
@@ -54,7 +67,6 @@ def test_qubit_selector(test_items: tuple[int, Union[int, tuple[int, int]], str]
 
     selected = qubit_selector_py_result
 
-    assert rust_available_randomized, "Rust is not available."
     cycling_slice_py_result = cycling_slice_py("01234567", *selected, 1)
     cycling_slice_rust_result = cycling_slice_rust("01234567", *selected, 1)
 
