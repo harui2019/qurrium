@@ -48,6 +48,7 @@ def availability_status_print() -> tuple[
             the availability status of the post-processing modules and the errors.
     """
     availability_dict = [
+        # randomized_measure
         entangled_availability,
         purity_cell_availability,
         entangled_v1_availability,
@@ -56,12 +57,15 @@ def availability_status_print() -> tuple[
         echo_cell_availability,
         overlap_v1_availability,
         echo_cell_v1_availability,
+        # hadamard_test
+        purity_echo_core_availability,
+        # magnet_square
+        magnet_square_availability,
+        # utils
         randomized_availability,
         construct_availability,
         dummy_availability,
         test_availability,
-        purity_echo_core_availability,
-        magnet_square_availability,
     ]
     pre_hoshi = [
         ("txt", f"| Qurry version: {__version__}"),
