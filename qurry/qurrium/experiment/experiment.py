@@ -122,10 +122,22 @@ class ExperimentPrototype(ABC):
                 The reports of the experiment.
                 Defaults to None.
         """
+        outfields_parsed = outfields
+
         if isinstance(arguments, self.arguments_instance):
             self.args = arguments
         elif isinstance(arguments, dict):
-            self.args = self.arguments_instance(**arguments)
+            arg_parsed = {
+                k: v
+                for k, v in arguments.items()
+                if k in self.arguments_instance._dataclass_fields()
+            }
+            outfields_parsed["arguments_deprecated"] = {
+                k: v
+                for k, v in arguments.items()
+                if k not in self.arguments_instance._dataclass_fields()
+            }
+            self.args = self.arguments_instance(**arg_parsed)
         else:
             raise TypeError(
                 f"arguments should be {self.arguments_instance} or dict, not {type(arguments)}"
@@ -134,7 +146,11 @@ class ExperimentPrototype(ABC):
         if isinstance(commonparams, Commonparams):
             self.commons = commonparams
         elif isinstance(commonparams, dict):
-            self.commons = Commonparams(**commons_dealing(commonparams, self.analysis_instance))
+            common_parsed = {k: v for k, v in commonparams.items() if k in Commonparams._fields}
+            outfields_parsed["commonparams_deprecated"] = {
+                k: v for k, v in commonparams.items() if k not in Commonparams._fields
+            }
+            self.commons = Commonparams(**commons_dealing(common_parsed, self.analysis_instance))
         else:
             raise TypeError(
                 f"commonparams should be {Commonparams} or dict, not {type(commonparams)}"
