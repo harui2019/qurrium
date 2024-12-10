@@ -11,9 +11,7 @@ import pytest
 import numpy as np
 
 from qurry.capsule import quickRead
-from qurry.process.utils import cycling_slice
-from qurry.process.utils.randomized import RUST_AVAILABLE as rust_available_randomized
-
+from qurry.process.utils import cycling_slice, randomized_availability
 from qurry.process.randomized_measure.entangled_entropy_v1.entangled_entropy import (
     entangled_entropy_core,
 )
@@ -63,11 +61,16 @@ def test_entangled_entropy_core(
 ):
     """Test the entangled_entropy_core function."""
 
-    assert rust_available_randomized, "Rust is not available."
-    assert entangled_availability[1]["Rust"], "Rust is not available."
-    assert entangled_v1_availability[1]["Rust"], "Rust is not available."
-    assert purity_cell_availability[1]["Rust"], "Rust is not available."
-    assert purity_cell_v1_availability[1]["Rust"], "Rust is not available."
+    for availability_item in [
+        randomized_availability,
+        entangled_availability,
+        purity_cell_availability,
+        entangled_v1_availability,
+        purity_cell_v1_availability,
+    ]:
+        assert availability_item[1]["Rust"], (
+            "Rust is not available." + f" Check the error: {availability_item[2]}"
+        )
 
     selected_classical_registers = sorted(
         list(range(*test_items[3]))
@@ -162,11 +165,16 @@ def test_overlap_echo_core(
 ):
     """Test the overlap_echo_core function."""
 
-    assert rust_available_randomized, "Rust is not available."
-    assert overlap_availability[1]["Rust"], "Rust is not available."
-    assert overlap_v1_availability[1]["Rust"], "Rust is not available."
-    assert echo_cell_availability[1]["Rust"], "Rust is not available."
-    assert echo_cell_v1_availability[1]["Rust"], "Rust is not available."
+    for availability_item in [
+        randomized_availability,
+        overlap_availability,
+        echo_cell_availability,
+        overlap_v1_availability,
+        echo_cell_v1_availability,
+    ]:
+        assert availability_item[1]["Rust"], (
+            "Rust is not available." + f" Check the error: {availability_item[2]}"
+        )
 
     selected_classical_registers = sorted(
         list(range(*test_items[3]))

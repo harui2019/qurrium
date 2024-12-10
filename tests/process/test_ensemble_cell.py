@@ -9,8 +9,8 @@ from typing import TypedDict, Union
 import pytest
 import numpy as np
 
+from qurry.process.utils import randomized_availability
 from qurry.process.utils.randomized import (
-    RUST_AVAILABLE as rust_available_randomized,
     ensemble_cell as ensemble_cell_py,
     ensemble_cell_rust,
 )
@@ -41,7 +41,10 @@ test_setup_ensemble: list[TargetItemEnsembleCell] = [
 def test_ensemble_cell_rust(test_items: TargetItemEnsembleCell):
     """Test the ensemble_cell_rust function."""
 
-    assert rust_available_randomized, "Rust is not available."
+    assert randomized_availability[1]["Rust"], (
+        "Rust is not available." + f" Check the error: {randomized_availability[2]}"
+    )
+
     ensemble_cell_py_result = ensemble_cell_py(*test_items["target"])
     ensemble_cell_rust_result = ensemble_cell_rust(*test_items["target"])
 
