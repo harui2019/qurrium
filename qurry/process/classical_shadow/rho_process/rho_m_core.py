@@ -95,7 +95,7 @@ def rho_core(
     selected_classical_registers: Iterable[int] | None = None,
     rho_method: RhoMethodType = DEFAULT_RHO_METHOD,
     shadow_basis: ShadowBasisType = DEFAULT_SHADOW_BASIS,
-    use_projecter: bool = False,
+    use_projector: bool = False,
 ) -> tuple[list[npt.NDArray[np.complex128]], list[int], ShadowRandomBasis, float]:
     r"""Rho M Cell Core calculation.
 
@@ -130,7 +130,7 @@ def rho_core(
             - `H_H-Sdg_I`:
                 Uses :math:`H`, :math:`H` followed by :math:`S^\dagger`,
                 and Identity gates.
-        use_projecter (bool):
+        use_projector (bool):
             Use the projecter :math:`P_m` instead of the precomputed :math:`\rho_m`.
             Refer to
             :func:`qurry.process.classical_shadow.rho_process.rho_m_cell.rho_m_cell_precomputed`
@@ -139,7 +139,7 @@ def rho_core(
 
     Returns:
         The dictionary of :math:`\rho_{m}` or :math:`P_m`
-        depending on the value of :attr:`use_projecter`,
+        depending on the value of :attr:`use_projector`,
         the sorted list of the selected qubits,
         the shadow basis object, and calculation time.
     """
@@ -178,7 +178,7 @@ def rho_core(
     #             random_unitary_array[idx],
     #             selected_clregs_sorted,
     #             shadow_basis_obj,
-    #             use_projecter=use_projecter,
+    #             use_projector=use_projector,
     #         )
     #         for idx, single_counts in enumerate(counts_under_degree_list)
     #     ],
@@ -197,7 +197,7 @@ def rho_core(
 
     unit_array = (
         shadow_basis_obj.basis_projecters_array
-        if use_projecter
+        if use_projector
         else shadow_basis_obj.basis_precomputed_rho_m_k_i_array
     )
 

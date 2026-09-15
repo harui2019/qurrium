@@ -32,7 +32,7 @@ def classical_shadow_complex(
     # other config
     rho_method: RhoMethodType = DEFAULT_RHO_METHOD,
     shadow_basis: ShadowBasisType = DEFAULT_SHADOW_BASIS,
-    use_projecter: bool = False,
+    use_projector: bool = False,
     trace_method: TraceMethodType = DEFAULT_TRACE_METHOD,
     estimate_trace_method: ListTraceMethodType = DEFAULT_LIST_TRACE_METHOD,
     pbar: tqdm.tqdm | None = None,
@@ -171,7 +171,7 @@ def classical_shadow_complex(
             - `H_H-Sdg_I`:
                 Uses :math:`H`, :math:`H` followed by :math:`S^\dagger`,
                 and Identity gates.
-        use_projecter (bool):
+        use_projector (bool):
             Use the projecter :math:`P_m` instead of the precomputed :math:`\rho_m`. 
             Refer to 
             :func:`qurry.process.classical_shadow.rho_process.rho_m_cell.rho_m_cell_precomputed`
@@ -224,7 +224,7 @@ def classical_shadow_complex(
         random_basis_array=random_basis_array,
         selected_classical_registers=selected_classical_registers,
         rho_method=rho_method,
-        use_projecter=use_projecter,
+        use_projector=use_projector,
         shadow_basis=shadow_basis,
         pbar=pbar,
     )

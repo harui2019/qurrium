@@ -218,7 +218,7 @@ class SUExperiment(ExperimentPrototype[SUArguments, SUAnalysis]):
         max_shadow_norm: FloatType | None = None,
         # other config
         rho_method: RhoMethodType = DEFAULT_RHO_METHOD,
-        use_projecter: bool = False,
+        use_projector: bool = False,
         trace_method: TraceMethodType = DEFAULT_TRACE_METHOD,
         estimate_trace_method: ListTraceMethodType = DEFAULT_LIST_TRACE_METHOD,
         counts_used: Iterable[int] | None = None,
@@ -250,7 +250,7 @@ class SUExperiment(ExperimentPrototype[SUArguments, SUAnalysis]):
                 **Please consider carefully for performance.**
 
                 Default to :data:`DEFAULT_RHO_METHOD`.
-            use_projecter (bool):
+            use_projector (bool):
                 Use the projecter :math:`P_m` instead of the precomputed :math:`\rho_m`. 
                 Refer to 
                 :func:`qurry.process.classical_shadow.rho_process.rho_m_cell.rho_m_cell_precomputed` 
@@ -306,7 +306,7 @@ class SUExperiment(ExperimentPrototype[SUArguments, SUAnalysis]):
                 "accuracy_prob_comp_delta": accuracy_prob_comp_delta,
                 "max_shadow_norm": max_shadow_norm,
                 "rho_method": rho_method,
-                "use_projecter": use_projecter,
+                "use_projector": use_projector,
                 "trace_method": trace_method,
                 "estimate_trace_method": estimate_trace_method,
                 "counts_used": counts_used,
@@ -324,7 +324,7 @@ class SUExperiment(ExperimentPrototype[SUArguments, SUAnalysis]):
         max_shadow_norm: FloatType | None = None,
         # other config
         rho_method: RhoMethodType = DEFAULT_RHO_METHOD,
-        use_projecter: bool = False,
+        use_projector: bool = False,
         trace_method: TraceMethodType = DEFAULT_TRACE_METHOD,
         estimate_trace_method: ListTraceMethodType = DEFAULT_LIST_TRACE_METHOD,
         counts_used: Iterable[int] | None = None,
@@ -356,7 +356,7 @@ class SUExperiment(ExperimentPrototype[SUArguments, SUAnalysis]):
                 **Please consider carefully for performance.**
 
                 Default to :data:`DEFAULT_RHO_METHOD`.
-            use_projecter (bool):
+            use_projector (bool):
                 Use the projecter :math:`P_m` instead of the precomputed :math:`\rho_m`. 
                 Refer to 
                 :func:`qurry.process.classical_shadow.rho_process.rho_m_cell.rho_m_cell_precomputed`
@@ -410,7 +410,7 @@ class SUExperiment(ExperimentPrototype[SUArguments, SUAnalysis]):
                 max_shadow_norm=max_shadow_norm,
                 rho_method=rho_method,
                 trace_method=trace_method,
-                use_projecter=use_projecter,
+                use_projector=use_projector,
                 estimate_trace_method=estimate_trace_method,
                 counts_used=counts_used,
             )
