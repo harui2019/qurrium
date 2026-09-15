@@ -1,10 +1,10 @@
 """Post Processing - Utils - Counts Process (:mod:`qurry.process.utils.counts_process`)"""
 
-from typing import Optional, Iterable
+from collections.abc import Iterable
 
-from ..availability import availablility, default_postprocessing_backend, PostProcessingBackendLabel
+from ..availability import availability, default_postprocessing_backend, PostProcessingBackendLabel
 
-# pylint:disable=no-name-in-module,import-error
+# pylint: disable=import-error,no-name-in-module
 from ...boorust.counts_process import (  # type: ignore
     single_counts_recount_rust,
     counts_list_recount_rust,
@@ -14,7 +14,7 @@ from ...boorust.counts_process import (  # type: ignore
 )
 
 
-BACKEND_AVAILABLE = availablility("utils.counts_process", [("Rust", True, None)])
+BACKEND_AVAILABLE = availability("utils.counts_process", [("Rust", True, None)])
 DEFAULT_PROCESS_BACKEND = default_postprocessing_backend(True, False)
 
 
@@ -137,18 +137,18 @@ def counts_list_recount_pyrust(
 
 
 def selected_clregs_to_optlist(
-    selected_classical_registers: Optional[Iterable[int]] = None,
-) -> Optional[list[int]]:
+    selected_classical_registers: Iterable[int] | None = None,
+) -> list[int] | None:
     """Convert selected classical registers to a list.
     This usually uses for Rust binding
     which can not handle :class:`~typing.Iterable` but only :class:`list`.
 
     Args:
-        selected_classical_registers (Optional[Iterable[int]], optional):
+        selected_classical_registers (Iterable[int] | None, optional):
             The selected classical registers.
 
     Returns:
-        Optional[list[int]]: The list of selected classical registers or None.
+        list[int] | None: The list of selected classical registers or None.
     """
 
     if isinstance(selected_classical_registers, Iterable):
@@ -165,7 +165,7 @@ def selected_clregs_to_optlist(
 def shot_counts_selected_clreg_checker(
     shots: int,
     counts: list[dict[str, int]],
-    selected_classical_registers: Optional[Iterable[int]] = None,
+    selected_classical_registers: Iterable[int] | None = None,
 ) -> tuple[int, list[int]]:
     """Check whether the selected classical registers are valid.
 
@@ -174,7 +174,7 @@ def shot_counts_selected_clreg_checker(
             The number of shots.
         counts (list[dict[str, int]]):
             The list of the counts.
-        selected_classical_registers (Optional[Iterable[int]], optional):
+        selected_classical_registers (Iterable[int] | None, optional):
             The selected classical registers. Defaults to None.
         backend (PostProcessingBackendLabel, optional):
             Backend for the process. Defaults to "Rust".
@@ -197,9 +197,9 @@ def shot_counts_selected_clreg_checker(
         )
     else:
         selected_classical_registers = list(selected_classical_registers)
-    assert all(
-        0 <= q_i < total_system_size for q_i in selected_classical_registers
-    ), f"Invalid selected classical registers: {selected_classical_registers}"
+    assert all(0 <= q_i < total_system_size for q_i in selected_classical_registers), (
+        f"Invalid selected classical registers: {selected_classical_registers}"
+    )
 
     return total_system_size, selected_classical_registers
 
@@ -207,7 +207,7 @@ def shot_counts_selected_clreg_checker(
 def shot_counts_selected_clreg_checker_pyrust(
     shots: int,
     counts: list[dict[str, int]],
-    selected_classical_registers: Optional[Iterable[int]] = None,
+    selected_classical_registers: Iterable[int] | None = None,
     backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
 ) -> tuple[int, list[int]]:
     """Check whether the selected classical registers are valid.
@@ -218,7 +218,7 @@ def shot_counts_selected_clreg_checker_pyrust(
             The number of shots.
         counts (list[dict[str, int]]):
             The list of the counts.
-        selected_classical_registers (Optional[Iterable[int]], optional):
+        selected_classical_registers (Iterable[int] | None, optional):
             The selected classical registers. Defaults to None.
         backend (PostProcessingBackendLabel, optional):
             Backend for the process. Defaults to "Rust".
@@ -329,14 +329,10 @@ def rho_m_flatten_counts_list_vectorize_pyrust(
         )
 
     num_qubits = len(selected_cregs_sorted)
-    rho_m_flatten_vectorized_counts = [
+
+    return [
         process_vectorize_single_counts(
-            single_counts,
-            random_unitary_array[um_idx],
-            selected_cregs_sorted,
-            num_qubits,
+            single_counts, random_unitary_array[um_idx], selected_cregs_sorted, num_qubits
         )
         for um_idx, single_counts in enumerate(counts_list)
     ]
-
-    return rho_m_flatten_vectorized_counts

@@ -4,9 +4,8 @@ import os
 import warnings
 import platform
 import subprocess
-from typing import Optional
 
-from ..exceptions import QurryImportWarning
+from .exceptions import OptionalDependenciesNotWorking
 
 
 def cmd_wrapper(cmd: str = "") -> None:
@@ -27,7 +26,7 @@ def cmd_wrapper(cmd: str = "") -> None:
         os.system(cmd)
 
 
-def pytorch_cuda_check() -> Optional[bool]:
+def pytorch_cuda_check() -> bool | None:
     """Via pytorch to check the availability of Nvidia CUDA.
 
     Returns:
@@ -39,22 +38,12 @@ def pytorch_cuda_check() -> Optional[bool]:
 
         # pylint: disable=import-outside-toplevel
 
-        print(f" - CUDA availability check by Torch --------- {torch.cuda.is_available()}")
-        print(
-            ">>> Using torch "
-            + " ".join(
-                (
-                    torch.__version__,
-                    (torch.cuda.get_device_properties(0) if torch.cuda.is_available() else "CPU"),
-                )
-            )
-        )
         return torch.cuda.is_available()
     except ImportError:
         warnings.warn(
             "Torch CUDA checking method requires pytorch"
             + " which has been installed in this enviornment.",
-            category=QurryImportWarning,
+            category=OptionalDependenciesNotWorking,
         )
         return None
 
@@ -81,8 +70,8 @@ def fun_platform_check():
         print("| Is it on Termux on Android Phone or Tablet?")
         print('| "The Quantum Computing Right At Your Fingertips" :smile:')
 
-        if "synology" in uname_all.lower():
-            print(f"| uname -a: '{uname_all}'")
-            print("| Seriously? You're running Quantum Computing on a Synology NAS?")
-            print('| "Your NAS can also perform Quantum Computing!" :smile:')
-            print("| You're a true geek! :smile:")
+    if "synology" in uname_all.lower():
+        print(f"| uname -a: '{uname_all}'")
+        print("| Seriously? You're running Quantum Computing on a Synology NAS?")
+        print('| "Your NAS can also perform Quantum Computing!" :smile:')
+        print("| You're a true geek! :smile:")

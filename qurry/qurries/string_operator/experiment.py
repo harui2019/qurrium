@@ -1,70 +1,54 @@
 """StringOperator - Experiment (:mod:`qurry.qurries.string_operator.experiment`)"""
 
-from collections.abc import Hashable
-from typing import Optional, Type, Any
-import tqdm
+from typing import Any
 
 from qiskit import QuantumCircuit
 
-from .analysis import StringOperatorAnalysis
-from .arguments import StringOperatorArguments, SHORT_NAME
+from .arguments import SOArguments, SHORT_NAME
+from .analysis import SOAnalysis
 from .utils import circuit_method, StringOperatorLibType, StringOperatorDirection, STRING_OPERATOR
-
-from ...qurrium.experiment import ExperimentPrototype, Commonparams
-from ...process.string_operator.string_operator import (
-    string_operator_order,
-    StringOperator,
-    DEFAULT_PROCESS_BACKEND,
-    PostProcessingBackendLabel,
-)
-from ...tools import set_pbar_description
+from ...qurrium import ExperimentPrototype, Commonparams, WCKeyable
 
 
-class StringOperatorExperiment(
-    ExperimentPrototype[
-        StringOperatorArguments,
-        StringOperatorAnalysis,
-    ]
-):
+class SOExperiment(ExperimentPrototype[SOArguments, SOAnalysis]):
     """The instance of experiment."""
 
-    __name__ = "EntropyMeasureRandomizedExperiment"
-    short_name = SHORT_NAME
+    __name__ = "SOExperiment"
 
-    @property
-    def arguments_instance(self) -> Type[StringOperatorArguments]:
+    @classmethod
+    def arguments_type(cls) -> type[SOArguments]:
         """The arguments instance for this experiment."""
-        return StringOperatorArguments
+        return SOArguments
 
-    @property
-    def analysis_instance(self) -> Type[StringOperatorAnalysis]:
+    @classmethod
+    def analysis_type(cls) -> type[SOAnalysis]:
         """The analysis instance for this experiment."""
-        return StringOperatorAnalysis
+        return SOAnalysis
 
     @classmethod
     def params_control(
         cls,
-        targets: list[tuple[Hashable, QuantumCircuit]],
+        targets: list[tuple[WCKeyable, QuantumCircuit]],
         exp_name: str = "exps",
-        i: Optional[int] = None,
-        k: Optional[int] = None,
+        i: int | None = None,
+        k: int | None = None,
         str_op: StringOperatorLibType = "i",
         on_dir: StringOperatorDirection = "x",
         **custom_kwargs: Any,
-    ) -> tuple[StringOperatorArguments, Commonparams, dict[str, Any]]:
+    ) -> tuple[SOArguments, Commonparams, dict[str, Any]]:
         """Handling all arguments and initializing a single experiment.
 
         Args:
-            targets (list[tuple[Hashable, QuantumCircuit]]):
+            targets (list[tuple[WCKeyable, QuantumCircuit]]):
                 The circuits of the experiment.
             exp_name (str, optional):
                 The name of the experiment.
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
                 This name is also used for creating a folder to store the exports.
                 Defaults to `'exps'`.
-            i (Optional[int], optional):
+            i (int | None, optional):
                 The index of beginning qubits in the quantum circuit.
-            k (Optional[int], optional):
+            k (int | None, optional):
                 The index of ending qubits in the quantum circuit.
             str_op (StringOperatorLibType, optional):
                 The string operator. Defaults to "i".
@@ -100,8 +84,7 @@ class StringOperatorExperiment(
                 f"{len(STRING_OPERATOR[on_dir][str_op])}. But got k: {k} - i: {i} = {k - i + 1}."
             )
 
-        # pylint: disable=protected-access
-        return StringOperatorArguments._filter(
+        return SOArguments.filter(
             exp_name=f"{exp_name}.i_{i}_k_{k}.op_{str_op}_dir_{on_dir}.{SHORT_NAME}",
             target_keys=[target_key],
             num_qubits=num_qubits,
@@ -110,36 +93,27 @@ class StringOperatorExperiment(
             k=k,
             **custom_kwargs,
         )
-        # pylint: enable=protected-access
 
     @classmethod
     def method(
         cls,
-        targets: list[tuple[Hashable, QuantumCircuit]],
-        arguments: StringOperatorArguments,
-        pbar: Optional[tqdm.tqdm] = None,
-        multiprocess: bool = True,
+        targets: list[tuple[WCKeyable, QuantumCircuit]],
+        arguments: SOArguments,
     ) -> tuple[list[QuantumCircuit], dict[str, Any]]:
         """The method to construct circuit.
 
         Args:
-            targets (list[tuple[Hashable, QuantumCircuit]]):
+            targets (list[tuple[WCKeyable, QuantumCircuit]]):
                 The circuits of the experiment.
             arguments (StringOperatorArguments):
                 The arguments of the experiment.
-            pbar (Optional[tqdm.tqdm], optional):
-                The progress bar for showing the progress of the experiment. Defaults to None.
-            multiprocess (bool, optional):
-                Whether to use multiprocessing. Defaults to `True`.
 
         Returns:
             tuple[list[QuantumCircuit], dict[str, Any]]:
                 The circuits of the experiment and the side products.
         """
-        set_pbar_description(pbar, f"Prepare permutation for {arguments.num_qubits} qubits.")
         target_key, target_circuit = targets[0]
-        target_key = "" if isinstance(target_key, int) else str(target_key)
-
+        target_key = target_key if isinstance(target_key, int) else str(target_key)
         assert arguments.i is not None and arguments.k is not None, (
             f"i and k should be given, but got {arguments.i} and {arguments.k}. "
             "Please check the arguments."
@@ -149,6 +123,7 @@ class StringOperatorExperiment(
             circuit_method(
                 target_circuit,
                 target_key,
+                arguments.exp_name,
                 arguments.i,
                 arguments.k,
                 arguments.str_op,
@@ -156,72 +131,21 @@ class StringOperatorExperiment(
             )
         ], {}
 
-    def analyze(self, pbar: Optional[tqdm.tqdm] = None) -> StringOperatorAnalysis:
+    def analyze(self) -> SOAnalysis:
         """Calculate magnet square with more information combined.
 
-        Args:
-            pbar (Optional[tqdm.tqdm], optional):
-                The progress bar. Defaults to None.
-
         Returns:
-            StringOperatorAnalysis: The result of the analysis.
+            SOAnalysis: The result of the analysis.
         """
-
-        qs = self.quantities(shots=self.commons.shots, counts=self.afterwards.counts, pbar=pbar)
 
         serial = len(self.reports)
-        analysis = self.analysis_instance(
-            i=self.args.i,
-            k=self.args.k,
-            length=self.args.k - self.args.i + 1,
-            str_op=self.args.str_op,
-            on_dir=self.args.on_dir,
-            num_qubits=self.args.num_qubits,
-            shots=self.commons.shots,
+        analysis = self.analysis_type().perform_analysis(
+            arguments=self.args,
+            commonparams=self.commons,
+            counts=self.afterwards.counts,
+            analyze_arguments={},
             serial=serial,
-            **qs,
-        )
-        assert analysis.content.k - analysis.content.i + 1 == analysis.content.length, (
-            f"Length of the string operator should be equal to k - i + 1, "
-            f"but got length: {analysis.content.length} != "
-            f"k - i + 1: {analysis.content.k - analysis.content.i + 1}."
         )
 
-        self.reports[serial] = analysis
+        self.reports[analysis.serial] = analysis
         return analysis
-
-    @classmethod
-    def quantities(
-        cls,
-        shots: Optional[int] = None,
-        counts: Optional[list[dict[str, int]]] = None,
-        backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
-        pbar: Optional[tqdm.tqdm] = None,
-    ) -> StringOperator:
-        """Calculate the string operator.
-
-        Args:
-            shots (int):
-                The number of shots.
-            counts (list[dict[str, int]]):
-                The counts of the experiment.
-            backend (PostProcessingBackendLabel, optional):
-                The backend label. Defaults to DEFAULT_PROCESS_BACKEND.
-            pbar (Optional[tqdm.tqdm], optional):
-                The progress bar. Defaults to None.
-
-        Returns:
-            StringOperator: The result of the magnet square.
-        """
-
-        if shots is None:
-            raise ValueError("The number of shots should be given.")
-        if counts is None:
-            raise ValueError("The counts should be given.")
-
-        return string_operator_order(
-            shots=shots,
-            counts=counts,
-            backend=backend,
-            pbar=pbar,
-        )

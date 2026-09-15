@@ -1,8 +1,5 @@
 """Boorust - Counts Process (:mod:`qurry.boorust.counts_process`)"""
 
-from typing import Sequence, Optional
-
-# pylint:disable=unused-argument
 def single_counts_recount_rust(
     single_counts: dict[str, int],
     num_classical_register: int,
@@ -44,7 +41,7 @@ def counts_list_recount_rust(
 def shot_counts_selected_clreg_checker(
     shots: int,
     counts: list[dict[str, int]],
-    selected_classical_registers: Optional[Sequence[int]] = None,
+    selected_classical_registers: list[int] | None = None,
 ) -> tuple[int, list[int]]:
     """Check whether the selected classical registers are valid by Rust.
 
@@ -53,7 +50,7 @@ def shot_counts_selected_clreg_checker(
             The number of shots.
         counts (list[dict[str, int]]):
             The list of the counts.
-        selected_classical_registers (Optional[Sequence[int]], optional):
+        selected_classical_registers (list[int] | None, optional):
             The selected classical registers. Defaults to None.
 
     Returns:

@@ -22,18 +22,17 @@ http://mwh.geek.nz:80/2009/04/26/python-damerau-levenshtein-distance
 """
 
 import warnings
-from typing import Any, Sequence
-from ...exceptions import QurryUnrecongnizedArguments
+from typing import Any
+from collections.abc import Sequence
+
+from ..exceptions import UnknownArgumentsKept
 
 try:
     from pyxdameraulevenshtein import damerau_levenshtein_distance
 except ImportError:
     # Just in case for the package encouter some issues
 
-    def damerau_levenshtein_distance(
-        seq1: Sequence[str],
-        seq2: Sequence[str],
-    ) -> int:
+    def damerau_levenshtein_distance(seq1: Sequence[str], seq2: Sequence[str]) -> int:
         """Calculate the Damerau-Levenshtein distance between sequences.
 
         This distance is the number of additions, deletions, substitutions,
@@ -164,7 +163,7 @@ def outfields_hint(
             Mute the warning of unrecognized arguments. Defaults to False.
     """
     if len(outfields_maybe) + len(outfields_unknown) == 0:
-        return None
+        return
 
     if not mute_outfields_warning:
         warnings.warn(
@@ -175,6 +174,6 @@ def outfields_hint(
             + "]. Unknown: ["
             + ", ".join([f"'{k}'" for k in outfields_unknown])
             + "].",
-            QurryUnrecongnizedArguments,
+            UnknownArgumentsKept,
         )
-    return None
+    return

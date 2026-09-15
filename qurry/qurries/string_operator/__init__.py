@@ -24,10 +24,19 @@ Reference:
             url = {https://link.aps.org/doi/10.1103/PhysRevResearch.4.L022020}
         }
 
+- Short Name: `string_operator`
+- Abbreviation: `SO`
 
 """
 
-from .analysis import StringOperatorAnalysis
-from .arguments import StringOperatorMeasureArgs
-from .experiment import StringOperatorExperiment
+from .utils import (
+    StringOperatorLibType,
+    StringOperatorDirection,
+    StringOperatorLib,
+    StringOperatorUnits,
+    STRING_OPERATOR,
+)
+from .analysis import SOAnalysis
+from .arguments import SOMeasureArgs, SHORT_NAME, ACRONYM
+from .experiment import SOExperiment
 from .qurry import StringOperator

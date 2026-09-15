@@ -1,0 +1,39 @@
+[
+  {
+    "target": {
+      "counts": [
+        {
+          "0": 50,
+          "1": 50
+        }
+      ],
+      "shots": 100
+    },
+    "answer": 0,
+    "note": ""
+  },
+  {
+    "target": {
+      "counts": [
+        {
+          "0": 100
+        }
+      ],
+      "shots": 100
+    },
+    "answer": 1,
+    "note": ""
+  },
+  {
+    "target": {
+      "counts": [
+        {
+          "1": 100
+        }
+      ],
+      "shots": 100
+    },
+    "answer": 1,
+    "note": ""
+  }
+]

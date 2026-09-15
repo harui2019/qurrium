@@ -1,12 +1,16 @@
 """String Operator - Utilities (:mod:`qurry.qurries.string_operator.utils`)"""
 
-from typing import Union, Literal, TypedDict, Optional
+from typing import Literal, TypedDict
 import numpy as np
 
 from qiskit import QuantumCircuit, ClassicalRegister
 
+from ...qurrium import WCKeyable, naming_circuit
 
-StringOperatorUnits = Optional[tuple[Literal["rx", "ry", "rz"], float]]
+DEFAULT_CLASSICAL_REGISTER_NAME = "m0"
+"""The default name for classical register used for measurement."""
+
+StringOperatorUnits = tuple[Literal["rx", "ry", "rz"], float] | None
 """Available string operator units.
 
 - tuple[Literal["rx", "ry", "rz"], float]: A tuple containing:
@@ -40,14 +44,14 @@ class StringOperatorLib(TypedDict):
         denoted as :math:`S^{\sigma^{zy}}(g)` for ZY operator.
     """
 
-    i: dict[Union[int, Literal["filling"]], StringOperatorUnits]
+    i: dict[int | Literal["filling"], StringOperatorUnits]
     r"""Identity string operator.
 
     .. math::
 
         \hat{O_i} = \hat{O'_k} = \mathbb{1}
     """
-    zy: dict[Union[int, Literal["filling"]], StringOperatorUnits]
+    zy: dict[int | Literal["filling"], StringOperatorUnits]
     r"""ZY string operator.
 
     .. math::
@@ -122,7 +126,8 @@ r"""Available string operator library.
 
 def circuit_method(
     target_circuit: QuantumCircuit,
-    target_key: str,
+    target_key: WCKeyable,
+    exp_name: str,
     i: int,
     k: int,
     str_op: StringOperatorLibType = "i",
@@ -132,7 +137,8 @@ def circuit_method(
 
     Args:
         target_circuit (QuantumCircuit): Target circuit.
-        target_key (str): Target key.
+        target_key (WCKeyable): Target key.
+        exp_name (str): Experiment name.
         i (int): The index of beginning qubits in the quantum circuit.
         k (int): The index of ending qubits in the quantum circuit.
         str_op (StringOperatorLibType): The string operator.
@@ -153,12 +159,10 @@ def circuit_method(
             f"But got k: {k} - i: {i} = {k - i}."
         )
 
-    old_name = "" if isinstance(target_circuit.name, str) else target_circuit.name
-
     qc_exp1 = target_circuit.copy(
-        f"{target_key}_{i}_{k}_{str_op}_{on_dir}" + ("" if old_name else f".{old_name}")
+        naming_circuit(target_circuit, target_key, f"{exp_name}_{i}_{k}_{str_op}_{on_dir}")
     )
-    c_meas1 = ClassicalRegister(k - i + 1, "c_m1")
+    c_meas1 = ClassicalRegister(k - i + 1, DEFAULT_CLASSICAL_REGISTER_NAME)
     qc_exp1.add_register(c_meas1)
 
     qc_exp1.barrier()
@@ -166,7 +170,8 @@ def circuit_method(
     string_op_lib = STRING_OPERATOR[on_dir][str_op]
     index_map = {op + ((k + 1) if op < 0 else i): op for op in string_op_lib if isinstance(op, int)}
     operations = {
-        idx: string_op_lib[index_map.get(idx, "filling")] for idx in range(i, k + 1)  # type: ignore
+        idx: string_op_lib[index_map.get(idx, "filling")]  # type: ignore
+        for idx in range(i, k + 1)
     }
 
     for ci, (qi, move) in enumerate(operations.items()):

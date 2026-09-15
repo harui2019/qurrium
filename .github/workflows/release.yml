@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           token: ${{ secrets.CI_TOKEN }}
           # Normal Repository Access Token 
@@ -28,7 +28,7 @@ jobs:
           # More info: https://github.com/orgs/community/discussions/27028
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
@@ -97,26 +97,6 @@ jobs:
             git push origin ${{ steps.create_tag.outputs.VERSION }}
           fi
 
-      - name: Get custom tarball name
-        id: get_tarball_name
-        run: echo "TARBALL_NAME=qurecipe-${{ github.ref_name }}" >> $GITHUB_OUTPUT
-
-      - name: Get archived folder name for custom tarball
-        id: get_archived_folder_name
-        run: echo "ARCHIVED_FOLDER=${{ github.repository_owner }}-qurecipe-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-
-      - name: Create custom tarball artifact
-        run: |
-          mkdir -p artifacts
-          tar czhvf ${{ steps.get_tarball_name.outputs.TARBALL_NAME }}-${{ steps.create_tag.outputs.VERSION }}.tar.gz \
-            --exclude="*metarepo-cpe-tag*" \
-            --directory=../ \
-            qurry/crates/ qurry/tests/ qurry/qurry/ \
-            qurry/pyproject.toml qurry/setup.py qurry/requirements.txt \
-            qurry/Cargo.toml qurry/Cargo.lock qurry/MANIFEST.in \
-            qurry/.gitignore qurry/.gitmodules qurry/README.md \
-            --transform s/qurry/${{ steps.get_archived_folder_name.outputs.ARCHIVED_FOLDER }}/
-
       - name: Set release variables
         id: set_release_vars
         run: |
@@ -141,5 +121,3 @@ jobs:
           prerelease: ${{steps.set_release_vars.outputs.prerelease}}
           draft: true
           generate_release_notes: true
-          files: |
-            ${{ steps.get_tarball_name.outputs.TARBALL_NAME }}-${{ steps.create_tag.outputs.VERSION }}.tar.gz

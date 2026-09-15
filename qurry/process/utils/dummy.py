@@ -1,12 +1,12 @@
 """Post Processing - Utils - Toolkits for Dummy Case (:mod:`qurry.process.utils.dummy`)"""
 
-from typing import Callable, Optional
+from collections.abc import Callable
 import random
 import numpy as np
 
-from ..availability import availablility, default_postprocessing_backend, PostProcessingBackendLabel
+from ..availability import availability, default_postprocessing_backend, PostProcessingBackendLabel
 
-# pylint:disable=no-name-in-module,import-error
+# pylint: disable=import-error,no-name-in-module
 from ...boorust.dummy import (  # type:ignore
     make_two_bit_str_32 as make_two_bit_str_32_rust,
     make_dummy_case_32 as make_dummy_case_32_rust,
@@ -14,16 +14,29 @@ from ...boorust.dummy import (  # type:ignore
 )
 
 
-BACKEND_AVAILABLE = availablility("utils.dummy", [("Rust", True, None)])
+BACKEND_AVAILABLE = availability("utils.dummy", [("Rust", True, None)])
 DEFAULT_PROCESS_BACKEND = default_postprocessing_backend(True, False)
 
 
-def make_two_bit_str_32_py(bitlen: int, num: Optional[int] = None) -> list[str]:
+def filler_h_or_e(ff: str, item: str) -> str:
+    """Fill the bit string with `ff` at head or end randomly.
+
+    Args:
+        ff (str): The filler, should be '0' or '1'.
+        item (str): The bit string to be filled.
+    Returns:
+        str: The filled bit string.
+    """
+
+    return ff + item if np.random.rand() > 0.5 else item + ff
+
+
+def make_two_bit_str_32_py(bitlen: int, num: int | None = None) -> list[str]:
     """Make a list of bit strings with length of `num`.
 
     Args:
         bitlen (int): bit string length.
-        num (Optional[int]): The number of bit strings.
+        num (int | None): The number of bit strings.
 
     Returns:
         list[str]: The list of bit strings.
@@ -48,7 +61,7 @@ def make_two_bit_str_32_py(bitlen: int, num: Optional[int] = None) -> list[str]:
     if logged_num > ultmax:
         raise ValueError(f"num should be less than {2**ultmax} for safety reason.")
 
-    def generate_bits(num: int, bits: Optional[list[str]] = None) -> list[str]:
+    def generate_bits(num: int, bits: list[str] | None = None) -> list[str]:
         if not isinstance(num, int):
             raise ValueError("num should be an integer.")
         bits = [""] if bits is None else bits
@@ -68,17 +81,15 @@ def make_two_bit_str_32_py(bitlen: int, num: Optional[int] = None) -> list[str]:
 
     raw_content = generate_bits(int(logged_num))
     len_raw_content = len(raw_content)
-    assert (
-        2 ** int(logged_num) == len_raw_content
-    ), f"2**int(logged_num) == len_raw_content: {2**int(logged_num)} == {len_raw_content}"
+    assert 2 ** int(logged_num) == len_raw_content, (
+        f"2**int(logged_num) == len_raw_content: {2 ** int(logged_num)} == {len_raw_content}"
+    )
     assert 2 * len_raw_content >= real_num >= len_raw_content, (
         "2*len_raw_content >= real_num >= len_raw_content: "
         + f"{2 * len_raw_content} >= {real_num} >= {len_raw_content}"
     )
     first_filler = ["0", "1"] if np.random.rand() > 0.5 else ["1", "0"]
-    filler_h_or_e: Callable[[str, str], str] = lambda ff, item: (
-        ff + item if np.random.rand() > 0.5 else item + ff
-    )
+
     num_fulfill_content = [filler_h_or_e(first_filler[0], item) for item in raw_content] + [
         filler_h_or_e(first_filler[1], item)
         for item in raw_content[: (real_num - len(raw_content))]
@@ -126,7 +137,7 @@ def make_two_bit_str_unlimit(
     return make_two_bit_str_32_py(bitlen)
 
 
-# pylint: disable=unnecessary-direct-lambda-call
+# pylint: disable=unnecessary-direct-lambda-call,invalid-name
 makeTwoBitStrOneLiner: Callable[[int, list[str]], list[str]] = lambda bitlen, bits=[""]: (
     (lambda bits: [*["0" + item for item in bits], *["1" + item for item in bits]])(
         makeTwoBitStrOneLiner(bitlen - 1, bits)
@@ -143,33 +154,33 @@ makeTwoBitStrOneLiner: Callable[[int, list[str]], list[str]] = lambda bitlen, bi
     Returns:
         list[str]: The list of bit strings.
 """
-# pylint: enable=unnecessary-direct-lambda-call
+# pylint: enable=unnecessary-direct-lambda-call,invalid-name
 
 
 def make_two_bit_str(
     bitlen: int,
-    num: Optional[int] = None,
+    num: int | None = None,
     backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
 ) -> list[str]:
     """Make a list of bit strings with length of `num`.
 
     Args:
         bitlen (int): bit string length.
-        num (Optional[int]): The number of bit strings.
+        num (int | None): The number of bit strings.
         backend (PostProcessingBackendLabel): The backend to use.
 
     Returns:
         list[str]: The list of bit strings.
     """
     if backend == "Rust":
-        make_two_bit_str_32_rust(bitlen, num)
+        return make_two_bit_str_32_rust(bitlen, num)
     return make_two_bit_str_32_py(bitlen, num)
 
 
 def make_dummy_case(
     n_a: int,
     shot_per_case: int,
-    bitstring_num: Optional[int] = None,
+    bitstring_num: int | None = None,
     backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
 ) -> dict[str, int]:
     """Make a dummy case for the experiment.
@@ -177,7 +188,7 @@ def make_dummy_case(
     Args:
         n_a (int): Number of qubits in subsystem A.
         shot_per_case (int): Number of shots per case.
-        bitstring_num (Optional[int]): Maximum number of bits.
+        bitstring_num (int | None): Maximum number of bits.
         backend (PostProcessingBackendLabel): The backend to use.
 
     Returns:

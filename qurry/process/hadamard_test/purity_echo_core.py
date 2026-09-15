@@ -7,17 +7,17 @@ import warnings
 import numpy as np
 
 from ..availability import (
-    availablility,
+    availability,
     default_postprocessing_backend,
     PostProcessingBackendLabel,
 )
 from ..exceptions import PostProcessingBackendDeprecatedWarning
 
-# pylint:disable=no-name-in-module,import-error
+# pylint: disable=import-error,no-name-in-module
 from ...boorust.hadamard import purity_echo_core_rust  # type: ignore
 
 
-BACKEND_AVAILABLE = availablility("hadamard_test.purity_echo_core", [("Rust", True, None)])
+BACKEND_AVAILABLE = availability("hadamard_test.purity_echo_core", [("Rust", True, None)])
 DEFAULT_PROCESS_BACKEND = default_postprocessing_backend(True, False)
 
 

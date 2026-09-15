@@ -3,11 +3,12 @@
 
 """
 
-from .rho_m_core import (
-    BACKEND_AVAILABLE as classical_shadow_rho_process_availability,
-    rho_m_core,
-    RhoMethod,
-    RhoMethodType,
-    DEFAULT_RHO_METHOD,
+from .rho_m_core import RhoMethod, DEFAULT_RHO_METHOD, RhoMethodType, rho_core, mean_rho_core
+from .unitary_set import (
+    BASIS_ALLOW_GATES,
+    ShadowRandomBasisData,
+    ShadowRandomBasis,
+    ShadowBasisMethod,
+    ShadowBasisType,
+    DEFAULT_SHADOW_BASIS,
 )
-from .rho_m_cell import RhoMCellMethod

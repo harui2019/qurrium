@@ -104,9 +104,4 @@ from .entangled_entropy_2 import (
     PostProcessingBackendLabel,
     DEFAULT_PROCESS_BACKEND,
 )
-from .container import (
-    EntangledEntropyResult,
-    EntangledEntropyResultMitigated,
-    ExistedAllSystemInfo,
-    ExistedAllSystemInfoInput,
-)
+from .container import TargetSystemResult, AllSystemResult, isvalid_all_system_result

@@ -1,8 +1,7 @@
 """Boorust - Classical Shadow (:mod:`qurry.boorust.shadow`)"""
 
-from typing import Sequence
+from collections.abc import Sequence
 
-# pylint:disable=unused-argument
 def nomatmul_trace_sum_rust(
     pauli_basis: Sequence[Sequence[int]],
     spin_outcome: Sequence[Sequence[int]],

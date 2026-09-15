@@ -1,20 +1,17 @@
 """StringOperator - Arguments (:mod:`qurry.qurries.string_operator.arguments`)"""
 
-from typing import Optional, Union
-from collections.abc import Hashable
 from dataclasses import dataclass
 
 from qiskit import QuantumCircuit
 
 from .utils import StringOperatorLibType, StringOperatorDirection
-from ...qurrium.experiment import ArgumentsPrototype
-from ...declare import BasicArgs, OutputArgs, AnalyzeArgs
+from ...qurrium import ArgumentsPrototype, BasicArgs, OutputArgs, WCKeyable
 
 
 @dataclass(frozen=True)
-class StringOperatorArguments(ArgumentsPrototype):
+class SOArguments(ArgumentsPrototype):
     """Arguments for
-    :class:`~qurry.qurries.string_operator.experiment.StringOperatorExperiment`."""
+    :class:`~qurry.qurries.string_operator.experiment.SOExperiment`."""
 
     exp_name: str
     """The name of the experiment.
@@ -33,16 +30,16 @@ class StringOperatorArguments(ArgumentsPrototype):
     """The direction of the string operator, either 'x' or 'y'."""
 
 
-class StringOperatorMeasureArgs(BasicArgs, total=False):
+class SOMeasureArgs(BasicArgs, total=False):
     """Input fields for
     :meth:`~qurry.qurries.string_operator.qurry.StringOperator.measure`
     and :meth:`~qurry.qurrium.qurrium.QurriumPrototype.multiOutput`."""
 
-    wave: Optional[Union[QuantumCircuit, Hashable]]
+    wave: QuantumCircuit | WCKeyable
     """The key or the circuit to execute."""
-    i: Optional[int]
+    i: int | None
     """The index of beginning qubits in the quantum circuit."""
-    k: Optional[int]
+    k: int | None
     """The index of ending qubits in the quantum circuit."""
     str_op: StringOperatorLibType
     """The string operator."""
@@ -50,13 +47,13 @@ class StringOperatorMeasureArgs(BasicArgs, total=False):
     """The direction of the string operator, either 'x' or 'y'."""
 
 
-class StringOperatorOutputArgs(OutputArgs):
+class SOOutputArgs(OutputArgs):
     """Output arguments for
     :meth:`~qurry.qurries.string_operator.qurry.StringOperator.output`."""
 
-    i: Optional[int]
+    i: int | None
     """The index of beginning qubits in the quantum circuit."""
-    k: Optional[int]
+    k: int | None
     """The index of ending qubits in the quantum circuit."""
     str_op: StringOperatorLibType
     """The string operator."""
@@ -64,12 +61,8 @@ class StringOperatorOutputArgs(OutputArgs):
     """The direction of the string operator, either 'x' or 'y'."""
 
 
-class StringOperatorAnalyzeArgs(AnalyzeArgs, total=False):
-    """The input of :meth:`~qurry.qurrium.qurrium.QurriumPrototype.multiAnalysis` and
-    :meth:`~qurry.qurries.string_operator.experiment.StringOperatorExperiment.analyze`.
-    """
+SHORT_NAME = "string_operator"
+"""The short name of :class:`~qurry.qurries.string_operator.qurry.StringOperator`."""
 
-
-SHORT_NAME = "qurstrop_string_operator"
-"""The short name of 
-:class:`~qurry.qurries.string_operator.experiment.StringOperatorExperiment`."""
+ACRONYM = "SO"
+"""The abbreviation of :class:`~qurry.qurries.string_operator.qurry.StringOperator`."""

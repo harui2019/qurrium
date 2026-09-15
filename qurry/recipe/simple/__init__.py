@@ -1,5 +1,5 @@
-"""Simple Circuit Case Library (:mod:`qurry.recipe.simple`)"""
+"""Some Simple Circuits Cases (:mod:`qurry.recipe.simple`)"""
 
-from .intracell import Intracell, Singlet
-from .paramagnet import TrivialParamagnet, TopologicalParamagnet, Cluster
-from .cat import Cat, GHZ
+from .intracell_cluster import singlet, intracell
+from .paramagnet import trivial_paramagnet, topological_paramagnet, cluster
+from .cat import ghz

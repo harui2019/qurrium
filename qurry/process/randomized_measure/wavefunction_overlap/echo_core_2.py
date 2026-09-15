@@ -3,25 +3,25 @@
 
 """
 
+from collections.abc import Iterable
 import time
 import warnings
-from typing import Optional, Iterable, Union
 import numpy as np
 
 from .echo_cell_2 import echo_cell_2_py
 from ...utils import shot_counts_selected_clreg_checker, selected_clregs_to_optlist
 from ...availability import (
-    availablility,
+    availability,
     default_postprocessing_backend,
     PostProcessingBackendLabel,
 )
 from ...exceptions import PostProcessingBackendDeprecatedWarning
 from ....tools import ParallelManager
 
-# pylint:disable=no-name-in-module,import-error
+# pylint: disable=import-error,no-name-in-module
 from ....boorust.randomized import overlap_echo_core_2_rust  # type: ignore
 
-BACKEND_AVAILABLE = availablility(
+BACKEND_AVAILABLE = availability(
     "randomized_measure.wavefunction_overlap.echo_core_2", [("Rust", True, None)]
 )
 DEFAULT_PROCESS_BACKEND = default_postprocessing_backend(True, False)
@@ -31,8 +31,8 @@ def overlap_echo_core_2_py(
     shots: int,
     first_counts: list[dict[str, int]],
     second_counts: list[dict[str, int]],
-    selected_classical_registers: Optional[Iterable[int]] = None,
-) -> tuple[dict[int, np.float64], list[int], str, float]:
+    selected_classical_registers: Iterable[int] | None = None,
+) -> tuple[dict[int, np.float64] | dict[int, float], list[int], str, float]:
     """The core function of wavefunction overlap by Python or Rust for just purity cell part.
 
     Args:
@@ -42,12 +42,11 @@ def overlap_echo_core_2_py(
             Counts of the experiment on quantum machine.
         second_counts (list[dict[str, int]]):
             Counts of the experiment on quantum machine.
-        selected_classical_registers (Optional[Iterable[int]], optional):
+        selected_classical_registers (Iterable[int] | None, optional):
             The list of **the index of the selected_classical_registers**.
 
     Returns:
-        tuple[dict[int, np.float64], list[int], str, float]:
-            Purity of each cell, Selected classical registers, Message, Time to calculate.
+        Purity of each cell, Selected classical registers, Message, Time to calculate.
     """
     assert len(first_counts) == len(second_counts), (
         "The number of counts must be equal, "
@@ -76,8 +75,8 @@ def overlap_echo_core_2_py(
 
     begin = time.time()
 
-    pool = ParallelManager()
-    echo_cell_result_list = pool.starmap(
+    pm = ParallelManager()
+    echo_cell_result_list = pm.starmap(
         echo_cell_2_py,
         [(i, c1, c2, selected_classical_registers) for i, (c1, c2) in enumerate(counts_pair)],
     )
@@ -111,9 +110,9 @@ def overlap_echo_core_2(
     shots: int,
     first_counts: list[dict[str, int]],
     second_counts: list[dict[str, int]],
-    selected_classical_registers: Optional[Iterable[int]] = None,
+    selected_classical_registers: Iterable[int] | None = None,
     backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
-) -> tuple[Union[dict[int, np.float64], dict[int, float]], list[int], str, float]:
+) -> tuple[dict[int, np.float64] | dict[int, float], list[int], str, float]:
     """The core function of wavefunction overlap for just purity cell part.
 
     Args:
@@ -123,7 +122,7 @@ def overlap_echo_core_2(
             Counts of the experiment on quantum machine.
         second_counts (list[dict[str, int]]):
             Counts of the experiment on quantum machine.
-        selected_classical_registers (Optional[Iterable[int]], optional):
+        selected_classical_registers (Iterable[int] | None, optional):
             The list of **the index of the selected_classical_registers**.
         backend (ExistingProcessBackendLabel, optional):
             Backend for the process. Defaults to DEFAULT_PROCESS_BACKEND.

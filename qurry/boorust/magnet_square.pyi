@@ -1,7 +1,6 @@
 """Boorust - Magnetization Square (:mod:`qurry.boorust.magnet_square`)"""
 
-# pylint:disable=unused-argument
-def magnetic_square_core_rust(
+def magnet_square_core_rust(
     shots: int, counts: list[dict[str, int]], num_qubits: int
 ) -> tuple[float, dict[int, float], float]:
     """The core function of Magnetization square.
@@ -16,7 +15,7 @@ def magnetic_square_core_rust(
             Magnetization square, magnetization square cell, time taken.
     """
 
-def z_dir_magnetic_square_core_rust(
+def z_dir_magnet_square_core_rust(
     shots: int, single_counts: dict[str, int], num_qubits: int
 ) -> tuple[float, dict[int, float], float]:
     """The core function of Z direction Magnetization square.

@@ -1,10 +1,11 @@
 """Post Processing - Utils - Bit Slice (:mod:`qurry.process.utils.bit_slice`)"""
 
-from typing import Union, Optional, Sequence, TypeVar, overload
+from typing import TypeVar, overload
+from collections.abc import Sequence
 
-from ..availability import availablility
+from ..availability import availability
 
-# pylint:disable=no-name-in-module,import-error,unused-import
+# pylint: disable=import-error,no-name-in-module
 from ...boorust.bit_slice import (  # type: ignore
     qubit_selector_rust,
     cycling_slice_rust,
@@ -12,17 +13,15 @@ from ...boorust.bit_slice import (  # type: ignore
 )
 
 
-BACKEND_AVAILABLE = availablility("utils.bit_slice", [("Rust", True, None)])
+BACKEND_AVAILABLE = availability("utils.bit_slice", [("Rust", True, None)])
 
 
-def qubit_selector(
-    num_qubits: int, degree: Union[int, tuple[int, int], None] = None
-) -> tuple[int, int]:
+def qubit_selector(num_qubits: int, degree: tuple[int, int] | int | None = None) -> tuple[int, int]:
     """Determint the qubits to be used.
 
     Args:
         num_qubits (int): Number of qubits.
-        degree (Union[int, tuple[int, int], None], optional):
+        degree (int | tuple[int, int] | None, optional):
             Degree of freedom or specific subsystem range.
             Defaults to None then will use number of qubits as degree.
 
@@ -90,7 +89,7 @@ def cycling_slice(target, start, end, step=1):
     """Slice a iterable object with cycling.
 
     Args:
-        target (_SliceableT): The target object.
+        target (list[_ItemT] | tuple[_ItemT] | str): The target object.
         start (int): Index of start.
         end (int): Index of end.
         step (int, optional): Step of slice. Defaults to 1.
@@ -162,23 +161,44 @@ def qubit_mapper_2_int(
     return {qi: ci for ci, qi in enumerate(qi_list)}
 
 
+QubitSelectionType = list[int] | int | None
+"""Type for qubit selection.
+
+The selected qubits.
+- `None`, for the mapping of all qubits.
+- `int`, for the mapping of the last n qubits.
+- `list[int]`, for the mapping of the selected qubits.
+"""
+
+QubitSelectionDeprecatedType = QubitSelectionType | tuple[int, int]
+"""Type for qubit selection with deprecated tuple option.
+
+The selected qubits.
+- `None`, for the mapping of all qubits.
+- `int`, for the mapping of the last n qubits.
+- `list[int]`, for the mapping of the selected qubits.
+- `tuple[int, int]`, for the mapping of the qubits in the range.
+
+Due to potential confusion with tuple usage, this option is deprecated.
+"""
+
+
 def qubit_mapper(
-    actual_num_qubits: int,
-    selected_qubits: Optional[Union[Sequence[int], int, tuple[int, int]]] = None,
+    actual_num_qubits: int, selected_qubits: QubitSelectionType = None
 ) -> dict[int, int]:
     """Map the index of selected qubits to the index of the classical register.
 
     Args:
         actual_num_qubits (int):
             The actual number of qubits.
-        selected_qubits (Optional[Union[Sequence[int], int, tuple[int, int]]], optional):
+        selected_qubits (QubitSelectionType, optional):
             The selected qubits.
             If it is None, then it will return the mapping of all qubits.
             If it is int, then it will return the mapping of the last n qubits.
-            If it is tuple, then it will return the mapping of the qubits in the range.
             If it is list, then it will return the mapping of the selected qubits.
 
     Raises:
+        TypeError: The tuple input for selected qubits is deprecated.
         ValueError: The range of qubits should be defined by two integers.
         ValueError: The selected qubits are beyond the number of qubits.
         ValueError: The selected qubits are not natural number.
@@ -190,9 +210,13 @@ def qubit_mapper(
         ValueError: Invalid input for selected qubits.
 
     Returns:
-        dict[int, int]:
-            The mapping of the index of selected qubits to the index of the classical register.
+        The mapping of the index of selected qubits to the index of the classical register.
     """
+    if isinstance(selected_qubits, tuple):
+        raise TypeError(
+            "The tuple input for selected qubits is deprecated. Please use list[int] instead."
+        )
+
     if selected_qubits is None:
         return {i: i for i in range(actual_num_qubits)}
 
@@ -201,14 +225,6 @@ def qubit_mapper(
             qi: ci
             for ci, qi in enumerate(range(actual_num_qubits - selected_qubits, actual_num_qubits))
         }
-
-    if isinstance(selected_qubits, tuple):
-        if len(selected_qubits) != 2:
-            raise ValueError(
-                "Subsystem range is defined by only two integers when inputs as tuple, "
-                + f"but there is {len(selected_qubits)} integers in '{selected_qubits}'."
-            )
-        return qubit_mapper_2_int(actual_num_qubits, selected_qubits)
 
     if isinstance(selected_qubits, Sequence):
         if len(dict.fromkeys(selected_qubits).keys()) != len(selected_qubits):
@@ -226,17 +242,17 @@ def qubit_mapper(
 
 def degree_handler(
     allsystem_size: int,
-    degree: Optional[Union[int, tuple[int, int]]],
-    measure: Optional[tuple[int, int]],
+    degree: tuple[int, int] | int | None,
+    measure: tuple[int, int] | None,
 ) -> tuple[tuple[int, int], tuple[int, int], int]:
     """Handle the degree of freedom for the subsystem.
 
     Args:
         allsystem_size (int):
             The size of the whole system.
-        degree (Optional[Union[int, tuple[int, int]]]):
+        degree (tuple[int, int] | int | None):
             The degree of freedom.
-        measure (Optional[tuple[int, int]]):
+        measure (tuple[int, int] | None):
             The measure range.
 
     Returns:
@@ -298,3 +314,18 @@ def is_cycling_slice_active(
             + f"does not match dummyStringSlice '{_dummy_string_slice}'"
         )
     return is_avtive_cycling_slice
+
+
+__all__ = [
+    "BACKEND_AVAILABLE",
+    "qubit_selector",
+    "qubit_selector_rust",
+    "cycling_slice",
+    "cycling_slice_rust",
+    "qubit_mapper_2_int",
+    "qubit_mapper",
+    "QubitSelectionType",
+    "degree_handler",
+    "degree_handler_rust",
+    "is_cycling_slice_active",
+]

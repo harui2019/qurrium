@@ -1,46 +1,42 @@
-"""WavesExecuter - Experiment (:mod:`qurry.qurries.wavesqurry.experiment`)
+"""WavesExecuter - Experiment (:mod:`qurry.qurries.wavesqurry.experiment`)"""
 
-It is only for pendings and retrieve to remote backend.
-"""
-
-from typing import Union, Optional, Type, Any
-from collections.abc import Hashable
-import tqdm
+from typing import Any
+import warnings
 
 from qiskit import QuantumCircuit
 
-from .arguments import WavesExecuterArguments, SHORT_NAME
-from .analysis import WavesExecuterAnalysis
-from ...qurrium import ExperimentPrototype, Commonparams
-from ...exceptions import QurryExperimentCountsNotCompleted
+from .arguments import WEArguments, SHORT_NAME
+from ..samplingqurry.analysis import DummyAnalysis
+from ...qurrium import ExperimentPrototype, Commonparams, WCKeyable
+from ...qurrium.exceptions import DummyClassWarning, NoExperimentCountsAvailable
 
 
-class WavesExecuterExperiment(ExperimentPrototype[WavesExecuterArguments, WavesExecuterAnalysis]):
+class WEExperiment(ExperimentPrototype[WEArguments, DummyAnalysis[WEArguments]]):
     """The instance of experiment."""
 
-    __name__ = "WavesExecuterExperiment"
+    __name__ = "WEExperiment"
 
-    @property
-    def arguments_instance(self) -> Type[WavesExecuterArguments]:
+    @classmethod
+    def arguments_type(cls) -> type[WEArguments]:
         """The arguments instance for this experiment."""
-        return WavesExecuterArguments
+        return WEArguments
 
-    @property
-    def analysis_instance(self) -> Type[WavesExecuterAnalysis]:
+    @classmethod
+    def analysis_type(cls) -> type[DummyAnalysis[WEArguments]]:
         """The analysis instance for this experiment."""
-        return WavesExecuterAnalysis
+        return DummyAnalysis
 
     @classmethod
     def params_control(
         cls,
-        targets: list[tuple[Hashable, QuantumCircuit]],
+        targets: list[tuple[WCKeyable, QuantumCircuit]],
         exp_name: str = "exps",
         **custom_kwargs: Any,
-    ) -> tuple[WavesExecuterArguments, Commonparams, dict[str, Any]]:
+    ) -> tuple[WEArguments, Commonparams, dict[str, Any]]:
         """Control the experiment's parameters.
 
         Args:
-            targets (list[tuple[Hashable, QuantumCircuit]]):
+            targets (list[tuple[WCKeyable, QuantumCircuit]]):
                 The circuits of the experiment.
             exp_name (str, optional):
                 The name of the experiment.
@@ -54,36 +50,26 @@ class WavesExecuterExperiment(ExperimentPrototype[WavesExecuterArguments, WavesE
             tuple[WavesExecuterArguments, Commonparams, dict[str, Any]]:
                 The arguments of the experiment, the common parameters, and the custom parameters.
         """
-        exp_name = f"{exp_name}.{SHORT_NAME}"
 
-        # pylint: disable=protected-access
-        return WavesExecuterArguments._filter(
-            exp_name=exp_name,
+        return WEArguments.filter(
+            exp_name=f"{exp_name}.{SHORT_NAME}",
             target_keys=[k for k, _ in targets],
             **custom_kwargs,
         )
-        # pylint: enable=protected-access
 
     @classmethod
     def method(
         cls,
-        targets: list[tuple[Hashable, QuantumCircuit]],
-        arguments: WavesExecuterArguments,
-        pbar: Optional[tqdm.tqdm] = None,
-        multiprocess: bool = True,
+        targets: list[tuple[WCKeyable, QuantumCircuit]],
+        arguments: WEArguments,
     ) -> tuple[list[QuantumCircuit], dict[str, Any]]:
         """The method to construct circuit.
 
         Args:
-            targets (list[tuple[Hashable, QuantumCircuit]]):
+            targets (list[tuple[WCKeyable, QuantumCircuit]]):
                 The circuits of the experiment.
-            arugments (ArgumentsPrototype):
+            arguments (WEArguments):
                 The arguments of the experiment.
-            pbar (Optional[tqdm.tqdm], optional):
-                The progress bar for showing the progress of the experiment.
-                Defaults to None.
-            multiprocess (bool, optional):
-                Whether to use multiprocessing. Defaults to `True`.
 
         Returns:
             tuple[list[QuantumCircuit], dict[str, Any]]:
@@ -91,8 +77,6 @@ class WavesExecuterExperiment(ExperimentPrototype[WavesExecuterArguments, WavesE
         """
         cirqs = []
         no_cregs = []
-        if pbar is not None:
-            pbar.set_description_str("Loading circuits")
         for i, (k, q) in enumerate(targets):
             q_copy = q.copy()
             if len(q_copy.cregs) < 1:
@@ -105,14 +89,14 @@ class WavesExecuterExperiment(ExperimentPrototype[WavesExecuterArguments, WavesE
             )
             cirqs.append(q_copy)
         if len(no_cregs) == len(targets):
-            raise ValueError(
+            raise NoExperimentCountsAvailable(
                 "| No classical register in ALL circuits, counts will be empty. "
                 + "Please add classical register to the circuit. "
                 + "(Don't be frustrated, I did the same thing on unit test. "
                 + "It made me confused and thought what's wrong for a while before ('_').)"
             )
         if len(no_cregs) > 0:
-            raise ValueError(
+            raise NoExperimentCountsAvailable(
                 "| No classical register in the following circuits, counts will be empty. "
                 + "Please add classical register to the circuit. "
                 + f"The index of circuit without classical register: {no_cregs}"
@@ -120,76 +104,33 @@ class WavesExecuterExperiment(ExperimentPrototype[WavesExecuterArguments, WavesE
 
         return cirqs, {}
 
-    @classmethod
-    def quantities(
-        cls,
-        shots: Optional[int] = None,
-        counts: Optional[list[dict[str, int]]] = None,
-        ultimate_question: str = "",
-    ) -> dict[str, Union[float, int]]:
-        """Computing specific squantity.
-        Where should be overwritten by each construction of new measurement.
-
-        Returns:
-            dict[str, float]: Counts, purity, entropy of experiment.
-        """
-        if shots is None or counts is None:
-            print(
-                "| shots or counts is None, "
-                + "but it doesn't matter with ultimate question over all."
-            )
-        print("| ultimate_question:", ultimate_question)
-        dummy = -100
-        ultimate_answer = 42
-        return {
-            "dummy": dummy,
-            "ultimate_answer": ultimate_answer,
-        }
-
-    def analyze(
-        self,
-        ultimate_question: str = "",
-        shots: Optional[int] = None,
-        pbar: Optional[tqdm.tqdm] = None,
-    ) -> WavesExecuterAnalysis:
+    def analyze(self, ultimate_question: str | None = None) -> DummyAnalysis[WEArguments]:
         """Analysis of the experiment.
 
         Args:
-            ultimate_question (str, optional):
+            ultimate_question (str | None, optional):
                 The ultimate question of the universe.
-                Defaults to `''`.
-            shots (Optional[int], optional):
-                The number of shots.
-                Defaults to None.
-            pbar (Optional[tqdm.tqdm], optional):
-                The progress bar. Defaults to None.
 
         Returns:
-            WavesExecuterAnalysis: The analysis of the experiment
+            DummyAnalysis[WEArguments]: The result of the analysis.
         """
 
-        if pbar is not None:
-            pbar.set_description("What is the ultimate question of the universe?")
-
-        if shots is None:
-            shots = self.commons.shots
-        if len(self.afterwards.counts) < 1:
-            raise QurryExperimentCountsNotCompleted(
-                "The counts of the experiment is not completed. So there is no data to analyze."
-            )
-
-        qs = self.quantities(
-            shots=shots,
-            counts=self.afterwards.counts,
-            ultimate_question=ultimate_question,
-        )
-
         serial = len(self.reports)
-        analysis = self.analysis_instance(
-            ultimate_question=ultimate_question,
-            serial=serial,
-            **qs,  # type: ignore
-        )
+        if serial != 0:
+            warnings.warn(
+                "You already have the answer. "
+                + "The Answer to the Ultimate Question of Life, "
+                + "The Universe, and Everything.",
+                DummyClassWarning,
+            )
+            return self.reports[0]
 
-        self.reports[serial] = analysis
+        analysis = self.analysis_type().perform_analysis(
+            arguments=self.args,
+            commonparams=self.commons,
+            counts=self.afterwards.counts,
+            analyze_arguments={"ultimate_question": ultimate_question},
+            serial=serial,
+        )
+        self.reports[analysis.serial] = analysis
         return analysis

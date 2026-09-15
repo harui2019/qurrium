@@ -1,14 +1,19 @@
 """Experiment - Beforewards (:mod:`qurry.qurrium.experiment.beforewards`)"""
 
-import json
-from typing import Optional, NamedTuple, Any, Union
-from collections.abc import Hashable
+from typing import Any
 from pathlib import Path
+import warnings
+import json
+from dataclasses import dataclass, fields
 
 from qiskit import QuantumCircuit
 
+from ..container import WCKeyable
 from ..utils.qasm import qasm_loads
+from ..utils.file_structure import FOLDER_NAME_BEFOREWARDS as FOLDER_NAME
+from ..exceptions import OldFormatedIncompatibleWarning
 from ...capsule import DEFAULT_ENCODING
+from ...capsule.mori import FileReadableWritableObj, WrittenContentType
 
 V5_TO_V7_FIELD = {
     "jobID": "job_id",
@@ -16,6 +21,9 @@ V5_TO_V7_FIELD = {
     "sideProduct": "side_product",
 }
 DEPRECATED_PROPERTIES = ["figTranspiled", "fig_original", "exp_name"]
+
+FILENAME_TEMPLATE = "{}.advent.json"
+"""Filename template for beforewards export."""
 
 
 def v5_to_v7_field_transpose(advent: dict[str, Any]) -> dict[str, Any]:
@@ -40,28 +48,39 @@ def v7_to_v11_field_transpose(advent: dict[str, Any]) -> dict[str, Any]:
     return advent
 
 
-class Before(NamedTuple):
+@dataclass(frozen=True)
+class Before(FileReadableWritableObj):
     """The data of experiment will be independently exported in the folder 'advent',
     which generated before the experiment.
     """
 
+    @property
+    def fields(self) -> tuple[str, ...]:
+        """The fields of arguments."""
+        return tuple(self.__dict__.keys())
+
+    @classmethod
+    def dataclass_fields(cls) -> tuple[str, ...]:
+        """The fields of arguments."""
+        return tuple(f.name for f in fields(cls))
+
+    def asdict(self) -> dict[str, Any]:
+        """The arguments as dictionary."""
+        return dict(self.__dict__)
+
     # Experiment Preparation
-    target: list[tuple[Hashable, Union[QuantumCircuit, str]]]
+    target: list[tuple[WCKeyable, QuantumCircuit | str]]
     """The target circuits of experiment."""
     target_qasm: list[tuple[str, str]]
     """The OpenQASM of target circuits."""
+    circuit_qasm: list[str]
+    """The OpenQASM of circuits (not yet transpiled)."""
     circuit: list[QuantumCircuit]
     """The transpiled circuits of experiment."""
-    circuit_qasm: list[str]
-    """The OpenQASM of transpiled circuits."""
 
     # Export data
     job_id: list[str]
     """ID of job for pending on real machine (IBMQBackend)."""
-
-    # side product
-    side_product: dict[str, Any]
-    """The data of experiment will be independently exported in the folder 'tales'."""
 
     @staticmethod
     def default_value():
@@ -72,15 +91,95 @@ class Before(NamedTuple):
             "circuit": [],
             "circuit_qasm": [],
             "job_id": [],
-            "side_product": {},
         }
 
+    def export(self, export_transpiled_circuit: bool = False) -> dict[str, Any]:
+        """Export the experiment's data before executing.
+
+        Args:
+            export_transpiled_circuit (bool, optional):
+                Whether to export the transpiled circuit as txt. Defaults to False.
+                For space-saving purpose and performance improvement,
+                when set to True, the transpiled circuit will be draw as txt.
+                Otherwise, the circuit will be not exported but circuit qasm remains.
+
+        Returns:
+            dict[str, Any]: The exported experiment's data.
+        """
+
+        return {
+            "target_qasm": self.target_qasm,
+            "circuit": (
+                [c.draw(output="text") for c in self.circuit] if export_transpiled_circuit else []
+            ),
+            "circuit_qasm": self.circuit_qasm,
+            "job_id": self.job_id,
+        }
+
+    def content_dumping(
+        self, export_transpiled_circuit: bool = False
+    ) -> WrittenContentType[dict[str, Any]]:
+        """Get the content to be written to files.
+
+        Args:
+            export_transpiled_circuit (bool, optional):
+                Whether to export the transpiled circuit as txt. Defaults to False.
+                For space-saving purpose and performance improvement,
+                when set to True, the transpiled circuit will be draw as txt.
+                Otherwise, the circuit will be not exported but circuit qasm remains.
+
+        Returns:
+            WrittenContentType: The content to be written to files.
+        """
+        return {"advent": self.export(export_transpiled_circuit=export_transpiled_circuit)}
+
     @classmethod
-    def read(
-        cls,
-        file_index: dict[str, str],
-        save_location: Path,
-    ) -> "Before":
+    def ingest(cls, raw_dict: dict[str, Any]):
+        """Load the experiment's arguments from a dictionary.
+
+        Args:
+            data (dict[str, Any]): The data to load.
+
+        Returns:
+            Before: The experiment's beforewards data.
+        """
+
+        for k in DEPRECATED_PROPERTIES:
+            raw_dict.pop(k, None)
+        raw_dict = v5_to_v7_field_transpose(raw_dict)
+        raw_dict = v7_to_v11_field_transpose(raw_dict)
+        raw_dict = {**cls.default_value(), **raw_dict}
+        return cls(**raw_dict)
+
+    @classmethod
+    def content_loading(cls, raw_read: dict[str, Any]):
+        """Process the serialized content from the method :meth:`content_writing`
+        Handle the raw read dictionary with specific structure,
+        which is same with the one used in :meth:`FileWritableObj.content_writing`.
+
+        Args:
+            raw_read (dict[str, Any]): The raw read dictionary.
+
+        Returns:
+            Before: The experiment's beforewards data.
+        """
+        if "adventures" in raw_read:
+            warnings.warn("Reading old format 'adventures' field", OldFormatedIncompatibleWarning)
+            raw_read["advent"] = raw_read.pop("adventures")
+
+        if "advent" not in raw_read:
+            raise KeyError("The 'advent' field is missing in the raw read data.")
+        if not isinstance(raw_read["advent"], dict):
+            raise TypeError("The 'advent' field must be a dictionary.")
+
+        advent_dict: dict[str, Any] = raw_read["advent"]
+        for k, dv in cls.default_value().items():
+            if k not in advent_dict:
+                advent_dict[k] = dv
+        return cls.ingest(advent_dict)
+
+    @classmethod
+    def read(cls, file_index: dict[str, str], save_location: Path) -> "Before":
         """Read the exported experiment file.
 
         Args:
@@ -88,62 +187,25 @@ class Before(NamedTuple):
             save_location (Path): The location of exported experiment file.
 
         Returns:
-            tuple[dict[str, Any], "Before", dict[str, Any]]:
-                The experiment's arguments,
-                the experiment's common parameters,
-                and the experiment's side product.
+            Before: The experiment's beforewards data.
         """
-        raw_data = {}
+
         with open(save_location / file_index["advent"], "r", encoding=DEFAULT_ENCODING) as f:
-            raw_data = json.load(f)
+            advent = cls.content_loading(json.load(f))
 
-        advent: dict[str, Any] = raw_data["adventures"]
-        for k in DEPRECATED_PROPERTIES:
-            advent.pop(k, None)
-        advent = v5_to_v7_field_transpose(advent)
-        advent = v7_to_v11_field_transpose(advent)
-        for k, dv in cls.default_value().items():
-            if k not in advent:
-                advent[k] = dv
+        return advent
 
-        assert "side_product" in advent, "The side product is not found."
-
-        for filekey, filename in file_index.items():
-            filekeydiv = filekey.split(".")
-            if filekeydiv[0] == "tales":
-                with open(save_location / filename, "r", encoding=DEFAULT_ENCODING) as f:
-                    advent["side_product"][filekeydiv[1]] = json.load(f)
-
-        return cls(**advent)
-
-    def export(
-        self,
-        export_transpiled_circuit: bool = False,
-    ) -> tuple[dict[str, Any], dict[str, Any]]:
-        """Export the experiment's data before executing.
+    @classmethod
+    def folder_and_filename(cls, identifier: str) -> tuple[str, str]:
+        """Get the folder name and filename for the given analysis ID.
 
         Args:
-            export_circuit (bool, optional):
-                Whether to export the transpiled circuit as txt. Defaults to False.
-                for It's space-saving purpose and performance improvement.
-                When set to True, the transpiled circuit will be draw as txt.
-                Otherwise, the circuit will be not exported but circuit qasm remains.
+            identifier (str): Identifier for the experiments.
 
         Returns:
-            tuple[dict[str, Any], dict[str, Any]]:
-                The experiment's arguments,
-                and the experiment's side product.
+            tuple[str, str]: The folder name and filename for the experiments.
         """
-
-        adventures = {
-            "target": self.target,
-            "target_qasm": self.target_qasm,
-            "circuit": self.circuit if export_transpiled_circuit else [],
-            "circuit_qasm": self.circuit_qasm,
-            "job_id": self.job_id,
-        }
-
-        return adventures, self.side_product
+        return FOLDER_NAME, FILENAME_TEMPLATE.format(identifier)
 
     def revive_circuit(self, replace_circuits: bool = False) -> list[QuantumCircuit]:
         """Revive the circuit from the qasm, return the revived circuits.
@@ -170,10 +232,10 @@ class Before(NamedTuple):
             if tmp_circ is None:
                 is_none_circuits.append(i)
         if len(is_none_circuits) != 0:
-            print(f"The circuits {is_none_circuits} are not revived.")
+            warnings.warn(f"The circuits with indices {is_none_circuits} are not revived.")
         return revived_circuits
 
-    def revive_target(self, replace_target: bool = False) -> dict[Hashable, QuantumCircuit]:
+    def revive_target(self, replace_target: bool = False) -> dict[WCKeyable, QuantumCircuit]:
         """Revive the target circuits from the qasm, return the revived target.
 
         Args:
@@ -184,7 +246,7 @@ class Before(NamedTuple):
             ValueError: If the .target is not empty.
 
         Returns:
-            dict[Hashable, QuantumCircuit]: The revived target circuits.
+            dict[WCKeyable, QuantumCircuit]: The revived target circuits.
         """
         revived_target = {}
         if len(self.target) != 0:
@@ -196,29 +258,26 @@ class Before(NamedTuple):
             revived_target[key] = QuantumCircuit.from_qasm_str(qasm)
         return revived_target
 
+    @classmethod
+    def create(cls, beforewards: "Before | None") -> "Before":
+        """Create a :class:`Before` object.
 
-def create_beforewards(beforewards: Optional[Before]) -> Before:
-    """Create a :class:`Before` object.
+        Args:
+            beforewards (Before | None):
+                The Beforewards object to create. Defaults to None.
 
-    Args:
-        beforewards (Optional[Before]):
-            The Beforewards object to create. Defaults to None.
-    Returns:
-        Before: The Beforewards object.
-    Raises:
-        TypeError: If 'beforewards' is not a Before object or None.
-    """
+        Raises:
+            TypeError: If 'beforewards' is not a Before object or None.
 
-    if beforewards is None:
-        return Before(
-            target=[],
-            target_qasm=[],
-            circuit=[],
-            circuit_qasm=[],
-            job_id=[],
-            side_product={},
+        Returns:
+            Before: The Beforewards object.
+        """
+
+        if beforewards is None:
+            return cls(**cls.default_value())
+        if isinstance(beforewards, cls):
+            return beforewards
+
+        raise TypeError(
+            f"beforewards must be a Before object or None, but got {type(beforewards)}."
         )
-    if isinstance(beforewards, Before):
-        return beforewards
-
-    raise TypeError(f"beforewards must be a Before object or None, but got {type(beforewards)}.")

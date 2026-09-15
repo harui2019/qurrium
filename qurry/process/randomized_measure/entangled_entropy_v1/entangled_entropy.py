@@ -3,29 +3,24 @@
 
 """
 
-from typing import Union, Optional
 import numpy as np
 import tqdm
 
 from .entropy_core import entangled_entropy_core, DEFAULT_PROCESS_BACKEND
-from .container import (
-    RandomizedEntangledEntropyComplex,
-    RandomizedEntangledEntropyMitigatedComplex,
-    ExistingAllSystemSource,
-)
-from ...utils import depolarizing_error_mitgation
+from .container import TargetSystemResultV1, AllSystemResultV1, isvalid_all_system_result_v1
+from ...utils import depolarizing_error_mitgation, MitigatedResult
 from ...availability import PostProcessingBackendLabel
 
 
 def randomized_entangled_entropy_v1(
     shots: int,
     counts: list[dict[str, int]],
-    degree: Optional[Union[tuple[int, int], int]],
-    measure: Optional[tuple[int, int]] = None,
+    degree: tuple[int, int] | int | None,
+    measure: tuple[int, int] | None = None,
     backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
-    workers_num: Optional[int] = None,
-    pbar: Optional[tqdm.tqdm] = None,
-) -> RandomizedEntangledEntropyComplex:
+    workers_num: int | None = None,
+    pbar: tqdm.tqdm | None = None,
+) -> TargetSystemResultV1:
     """Calculate entangled entropy.
     The entropy we compute is the Second Order Rényi Entropy.
 
@@ -105,9 +100,9 @@ def randomized_entangled_entropy_v1(
             Shots of the counts.
         counts (list[dict[str, int]]):
             Counts from randomized measurement results.
-        degree (Optional[Union[tuple[int, int], int]]):
+        degree (tuple[int, int] | int | None):
             The range of partition.
-        measure (Optional[tuple[int, int]], optional):
+        measure (tuple[int, int] | None, optional):
             The range that implemented the measuring gate.
             If not specified, then use all qubits.
             This will affect the range of partition
@@ -116,24 +111,30 @@ def randomized_entangled_entropy_v1(
         backend (PostProcessingBackendLabel, optional):
             Backend for the post-processing.
             Defaults to DEFAULT_PROCESS_BACKEND.
-        workers_num (Optional[int], optional):
+        workers_num (int | None, optional):
             Number of multi-processing workers, it will be ignored if backend is Rust.
             if sets to 1, then disable to using multi-processing;
             if not specified, then use the number of all cpu counts by `os.cpu_count()`.
             This only works for Python and Cython backend.
             Defaults to None.
-        pbar (Optional[tqdm.tqdm], optional):
+        pbar (tqdm.tqdm | None, optional):
             The progress bar API,
             you can use put a `tqdm.tqdm <https://tqdm.github.io/>` object here.
             This function will update the progress bar description.
             Defaults to None.
 
     Returns:
-        RandomizedEntangledEntropyComplex:
-            A dictionary contains purity, entropy,
-            a list of each overlap, puritySD, degree,
-            actual measure range, bitstring range and more.
+        A dictionary contains purity, entropy,
+        a list of each overlap, puritySD, degree,
+        actual measure range, bitstring range and more.
     """
+
+    null_counts = [i for i, c in enumerate(counts) if len(c) == 0]
+    if len(null_counts) > 0:
+        raise ValueError(
+            "The counts contain null counts at index: "
+            + f"{null_counts}. Cannot perform entangled entropy calculation."
+        )
 
     if isinstance(pbar, tqdm.tqdm):
         pbar.set_description_str(f"Calculate specific degree {degree}.")
@@ -151,7 +152,7 @@ def randomized_entangled_entropy_v1(
         backend=backend,
         multiprocess_pool_size=workers_num,
     )
-    purity_cell_list: list[Union[float, np.float64]] = list(purity_cell_dict.values())
+    purity_cell_list = list(purity_cell_dict.values())
 
     # pylance cannot recognize the type
     purity: np.float64 = np.mean(purity_cell_list, dtype=np.float64)  # type: ignore
@@ -159,15 +160,18 @@ def randomized_entangled_entropy_v1(
     entropy = -np.log2(purity, dtype=np.float64)
     entropy_sd = purity_sd / np.log(2) / purity
 
-    quantity: RandomizedEntangledEntropyComplex = {
+    num_qubits = len(list(counts[0].keys())[0])
+
+    quantity: TargetSystemResultV1 = {
         "purity": purity,
         "entropy": entropy,
-        "purityCells": purity_cell_dict,
         "puritySD": purity_sd,
         "entropySD": entropy_sd,
+        "purityCells": purity_cell_dict,
+        "bitStringRange": bitstring_range,
         "degree": degree,
         "measureActually": measure_range,
-        "bitStringRange": bitstring_range,
+        "num_qubits": num_qubits,
         "countsNum": len(counts),
         "takingTime": taken,
     }
@@ -178,17 +182,11 @@ def randomized_entangled_entropy_v1(
 def preparing_all_system(
     shots: int,
     counts: list[dict[str, int]],
-    measure: Optional[tuple[int, int]] = None,
+    measure: tuple[int, int] | None = None,
     backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
-    workers_num: Optional[int] = None,
-    existed_all_system: Optional[ExistingAllSystemSource] = None,
-) -> tuple[
-    Union[dict[int, float], dict[int, np.float64]],
-    Union[tuple[int, int], list[int]],
-    Union[tuple[int, int], list[int]],
-    float,
-    str,
-]:
+    workers_num: int | None = None,
+    existed_all_system: AllSystemResultV1 | None = None,
+) -> AllSystemResultV1:
     """Prepare the all system source for entangled entropy calculation.
 
     Args:
@@ -196,7 +194,7 @@ def preparing_all_system(
             Shots of the counts.
         counts (list[dict[str, int]]):
             Counts from randomized measurement results.
-        measure (Optional[tuple[int, int]], optional):
+        measure (tuple[int, int] | None, optional):
             The range that implemented the measuring gate.
             If not specified, then use all qubits.
             This will affect the range of partition
@@ -205,13 +203,13 @@ def preparing_all_system(
         backend (PostProcessingBackendLabel, optional):
             Backend for the post-processing.
             Defaults to DEFAULT_PROCESS_BACKEND.
-        workers_num (Optional[int], optional):
+        workers_num (int | None, optional):
             Number of multi-processing workers, it will be ignored if backend is Rust.
             if sets to 1, then disable to using multi-processing;
             if not specified, then use the number of all cpu counts by `os.cpu_count()`.
             This only works for Python and Cython backend.
             Defaults to None.
-        existed_all_system (Optional[ExistingAllSystemSource], optional):
+        existed_all_system (AllSystemResultV1 | None, optional):
             Existing all system source.
             If there is known all system result,
             then you can put it here to save a lot of time on calculating all system
@@ -223,63 +221,33 @@ def preparing_all_system(
             Defaults to None.
 
     Returns:
-        A tuple contains:
-
-            - purity_cell_list_allsys: list of purity of all system.
-            - bitstring_range_allsys: The range of partition on the bitstring of all system.
-            - measure_range_allsys: The range of partition refer to all qubits of all system.
-            - taken_allsys: The time taken to calculate all system.
-            - source: The source of all system,
-                it can be "independent" or the source of existed_all_system.
+        The result of all system for entangled entropy calculation.
     """
+    if existed_all_system is not None:
+        isvalid_all_system_result_v1(existed_all_system)
+        return existed_all_system
 
-    if isinstance(existed_all_system, dict):
-        if all(
-            k in existed_all_system
-            for k in ["purityCellsAllSys", "bitStringRange", "measureActually", "source"]
-        ):
-            return (
-                existed_all_system["purityCellsAllSys"],
-                existed_all_system["bitStringRange"],
-                existed_all_system["measureActually"],
-                0,
-                existed_all_system["source"],
-            )
-
-    (
-        purity_cell_dict_allsys,
-        bitstring_range_allsys,
-        measure_range_allsys,
-        _msg_allsys,
-        taken_allsys,
-    ) = entangled_entropy_core(
+    target_system_result_v1_allsys = randomized_entangled_entropy_v1(
         shots=shots,
         counts=counts,
         degree=None,
         measure=measure,
         backend=backend,
-        multiprocess_pool_size=workers_num,
+        workers_num=workers_num,
     )
 
-    return (
-        purity_cell_dict_allsys,
-        bitstring_range_allsys,
-        measure_range_allsys,
-        taken_allsys,
-        "independent",
-    )
+    return AllSystemResultV1(**target_system_result_v1_allsys, allSystemSource="independent")
 
 
 def randomized_entangled_entropy_mitigated_v1(
     shots: int,
     counts: list[dict[str, int]],
-    degree: Optional[Union[tuple[int, int], int]],
-    measure: Optional[tuple[int, int]] = None,
+    degree: tuple[int, int] | int | None,
+    measure: tuple[int, int] | None = None,
     backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
-    workers_num: Optional[int] = None,
-    existed_all_system: Optional[ExistingAllSystemSource] = None,
-    pbar: Optional[tqdm.tqdm] = None,
-) -> RandomizedEntangledEntropyMitigatedComplex:
+    workers_num: int | None = None,
+    existed_all_system: AllSystemResultV1 | None = None,
+) -> tuple[TargetSystemResultV1, AllSystemResultV1, MitigatedResult]:
     """Calculate entangled entropy with depolarizing error mitigation.
     The entropy we compute is the Second Order Rényi Entropy.
 
@@ -384,9 +352,9 @@ def randomized_entangled_entropy_mitigated_v1(
             Shots of the counts.
         counts (list[dict[str, int]]):
             Counts from randomized measurement results.
-        degree (Optional[Union[tuple[int, int], int]]):
+        degree (tuple[int, int] | int | None):
             The range of partition.
-        measure (Optional[tuple[int, int]], optional):
+        measure (tuple[int, int] | None, optional):
             The range that implemented the measuring gate.
             If not specified, then use all qubits.
             This will affect the range of partition
@@ -395,13 +363,13 @@ def randomized_entangled_entropy_mitigated_v1(
         backend (PostProcessingBackendLabel, optional):
             Backend for the post-processing.
             Defaults to DEFAULT_PROCESS_BACKEND.
-        workers_num (Optional[int], optional):
+        workers_num (int | None, optional):
             Number of multi-processing workers, it will be ignored if backend is Rust.
             if sets to 1, then disable to using multi-processing;
             if not specified, then use the number of all cpu counts by `os.cpu_count()`.
             This only works for Python and Cython backend.
             Defaults to None.
-        existed_all_system (Optional[ExistingAllSystemSource], optional):
+        existed_all_system (AllSystemResultV1 | None, optional):
             Existing all system source.
             If there is known all system result,
             then you can put it here to save a lot of time on calculating all system
@@ -411,71 +379,25 @@ def randomized_entangled_entropy_mitigated_v1(
             `purityCellsAllSys`, `bitStringRange`, `measureActually`, `source` for its name.
             This can save a lot of time
             Defaults to None.
-        pbar (Optional[tqdm.tqdm], optional):
-            The progress bar API,
-            you can use put a `tqdm.tqdm <https://tqdm.github.io/>` object here.
-            This function will update the progress bar description.
-            Defaults to None.
 
     Returns:
-        RandomizedEntangledEntropyMitigatedComplex: A dictionary contains
-            purity, entropy, a list of each overlap, puritySD,
-            purity of all system, entropy of all system,
-            a list of each overlap in all system, puritySD of all system,
-            degree, actual measure range, actual measure range in all system, bitstring range.
+        A tuple of three elements:
+        - TargetSystemResultV1:
+            The result of target system for entangled entropy calculation.
+        - AllSystemResultV1:
+            The result of all system for entangled entropy calculation.
+        - MitigatedResult:
+            The result after depolarizing error mitigation.
     """
-    null_counts = [i for i, c in enumerate(counts) if len(c) == 0]
-    if len(null_counts) > 0:
-        return {
-            # target system
-            "purity": np.nan,
-            "entropy": np.nan,
-            "purityCells": {},
-            "puritySD": np.nan,
-            "entropySD": np.nan,
-            "bitStringRange": (0, 0),
-            # all system
-            "allSystemSource": "Null counts exist, no measure.",
-            "purityAllSys": np.nan,
-            "entropyAllSys": np.nan,
-            "purityCellsAllSys": {},
-            "puritySDAllSys": np.nan,
-            "entropySDAllSys": np.nan,
-            "bitsStringRangeAllSys": (0, 0),
-            # mitigated
-            "errorRate": np.nan,
-            "mitigatedPurity": np.nan,
-            "mitigatedEntropy": np.nan,
-            # info
-            "degree": degree,
-            "num_qubits": 0,
-            "measure": ("The following is the index of null counts.", null_counts),
-            "measureActually": (0, 0),
-            "measureActuallyAllSys": (0, 0),
-            "countsNum": len(counts),
-            "takingTime": 0,
-            "takingTimeAllSys": 0,
-        }
-
-    if isinstance(pbar, tqdm.tqdm):
-        pbar.set_description_str(f"Calculate specific degree {degree} by {backend}.")
-    (purity_cell_dict, bitstring_range, measure_range, msg, taken) = entangled_entropy_core(
+    target_system_result_v1 = randomized_entangled_entropy_v1(
         shots=shots,
         counts=counts,
         degree=degree,
         measure=measure,
         backend=backend,
-        multiprocess_pool_size=workers_num,
+        workers_num=workers_num,
     )
-    purity_cell_list = np.array(list(purity_cell_dict.values()))
-
-    (
-        purity_cell_dict_allsys,
-        bitstring_range_allsys,
-        measure_range_allsys,
-        taken_allsys,
-        source,
-    ) = preparing_all_system(
+    all_system_result_v1 = preparing_all_system(
         shots=shots,
         counts=counts,
         measure=measure,
@@ -483,64 +405,17 @@ def randomized_entangled_entropy_mitigated_v1(
         workers_num=workers_num,
         existed_all_system=existed_all_system,
     )
-    purity_cell_list_allsys = np.array(list(purity_cell_dict_allsys.values()))
-
-    if isinstance(pbar, tqdm.tqdm):
-        pbar.set_description_str(f"Preparing error mitigation of {bitstring_range} on {measure}")
-
-    # pylance cannot recognize the type
-    purity: np.float64 = np.mean(purity_cell_list, dtype=np.float64)
-    purity_allsys: np.float64 = np.mean(purity_cell_list_allsys, dtype=np.float64)
-    purity_sd: np.float64 = np.std(purity_cell_list, dtype=np.float64)
-    purity_sd_allsys: np.float64 = np.std(purity_cell_list_allsys, dtype=np.float64)
 
     num_qubits = len(list(counts[0].keys())[0])
     if degree is None:
         degree = num_qubits
     subsystem = max(degree) - min(degree) if isinstance(degree, tuple) else degree
 
-    error_mitgation_info = depolarizing_error_mitgation(
-        meas_system=purity,
-        all_system=purity_allsys,
+    mitigated_result = depolarizing_error_mitgation(
+        meas_system=target_system_result_v1["purity"],
+        all_system=all_system_result_v1["purity"],
         subsystem_size=subsystem,
         system_size=num_qubits,
     )
 
-    if isinstance(pbar, tqdm.tqdm):
-        pbar.set_description_str(msg[2:-1] + " with mitigation.")
-
-    quantity: RandomizedEntangledEntropyMitigatedComplex = {
-        # target system
-        "purity": purity,
-        "entropy": -np.log2(purity, dtype=np.float64),
-        "purityCells": purity_cell_dict,
-        "puritySD": purity_sd,
-        "entropySD": purity_sd / np.log(2) / purity,
-        "bitStringRange": bitstring_range,
-        # all system
-        "allSystemSource": source,  # 'independent' or 'header of analysis'
-        "purityAllSys": purity_allsys,
-        "entropyAllSys": -np.log2(purity_allsys, dtype=np.float64),
-        "purityCellsAllSys": purity_cell_dict_allsys,
-        "puritySDAllSys": purity_sd_allsys,
-        "entropySDAllSys": purity_sd_allsys / np.log(2) / purity_allsys,
-        "bitsStringRangeAllSys": bitstring_range_allsys,
-        # mitigated
-        "errorRate": error_mitgation_info["errorRate"],
-        "mitigatedPurity": error_mitgation_info["mitigatedPurity"],
-        "mitigatedEntropy": error_mitgation_info["mitigatedEntropy"],
-        # info
-        "degree": degree,
-        "num_qubits": num_qubits,
-        "measure": (
-            ("not specified, use all qubits", measure_range)
-            if measure is None
-            else ("measure range:", measure)
-        ),
-        "measureActually": measure_range,
-        "measureActuallyAllSys": measure_range_allsys,
-        "countsNum": len(counts),
-        "takingTime": taken,
-        "takingTimeAllSys": taken_allsys,
-    }
-    return quantity
+    return target_system_result_v1, all_system_result_v1, mitigated_result

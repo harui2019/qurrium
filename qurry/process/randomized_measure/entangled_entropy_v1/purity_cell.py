@@ -37,9 +37,9 @@ def purity_cell_py(
             [k[bitstring_range[0] : bitstring_range[1]] for k in single_counts], 0
         )
         for bitstring in list(single_counts):
-            single_counts_under_degree[
-                bitstring[bitstring_range[0] : bitstring_range[1]]
-            ] += single_counts[bitstring]
+            single_counts_under_degree[bitstring[bitstring_range[0] : bitstring_range[1]]] += (
+                single_counts[bitstring]
+            )
 
     else:
         single_counts_under_degree = dict.fromkeys(

@@ -38,7 +38,7 @@ pub fn magsq_cell_rust(idx: i32, single_counts: &HashMap<String, i32>, shots: i3
 
 #[pyfunction]
 #[pyo3(signature = (shots, counts, num_qubits))]
-pub fn magnetic_square_core_rust(
+pub fn magnet_square_core_rust(
     shots: i32,
     counts: Vec<HashMap<String, i32>>,
     num_qubits: i32,
@@ -66,7 +66,7 @@ pub fn magnetic_square_core_rust(
 
 #[pyfunction]
 #[pyo3(signature = (shots, single_counts, num_qubits))]
-pub fn z_dir_magnetic_square_core_rust(
+pub fn z_dir_magnet_square_core_rust(
     shots: i32,
     single_counts: HashMap<String, i32>,
     num_qubits: i32,

@@ -2,7 +2,6 @@ use dashmap::DashMap;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use rand::seq::SliceRandom;
-use rand::{thread_rng, Rng};
 use rayon::prelude::*;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -71,7 +70,7 @@ pub fn make_two_bit_str_32(bitlen: usize, num: Option<usize>) -> PyResult<Vec<St
     if bitlen <= logged_num as usize {
         let mut result = generate_bits(bitlen);
         if is_less_than_16 {
-            result.shuffle(&mut thread_rng());
+            result.shuffle(&mut rand::rng());
             return Ok(result[..less_slice].to_vec());
         }
         return Ok(result);
@@ -84,15 +83,14 @@ pub fn make_two_bit_str_32(bitlen: usize, num: Option<usize>) -> PyResult<Vec<St
     assert_eq!(2_usize.pow(logged_num as u32), len_raw_content);
     assert!(2 * len_raw_content >= real_num && real_num >= len_raw_content);
 
-    let mut rng = rand::thread_rng();
-    let first_filler = if rng.gen::<bool>() {
+    let first_filler = if rand::random::<bool>() {
         vec!["0", "1"]
     } else {
         vec!["1", "0"]
     };
 
     fn filler_h_or_e(ff: &str, item: &str) -> String {
-        if rand::thread_rng().gen::<bool>() {
+        if  rand::random::<bool>() {
             format!("{}{}", ff, item)
         } else {
             format!("{}{}", item, ff)
@@ -116,8 +114,7 @@ pub fn make_two_bit_str_32(bitlen: usize, num: Option<usize>) -> PyResult<Vec<St
         num_fulfill_content = num_fulfill_content
             .par_iter()
             .map(|item| {
-                let mut rng = rand::thread_rng();
-                let rand_item = &raw_content[rng.gen_range(0..len_raw_content)];
+                let rand_item = &raw_content[rand::random_range(0..len_raw_content)];
                 filler_h_or_e(rand_item, item)
             })
             .collect();
@@ -137,14 +134,13 @@ pub fn make_two_bit_str_32(bitlen: usize, num: Option<usize>) -> PyResult<Vec<St
     let mut result: Vec<String> = num_fulfill_content
         .par_iter()
         .map(|item| {
-            let mut rng = rand::thread_rng();
-            let filler = &remain_fillers[rng.gen_range(0..len_remain_fillers)];
+            let filler = &remain_fillers[rand::random_range(0..len_remain_fillers)];
             filler_h_or_e(filler, item)
         })
         .collect();
 
     if is_less_than_16 {
-        result.shuffle(&mut thread_rng());
+        result.shuffle(&mut rand::rng());
         return Ok(result[..less_slice].to_vec());
     }
     Ok(result)

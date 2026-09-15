@@ -3,28 +3,29 @@
 
 """
 
-from typing import Union, Optional, Iterable
-import warnings
+from collections.abc import Iterable
 import numpy as np
 import tqdm
 
 from .entropy_core_2 import entangled_entropy_core_2, DEFAULT_PROCESS_BACKEND
-from .container import (
-    EntangledEntropyResult,
-    EntangledEntropyResultMitigated,
-    ExistedAllSystemInfo,
+from .container import TargetSystemResult, AllSystemResult, isvalid_all_system_result
+from ..utils import generate_hash_from_trace_result
+from ...utils import (
+    depolarizing_error_mitgation,
+    MitigatedResult,
+    shot_counts_selected_clreg_checker,
 )
-from ...utils import depolarizing_error_mitgation
 from ...availability import PostProcessingBackendLabel
+from ....tools import current_time
 
 
 def randomized_entangled_entropy(
     shots: int,
     counts: list[dict[str, int]],
-    selected_classical_registers: Optional[Iterable[int]] = None,
+    selected_classical_registers: Iterable[int] | None = None,
     backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
-    pbar: Optional[tqdm.tqdm] = None,
-) -> EntangledEntropyResult:
+    pbar: tqdm.tqdm | None = None,
+) -> TargetSystemResult:
     """Calculate entangled entropy.
     The entropy we compute is the Second Order Rényi Entropy.
 
@@ -104,27 +105,34 @@ def randomized_entangled_entropy(
             Shots of the experiment on quantum machine.
         counts (list[dict[str, int]]):
             Counts of the experiment on quantum machine.
-        selected_classical_registers (Optional[Iterable[int]], optional):
-            The list of **the index of the selected_classical_registers**.
+        selected_classical_registers (Iterable[int] | None, optional):
+            The list of **the index of the selected_classical_registers**. Defaults to None.
         backend (ExistingProcessBackendLabel, optional):
             Backend for the process. Defaults to DEFAULT_PROCESS_BACKEND.
-        pbar (Optional[tqdm.tqdm], optional):
+        pbar (tqdm.tqdm | None, optional):
             The progress bar API,
             you can use put a `tqdm.tqdm <https://tqdm.github.io/>` object here.
             This function will update the progress bar description.
             Defaults to None.
 
     Returns:
-        EntangledEntropyReturn:
-            A dictionary contains purity, entropy, a dictionary of each purity cell,
-            entropySD, puritySD, num_classical_registers, classical_registers,
-            classical_registers_actually, counts_num, taking_time.
+        A dictionary contains purity, entropy, a dictionary of each purity cell,
+        entropySD, puritySD, num_classical_registers, classical_registers,
+        classical_registers_actually, counts_num, taking_time.
     """
 
-    if isinstance(pbar, tqdm.tqdm):
+    null_counts = [i for i, c in enumerate(counts) if len(c) == 0]
+    if len(null_counts) > 0:
+        raise ValueError(
+            "The counts contain null counts at index: "
+            + f"{null_counts}. Cannot perform entangled entropy calculation."
+        )
+
+    if pbar is not None:
         pbar.set_description_str(
             f"Calculate selected classical registers: {selected_classical_registers}."
         )
+
     (
         purity_cell_dict,
         selected_classical_registers_actual,
@@ -136,7 +144,7 @@ def randomized_entangled_entropy(
         selected_classical_registers=selected_classical_registers,
         backend=backend,
     )
-    purity_cell_list: list[Union[float, np.float64]] = list(purity_cell_dict.values())
+    purity_cell_list = list(purity_cell_dict.values())
 
     # pylance cannot recognize the type
     purity: np.float64 = np.mean(purity_cell_list, dtype=np.float64)  # type: ignore
@@ -146,53 +154,50 @@ def randomized_entangled_entropy(
 
     num_classical_registers = len(next(iter(counts[0].keys())))
 
-    quantity: EntangledEntropyResult = {
-        "purity": purity,
-        "entropy": entropy,
-        "puritySD": purity_sd,
-        "entropySD": entropy_sd,
-        "purityCells": purity_cell_dict,
+    return TargetSystemResult(
+        purity=purity,
+        entropy=entropy,
+        purity_sd=purity_sd,
+        entropy_sd=entropy_sd,
+        purity_cells=purity_cell_dict,
         # new added
-        "num_classical_registers": num_classical_registers,
-        "classical_registers": (
+        num_classical_registers=num_classical_registers,
+        classical_registers=(
             selected_classical_registers
             if selected_classical_registers is None
             else list(selected_classical_registers)
         ),
-        "classical_registers_actually": selected_classical_registers_actual,
+        classical_registers_actually=selected_classical_registers_actual,
         # refactored
-        "counts_num": len(counts),
-        "taking_time": taken,
-    }
-
-    return quantity
+        counts_num=len(counts),
+        taking_time=taken,
+    )
 
 
 def preparing_all_system(
-    existed_all_system: Optional[ExistedAllSystemInfo],
     shots: int,
     counts: list[dict[str, int]],
-    backend: PostProcessingBackendLabel,
-    pbar: Optional[tqdm.tqdm] = None,
-) -> ExistedAllSystemInfo:
+    existed_all_system: AllSystemResult | None = None,
+    backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
+    pbar: tqdm.tqdm | None = None,
+) -> AllSystemResult:
     """Prepare all system for the entangled entropy calculation.
 
     Args:
-        existed_all_system (Optional[ExistedAllSystemInfo]):
-            Existing all system source.
-            If there is known all system result,
-            then you can put it here to save a lot of time on calculating all system
-            for no matter what partition you are using,
-            their all system result is the same.
-            This can save a lot of time
-            Defaults to None.
         shots (int):
             Shots of the counts.
         counts (list[dict[str, int]]):
             Counts from randomized measurement results.
-        backend (PostProcessingBackendLabel):
-            Backend for the process.
-        pbar (Optional[tqdm.tqdm], optional):
+        existed_all_system (AllSystemResult | None, optional):
+            Existing all system source.
+            If there is known all system result, then you can put it here
+            to save a lot of time on calculating all system for no matter
+            what partition you are using, their all system result is the same.
+            This can save a lot of time
+            Defaults to None.
+        backend (PostProcessingBackendLabel, optional):
+            Backend for the process. Defaults to DEFAULT_PROCESS_BACKEND.
+        pbar (tqdm.tqdm | None, optional):
             The progress bar API,
             you can use put a `tqdm.tqdm <https://tqdm.github.io/>` object here.
             This function will update the progress bar description.
@@ -202,63 +207,77 @@ def preparing_all_system(
         ExistedAllSystemInfo:
             The all system information.
     """
+    if existed_all_system is not None:
+        isvalid_all_system_result(existed_all_system)
 
-    if isinstance(existed_all_system, ExistedAllSystemInfo):
+        total_system_size, selected_clregs = shot_counts_selected_clreg_checker(
+            shots=shots,
+            counts=counts,
+            selected_classical_registers=None,
+        )
+        selected_clregs_sorted = sorted(selected_clregs)
+        selected_clregs_sorted_existed_all_system = sorted(
+            existed_all_system["classical_registers_actually"]
+        )
+        if total_system_size != len(selected_clregs_sorted_existed_all_system):
+            raise ValueError(
+                "The number of classical registers is not matched with the existed all system. "
+                + "total_system_size != "
+                + "len(existed_all_system['classical_registers_actually']): "
+                + f"{total_system_size} != {len(selected_clregs_sorted_existed_all_system)}"
+            )
+        if selected_clregs_sorted != selected_clregs_sorted_existed_all_system:
+            raise ValueError(
+                "The selected classical registers is not matched with the existed all system. "
+                + "selected_classical_registers != "
+                + "existed_all_system['classical_registers_actually']: "
+                + f"{selected_clregs_sorted} != {selected_clregs_sorted_existed_all_system}"
+            )
+
+        existed_all_system["all_system_source"] = (
+            "AllSystemResult("
+            + f"preparing_datetime={existed_all_system['preparing_datetime']}, "
+            + f"result_hash_id={existed_all_system['result_hash_id']})"
+        )
         if isinstance(pbar, tqdm.tqdm):
             pbar.set_description_str(
-                f"Using existing all system from '{existed_all_system.source}'"
+                f"Using existing all system from '{existed_all_system['all_system_source']}'"
             )
         return existed_all_system
-    if existed_all_system is not None:
-        warnings.warn(
-            "The existed_all_system is not valid, it should be None or ExistedAllSystemInfo.",
-            RuntimeWarning,
-        )
 
-    if isinstance(pbar, tqdm.tqdm):
-        pbar.set_description_str(f"Calculate all system by {backend}.")
-    (
-        purity_cell_dict_allsys,
-        selected_qubits_sorted_allsys,
-        _msg_allsys,
-        taken_allsys,
-    ) = entangled_entropy_core_2(
+    target_obj_all_system = randomized_entangled_entropy(
         shots=shots,
         counts=counts,
         selected_classical_registers=None,
         backend=backend,
+        pbar=pbar,
     )
 
-    purity_values = np.array(list(purity_cell_dict_allsys.values()), dtype=np.float64)
-    purity_all_sys = np.mean(purity_values, dtype=np.float64)
-    purity_sd_all_sys = np.std(purity_values, dtype=np.float64)
-    entropy_all_sys = -np.log2(purity_all_sys, dtype=np.float64)
-    entropy_sd_all_sys = purity_sd_all_sys / np.log(2) / purity_all_sys
-
-    num_classical_registers_all_sys = len(next(iter(counts[0].keys())))
-
-    return ExistedAllSystemInfo(
-        source="independent",
-        purityAllSys=purity_all_sys,
-        entropyAllSys=entropy_all_sys,
-        puritySDAllSys=purity_sd_all_sys,
-        entropySDAllSys=entropy_sd_all_sys,
-        purityCellsAllSys=purity_cell_dict_allsys,
-        num_classical_registers_all_sys=num_classical_registers_all_sys,
-        classical_registers_all_sys=None,
-        classical_registers_actually_all_sys=selected_qubits_sorted_allsys,
-        taking_time_all_sys=taken_allsys,
+    preparing_datetime = current_time()
+    result_hash_id = generate_hash_from_trace_result(
+        purity_or_echo=target_obj_all_system["purity"],
+        classical_registers_actually=target_obj_all_system["classical_registers_actually"],
+        taking_time=target_obj_all_system["taking_time"],
+        counts_num=target_obj_all_system["counts_num"],
+        shots=shots,
+        preparing_datetime=preparing_datetime,
+    )
+    return AllSystemResult(
+        **target_obj_all_system,
+        preparing_datetime=preparing_datetime,
+        result_hash_id=result_hash_id,
+        all_system_source="independent",
     )
 
 
 def randomized_entangled_entropy_mitigated(
     shots: int,
     counts: list[dict[str, int]],
-    selected_classical_registers: Optional[Iterable[int]] = None,
+    selected_classical_registers: Iterable[int] | None = None,
+    existed_all_system: AllSystemResult | None = None,
     backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
-    existed_all_system: Optional[ExistedAllSystemInfo] = None,
-    pbar: Optional[tqdm.tqdm] = None,
-) -> EntangledEntropyResultMitigated:
+    pbar: tqdm.tqdm | None = None,
+) -> tuple[TargetSystemResult, AllSystemResult, MitigatedResult]:
     """Calculate entangled entropy with depolarizing error mitigation.
     The entropy we compute is the Second Order Rényi Entropy.
 
@@ -362,154 +381,46 @@ def randomized_entangled_entropy_mitigated(
             Shots of the counts.
         counts (list[dict[str, int]]):
             Counts from randomized measurement results.
-        selected_classical_registers (Optional[Iterable[int]], optional):
-            The list of **the index of the selected_classical_registers**.
-        backend (ExistingProcessBackendLabel, optional):
-            Backend for the process. Defaults to DEFAULT_PROCESS_BACKEND.
-        existed_all_system (Optional[ExistedAllSystemInfo], optional):
+        selected_classical_registers (Iterable[int] | None, optional):
+            The list of **the index of the selected_classical_registers**. Defaults to None.
+        existed_all_system (AllSystemResult | None, optional):
             Existing all system source.
-            If there is known all system result,
-            then you can put it here to save a lot of time on calculating all system
-            for no matter what partition you are using,
-            their all system result is the same.
+            If there is known all system result, then you can put it here
+            to save a lot of time on calculating all system for no matter
+            what partition you are using, their all system result is the same.
             This can save a lot of time
             Defaults to None.
-        pbar (Optional[tqdm.tqdm], optional):
+        backend (PostProcessingBackendLabel, optional):
+            Backend for the process. Defaults to DEFAULT_PROCESS_BACKEND.
+        pbar (tqdm.tqdm | None, optional):
             The progress bar API,
             you can use put a `tqdm.tqdm <https://tqdm.github.io/>` object here.
             This function will update the progress bar description.
             Defaults to None.
 
     Returns:
-        EntangledEntropyResultMitigated: A dictionary contains
-            purity, entropy, a dictionary of each purity cell,
-            entropySD, puritySD, num_classical_registers, classical_registers,
-            classical_registers_actually, counts_num, taking_time,
-            purityAllSys, entropyAllSys, puritySDAllSys, entropySDAllSys,
-            num_classical_registers_all_sys, classical_registers_all_sys,
-            classical_registers_actually_all_sys, errorRate, mitigatedPurity, mitigatedEntropy.
+        The target system result, all system result, and mitigated result.
     """
-    null_counts = [i for i, c in enumerate(counts) if len(c) == 0]
-    if len(null_counts) > 0:
-        return {
-            # target system
-            "purity": np.nan,
-            "entropy": np.nan,
-            "puritySD": np.nan,
-            "entropySD": np.nan,
-            "purityCells": {},
-            # all system
-            "all_system_source": "null_counts",
-            "purityAllSys": np.nan,
-            "entropyAllSys": np.nan,
-            "puritySDAllSys": np.nan,
-            "entropySDAllSys": np.nan,
-            "purityCellsAllSys": {},
-            # new systems info
-            "num_classical_registers": 0,
-            "num_classical_registers_all_sys": 0,
-            "classical_registers": (
-                selected_classical_registers
-                if selected_classical_registers is None
-                else list(selected_classical_registers)
-            ),
-            "classical_registers_actually": [],
-            "classical_registers_all_sys": None,
-            "classical_registers_actually_all_sys": [],
-            # mitigated
-            "errorRate": np.nan,
-            "mitigatedPurity": np.nan,
-            "mitigatedEntropy": np.nan,
-            # refactored systems info
-            "counts_num": len(counts),
-            "taking_time": 0,
-            "taking_time_all_sys": 0,
-        }
 
-    num_qubits = len(list(counts[0].keys())[0])
-
-    if isinstance(pbar, tqdm.tqdm):
-        pbar.set_description_str(
-            f"Calculate selected classical registers: {selected_classical_registers}."
-        )
-
-    (
-        purity_cell_dict,
-        selected_qubits_sorted,
-        _msg,
-        taken,
-    ) = entangled_entropy_core_2(
+    target_system_result = randomized_entangled_entropy(
         shots=shots,
         counts=counts,
         selected_classical_registers=selected_classical_registers,
         backend=backend,
+        pbar=pbar,
     )
-    purity_cell_list = list(purity_cell_dict.values())
-
-    all_system = preparing_all_system(
+    all_system_result = preparing_all_system(
         existed_all_system=existed_all_system,
         shots=shots,
         counts=counts,
         backend=backend,
         pbar=pbar,
     )
-    num_classical_registers = len(next(iter(counts[0].keys())))
-
-    assert num_classical_registers == all_system.num_classical_registers_all_sys, (
-        "The number of classical registers is not matched."
-        + " num_classical_registers != num_classical_registers_all_sys:"
-        + f" {num_classical_registers} != {all_system.num_classical_registers_all_sys}"
-    )
-
-    if isinstance(pbar, tqdm.tqdm):
-        pbar.set_description_str(
-            f"Preparing error mitigation of selected qubits: {selected_qubits_sorted}"
-        )
-
-    # pylance cannot recognize the type
-    purity: np.float64 = np.mean(purity_cell_list, dtype=np.float64)  # type: ignore
-    purity_sd: np.float64 = np.std(purity_cell_list, dtype=np.float64)  # type: ignore
-    entropy: np.float64 = -np.log2(purity, dtype=np.float64)
-    entropy_sd: np.float64 = purity_sd / np.log(2) / purity
-
     error_mitgation_info = depolarizing_error_mitgation(
-        meas_system=purity,
-        all_system=all_system.purityAllSys,
-        subsystem_size=len(selected_qubits_sorted),
-        system_size=num_qubits,
+        meas_system=target_system_result["purity"],
+        all_system=all_system_result["purity"],
+        subsystem_size=len(target_system_result["classical_registers_actually"]),
+        system_size=len(all_system_result["classical_registers_actually"]),
     )
 
-    return {
-        # target system
-        "purity": purity,
-        "entropy": entropy,
-        "puritySD": purity_sd,
-        "entropySD": entropy_sd,
-        "purityCells": purity_cell_dict,
-        # all system
-        "all_system_source": all_system.source,
-        "purityAllSys": all_system.purityAllSys,
-        "entropyAllSys": all_system.entropyAllSys,
-        "puritySDAllSys": all_system.puritySDAllSys,
-        "entropySDAllSys": all_system.entropySDAllSys,
-        "purityCellsAllSys": all_system.purityCellsAllSys,
-        # new systems info
-        "num_classical_registers": num_classical_registers,
-        "num_classical_registers_all_sys": all_system.num_classical_registers_all_sys,
-        "classical_registers": (
-            selected_classical_registers
-            if selected_classical_registers is None
-            else list(selected_classical_registers)
-        ),
-        "classical_registers_actually": selected_qubits_sorted,
-        "classical_registers_all_sys": all_system.classical_registers_all_sys,
-        "classical_registers_actually_all_sys": all_system.classical_registers_actually_all_sys,
-        # mitigated
-        "errorRate": error_mitgation_info["errorRate"],
-        "mitigatedPurity": error_mitgation_info["mitigatedPurity"],
-        "mitigatedEntropy": error_mitgation_info["mitigatedEntropy"],
-        # refactored systems info
-        "counts_num": len(counts),
-        "taking_time": taken,
-        "taking_time_all_sys": all_system.taking_time_all_sys,
-    }
+    return target_system_result, all_system_result, error_mitgation_info

@@ -1,6 +1,5 @@
 """Boorust - Hadamard Test (:mod:`qurry.boorust.hadamard`)"""
 
-# pylint:disable=unused-argument
 def purity_echo_core_rust(shots: int, counts: list[dict[str, int]]) -> float:
     """The core function of entangled entropy by Rust.
 

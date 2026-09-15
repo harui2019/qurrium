@@ -1,9 +1,10 @@
 """SamplingExecuter (:mod:`qurry.qurries.samplingqurry`)
 
-It is only for pendings and retrieve to remote backend.
+- Short name: `sampling_executer`
+- Abbreviation: `SE`
 """
 
-from .experiment import QurryExperiment
-from .arguments import QurryMeasureArgs as SamplingExecuterMeasureArgs
-from .analysis import QurryAnalysis
-from .qurry import QurryV9 as SamplingExecuter
+from .experiment import SEExperiment
+from .arguments import SEMeasureArgs
+from .analysis import DummyAnalysis
+from .qurry import QurryV14 as SamplingExecuter

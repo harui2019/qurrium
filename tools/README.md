@@ -62,8 +62,3 @@ This option will raise `NotImplementedError` directly for we consider that it sh
 
 Test script and do nothing on versioning.
 
----
-
-## `get_version.py` (deprecated)
-
-Get the version number from the VERSION.txt file and pass it to the environment variable.

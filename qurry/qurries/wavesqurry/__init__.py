@@ -1,9 +1,9 @@
 """WavesExecuter (:mod:`qurry.qurries.wavesqurry`)
 
-It is only for pendings and retrieve to remote backend.
+- Short name: `waves_executer`
+- Abbreviation: `WE`
 """
 
-from .analysis import WavesExecuterAnalysis
-from .arguments import WavesExecuterMeasureArgs
-from .experiment import WavesExecuterExperiment
+from .arguments import WEMeasureArgs
+from .experiment import WEExperiment
 from .qurry import WavesExecuter

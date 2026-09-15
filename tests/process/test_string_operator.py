@@ -1,38 +1,68 @@
 """Test qurry.process.string_operator module."""
 
 from typing import TypedDict, Literal
-import os
 from itertools import combinations
+import logging
 import pytest
-import numpy as np
 
-from qurry.capsule import quickRead
-from qurry.process.utils import NUMERICAL_ERROR_TOLERANCE
-from qurry.process.string_operator import string_operator_availability
-from qurry.process.string_operator.strop_core import string_operator_core
+from qurry.process.string_operator import (
+    string_operator_availability,
+    string_operator_order,
+    StringOperatorResult,
+)
 
-FILE_LOCATION = os.path.join(os.path.dirname(__file__), "strop-case.json")
+from .utilities import (
+    quick_json_read,
+    get_dummy_file_path,
+    assert_numerical_tolerance_check,
+    FloatType,
+    assert_and_logging_rust_available,
+)
 
 
-class RawReadAnswer(TypedDict):
-    """TypedDict for magnet square answer from JSON."""
+logger = logging.getLogger(__name__)
 
-    order: float
-    num_qubits: int
+
+class StringOperatorTarget(TypedDict):
+    """The test target type for string_operator_core function parameters."""
+
     shots: int
-    i: int
-    k: int
-    length: int
-    str_op: Literal["i", "zy"]
-    on_dir: Literal["x", "y"]
-
-
-class RawReadUnit(TypedDict):
-    """TypedDict for magnet square unit from JSON."""
-
+    """Number of shots."""
     counts: list[dict[str, int]]
-    answer: RawReadAnswer
-    tags: list[str]
+    """The counts dictionary list."""
+    str_op: Literal["i", "zy"]
+    """The string operator to be applied."""
+    i: int
+    """The start index for measurement range."""
+    k: int
+    """The end index for measurement range."""
+
+
+class StringOperatorCase(TypedDict):
+    """The test case type for string_operator_core function."""
+
+    target: StringOperatorTarget
+    """The target parameters for the string_operator_core function."""
+    answer: StringOperatorResult
+    """The expected answer from the string_operator_core function."""
+    case_tags: tuple[Literal["i", "zy"], str]
+    """String operator and circuit name tags."""
+
+
+def process_json_read(raw_read_item: dict) -> StringOperatorCase:
+    """Process the raw JSON read case into StringOperatorCase."""
+    return {
+        "target": raw_read_item["target"],
+        "answer": raw_read_item["answer"],
+        "case_tags": tuple(raw_read_item["case_tags"][:2]),
+    }
+
+
+DUMMY_CASE_FILE = get_dummy_file_path("string_operator.json")
+DUMMY_CASES_JSON = [process_json_read(case) for case in quick_json_read(DUMMY_CASE_FILE)]
+string_operator_cases_entries = [
+    (case["target"], case["answer"], case["case_tags"]) for case in DUMMY_CASES_JSON
+]
 
 
 ANSWERS = {
@@ -56,72 +86,56 @@ ANSWERS = {
 ANSWERS_ERROR = 0.05
 
 
-raw_cases: list[RawReadUnit] = quickRead(FILE_LOCATION)
+def test_availability():
+    """Test the availability of the Rust backend for the string_operator function."""
+
+    assert_and_logging_rust_available([string_operator_availability], logger)
 
 
-def unfold_and_validate_case(
-    case: RawReadUnit,
-) -> tuple[list[str], RawReadAnswer, list[dict[str, int]]]:
-    """Unfold the case and validate it."""
-    assert isinstance(case, dict), "The case should be a dictionary."
-    assert "tags" in case, "The case should have 'tags' key."
-    assert "answer" in case, "The case should have 'answer' key."
-    assert "counts" in case, "The case should have 'counts' key."
-
-    tags = case["tags"]
-    answer = case["answer"]
-    counts = case["counts"]
-
-    assert isinstance(tags, list), "'tags' should be a list."
-    assert len(tags) == 3, "'tags' should have exactly 3 elements."
-    assert (
-        tags[2].replace("circ=", "") in ANSWERS[tags[0]]
-    ), f"Tag {tags[2]} is not in the expected answers for {tags[0]}."
-    tags = tags[:2] + [tags[2].replace("circ=", "")]
-    assert isinstance(answer, dict), "'answer' should be a dictionary."
-    assert isinstance(counts, list), "'counts' should be a list of dictionaries."
-
-    return tags, answer, counts
-
-
-cases = [unfold_and_validate_case(case) for case in raw_cases]
-
-
-@pytest.mark.parametrize(["case_tags", "answer", "counts"], cases)
-def test_string_operator(case_tags: list[str], answer: RawReadAnswer, counts: list[dict[str, int]]):
+@pytest.mark.parametrize(["target", "answer", "case_tags"], string_operator_cases_entries)
+def test_string_operator(
+    target: StringOperatorTarget,
+    answer: StringOperatorResult,
+    case_tags: tuple[Literal["i", "zy"], str],
+):
     """Test the string_operator_core function."""
 
-    assert string_operator_availability[1][
-        "Rust"
-    ], f"Rust is not available. Check the error: {string_operator_availability[1]}"
+    assert len(target["counts"]) == 1, (
+        "The counts should be a single item for the string_operator_core function."
+    )
 
-    assert (
-        len(counts) == 1
-    ), "The counts should be a single item for the string_operator_core function."
-
-    py_result = string_operator_core(
-        shots=answer["shots"],
-        counts=counts,
+    py_result = string_operator_order(
+        shots=target["shots"],
+        counts=target["counts"],
         backend="Python",
     )
-    rust_result = string_operator_core(
-        shots=answer["shots"],
-        counts=counts,
+    rust_result = string_operator_order(
+        shots=target["shots"],
+        counts=target["counts"],
         backend="Rust",
     )
 
-    comparison_target: list[tuple[str, float]] = [
-        ("Python", py_result),
-        ("Rust", rust_result),
-        ("Answer", answer["order"]),
+    comparison_target: list[tuple[str, FloatType]] = [
+        ("Python", py_result["order"]),
+        ("Rust", rust_result["order"]),
+        ("Numerical Answer", answer["order"]),
     ]
-    for (name_1, result_1), (name_02, result_02) in combinations(comparison_target, 2):
-        assert np.abs(result_1 - result_02) < NUMERICAL_ERROR_TOLERANCE, (
-            f"{name_1} and {name_02} results are not equal in string_operator_core: "
-            f"{name_1}: {result_1}, {name_02}: {result_02}."
+    for (name_1, result_1), (name_2, result_2) in combinations(comparison_target, 2):
+        assert_numerical_tolerance_check(
+            "string_operator_core",
+            result_1,
+            name_1,
+            result_2,
+            name_2,
+            logger,
         )
     for name_1, result_1 in comparison_target:
-        assert np.abs(result_1 - ANSWERS[answer["str_op"]][case_tags[-1]]) < ANSWERS_ERROR, (
-            f"Result by {name_1} {result_1} is not close to expected "
-            f"{ANSWERS[answer['str_op']][case_tags[-1]]} in error {ANSWERS_ERROR}."
+        assert_numerical_tolerance_check(
+            "string_operator_core",
+            result_1,
+            name_1,
+            ANSWERS[case_tags[0]][case_tags[1]],
+            "Answer",
+            logger,
+            ANSWERS_ERROR
         )

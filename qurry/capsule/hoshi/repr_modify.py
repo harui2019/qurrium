@@ -5,43 +5,37 @@ I write this module just for having better representation for the functions
 
 """
 
-from typing import Any, Callable, Union, Optional
+from typing import Any
+from collections.abc import Callable
+from functools import wraps
 
 
 class EasyReprModify:
     """Easy representation modification."""
 
     def __init__(
-        self,
-        fn: Callable[..., Any],
-        repr_content: Optional[Union[str, Callable[..., str]]] = None,
+        self, fn: Callable[..., Any], repr_content: Callable[..., str] | str | None = None
     ):
         """Initialize the :class:`EasyReprModify`.
 
         Args:
             fn (Callable[..., Any]): The function to be modified.
-            repr_content (Optional[Union[str, Callable[..., str]]], optional):
+            repr_content (Callable[..., str] | str | None, optional):
                 The content of the representation.
                 If it is a string, it will be the representation.
                 If it is a function, it will be the representation function.
                 Defaults to None, which means it will use the function's `__repr__`.
         """
 
+        wraps(fn)(self)
         self._fn = fn
+
         if isinstance(repr_content, str):
             self._repr = lambda: repr_content
         elif isinstance(repr_content, Callable):
             self._repr = repr_content
         else:
             self._repr = self._fn.__repr__
-
-    @property
-    def __doc__(self) -> Optional[str]:
-        return self._fn.__doc__
-
-    @__doc__.setter
-    def __doc__(self, val: Optional[str]) -> None:
-        self._fn.__doc__ = val
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
         return self._fn(*args, **kwargs)
@@ -50,13 +44,11 @@ class EasyReprModify:
         return self._repr()
 
 
-def easy_repr_modify_wrapper(
-    repr_content: Optional[Union[str, Callable[..., str]]],
-) -> Callable[..., Any]:
+def easy_repr_modify_wrapper(repr_content: Callable[..., str] | str | None) -> Callable[..., Any]:
     """Wrapper for easy representation modification.
 
     Args:
-        repr_content (Optional[Union[str, Callable[..., str]]]):
+        repr_content (Callable[..., str] | str | None):
             The content of the representation.
             If it is a string, it will be the representation.
             If it is a function, it will be the representation function.
@@ -65,9 +57,7 @@ def easy_repr_modify_wrapper(
         Callable[..., Any]: The wrapper function for the representation modification.
     """
 
-    def wrapper_fn(
-        fn: Callable[..., Any],
-    ) -> Callable[..., Any]:
+    def wrapper_fn(fn: Callable[..., Any]) -> Callable[..., Any]:
         """The wrapper function for the representation modification.
 
         Args:

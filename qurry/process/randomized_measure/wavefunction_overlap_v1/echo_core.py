@@ -5,24 +5,23 @@
 
 import time
 import warnings
-from typing import Union, Optional
 import numpy as np
 
 from .echo_cell import echo_cell_py
 from ...utils import cycling_slice as cycling_slice_py, qubit_selector
 from ...availability import (
-    availablility,
+    availability,
     default_postprocessing_backend,
     PostProcessingBackendLabel,
 )
 from ...exceptions import PostProcessingBackendDeprecatedWarning
 from ....tools import ParallelManager, workers_distribution
 
-# pylint:disable=no-name-in-module,import-error
+# pylint: disable=import-error,no-name-in-module
 from ....boorust.randomized import overlap_echo_core_rust  # type: ignore
 
 
-BACKEND_AVAILABLE = availablility(
+BACKEND_AVAILABLE = availability(
     "randomized_measure.wavefunction_overlap_v1.echo_core",
     [("Rust", True, None), ("Cython", "Depr.", None)],
 )
@@ -32,20 +31,19 @@ DEFAULT_PROCESS_BACKEND = default_postprocessing_backend(True, False)
 def overlap_echo_core_py(
     shots: int,
     counts: list[dict[str, int]],
-    degree: Optional[Union[tuple[int, int], int]] = None,
-    measure: Optional[tuple[int, int]] = None,
-    multiprocess_pool_size: Optional[int] = None,
-) -> tuple[
-    Union[dict[int, float], dict[int, np.float64]], tuple[int, int], tuple[int, int], str, float
-]:
+    degree: tuple[int, int] | int | None = None,
+    measure: tuple[int, int] | None = None,
+    multiprocess_pool_size: int | None = None,
+) -> tuple[dict[int, float] | dict[int, np.float64], tuple[int, int], tuple[int, int], str, float]:
     """The core function of entangled entropy.
 
     Args:
         shots (int): Shots of the experiment on quantum machine.
         counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
-        degree (Union[tuple[int, int], int]): Degree of the subsystem.
-        measure (tuple[int, int], optional): Measuring range on quantum circuits. Defaults to None.
-        multiprocess_pool_size(Optional[int], optional):
+        degree (tuple[int, int] | int | None, optional): Degree of the subsystem.
+        measure (tuple[int, int] | None, optional):
+            Measuring range on quantum circuits. Defaults to None.
+        multiprocess_pool_size(int | None, optional):
             Number of multi-processing workers,
             if sets to 1, then disable to using multi-processing;
             if not specified, then use the number of all cpu counts by `os.cpu_count()`.
@@ -58,14 +56,7 @@ def overlap_echo_core_py(
         ValueError: Measure range does not contain subsystem.
 
     Returns:
-        tuple[
-            Union[dict[int, float], dict[int, np.float64]],
-            tuple[int, int],
-            tuple[int, int],
-            str,
-            float
-        ]:
-            Purity of each cell, Partition range, Measuring range, Message, Time to calculate.
+        Echo of each cell, Partition range, Measuring range, Message, Time to calculate.
     """
 
     # check shots
@@ -119,55 +110,39 @@ def overlap_echo_core_py(
 
     msg = f"| Partition: {bitstring_range}, Measure: {measure}"
 
-    if launch_worker == 1:
-        echo_cell_items = []
-        msg += f", single process, {times} overlaps, it will take a lot of time."
-        print(msg)
-        for i, (c1, c2) in enumerate(counts_pair):
-            echo_cell_items.append(echo_cell_py(i, c1, c2, bitstring_range, subsystem_size))
+    msg += (
+        f", single process, {times} overlaps, it will take a lot of time."
+        if launch_worker == 1
+        else f", {launch_worker} workers, {times} overlaps."
+    )
+    pm = ParallelManager(launch_worker)
+    echo_cell_items = pm.starmap(
+        echo_cell_py,
+        [(i, c1, c2, bitstring_range, subsystem_size) for i, (c1, c2) in enumerate(counts_pair)],
+    )
+    take_time = round(time.time() - begin_time, 3)
 
-        take_time = round(time.time() - begin_time, 3)
-    else:
-        msg += f", {launch_worker} workers, {times} overlaps."
-
-        pool = ParallelManager(launch_worker)
-        echo_cell_items = pool.starmap(
-            echo_cell_py,
-            [
-                (i, c1, c2, bitstring_range, subsystem_size)
-                for i, (c1, c2) in enumerate(counts_pair)
-            ],
-        )
-        take_time = round(time.time() - begin_time, 3)
-
-    echo_cell_dict: Union[dict[int, float], dict[int, np.float64]] = dict(
-        echo_cell_items
-    )  # type: ignore
+    echo_cell_dict: dict[int, float] | dict[int, np.float64] = dict(echo_cell_items)
     return echo_cell_dict, bitstring_range, measure, msg, take_time
 
 
 def overlap_echo_core(
     shots: int,
     counts: list[dict[str, int]],
-    degree: Optional[Union[tuple[int, int], int]],
-    measure: Optional[tuple[int, int]] = None,
-    multiprocess_pool_size: Optional[int] = None,
+    degree: tuple[int, int] | int | None,
+    measure: tuple[int, int] | None = None,
+    multiprocess_pool_size: int | None = None,
     backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
-) -> tuple[
-    Union[dict[int, float], dict[int, np.float64]],
-    tuple[int, int],
-    tuple[int, int],
-    str,
-    float,
-]:
+) -> tuple[dict[int, float] | dict[int, np.float64], tuple[int, int], tuple[int, int], str, float]:
     """The core function of entangled entropy.
 
     Args:
         shots (int): Shots of the experiment on quantum machine.
         counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
-        degree (Union[tuple[int, int], int]): Degree of the subsystem.
-        measure (tuple[int, int], optional): Measuring range on quantum circuits. Defaults to None.
-        workers_num (Optional[int], optional):
+        degree (tuple[int, int] | int | None, optional): Degree of the subsystem.
+        measure (tuple[int, int] | None, optional):
+            Measuring range on quantum circuits. Defaults to None.
+        multiprocess_pool_size (int | None, optional):
             Number of multi-processing workers,
             if sets to 1, then disable to using multi-processing;
             if not specified, then use the number of all cpu counts - 2 by `cpu_count() - 2`.
@@ -181,14 +156,7 @@ def overlap_echo_core(
         ValueError: Measure range does not contain subsystem.
 
     Returns:
-        tuple[
-            Union[dict[int, float], dict[int, np.float64]],
-            tuple[int, int],
-            tuple[int, int],
-            str,
-            float,
-        ]:
-            Purity of each cell, Partition range, Measuring range, Message, Time to calculate.
+        Echo of each cell, Partition range, Measuring range, Message, Time to calculate.
     """
 
     if isinstance(measure, list):

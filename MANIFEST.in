@@ -4,5 +4,3 @@ recursive-include crates *
 
 # Include the tests files.
 recursive-include test *.py
-
-include requirements.txt

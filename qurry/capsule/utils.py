@@ -1,7 +1,8 @@
 """Utility functions and type definitions for :mod:`~qurry.capsule`.
 (:mod:`qurry.capsule.utils`)"""
 
-from typing import TypedDict, Union, Callable, Any, Optional
+from typing import TypedDict, Any
+from collections.abc import Callable
 import warnings
 from json import JSONEncoder
 
@@ -22,22 +23,19 @@ class OpenArgs(TypedDict, total=False):
     """Mode in which the file is opened"""
     buffering: int
     """Buffering policy for the file"""
-    encoding: Optional[str]
+    encoding: str | None
     """Encoding used for the file"""
-    errors: Optional[str]
+    errors: str | None
     """Error handling scheme for the file"""
-    newline: Optional[str]
+    newline: str | None
     """Newline character handling for the file"""
     closefd: bool
     """Whether to close the file descriptor when the file is closed"""
-    opener: Optional[Callable[[str, int], int]]
+    opener: Callable[[str, int], int] | None
     """Custom opener for the file, if needed"""
 
 
-DEFAULT_OPEN_ARGS: OpenArgs = {
-    "mode": DEFAULT_MODE,
-    "encoding": DEFAULT_ENCODING,
-}
+DEFAULT_OPEN_ARGS: OpenArgs = {"mode": DEFAULT_MODE, "encoding": DEFAULT_ENCODING}
 """Default arguments for open function.
 
 This includes:
@@ -47,8 +45,7 @@ This includes:
 
 
 def create_open_args(
-    open_args: Union[dict[str, Any], OpenArgs, None] = None,
-    is_read_only: bool = False,
+    open_args: dict[str, Any] | OpenArgs | None = None, is_read_only: bool = False
 ) -> OpenArgs:
     """Create open arguments.
 
@@ -59,7 +56,7 @@ def create_open_args(
     If `is_read_only` is True, the mode will be set to 'r'.
 
     Args:
-        open_args (Union[dict[str, Any], OpenArgs]): Arguments for open function.
+        open_args (dict[str, Any] | OpenArgs | None): Arguments for open function.
         is_read_only (bool, optional): Whether the file is read-only. Defaults to False.
 
     Raises:
@@ -103,9 +100,7 @@ DEFAULT_PRINT_ARGS: PrintArgs = {}
 """
 
 
-def create_print_args(
-    print_args: Union[dict[str, Any], PrintArgs, None] = None,
-) -> PrintArgs:
+def create_print_args(print_args: dict[str, Any] | PrintArgs | None = None) -> PrintArgs:
     """Create print arguments.
 
     If `print_args` is not provided or a null dictionary,
@@ -113,7 +108,7 @@ def create_print_args(
     Otherwise, it will merge the provided `print_args` with :const:`DEFAULT_PRINT_ARGS`.
 
     Args:
-        print_args (Union[dict[str, Any], PrintArgs]): Arguments for print function.
+        print_args (dict[str, Any] | PrintArgs | None): Arguments for print function.
 
     Returns:
         PrintArgs: The print arguments.
@@ -144,13 +139,13 @@ class JSONDumpArgs(TypedDict, total=False):
     """Whether to check for circular references."""
     allow_nan: bool
     """Whether to allow NaN and Infinity values."""
-    cls: Optional[type[JSONEncoder]]
+    cls: type[JSONEncoder] | None
     """Custom JSONEncoder class to use for serialization."""
-    indent: Union[int, str, None]
+    indent: int | str | None
     """Indentation level for pretty-printing JSON, default is 2."""
-    separators: Optional[tuple[str, str]]
+    separators: tuple[str, str] | None
     """Tuple of separators for JSON serialization, default is (', ', ': ')."""
-    default: Optional[Callable[[Any], Any]]
+    default: Callable[[Any], Any] | None
     """Function to call for objects that are not serializable."""
     sort_keys: bool
     """Whether to sort the keys in the JSON output."""
@@ -169,7 +164,7 @@ This includes:
 
 
 def create_json_dump_args(
-    json_dump_args: Union[dict[str, Any], JSONDumpArgs, None] = None,
+    json_dump_args: dict[str, Any] | JSONDumpArgs | None = None,
 ) -> JSONDumpArgs:
     """Create JSON dump arguments.
 
@@ -178,7 +173,7 @@ def create_json_dump_args(
     Otherwise, it will merge the provided `json_dump_args` with :const:`DEFAULT_JSON_DUMP_ARGS`.
 
     Args:
-        json_dump_args (Union[dict[str, Any], JSONDumpArgs]): Arguments for json.dump function.
+        json_dump_args (dict[str, Any] | JSONDumpArgs | None): Arguments for json.dump function.
 
     Returns:
         JSONDumpArgs: The JSON dump arguments.

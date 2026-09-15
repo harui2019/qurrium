@@ -1,35 +1,72 @@
 """Test qurry.process.hadamard_test module."""
 
+from typing import TypedDict
 from itertools import combinations
+import logging
 import pytest
-import numpy as np
 
-from qurry.process.utils import NUMERICAL_ERROR_TOLERANCE
 from qurry.process.hadamard_test import purity_echo_core_availability
 from qurry.process.hadamard_test.purity_echo_core import purity_echo_core
 
+from .utilities import (
+    quick_json_read,
+    get_dummy_file_path,
+    assert_numerical_tolerance_check,
+    assert_and_logging_rust_available,
+)
 
-hadamard_cases = [(100, [{"0": 50, "1": 50}], 0), (100, [{"0": 100}], 1), (100, [{"1": 100}], 1)]
+logger = logging.getLogger(__name__)
 
 
-@pytest.mark.parametrize(["shots", "counts", "answer"], hadamard_cases)
-def test_hadamard(shots: int, counts: list[dict[str, int]], answer: float):
+class HadamardTarget(TypedDict):
+    """The test target type for hadamard_test purity_echo_core function parameters."""
+
+    shots: int
+    """Number of shots."""
+    counts: list[dict[str, int]]
+    """The counts dictionary list."""
+
+
+class HadamardCase(TypedDict):
+    """The test case type for hadamard_test purity_echo_core function."""
+
+    target: HadamardTarget
+    """The target parameters for the purity_echo_core function."""
+    answer: float
+    """The expected answer from the purity_echo_core function."""
+    note: str
+    """Additional note for the test case."""
+
+
+DUMMY_CASE_FILE = get_dummy_file_path("hadamard.json")
+DUMMY_CASES_JSON: list[HadamardCase] = quick_json_read(DUMMY_CASE_FILE)
+hadamard_cases_entries = [(case["target"], case["answer"]) for case in DUMMY_CASES_JSON]
+
+
+def test_availability():
+    """Test the availability of the Rust backend for the purity_echo_core function."""
+
+    assert_and_logging_rust_available([purity_echo_core_availability], logger)
+
+
+@pytest.mark.parametrize(["target", "answer"], hadamard_cases_entries)
+def test_hadamard(target: HadamardTarget, answer: float):
     """Test the purity_echo_core function."""
 
-    assert purity_echo_core_availability[1][
-        "Rust"
-    ], f"Rust is not available. Check the error: {purity_echo_core_availability[2]}"
-
-    rust_result = purity_echo_core(shots=shots, counts=counts, backend="Rust")
-    py_result = purity_echo_core(shots=shots, counts=counts, backend="Python")
+    rust_result = purity_echo_core(**target, backend="Rust")
+    py_result = purity_echo_core(**target, backend="Python")
 
     comparison_target: list[tuple[str, float]] = [
         ("Python", py_result),
         ("Rust", rust_result),
-        ("Answer", answer),
+        ("Numerical Answer", answer),
     ]
     for (name_1, result_1), (name_2, result_2) in combinations(comparison_target, 2):
-        assert np.abs(result_1 - result_2) < NUMERICAL_ERROR_TOLERANCE, (
-            f"{name_1} and {name_2} results are not equal in purity_echo_core: "
-            f"{name_1}: {result_1}, {name_2}: {result_2}."
+        assert_numerical_tolerance_check(
+            "purity_echo_core",
+            result_1,
+            name_1,
+            result_2,
+            name_2,
+            logger,
         )

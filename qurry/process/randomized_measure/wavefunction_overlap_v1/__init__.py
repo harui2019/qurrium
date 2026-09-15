@@ -31,4 +31,5 @@ from .wavefunction_overlap import (
     randomized_overlap_echo_v1,
     PostProcessingBackendLabel,
     DEFAULT_PROCESS_BACKEND,
+    WaveFuctionOverlapResultV1,
 )

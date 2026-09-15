@@ -1,8 +1,8 @@
 """The module of IO control. (:mod:`qurry.qurrium.utils.iocontrol`)"""
 
 import os
+from typing import NamedTuple
 from pathlib import Path
-from typing import Union, NamedTuple
 
 STAND_COMPRESS_FORMAT = "tar.xz"
 FULL_SUFFIX_OF_COMPRESS_FORMAT = f"qurry.{STAND_COMPRESS_FORMAT}"
@@ -24,35 +24,41 @@ def serial_naming(name: str, index_rename: int, rjust_len: int = RJUST_LEN) -> s
     return f"{name}." + str((index_rename + 1)).rjust(rjust_len, "0")
 
 
-class IOComplex(NamedTuple):
-    """The complex of IO control."""
+class ExportFolderNaming(NamedTuple):
+    """The naming complex for export folder."""
 
-    expsName: str
+    summoner_name: str
+    """The name of :class:`~qurry.qurrium.multimanager.MultiManager`."""
     save_location: Path
+    """The save location of :class:`~qurry.qurrium.multimanager.MultiManager`."""
     export_location: Path
-    tarName: str
-    tarLocation: Path
+    """The file export location of each files belonging to 
+    :class:`~qurry.qurrium.multimanager.MultiManager`."""
+    tar_name: str
+    """The tar compress name of :class:`~qurry.qurrium.multimanager.MultiManager`."""
+    tar_location: Path
+    """The tar compress file location of :class:`~qurry.qurrium.multimanager.MultiManager`."""
 
 
-def naming(
+def folder_naming(
     is_read: bool = False,
-    exps_name: str = "exps",
-    save_location: Union[Path, str] = Path("./"),
+    exp_or_summoner_name: str = "exps",
+    save_location: Path | str = Path("./"),
     without_serial: bool = False,
     rjust_len: int = RJUST_LEN,
     index_rename: int = 0,
-) -> IOComplex:
+) -> ExportFolderNaming:
     """The process of naming.
 
     Args:
         is_read (bool, optional):
             Whether to read the experiment data.
             Defaults to False.
-        exps_name (str, optional):
+        exp_or_summoner_name (str, optional):
             Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
             This name is also used for creating a folder to store the exports.
             Defaults to `'exps'`.
-        save_location (Union[Path, str], optional):
+        save_location (Path | str, optional):
             Where to save the export data. Defaults to Path('./')
         without_serial (bool, optional):
             Whether to use the serial number. Defaults to False.
@@ -67,7 +73,7 @@ def naming(
         FileNotFoundError: Can not find the exportation data which will be readed.
 
     Returns:
-        dict[str, Union[str, Path]]: Name.
+        ExportFolderNaming: The naming complex for export folder.
     """
 
     if isinstance(save_location, (Path, str)):
@@ -79,7 +85,7 @@ def naming(
         )
 
     if is_read:
-        immutable_name = exps_name
+        immutable_name = exp_or_summoner_name
         export_location = save_location / immutable_name
         tar_name = f"{immutable_name}.{FULL_SUFFIX_OF_COMPRESS_FORMAT}"
         tar_location = save_location / tar_name
@@ -91,27 +97,27 @@ def naming(
             )
         print(f"| Retrieve {immutable_name}...\n" + f"| at: {export_location}")
     elif without_serial:
-        immutable_name = exps_name
+        immutable_name = exp_or_summoner_name
         export_location = save_location / immutable_name
 
     else:
         _counting = index_rename
 
-        immutable_name = serial_naming(exps_name, _counting, rjust_len)
+        immutable_name = serial_naming(exp_or_summoner_name, _counting, rjust_len)
         export_location = save_location / immutable_name
 
         while os.path.exists(export_location):
             print(f"| {export_location} is repeat location.")
             _counting += 1
-            immutable_name = serial_naming(exps_name, _counting, rjust_len)
+            immutable_name = serial_naming(exp_or_summoner_name, _counting, rjust_len)
             export_location = save_location / immutable_name
         print(f'| Write "{immutable_name}", at location "{export_location}"')
         os.makedirs(export_location)
 
-    return IOComplex(
-        expsName=immutable_name,
+    return ExportFolderNaming(
+        summoner_name=immutable_name,
         save_location=save_location,
         export_location=export_location,
-        tarName=f"{immutable_name}.{FULL_SUFFIX_OF_COMPRESS_FORMAT}",
-        tarLocation=save_location / f"{immutable_name}.{FULL_SUFFIX_OF_COMPRESS_FORMAT}",
+        tar_name=f"{immutable_name}.{FULL_SUFFIX_OF_COMPRESS_FORMAT}",
+        tar_location=save_location / f"{immutable_name}.{FULL_SUFFIX_OF_COMPRESS_FORMAT}",
     )

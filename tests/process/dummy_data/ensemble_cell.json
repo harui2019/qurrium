@@ -1,0 +1,26 @@
+[
+  {
+    "target": {
+      "s_i": "10010101",
+      "s_i_meas": 421,
+      "s_j": "10010101",
+      "s_j_meas": 421,
+      "a_num": 8,
+      "shots": 4096
+    },
+    "answer": 2.7044830322265625,
+    "note": "(np.float64(421) ** 2) / np.float_power(2, 16, dtype=np.float64)"
+  },
+  {
+    "target": {
+      "s_i": "10010101",
+      "s_i_meas": 421,
+      "s_j": "00000000",
+      "s_j_meas": 11,
+      "a_num": 8,
+      "shots": 4096
+    },
+    "answer": 0.004416465759277344,
+    "note": "(np.float64(421) * np.float64(11)) / np.float_power(2, 20, dtype=np.float64),)"
+  }
+]

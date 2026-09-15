@@ -34,9 +34,9 @@ def echo_cell_py(
 
     _dummy_string = list(range(len(list(first_counts.keys())[0])))
     _dummy_string2 = list(range(len(list(second_counts.keys())[0])))
-    assert (
-        _dummy_string == _dummy_string2
-    ), f"first_counts {first_counts} != second_counts {second_counts}"
+    assert _dummy_string == _dummy_string2, (
+        f"first_counts {first_counts} != second_counts {second_counts}"
+    )
 
     if _dummy_string[bitstring_range[0] : bitstring_range[1]] == cycling_slice_py(
         _dummy_string, bitstring_range[0], bitstring_range[1], 1
@@ -45,17 +45,17 @@ def echo_cell_py(
             [k[bitstring_range[0] : bitstring_range[1]] for k in first_counts], 0
         )
         for bitstring in list(first_counts):
-            first_counts_under_degree[
-                bitstring[bitstring_range[0] : bitstring_range[1]]
-            ] += first_counts[bitstring]
+            first_counts_under_degree[bitstring[bitstring_range[0] : bitstring_range[1]]] += (
+                first_counts[bitstring]
+            )
 
         second_counts_under_degree = dict.fromkeys(
             [k[bitstring_range[0] : bitstring_range[1]] for k in second_counts], 0
         )
         for bitstring in list(second_counts):
-            second_counts_under_degree[
-                bitstring[bitstring_range[0] : bitstring_range[1]]
-            ] += second_counts[bitstring]
+            second_counts_under_degree[bitstring[bitstring_range[0] : bitstring_range[1]]] += (
+                second_counts[bitstring]
+            )
     else:
         first_counts_under_degree = dict.fromkeys(
             [cycling_slice_py(k, bitstring_range[0], bitstring_range[1], 1) for k in first_counts],

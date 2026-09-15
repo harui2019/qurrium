@@ -3,21 +3,31 @@
 
 """
 
-from typing import Optional
+from typing import TypedDict
 import numpy as np
 import tqdm
 
 
-from ..availability import PostProcessingBackendLabel
 from .purity_echo_core import purity_echo_core, DEFAULT_PROCESS_BACKEND
+from ..availability import PostProcessingBackendLabel
+from ..utils import FloatType
+
+
+class HadamardEntropyResult(TypedDict):
+    """The return type of the post-processing for entangled entropy."""
+
+    purity: FloatType
+    """The purity of the system."""
+    entropy: FloatType
+    """The entropy of the system."""
 
 
 def hadamard_entangled_entropy(
     shots: int,
     counts: list[dict[str, int]],
     backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
-    pbar: Optional[tqdm.tqdm] = None,
-) -> dict[str, float]:
+    pbar: tqdm.tqdm | None = None,
+) -> HadamardEntropyResult:
     """Calculate entangled entropy with more information combined.
     The entropy we compute is the Second Order Rényi Entropy.
 
@@ -28,7 +38,7 @@ def hadamard_entangled_entropy(
             Counts of the experiment on quantum machine.
         backend (PostProcessingBackendLabel, optional):
             Backend of the postprocessing. Defaults to DEFAULT_PROCESS_BACKEND.
-        pbar (Optional[tqdm.tqdm], optional):
+        pbar (tqdm.tqdm | None, optional):
             Progress bar. Defaults to None.
 
     Raises:
@@ -36,15 +46,11 @@ def hadamard_entangled_entropy(
         ValueError: Measure range does not contain subsystem.
 
     Returns:
-        dict[str, float]: Quantity of the experiment.
+        Quantity of the experiment.
     """
 
     if isinstance(pbar, tqdm.tqdm):
         pbar.set_description_str("Calculate entropy by Hadamard Test.")
     purity = purity_echo_core(shots, counts, backend)
 
-    quantity = {
-        "purity": purity,
-        "entropy": -np.log2(purity),
-    }
-    return quantity
+    return {"purity": purity, "entropy": -np.log2(purity)}

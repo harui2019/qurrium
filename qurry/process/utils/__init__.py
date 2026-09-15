@@ -12,12 +12,13 @@ from .counts_process import (
     rho_m_flatten_counts_list_vectorize_pyrust,
     check_invalid_counts,
 )
-from .other import NUMERICAL_ERROR_TOLERANCE
+from .other import NUMERICAL_ERROR_TOLERANCE, FloatType
 from .bit_slice import (
     qubit_selector,
     cycling_slice,
     degree_handler,
     qubit_mapper,
+    QubitSelectionType,
     is_cycling_slice_active,
     BACKEND_AVAILABLE as bit_slice_availability,
 )
@@ -29,5 +30,6 @@ from .randomized import (
     BACKEND_AVAILABLE as randomized_availability,
 )
 from .dummy import BACKEND_AVAILABLE as dummy_availability
-from .purity import clamp_purity, depolarizing_error_mitgation
+from .purity import clamp_purity, depolarizing_error_mitgation, MitigatedResult
 from .method_enum import BaseMethodEnum
+from .bloch_vector import density_matrix_to_bloch_vector

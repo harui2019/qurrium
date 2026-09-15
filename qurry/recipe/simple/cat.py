@@ -1,7 +1,7 @@
-"""GHZ state (:mod:`qurry.recipe.simple.cat`)
+"""GHZ state (:mod:`qurecipe.simple.cat`)
 
-The entangled circuit :class:`~qurry.recipe.simple.cat.GHZ`
-as known as :class:`~qurry.recipe.simple.cat.Cat`,
+The entangled circuit :class:`~qurecipe.simple.cat.GHZ`
+as known as :class:`~qurecipe.simple.cat.Cat`,
 which has been mentioned in the following reference.
 
 Reference:
@@ -32,11 +32,11 @@ Reference:
 
 """
 
-from ..n_body import OneBody
+from qiskit import QuantumCircuit
 
 
-class GHZ(OneBody):
-    r"""The entangled circuit :class:`~qurry.recipe.simple.cat.GHZ`.
+def ghz(num_qubits: int, name: str = "ghz") -> QuantumCircuit:
+    r"""Generate the GHZ state circuit.
 
     .. code-block:: text
 
@@ -67,61 +67,16 @@ class GHZ(OneBody):
     Args:
         num_qubits (int): The number of qubits for constructing the example circuit.
         name (str, optional): Name of case. Defaults to "ghz".
+
+    Returns:
+        QuantumCircuit: The GHZ state circuit.
     """
+    qc = QuantumCircuit(num_qubits, name=name)
+    if num_qubits == 0:
+        return qc
 
-    def __init__(self, num_qubits: int, name: str = "ghz") -> None:
-        super().__init__(name=name)
-        self.num_qubits = num_qubits
+    qc.h(0)
+    for i in range(1, num_qubits):
+        qc.cx(i - 1, i)
 
-    def _build(self) -> None:
-        if self._is_built:
-            return
-        super()._build()
-
-        num_qubits = self.num_qubits
-        if num_qubits == 0:
-            return
-
-        self.h(0)
-        for i in range(1, num_qubits):
-            self.cx(i - 1, i)
-
-
-class Cat(GHZ):
-    r""":class:`~qurry.recipe.simple.cat.Cat`,
-    the anthor name of entangled circuit :class:`~qurry.recipe.simple.cat.GHZ`.
-
-    .. code-block:: text
-
-        # Open boundary at 8 qubits:
-            ┌───┐
-        q0: ┤ H ├──■────────────────────────────────
-            └───┘┌─┴─┐
-        q1: ─────┤ X ├──■───────────────────────────
-                 └───┘┌─┴─┐
-        q2: ──────────┤ X ├──■──────────────────────
-                      └───┘┌─┴─┐
-        q3: ───────────────┤ X ├──■─────────────────
-                           └───┘┌─┴─┐
-        q4: ────────────────────┤ X ├──■────────────
-                                └───┘┌─┴─┐
-        q5: ─────────────────────────┤ X ├──■───────
-                                     └───┘┌─┴─┐
-        q6: ──────────────────────────────┤ X ├──■──
-                                          └───┘┌─┴─┐
-        q7: ───────────────────────────────────┤ X ├
-                                               └───┘
-
-    .. math::
-
-        \frac{1}{\sqrt{2}}
-            \left({|01\rangle} - {|10\rangle} \right)^{\otimes N/2}, N = 8
-
-    Args:
-        num_qubits (int): The number of qubits for constructing the example circuit.
-        name (str, optional): Name of case. Defaults to "cat".
-    """
-
-    def __init__(self, num_qubits: int, name: str = "cat") -> None:
-        super().__init__(num_qubits=num_qubits, name=name)
-        self.num_qubits = num_qubits
+    return qc

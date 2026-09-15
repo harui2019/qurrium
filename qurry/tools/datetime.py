@@ -2,6 +2,8 @@
 
 from datetime import datetime
 
+from ..capsule import CustomDict
+
 DEFAULT_DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 """Default datetime format for the tools in this module.
 
@@ -24,7 +26,7 @@ def current_time(time_format: str = DEFAULT_DATETIME_FORMAT) -> str:
     return datetime.now().strftime(time_format)
 
 
-class DatetimeDict(dict[str, str]):
+class DatetimeDict(CustomDict[str, str]):
     """A dictionary that records the time when a key is added."""
 
     def add_only(self, eventname: str) -> tuple[str, str]:
@@ -75,23 +77,3 @@ class DatetimeDict(dict[str, str]):
             list[tuple[str, str]]: The last event and its time.
         """
         return list(self.items())[-number:]
-
-    def __repr__(self):
-        return f"{type(self).__name__}({super().__repr__()})"
-
-    def _repr_pretty_(self, p, cycle):
-        if cycle:
-            p.text(f"{type(self).__name__}" + "({...})")
-        else:
-            original_repr = super().__repr__()
-            original_repr_split = original_repr[1:-1].split(", ")
-            length = len(original_repr_split)
-            with p.group(2, f"{type(self).__name__}(" + "{", "})"):
-                for i, item in enumerate(original_repr_split):
-                    p.breakable()
-                    p.text(item)
-                    if i < length - 1:
-                        p.text(",")
-
-    def __str__(self):
-        return super().__repr__()

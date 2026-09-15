@@ -3,175 +3,38 @@
 
 """
 
+from collections.abc import Iterable
 import time
-from typing import Literal, Union, Iterable, Optional
 import numpy as np
+import numpy.typing as npt
 
-from .rho_m_cell import (
-    rho_m_cell_prototype,
-    rho_m_cell_precomputed,
-    rho_m_cell_vectorized,
-    RhoMCellMethod,
-)
+from .unitary_set import ShadowRandomBasis, ShadowBasisMethod, ShadowBasisType, DEFAULT_SHADOW_BASIS
 from ..utils import spreadout
 from ...utils import (
+    BaseMethodEnum,
     counts_list_recount_pyrust,
     shot_counts_selected_clreg_checker_pyrust,
-    rho_m_flatten_counts_list_vectorize_pyrust,
-    BaseMethodEnum,
 )
-from ...availability import availablility
-
-
-BACKEND_AVAILABLE = availablility(
-    "classical_shadow.rho_process", [("Rust", True, None), ("Numpy", True, None)]
-)
-"""The availability of backends for classical shadow rho process.
-
-Rust for counts processing in the rho method of "numpy_vectorized" 
-from :const:`~qurry.process.classical_shadow.rho_process.rho_m_cell.RhoMCellMethod`,
-or "multi_shots_vectorized" and "single_shots_vectorized"
-from :const:`RhoMethod`, which is the option the function
-:func:`~qurry.process.classical_shadow.rho_process.rho_m_cell.rho_m_cell_vectorized`
-"""
-
-
-def rho_m_core_py(
-    shots: int,
-    counts: list[dict[str, int]],
-    random_unitary_array: list[list[int]],
-    selected_classical_registers: Optional[Iterable[int]] = None,
-    convert_to_single_shot: bool = False,
-    rho_method: RhoMCellMethod = "numpy",
-) -> tuple[
-    list[np.ndarray[tuple[int, int], np.dtype[np.complex128]]],
-    list[int],
-    float,
-]:
-    """Rho M Cell Core calculation.
-
-    Args:
-        shots (int):
-            The number of shots.
-        counts (list[dict[str, int]]):
-            The list of the counts.
-        random_basis_array (list[list[int]]):
-            The shadow direction of the unitary operators.
-        selected_classical_registers (Optional[Iterable[int]], optional):
-            The list of **the index of the selected_classical_registers**.
-            Defaults to None.
-        convert_to_single_shot (bool, optional):
-            Whether to convert the counts and the random basis from multiple shots
-            to single shot per snapshot for classical shadow post-processing.
-            **Warning: If your shots number is large. Please reconsider for performance.**
-            **This may significantly increase memory usage and break your computer.**
-            Default to False.
-        rho_method (RhoMCoreMethod, optional):
-            The method to use for the calculation. Defaults to "numpy".
-            It can be either "numpy_proto", "numpy", or "numpy_vectorized".
-
-            - "numpy_proto":
-                Use Numpy to calculate the rho_m.
-            - "numpy":
-                Use Numpy to calculate the rho_m with precomputed values.
-            - "numpy_vectorized":
-                Use Numpy to calculate the rho_m with a vectorized workflow.
-
-    Returns:
-        tuple[
-            list[np.ndarray[tuple[int, int], np.dtype[np.complex128]]],
-            list[int],
-            float
-        ]:
-            The dictionary of rho_m, the sorted list of the selected qubits, and calculation time.
-    """
-
-    total_system_size, selected_classical_registers = shot_counts_selected_clreg_checker_pyrust(
-        shots=shots,
-        counts=counts,
-        selected_classical_registers=selected_classical_registers,
-    )
-
-    if convert_to_single_shot:
-        shots, counts, random_unitary_array = spreadout(shots, counts, random_unitary_array)
-
-    begin = time.time()
-
-    selected_clregs_sorted = sorted(selected_classical_registers, reverse=True)
-    counts_under_degree_list = counts_list_recount_pyrust(
-        counts,
-        num_classical_register=total_system_size,
-        selected_classical_registers=selected_clregs_sorted,
-    )
-
-    if rho_method == "numpy_vectorized":
-
-        flatten_recount_list_vectorized = rho_m_flatten_counts_list_vectorize_pyrust(
-            counts_under_degree_list, random_unitary_array, selected_clregs_sorted
-        )  # Even parallel is not needed
-        rho_m_list = [
-            rho_m_cell_vectorized(bits_array, count_num)
-            for bits_array, count_num in flatten_recount_list_vectorized
-        ]  # where the bottleneck is
-
-    else:
-        cell_calculation_method = (
-            rho_m_cell_precomputed if rho_method == "numpy" else rho_m_cell_prototype
-        )
-        rho_m_list = [
-            cell_calculation_method(
-                single_counts, random_unitary_array[idx], selected_clregs_sorted
-            )
-            for idx, single_counts in enumerate(counts_under_degree_list)
-        ]
-
-    taken = time.time() - begin
-
-    return rho_m_list, selected_clregs_sorted, taken
 
 
 class RhoMethod(BaseMethodEnum):
-    """The method to use for the rho_m_core calculation.
+    """Whether to use the multi_shots or single_shots method for rho_m_cell calculation.
+    For the "multi_shots" methods, the counts and random basis are used as is.
+    For the "single_shots" methods, the counts and random basis are
+    converted to single shot per snapshot for classical shadow post-processing.
 
-    It can be either "multi_shots_proto", "multi_shots", "multi_shots_vectorized",
-    "single_shots_proto", "single_shots", or "single_shots_vectorized".
+    **Warning: Although larger snapshots number means more accurate values.**
+    **But if your shots number is large, this may significantly increase memory usage,**
+    **require a lot of computing resource, and may run out of memory.**
+    **Please consider carefully for performance.**
 
-    For the "multi_shots_*" methods, the counts and random basis are used as is.
-    For the "single_shots_*" methods, the counts and random basis are converted to single
-    shot per snapshot for classical shadow post-processing.
-
-    **Warning: Althought larger snapshots number means more accurate values.**
-    **But if your shots number is large, this may significantly increase memory usage**
-    **and require a lot of computing resource.**
-    **In worst scenrio, this will break your computer.**
-    **Please reconsider for performance.**
-
-    - "multi_shots_proto": Use Numpy to calculate the rho_m.
-    - "multi_shots": Use Numpy to calculate the rho_m with precomputed values.
-    - "multi_shots_vectorized": Use Numpy to calculate the rho_m with a vectorized workflow.
-
-    - "single_shots_proto": Use Numpy to calculate the rho_m with converted single shot counts.
-    - "single_shots": Use Numpy to calculate the rho_m with precomputed values
-        with converted single shot counts.
-    - "single_shots_vectorized": Use Numpy to calculate the rho_m with a vectorized workflow
-        with converted single shot counts.
-
-    Currently, "multi_shots" is the best option for performance.
+    Default to "multi_shots".
     """
 
-    MULTI_SHOTS_PROTO = "multi_shots_proto"
-    """Use Numpy to calculate the rho_m."""
     MULTI_SHOTS = "multi_shots"
     """Use Numpy to calculate the rho_m with precomputed values."""
-    MULTI_SHOTS_VECTORIZED = "multi_shots_vectorized"
-    """Use Numpy to calculate the rho_m with a vectorized workflow."""
-    SINGLE_SHOTS_PROTO = "single_shots_proto"
-    """Use Numpy to calculate the rho_m with converted single shot counts."""
     SINGLE_SHOTS = "single_shots"
     """Use Numpy to calculate the rho_m with precomputed values 
-    with converted single shot counts."""
-    SINGLE_SHOTS_VECTORIZED = "single_shots_vectorized"
-    """Use Numpy to calculate the rho_m with a vectorized workflow 
     with converted single shot counts."""
 
     @classmethod
@@ -199,144 +62,246 @@ class RhoMethod(BaseMethodEnum):
         """
         return "multi" in self.value
 
-    @classmethod
-    def get_all_single_methods(cls) -> list[str]:
-        """Get a list of all available single shot methods.
 
-        Returns:
-            list[str]: A list of single shot method names.
-        """
-        return [method.value for method in cls if method.is_single_method()]
+DEFAULT_RHO_METHOD = RhoMethod.get_default()
+"""Whether to use the multi_shots or single_shots method for rho_m_cell calculation.
+For the "multi_shots" methods, the counts and random basis are used as is.
+For the "single_shots" methods, the counts and random basis are
+converted to single shot per snapshot for classical shadow post-processing.
 
-    @classmethod
-    def get_all_multi_methods(cls) -> list[str]:
-        """Get a list of all available multi shot methods.
+**Warning: Although larger snapshots number means more accurate values.**
+**But if your shots number is large, this may significantly increase memory usage,**
+**require a lot of computing resource, and may run out of memory.**
+**Please consider carefully for performance.**
 
-        Returns:
-            list[str]: A list of multi shot method names.
-        """
-        return [method.value for method in cls if method.is_multi_method()]
-
-    def whether_convert_and_rho_m_cell_method(self) -> tuple[bool, RhoMCellMethod]:
-        """Whether to convert to single shot per snapshot for classical shadow
-        post-processing and which rho_m_cell method to use.
-
-        Returns:
-            A tuple where the first element indicates if conversion is needed,
-            and the second element is the corresponding RhoMCellMethod.
-        """
-        method_split_tuple = self.value.split("_shots", 1)
-        convert_to_single_shot = "single" in method_split_tuple[0]
-        rho_m_cell_method = (
-            ("numpy" + method_split_tuple[1]) if len(method_split_tuple) > 1 else "numpy"
-        )
-
-        return convert_to_single_shot, rho_m_cell_method
-
-
-RhoMethodType = Union[RhoMethod, str]
-"""Type for rho_m_core method.
-
-It can be either "multi_shots_proto", "multi_shots", "multi_shots_vectorized",
-"single_shots_proto", "single_shots", or "single_shots_vectorized".
-
-For the "multi_shots_*" methods, the counts and random basis are used as is.
-For the "single_shots_*" methods, the counts and random basis are converted to single
-shot per snapshot for classical shadow post-processing.
-
-**Warning: Althought larger snapshots number means more accurate values.**
-**But if your shots number is large, this may significantly increase memory usage**
-**and require a lot of computing resource.**
-**In worst scenrio, this will break your computer.**
-**Please reconsider for performance.**
-
-- "multi_shots_proto": Use Numpy to calculate the rho_m.
-- "multi_shots": Use Numpy to calculate the rho_m with precomputed values.
-- "multi_shots_vectorized": Use Numpy to calculate the rho_m with a vectorized workflow.
-
-- "single_shots_proto": Use Numpy to calculate the rho_m with converted single shot counts.
-- "single_shots": Use Numpy to calculate the rho_m with precomputed values with
-    converted single shot counts.
-- "single_shots_vectorized": Use Numpy to calculate the rho_m with a vectorized workflow
-    with converted single shot counts.
-
-Currently, "multi_shots" is the best option for performance.
+Default to "multi_shots".
 """
 
-DEFAULT_RHO_METHOD: RhoMethod = RhoMethod.get_default()
-"""The default method for rho_m_core.
-
-Currently, "multi_shots" is the best option for performance.
+RhoMethodType = RhoMethod | str
+"""Whether to use the multi_shots or single_shots method for rho_m_cell calculation.
+For the "multi_shots" methods, the counts and random basis are used as is.
+For the "single_shots" methods, the counts and random basis are
+converted to single shot per snapshot for classical shadow post-processing.
 """
 
+# Peak memory cap for intermediate kron-product arrays.
+_MAX_BATCH_MEMORY_BYTES: int = 512 * 1024 * 1024  # 512 MB
 
-def rho_m_core(
+
+def rho_core(
     shots: int,
     counts: list[dict[str, int]],
-    random_unitary_array: list[list[Union[Literal[0, 1, 2], int]]],
-    selected_classical_registers: Optional[Iterable[int]] = None,
+    random_unitary_array: list[list[int]],
+    selected_classical_registers: Iterable[int] | None = None,
     rho_method: RhoMethodType = DEFAULT_RHO_METHOD,
-) -> tuple[list[np.ndarray[tuple[int, int], np.dtype[np.complex128]]], list[int], float]:
-    """Rho M Core calculation.
+    shadow_basis: ShadowBasisType = DEFAULT_SHADOW_BASIS,
+    use_projector: bool = False,
+) -> tuple[list[npt.NDArray[np.complex128]], list[int], ShadowRandomBasis, float]:
+    r"""Rho M Cell Core calculation.
 
     Args:
         shots (int):
             The number of shots.
         counts (list[dict[str, int]]):
             The list of the counts.
-        random_basis_array (list[list[Union[Literal[0, 1, 2], int]]],):
+        random_unitary_array (list[list[int]]):
             The shadow direction of the unitary operators.
-        selected_classical_registers (Optional[Iterable[int]], optional):
+        selected_classical_registers (Iterable[int] | None, optional):
             The list of **the index of the selected_classical_registers**.
             Defaults to None.
         rho_method (RhoMethodType, optional):
-            It can be either "multi_shots_proto", "multi_shots", "multi_shots_vectorized",
-            "single_shots_proto", "single_shots", or "single_shots_vectorized".
-
-            For the "multi_shots_*" methods, the counts and random basis are used as is.
-            For the "single_shots_*" methods, the counts and random basis are
+            For the "multi_shots" methods, the counts and random basis are used as is.
+            For the "single_shots" methods, the counts and random basis are
             converted to single shot per snapshot for classical shadow post-processing.
 
-            **Warning: Althought larger snapshots number means more accurate values.**
-            **But if your shots number is large,**
-            **this may significantly increase memory usage**
-            **and require a lot of computing resource.**
-            **In worst scenrio, this will break your computer.**
-            **Please reconsider for performance.**
+            **Warning: Although larger snapshots number means more accurate values.**
+            **But if your shots number is large, this may significantly increase memory usage,**
+            **require a lot of computing resource, and may run out of memory.**
+            **Please consider carefully for performance.**
 
-            - "multi_shots_proto": Use Numpy to calculate the rho_m.
-            - "multi_shots": Use Numpy to calculate the rho_m with precomputed values.
-            - "multi_shots_vectorized": Use Numpy to calculate the rho_m
-                with a vectorized workflow.
+            Default to "multi_shots".
+        shadow_basis (ShadowBasisType, optional):
+            The shadow basis to use. Defaults to :data:`DEFAULT_SHADOW_BASIS`.
 
-            - "single_shots_proto": Use Numpy to calculate the rho_m
-                with converted single shot counts.
-            - "single_shots": Use Numpy to calculate the rho_m
-                with precomputed values with converted single shot counts.
-            - "single_shots_vectorized": Use Numpy to calculate the rho_m
-                with a vectorized workflow with converted single shot counts.
-
-            Currently, "multi_shots" is the best option for performance.
-            Default to DEFAULT_RHO_METHOD, which is "multi_shots".
+            Here are the built-in basis sets:
+            - `RY_RX_RZ`:
+                Uses :math:`R_Y(-\frac{\pi}{2})`, :math:`R_X(\frac{\pi}{2})`,
+                and :math:`R_Z(0)` gates.
+            - `H_H-Sdg_I`:
+                Uses :math:`H`, :math:`H` followed by :math:`S^\dagger`,
+                and Identity gates.
+        use_projector (bool):
+            Use the projecter :math:`P_m` instead of the precomputed :math:`\rho_m`.
+            Refer to
+            :func:`qurry.process.classical_shadow.rho_process.rho_m_cell.rho_m_cell_precomputed`
+            for more details.
+            Default is False, which means using the precomputed :math:`\rho_{mk}^{i}`.
 
     Returns:
-        tuple[
-            list[np.ndarray[tuple[int, int], np.dtype[np.complex128]]],
-            list[int],
-            float
-        ]:
-            The dictionary of rho_m, the sorted list of the selected qubits, and calculation time.
+        The dictionary of :math:`\rho_{m}` or :math:`P_m`
+        depending on the value of :attr:`use_projector`,
+        the sorted list of the selected qubits,
+        the shadow basis object, and calculation time.
     """
 
     if isinstance(rho_method, str):
-        rho_method = RhoMethod(rho_method)
-    convert_to_single_shot, rho_m_core_method = rho_method.whether_convert_and_rho_m_cell_method()
+        rho_method = RhoMethod.from_string(rho_method)
+    shadow_basis_obj = ShadowBasisMethod.get_shadow_basis(shadow_basis)
 
-    return rho_m_core_py(
+    total_system_size, selected_classical_registers = shot_counts_selected_clreg_checker_pyrust(
         shots=shots,
         counts=counts,
-        random_unitary_array=random_unitary_array,
         selected_classical_registers=selected_classical_registers,
-        convert_to_single_shot=convert_to_single_shot,
-        rho_method=rho_m_core_method,
     )
+    if rho_method == RhoMethod.SINGLE_SHOTS:
+        shots, counts, random_unitary_array = spreadout(shots, counts, random_unitary_array)
+
+    begin = time.time()
+
+    selected_clregs_sorted = sorted(selected_classical_registers, reverse=True)
+    counts_under_degree_list = counts_list_recount_pyrust(
+        counts,
+        num_classical_register=total_system_size,
+        selected_classical_registers=selected_clregs_sorted,
+    )
+
+    # =========================================================================
+    # Legacy implementation
+    # =========================================================================
+    # import os
+    # from .rho_m_cell import rho_m_cell_precomputed
+    #
+    # return (
+    #     [
+    #         rho_m_cell_precomputed(
+    #             single_counts,
+    #             random_unitary_array[idx],
+    #             selected_clregs_sorted,
+    #             shadow_basis_obj,
+    #             use_projector=use_projector,
+    #         )
+    #         for idx, single_counts in enumerate(counts_under_degree_list)
+    #     ],
+    #     selected_clregs_sorted,
+    #     shadow_basis_obj,
+    #     time.time() - begin,
+    # )
+    # =========================================================================
+    # The following implementation is made by GitHub Copilot Claude Sonnet 4.6
+    # Don't ask me how it works :P
+
+    n_cells = len(counts_under_degree_list)
+    n_qubits = len(selected_clregs_sorted)
+    matrix_dim = 2**n_qubits
+    _bytes_per_sample = matrix_dim * matrix_dim * np.dtype(np.complex128).itemsize
+
+    unit_array = (
+        shadow_basis_obj.basis_projecters_array
+        if use_projector
+        else shadow_basis_obj.basis_precomputed_rho_m_k_i_array
+    )
+
+    # Pre-compute basis indices for every cell in one numpy op (no Python loop over qubits per cell)
+    selected_arr = np.array(selected_clregs_sorted, dtype=np.intp)
+    all_basis_indices = np.asarray(random_unitary_array[:n_cells], dtype=np.intp)[:, selected_arr]
+    # shape: (n_cells, n_qubits)
+
+    rho_m_list: list[npt.NDArray[np.complex128]] = []
+
+    if rho_method.is_single_method():
+        # SINGLE_SHOTS: each cell has exactly 1 bitstring with count 1.
+        # Process all cells in one batched numpy path, chunked to bound peak memory.
+        chunk_size = max(1, _MAX_BATCH_MEMORY_BYTES // _bytes_per_sample)
+        all_bits = (
+            np.frombuffer(
+                "".join(next(iter(c.keys())) for c in counts_under_degree_list).encode("ascii"),
+                dtype=np.uint8,
+            ).reshape(n_cells, n_qubits)
+            - ord("0")
+        ).astype(np.intp)
+
+        for start in range(0, n_cells, chunk_size):
+            end = min(start + chunk_size, n_cells)
+            sm = unit_array[all_basis_indices[start:end], all_bits[start:end]]
+            # shape: (chunk, n_qubits, 2, 2)
+            r: npt.NDArray[np.complex128] = sm[:, 0]
+            for j in range(1, n_qubits):
+                d = r.shape[1]
+                r = np.einsum("sij,skl->sikjl", r, sm[:, j]).reshape(end - start, d * 2, d * 2)
+            rho_m_list.extend(r)
+
+        return (rho_m_list, selected_clregs_sorted, shadow_basis_obj, time.time() - begin)
+
+    # MULTI_SHOTS: batch all bitstrings from all cells into one fancy-index + kron pass,
+    # then segment-reduce per cell.  Chunked by cells to bound peak memory.
+    bs_lists = [list(sc.keys()) for sc in counts_under_degree_list]
+    c_lists = [list(sc.values()) for sc in counts_under_degree_list]
+    sizes = np.fromiter((len(x) for x in bs_lists), dtype=np.intp, count=n_cells)
+
+    # Chunk by cells so that peak kron array ≤ _MAX_BATCH_MEMORY_BYTES
+    avg_bs = max(1, int(sizes.mean())) if n_cells else 1
+    chunk_cells = max(1, _MAX_BATCH_MEMORY_BYTES // (_bytes_per_sample * avg_bs))
+
+    for c_start in range(0, n_cells, chunk_cells):
+        c_end = min(c_start + chunk_cells, n_cells)
+        chunk_bs = bs_lists[c_start:c_end]
+        chunk_cl = c_lists[c_start:c_end]
+        chunk_sizes = sizes[c_start:c_end]
+        chunk_offsets = np.empty(c_end - c_start, dtype=np.intp)
+        chunk_offsets[0] = 0
+        np.cumsum(chunk_sizes[:-1], out=chunk_offsets[1:])
+        total_bs = int(chunk_sizes.sum())
+
+        flat_bits = (
+            np.frombuffer(
+                "".join(bs for bl in chunk_bs for bs in bl).encode("ascii"),
+                dtype=np.uint8,
+            ).reshape(total_bs, n_qubits)
+            - ord("0")
+        ).astype(np.intp)
+        # Expand pre-computed basis to match each bitstring's parent cell
+        flat_basis = all_basis_indices[
+            np.repeat(np.arange(c_start, c_end, dtype=np.intp), chunk_sizes)
+        ]
+        flat_counts = np.fromiter(
+            (v for cl in chunk_cl for v in cl), dtype=np.float64, count=total_bs
+        )
+
+        sm = unit_array[flat_basis, flat_bits]  # (total_bs, n_qubits, 2, 2)
+        r = sm[:, 0]
+        for j in range(1, n_qubits):
+            d = r.shape[1]
+            r = np.einsum("sij,skl->sikjl", r, sm[:, j]).reshape(total_bs, d * 2, d * 2)
+
+        # Weighted segment-sum then normalise per cell
+        weighted = r * flat_counts[:, np.newaxis, np.newaxis]
+        seg_sum = np.add.reduceat(weighted, chunk_offsets, axis=0)
+        seg_w = np.add.reduceat(flat_counts, chunk_offsets)
+        for i in range(c_end - c_start):
+            rho_m_list.append(seg_sum[i] / seg_w[i])
+
+    return (rho_m_list, selected_clregs_sorted, shadow_basis_obj, time.time() - begin)
+
+
+def mean_rho_core(
+    rho_m_list: list[npt.NDArray[np.complex128]], selected_classical_registers_sorted: list[int]
+) -> npt.NDArray[np.complex128]:
+    """Calculate the expectation value of Rho.
+
+    Args:
+        rho_m_list (list[npt.NDArray[np.complex128]]):
+            The list of rho_m.
+        selected_classical_registers_sorted (list[int]):
+            The list of the selected_classical_registers.
+
+    Returns:
+        npt.NDArray[np.complex128]: The expectation value of Rho.
+    """
+
+    expect_rho = np.sum(rho_m_list, axis=0, dtype=np.complex128)
+    assert expect_rho.shape == (2 ** len(selected_classical_registers_sorted),) * 2, (
+        f"The shape of expect_rho: {expect_rho.shape} "
+        + f"and the shape of rho_m_list: {rho_m_list[0].shape} are different."
+    )
+
+    return expect_rho / len(rho_m_list)

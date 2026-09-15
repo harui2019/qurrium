@@ -3,40 +3,42 @@
 
 """
 
-from typing import Union, Optional, TypedDict
+from typing import TypedDict
 import numpy as np
 import tqdm
 
+from .magsq_core import magnet_square_core, z_dir_magnet_square_core, DEFAULT_PROCESS_BACKEND
 from ..availability import PostProcessingBackendLabel
-from .magsq_core import magnetic_square_core, z_dir_magnetic_square_core, DEFAULT_PROCESS_BACKEND
+from ..utils import FloatType
 
 
-class MagnetSquare(TypedDict):
+class MagnetSquareResult(TypedDict):
     """Magnetization Square type."""
 
-    magnet_square: Union[float, np.float64]
+    magnet_square: FloatType
     """Magnetization Square."""
-    magnet_square_cells: Union[dict[int, float], dict[int, np.float64]]
+    magnet_square_cells: dict[int, float] | dict[int, np.float64]
     """Magnetization Square cells."""
     taking_time: float
     """Taking time."""
 
 
-def magnet_square(
+def magnetization_square(
     shots: int,
     counts: list[dict[str, int]],
     num_qubits: int,
     backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
-    pbar: Optional[tqdm.tqdm] = None,
-) -> MagnetSquare:
-    """Calculate the magnet square.
+    pbar: tqdm.tqdm | None = None,
+) -> MagnetSquareResult:
+    """Calculate the magnetization square.
 
     Args:
         shots (int): Number of shots.
         counts (list[dict[str, int]]): List of counts.
         num_qubits (int): Number of qubits.
-        backend (Optional[PostProcessingBackendLabel], optional): Backend to use. Defaults to None.
-        pbar (Optional[tqdm.tqdm], optional): Progress bar. Defaults to None.
+        backend (PostProcessingBackendLabel, optional):
+            Backend to use. Defaults to DEFAULT_PROCESS_BACKEND.
+        pbar (tqdm.tqdm | None, optional): Progress bar. Defaults to None.
 
     Returns:
         MagnetSquare: Magnetization Square.
@@ -44,7 +46,7 @@ def magnet_square(
     if isinstance(pbar, tqdm.tqdm):
         pbar.set_description("Magnetization Square being calculated.")
 
-    magsq, magnet_square_cells, taking_time = magnetic_square_core(
+    magsq, magnet_square_cells, taking_time = magnet_square_core(
         shots=shots, counts=counts, num_qubits=num_qubits, backend=backend
     )
     if isinstance(pbar, tqdm.tqdm):
@@ -57,31 +59,29 @@ def magnet_square(
     }
 
 
-def z_dir_magnet_square(
+def z_dir_magnetization_square(
     shots: int,
     single_counts: dict[str, int],
     num_qubits: int,
     backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
-    pbar: Optional[tqdm.tqdm] = None,
-) -> MagnetSquare:
-    """Calculate the magnet square for Z direction.
-
-    Signle counts is only working for Z direction.
+    pbar: tqdm.tqdm | None = None,
+) -> MagnetSquareResult:
+    """Calculate the magnetization square for Z direction.
 
     Args:
         shots (int): Number of shots.
         single_counts (dict[str, int]): Single count.
         num_qubits (int): Number of qubits.
-        backend (Optional[PostProcessingBackendLabel], optional): Backend to use. Defaults to None.
-        pbar (Optional[tqdm.tqdm], optional): Progress bar. Defaults to None.
-
+        backend (PostProcessingBackendLabel, optional):
+            Backend to use. Defaults to DEFAULT_PROCESS_BACKEND.
+        pbar (tqdm.tqdm | None, optional): Progress bar. Defaults to None.
     Returns:
         MagnetSquare: Magnetization Square.
     """
     if isinstance(pbar, tqdm.tqdm):
         pbar.set_description("Z Direction Magnetization Square being calculated.")
 
-    magsq, magnet_square_cells, taking_time = z_dir_magnetic_square_core(
+    magsq, magnet_square_cells, taking_time = z_dir_magnet_square_core(
         shots=shots, single_counts=single_counts, num_qubits=num_qubits, backend=backend
     )
 

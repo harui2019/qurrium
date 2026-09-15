@@ -1,65 +1,66 @@
 """Test qurry.process.magnet_square module."""
 
-from typing import TypedDict, TypeVar, Literal, Union, overload
-import os
+from typing import TypedDict, Literal
 from itertools import combinations
+import logging
 import pytest
-import numpy as np
 
-from qurry.capsule import quickRead
-from qurry.process.utils import NUMERICAL_ERROR_TOLERANCE
-from qurry.process.magnet_square import magnet_square_availability
-from qurry.process.magnet_square.magsq_core import magnetic_square_core, z_dir_magnetic_square_core
+from qurry.process.magnet_square import (
+    magnet_square_availability,
+    magnetization_square,
+    z_dir_magnetization_square,
+    MagnetSquareResult,
+)
 
-FILE_LOCATION_MSZDIR = os.path.join(os.path.dirname(__file__), "mszdir-case.json")
-FILE_LOCATION_MS = os.path.join(os.path.dirname(__file__), "ms-case.json")
+from .utilities import (
+    quick_json_read,
+    get_dummy_file_path,
+    assert_numerical_tolerance_check,
+    FloatType,
+    assert_and_logging_rust_available,
+)
+
+logger = logging.getLogger(__name__)
 
 
-class RawReadMSAnswer(TypedDict):
+class MagnetSquareZdirTarget(TypedDict):
     """TypedDict for magnet square answer from JSON."""
 
-    magnet_square: float
-    num_qubits: int
     shots: int
-    magnet_square_cell: dict[str, float]
-    unitary_operator: Union[Literal["x", "y", "z"], str]
-    taking_time: float
+    """Number of shots."""
+    counts: list[dict[str, int]]
+    """The counts dictionary list."""
+    num_qubits: int
+    """Number of qubits."""
 
 
-class RawReadMSZDirAnswer(TypedDict):
+class MagnetSquareTarget(MagnetSquareZdirTarget):
     """TypedDict for magnet square answer from JSON."""
 
-    magnet_square: float
-    num_qubits: int
-    shots: int
-    magnet_square_cell: dict[str, float]
-    taking_time: float
+    unitary_operator: Literal["x", "y", "z"] | str
+    """The unitary operator used."""
 
 
-RRMSA = TypeVar("RRMSA", RawReadMSAnswer, RawReadMSZDirAnswer)
+class MagnetSquareZdirCase(TypedDict):
+    """The raw read magnet square z direction unit type."""
+
+    target: MagnetSquareZdirTarget
+    """The target parameters for the z_dir_magnetization_square function."""
+    answer: MagnetSquareResult
+    """The expected answer from the z_dir_magnetization_square function."""
+    case_name: str
+    """The case name."""
 
 
-# This won;t work with TypedDicts berfore Python3.11,
-# so we use a regular TypedDict.
-# class RawReadMSUnit(TypedDict, Generic[RRMSA]):
-#     """TypedDict for magnet square unit from JSON."""
+class MagnetSquareCase(TypedDict):
+    """The raw read magnet square unit type."""
 
-#     ans: RRMSA
-#     counts: list[dict[str, int]]
-
-
-class RawReadMS(TypedDict):
-    """TypedDict for magnet square unit from JSON."""
-
-    ans: RawReadMSAnswer
-    counts: list[dict[str, int]]
-
-
-class RawReadMSZDir(TypedDict):
-    """TypedDict for magnet square unit from JSON."""
-
-    ans: RawReadMSZDirAnswer
-    counts: list[dict[str, int]]
+    target: MagnetSquareTarget
+    """The target parameters for the magnet_square function."""
+    answer: MagnetSquareResult
+    """The expected answer from the magnet_square function."""
+    case_name: str
+    """The case name."""
 
 
 ANSWERS = {
@@ -76,116 +77,119 @@ ANSWERS = {
 ANSWERS_ERROR = 0.05
 
 
-@overload
-def raw_unfold_and_sorted(
-    case_set: dict[str, RawReadMSZDir],
-) -> list[tuple[str, RawReadMSZDirAnswer, list[dict[str, int]]]]: ...
+DUMMY_CASE_FILE_MSZDIR = get_dummy_file_path("magnet_square_zdir.json")
+DUMMY_CASES_JSON_MSZDIR: list[MagnetSquareZdirCase] = quick_json_read(DUMMY_CASE_FILE_MSZDIR)
+mszdir_cases_entries = [
+    (case["target"], case["answer"], case["case_name"]) for case in DUMMY_CASES_JSON_MSZDIR
+]
 
 
-@overload
-def raw_unfold_and_sorted(
-    case_set: dict[str, RawReadMS],
-) -> list[tuple[str, RawReadMSAnswer, list[dict[str, int]]]]: ...
+DUMMY_CASE_FILE_MS = get_dummy_file_path("magnet_square.json")
+DUMMY_CASES_JSON_MS: list[MagnetSquareCase] = quick_json_read(DUMMY_CASE_FILE_MS)
+ms_cases_entries = [
+    (case["target"], case["answer"], case["case_name"]) for case in DUMMY_CASES_JSON_MS
+]
 
 
-def raw_unfold_and_sorted(case_set):
-    """Unfold and sort the raw read magnet square case set.
-    Args:
-        case_set (dict[str, RawReadMSUnit]): The raw read magnet square case set.
-    Returns:
-        list[tuple[str, RRMSA, list[dict[str, int]]]]:
-            The sorted list of tuples containing case name, answer, and counts.
-    """
-    return sorted(((k, v["ans"], v["counts"]) for k, v in case_set.items()), key=lambda x: x[0])
+def test_availability():
+    """Test the availability of the Rust backend for the magnet_square function."""
+
+    assert_and_logging_rust_available([magnet_square_availability], logger)
 
 
-raw_mszdir_case: dict[str, RawReadMS] = quickRead(FILE_LOCATION_MSZDIR)
-raw_ms_case: dict[str, RawReadMSZDir] = quickRead(FILE_LOCATION_MS)
-
-
-@pytest.mark.parametrize(["case_name", "answer", "counts"], raw_unfold_and_sorted(raw_mszdir_case))
+@pytest.mark.parametrize(["target", "answer", "case_name"], mszdir_cases_entries)
 def test_magnet_square_zdir(
-    case_name: str, answer: RawReadMSZDirAnswer, counts: list[dict[str, int]]
+    target: MagnetSquareZdirTarget, answer: MagnetSquareResult, case_name: str
 ):
     """Test the z_dir_magnetic_square_core function."""
 
-    assert magnet_square_availability[1][
-        "Rust"
-    ], f"Rust is not available. Check the error: {magnet_square_availability[2]}"
+    assert len(target["counts"]) == 1, (
+        "The counts should be a single item for the z_dir_magnetic_square_core function."
+    )
 
-    assert (
-        len(counts) == 1
-    ), "The counts should be a single item for the z_dir_magnetic_square_core function."
-
-    py_result = z_dir_magnetic_square_core(
-        shots=answer["shots"],
-        single_counts=counts[0],
-        num_qubits=answer["num_qubits"],
+    py_result = z_dir_magnetization_square(
+        shots=target["shots"],
+        single_counts=target["counts"][0],
+        num_qubits=target["num_qubits"],
         backend="Python",
     )
-    rust_result = z_dir_magnetic_square_core(
-        shots=answer["shots"],
-        single_counts=counts[0],
-        num_qubits=answer["num_qubits"],
+    rust_result = z_dir_magnetization_square(
+        shots=target["shots"],
+        single_counts=target["counts"][0],
+        num_qubits=target["num_qubits"],
         backend="Rust",
     )
 
-    comparison_target: list[tuple[str, float]] = [
-        ("Python", py_result[0]),
-        ("Rust", rust_result[0]),
-        ("Answer", answer["magnet_square"]),
+    comparison_target: list[tuple[str, FloatType]] = [
+        ("Python", py_result["magnet_square"]),
+        ("Rust", rust_result["magnet_square"]),
+        ("Numerical Answer", answer["magnet_square"]),
     ]
-    for (name_1, result_1), (name_02, result_02) in combinations(comparison_target, 2):
-        assert np.abs(result_1 - result_02) < NUMERICAL_ERROR_TOLERANCE, (
-            f"{name_1} and {name_02} results are not equal in z_dir_magnetic_square_core: "
-            f"{name_1}: {result_1}, {name_02}: {result_02}."
+    for (name_1, result_1), (name_2, result_2) in combinations(comparison_target, 2):
+        assert_numerical_tolerance_check(
+            "z_dir_magnetization_square",
+            result_1,
+            name_1,
+            result_2,
+            name_2,
+            logger,
         )
     for name_1, result_1 in comparison_target:
-        assert np.abs(result_1 - ANSWERS[case_name]) < ANSWERS_ERROR, (
-            f"Result by {name_1} {result_1} is not close to expected "
-            f"{ANSWERS[case_name]} in error {ANSWERS_ERROR}."
+        assert_numerical_tolerance_check(
+            "z_dir_magnetization_square",
+            result_1,
+            name_1,
+            ANSWERS[case_name],
+            "Answer",
+            logger,
+            ANSWERS_ERROR,
         )
 
 
-@pytest.mark.parametrize(["case_name", "answer", "counts"], raw_unfold_and_sorted(raw_ms_case))
-def test_magnet_square(case_name: str, answer: RawReadMSAnswer, counts: list[dict[str, int]]):
+@pytest.mark.parametrize(["target", "answer", "case_name"], ms_cases_entries)
+def test_magnet_square(target: MagnetSquareTarget, answer: MagnetSquareResult, case_name: str):
     """Test the z_dir_magnetic_square_core function."""
 
-    assert magnet_square_availability[1][
-        "Rust"
-    ], f"Rust is not available. Check the error: {magnet_square_availability[2]}"
-
-    predict_counts_num = answer["num_qubits"] * (answer["num_qubits"] - 1)
-    assert len(counts) == predict_counts_num, (
+    predict_counts_num = target["num_qubits"] * (target["num_qubits"] - 1)
+    assert len(target["counts"]) == predict_counts_num, (
         f"The counts should have {predict_counts_num} items, "
-        f"but got {len(counts)} for {case_name}"
+        + f"but got {len(target['counts'])} for {case_name}"
     )
 
-    py_result = magnetic_square_core(
-        shots=answer["shots"],
-        counts=counts,
-        num_qubits=answer["num_qubits"],
+    py_result = magnetization_square(
+        shots=target["shots"],
+        counts=target["counts"],
+        num_qubits=target["num_qubits"],
         backend="Python",
     )
-    rust_result = magnetic_square_core(
-        shots=answer["shots"],
-        counts=counts,
-        num_qubits=answer["num_qubits"],
+    rust_result = magnetization_square(
+        shots=target["shots"],
+        counts=target["counts"],
+        num_qubits=target["num_qubits"],
         backend="Rust",
     )
 
-    comparison_target: list[tuple[str, float]] = [
-        ("Python", py_result[0]),
-        ("Rust", rust_result[0]),
-        ("Answer", answer["magnet_square"]),
+    comparison_target: list[tuple[str, FloatType]] = [
+        ("Python", py_result["magnet_square"]),
+        ("Rust", rust_result["magnet_square"]),
+        ("Known numerical answer", answer["magnet_square"]),
     ]
-    for (name_1, result_1), (name_02, result_02) in combinations(comparison_target, 2):
-        assert np.abs(result_1 - result_02) < NUMERICAL_ERROR_TOLERANCE, (
-            f"{name_1} and {name_02} results are not equal in magnet_square_core: "
-            f"{name_1}: {result_1}, {name_02}: {result_02}."
+    for (name_1, result_1), (name_2, result_2) in combinations(comparison_target, 2):
+        assert_numerical_tolerance_check(
+            "magnet_square",
+            result_1,
+            name_1,
+            result_2,
+            name_2,
+            logger,
         )
     for name_1, result_1 in comparison_target:
-        assert np.abs(result_1 - ANSWERS[case_name]) < ANSWERS_ERROR, (
-            f"Result by {name_1} {result_1} is not close to expected "
-            f"{ANSWERS[case_name]} in error {ANSWERS_ERROR}."
+        assert_numerical_tolerance_check(
+            "magnet_square",
+            result_1,
+            name_1,
+            ANSWERS[case_name],
+            "Answer",
+            logger,
+            ANSWERS_ERROR,
         )

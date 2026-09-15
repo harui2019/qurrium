@@ -3,139 +3,80 @@
 
 """
 
-from typing import Union, Optional, Literal, TypedDict, NamedTuple
+from typing import Literal, TypedDict
 import numpy as np
 
-
-GenericFloatType = Union[np.float64, float]
-"""The generic float type by numpy or python."""
+from ...utils import FloatType
 
 
-class EntangledEntropyResult(TypedDict, total=False):
+class TargetSystemResult(TypedDict):
     """The return type of the post-processing for entangled entropy."""
 
-    purity: GenericFloatType
+    purity: FloatType
     """The purity of the system."""
-    entropy: GenericFloatType
+    entropy: FloatType
     """The entropy of the system."""
-    puritySD: GenericFloatType
+    purity_sd: FloatType
     """The standard deviation of the purity."""
-    entropySD: GenericFloatType
+    entropy_sd: FloatType
     """The standard deviation of the entropy."""
-    purityCells: Union[dict[int, np.float64], dict[int, float]]
+    purity_cells: dict[int, np.float64] | dict[int, float]
     """The purity of each single count."""
-    # new added
+
     num_classical_registers: int
     """The number of classical registers."""
-    classical_registers: Optional[list[int]]
+    classical_registers: list[int] | None
     """The list of the index of the selected classical registers."""
     classical_registers_actually: list[int]
     """The list of the index of the selected classical registers which is actually used."""
-    # refactored
+
+    taking_time: float
+    """The calculation time."""
     counts_num: int
     """The number of counts."""
-    taking_time: GenericFloatType
-    """The calculation time."""
 
 
-class EntangledEntropyResultMitigated(EntangledEntropyResult):
-    """The return type of the post-processing for entangled entropy with error mitigation."""
+class AllSystemResult(TargetSystemResult):
+    """The return type of the post-processing for entangled entropy."""
 
-    # refactored
-    all_system_source: Union[str, Literal["independent", "null_counts"]]
+    preparing_datetime: str
+    """The datetime string when preparing the all system result."""
+    result_hash_id: str
+    """The hash id of the result for verification."""
+    all_system_source: Literal["independent"] | str
     """The name of source of all system.
 
-    - independent: The all system is calculated independently.
-    - null_counts: No counts exist.
+    - `independent`: The all system is calculated independently.
     """
 
-    purityAllSys: GenericFloatType
-    """The purity of the all system."""
-    entropyAllSys: GenericFloatType
-    """The entropy of the all system."""
-    puritySDAllSys: GenericFloatType
-    """The standard deviation of the purity of the all system."""
-    entropySDAllSys: GenericFloatType
-    """The standard deviation of the entropy of the all system."""
-    purityCellsAllSys: Union[dict[int, np.float64], dict[int, float]]
-    """The purity of each single count."""
 
-    # new added
-    num_classical_registers_all_sys: int
-    """The number of classical registers of all system."""
-    classical_registers_all_sys: Optional[list[int]]
-    """The list of the index of the selected classical registers."""
-    classical_registers_actually_all_sys: list[int]
-    """The list of the index of the selected classical registers which is actually used."""
+def isvalid_all_system_result(all_sys_result: AllSystemResult) -> None:
+    """Verify if the given AllSystemResult object is valid.
 
-    # mitigated info
-    errorRate: GenericFloatType
-    """The error rate of the measurement from depolarizing error migigation calculated."""
-    mitigatedPurity: GenericFloatType
-    """The mitigated purity."""
-    mitigatedEntropy: GenericFloatType
-    """The mitigated entropy."""
+    Args:
+        all_sys_result (AllSystemResult):
+            The AllSystemResult TypedDict object.
 
-    # refactored
-    taking_time_all_sys: GenericFloatType
-    """The calculation time of the all system."""
-
-
-class ExistedAllSystemInfo(NamedTuple):
-    """Existed all system information"""
-
-    source: str
-    """The source of all system."""
-
-    purityAllSys: GenericFloatType
-    """The purity of the all system."""
-    entropyAllSys: GenericFloatType
-    """The entropy of the all system."""
-    puritySDAllSys: GenericFloatType
-    """The standard deviation of the purity of the all system."""
-    entropySDAllSys: GenericFloatType
-    """The standard deviation of the entropy of the all system."""
-    purityCellsAllSys: Union[dict[int, np.float64], dict[int, float]]
-    """The purity of each single count."""
-
-    # new added
-    num_classical_registers_all_sys: int
-    """The number of classical registers of all system."""
-    classical_registers_all_sys: Optional[list[int]]
-    """The list of the index of the selected classical registers."""
-    classical_registers_actually_all_sys: list[int]
-    """The list of the index of the selected classical registers which is actually used."""
-
-    # refactored
-    taking_time_all_sys: GenericFloatType
-    """The calculation time of the all system."""
-
-
-class ExistedAllSystemInfoInput(TypedDict, total=False):
-    """Existed all system information"""
-
-    source: str
-    """The source of all system."""
-
-    purityAllSys: GenericFloatType
-    """The purity of the all system."""
-    entropyAllSys: GenericFloatType
-    """The entropy of the all system."""
-    puritySDAllSys: GenericFloatType
-    """The standard deviation of the purity of the all system."""
-    entropySDAllSys: GenericFloatType
-    """The standard deviation of the entropy of the all system."""
-    purityCellsAllSys: Union[dict[int, np.float64], dict[int, float]]
-    """The purity of each single count."""
-
-    # new added
-    num_classical_registers_all_sys: int
-    """The number of classical registers of all system."""
-    classical_registers_all_sys: Optional[list[int]]
-    """The list of the index of the selected classical registers."""
-    classical_registers_actually_all_sys: list[int]
-    """The list of the index of the selected classical registers which is actually used."""
-
-    # refactored
-    taking_time_all_sys: GenericFloatType
-    """The calculation time of the all system."""
+    Raises:
+        ValueError: If the all_sys_result argument is not a valid AllSystemResult object.
+    """
+    if any(
+        key not in all_sys_result
+        for key in [
+            "purity",
+            "entropy",
+            "purity_sd",
+            "entropy_sd",
+            "purity_cells",
+            "num_classical_registers",
+            "classical_registers",
+            "classical_registers_actually",
+            "taking_time",
+            "counts_num",
+            # all system specific
+            "preparing_datetime",
+            "result_hash_id",
+            "all_system_source",
+        ]
+    ):
+        raise ValueError("The all_sys_result argument must be a valid AllSystemResult object.")

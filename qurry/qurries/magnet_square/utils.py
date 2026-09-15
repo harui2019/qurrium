@@ -1,18 +1,23 @@
 """Magnetic Square - Utility (:mod:`qurry.qurries.magnet_square.utils`)"""
 
-from typing import Union, Literal
+from typing import Literal
 
 from qiskit import QuantumCircuit, ClassicalRegister
 from qiskit.circuit import Gate
 from qiskit.quantum_info import Operator
 
+from ...qurrium import WCKeyable, naming_circuit
+
+DEFAULT_CLASSICAL_REGISTER_NAME = "m0"
+"""The default name for classical register used for measurement."""
+
 
 def circuit_method(
     idx: int,
     target_circuit: QuantumCircuit,
-    target_key: str,
+    target_key: WCKeyable,
     exp_name: str,
-    unitary_operator: Union[Operator, Gate, Literal["x", "y", "z"]],
+    unitary_operator: Operator | Gate | Literal["x", "y", "z"],
     i: int,
     j: int,
 ) -> QuantumCircuit:
@@ -21,9 +26,9 @@ def circuit_method(
     Args:
         idx (int): Index of the quantum circuit.
         target_circuit (QuantumCircuit): Target circuit.
-        target_key (Hashable): Target key.
+        target_key (WCKeyable): Target key.
         exp_name (str): Experiment name.
-        unitary_operator (Union[Operator, Gate, Literal["x", "y", "z"]]):
+        unitary_operator (Operator | Gate | Literal["x", "y", "z"]):
             The unitary operator to apply.
             It can be a `qiskit.quantum_info.Operator`, a `qiskit.circuit.Gate`, or a string
             representing the axis of rotation ('x', 'y', or 'z').
@@ -34,13 +39,10 @@ def circuit_method(
         QuantumCircuit: The circuit for the experiment.
     """
 
-    old_name = "" if isinstance(target_circuit.name, str) else target_circuit.name
     qc_exp1 = target_circuit.copy(
-        f"{exp_name}_{idx}_{i}_{j}"
-        + ("" if target_key else f".{target_key}")
-        + ("" if old_name else f".{old_name}")
+        naming_circuit(target_circuit, target_key, f"{exp_name}_{idx}_{i}_{j}")
     )
-    c_meas1 = ClassicalRegister(2, "c_m1")
+    c_meas1 = ClassicalRegister(2, DEFAULT_CLASSICAL_REGISTER_NAME)
     qc_exp1.add_register(c_meas1)
 
     qc_exp1.barrier()

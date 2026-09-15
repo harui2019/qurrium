@@ -1,13 +1,13 @@
 """Post Processing - Classical Shadow - Utilities (:mod:`qurry.process.classical_shadow.utils`)
 
 There is a more memory efficient way to store the random basis,
-which is `list[list[int]]` instead of `dict[int, dict[int, int]]`.
-But we use `dict[int, dict[int, int]]`, it's because the annoying
+which is :class:`list[list[int]]` instead of :class:`dict[int, dict[int, int]]`.
+But we use :class:`dict[int, dict[int, int]]`, it's because the annoying
 mapping between qubit index and classical bit index for quantum
 circuit realizations and which circuit actually used which random basis.
 
-For the format of `dict[int, dict[int, int]]`: we will call `random_basis`.
-For the format of `list[list[int]]`: we will call `pauli_basis`.
+For the format of :class:`dict[int, dict[int, int]]`: we will call `random_basis`.
+For the format of :class:`list[list[int]]`: we will call `pauli_basis`.
 
 ## Data storage format
 
@@ -64,9 +64,12 @@ For the format of `list[list[int]]`: we will call `pauli_basis`.
 
 from .random_basis import (
     generate_random_basis,
+    generate_all_possible_basis_array,
+    make_evenly_basis_array,
+    make_evenly_basis,
     validate_random_basis,
     check_random_basis,
     check_random_basis_array,
 )
 from .spreadout import spreadout
-from .basis_spin_fmt import multi_counts_to_basis_spin
+from .basis_spin_fmt import convert_to_basis_spin, measurements_export, measurements_read

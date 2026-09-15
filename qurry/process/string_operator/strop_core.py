@@ -3,37 +3,36 @@
 
 """
 
-from typing import Union, Callable, Literal
-import numpy as np
+from typing import Literal
 
-from ..availability import availablility, default_postprocessing_backend, PostProcessingBackendLabel
+from ..availability import availability, default_postprocessing_backend, PostProcessingBackendLabel
+from ..utils import FloatType
 
-# pylint:disable=no-name-in-module,import-error
+# pylint: disable=import-error,no-name-in-module
 from ...boorust.string_operator import string_operator_core_rust  # type: ignore
 
-BACKEND_AVAILABLE = availablility("string_operator.strop_core", [("Rust", True, None)])
+BACKEND_AVAILABLE = availability("string_operator.strop_core", [("Rust", True, None)])
 DEFAULT_PROCESS_BACKEND = default_postprocessing_backend(True, False)
 
 
-add_or_reducer: Callable[[str], Literal[1, -1]] = lambda bitstring: (
-    1 if sum(int(bit) for bit in bitstring) % 2 == 0 else -1
-)
-"""The add or reduce function.
-If the sum of the bitstring is even, return 1.
-If the sum of the bitstring is odd, return -1.
+def add_or_reducer(bitstring: str) -> Literal[1, -1]:
+    """The add or reduce function.
+    If the sum of the bitstring is even, return 1.
+    If the sum of the bitstring is odd, return -1.
 
-Args:
-    bitstring (str): The bitstring.
-Returns:
-    Literal[1, -1]: 1 or -1.
-"""
+    Args:
+        bitstring (str): The bitstring.
+    Returns:
+        Literal[1, -1]: 1 or -1.
+    """
+    return 1 if sum(int(bit) for bit in bitstring) % 2 == 0 else -1
 
 
 def string_operator_core(
     shots: int,
     counts: list[dict[str, int]],
     backend: PostProcessingBackendLabel = DEFAULT_PROCESS_BACKEND,
-) -> Union[float, np.float64]:
+) -> FloatType:
     """The core function of magnet square.
 
     Args:
@@ -45,7 +44,7 @@ def string_operator_core(
             Post Processing backend. Defaults to DEFAULT_PROCESS_BACKEND.
 
     Returns:
-        Union[float, np.float64]: String operator value.
+        FloatType: String operator value.
     """
     if backend == "Rust":
         return string_operator_core_rust(shots, counts)
@@ -60,6 +59,5 @@ def string_operator_core(
     order_per_bitstring_without_div_by_shots = {
         s: add_or_reducer(s) * m for s, m in only_counts.items()
     }
-    order = sum(order_per_bitstring_without_div_by_shots.values()) / sample_shots
 
-    return order
+    return sum(order_per_bitstring_without_div_by_shots.values()) / sample_shots

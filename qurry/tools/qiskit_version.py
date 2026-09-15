@@ -6,147 +6,122 @@
 """
 
 import warnings
-from collections.abc import Mapping
 from importlib.metadata import distributions
+import requests
 
 from qiskit import __version__ as qiskit_version
-from ..version import __version__
 
+from ..version import __version__
 from ..capsule.hoshi import Hoshi
 
-KNOWN_CORE_PACKAGE = {
-    "main": [
-        "qiskit-aer",
-        "qiskit-aer-gpu",
-        "qiskit-aer-gpu-cu11",  # Extra package for CUDA 11
-        "qiskit-ibm-provider",
-        "qiskit-ibm-runtime",
-    ],
-    "deprecated": [
-        "qiskit-ibmq-provider",
-        "qiskit-terra",
-        "qiskit-ignis",  # This has been deprecated in very early, even before I first knew qiskit.
-    ],
-    "into-community": [
-        "qiskit-nature",
-        "qiskit-finance",
-        "qiskit-optimization",
-        "qiskit-machine-learning",
-    ],
-}
-"""A dictionary of known core packages in Qiskit.
 
-- "main": The main packages of Qiskit.
-- "deprecated": The deprecated packages of Qiskit.
-- "into-community": The packages that are into the community.
-"""
+def local_qiskit_version_info():
+    """Get the local version of qiskit and its miscellaneous packages,
+    basically the package with 'qiskit' in its name. And sort the package by its name.
+
+    Return:
+        The local version of qiskit and its miscellaneous packages.
+    """
+    qiskit_distro_list = [
+        (
+            distro.metadata["Name"],
+            {
+                "dist": distro.locate_file(distro.metadata["Name"]),
+                "local_version": distro.version,
+            },
+        )
+        for distro in distributions()
+        if "qiskit" in distro.metadata["Name"].lower()
+    ]
+    qiskit_distro_list.sort(key=lambda x: x[0])
+
+    return dict(qiskit_distro_list)
 
 
-class QiskitVersion(Mapping):
-    """Get the version of qiskit and its packages.
+def qiskit_version_info():
+    """Get the local version of qiskit and its miscellaneous packages,
+    basically the package with 'qiskit' in its name. And sort the package by its name.
+    And also get the latest version of each package from PyPI.
 
-    The replacement of deprecated `QiskitVersion` in :mod:`qiskit.version`.
-    This class is a mapping of package names to their versions.
+    Return:
+        The local version of qiskit and its miscellaneous packages, and the latest version of each
+        package from PyPI.
     """
 
-    __slots__ = ["_version_dict", "_loaded"]
+    local_version_dict = local_qiskit_version_info()
+    for k in list(local_version_dict.keys()):
+        try:
+            response = requests.get(f"https://pypi.org/pypi/{k}/json", timeout=5)
+            latest_version = response.json()["info"]["version"]
+        except requests.exceptions.RequestException as e:
+            warnings.warn(f"Failed to get latest version of {k} from PyPI: {e}")
+            latest_version = None
+        local_version_dict[k]["latest_version"] = latest_version
 
-    def __init__(self):
-        self._version_dict = {
-            "qiskit": qiskit_version,
-        }
-        self._loaded = False
-
-    def _load_versions(self):
-        for i in distributions():
-            if (
-                i.metadata["Name"]
-                in KNOWN_CORE_PACKAGE["main"]
-                + KNOWN_CORE_PACKAGE["deprecated"]
-                + KNOWN_CORE_PACKAGE["into-community"]
-            ):
-                self._version_dict[i.metadata["Name"]] = i.version
-
-    def __repr__(self):
-        if not self._loaded:
-            self._load_versions()
-        return repr(self._version_dict)
-
-    def __str__(self):
-        if not self._loaded:
-            self._load_versions()
-        return str(self._version_dict)
-
-    def __getitem__(self, key):
-        if not self._loaded:
-            self._load_versions()
-        return self._version_dict[key]
-
-    def __iter__(self):
-        if not self._loaded:
-            self._load_versions()
-        return iter(self._version_dict)
-
-    def __len__(self):
-        return len(self._version_dict)
+    return local_version_dict
 
 
-QISKIT_VERSION = QiskitVersion()
-"""A mapping of package names to their versions in Qiskit.
-This is an instance of :class:`~qurry.tools.qiskit_version.QiskitVersion`.
-It contains the versions of the main, deprecated, and into-community packages of Qiskit.
-"""
-
-
-def qiskit_version_statesheet() -> Hoshi:
+def get_qiskit_version_statesheet() -> Hoshi:
     """Get the version of qiskit and its packages as a statesheet.
 
     Returns:
-        Hoshi: The statesheet of the version of qiskit and its packages.
+        The statesheet of the version of qiskit and its packages.
     """
-    item = [
-        ("txt", f"| Qurrium version: {__version__}"),
-        ("divider", 44),
-        ("h3", "Qiskit version"),
-    ]
-    for package_type, package_list in KNOWN_CORE_PACKAGE.items():
-        item.append(
-            {
-                "type": "itemize",
-                "description": package_type,
-            }
-        )
-        for package in package_list:
-            pkg_version = QISKIT_VERSION.get(package)
-            if pkg_version:
-                item.append(
-                    {
-                        "type": "itemize",
-                        "description": package,
-                        "value": pkg_version,
-                        "listing_level": 2,
-                        "ljust_description_filler": ".",
-                    }
-                )
-    item.append(("divider", 44))
 
-    if "qiskit-aer-gpu" in QISKIT_VERSION:
-        item.append(
+    check_msg = Hoshi(
+        [
+            ("txt", f"| Qurrium version: {__version__}"),
+            ("divider", 80),
+            ("h3", "Qiskit version"),
+        ],
+        ljust_description_len=40,
+    )
+    version_dict = qiskit_version_info()
+
+    check_msg.newline(
+        {
+            "type": "itemize",
+            "description": "package name",
+            "value": "Local version / Latest version on PyPI.",
+            "ljust_description_filler": ".",
+        }
+    )
+    for k, v in version_dict.items():
+        check_msg.newline(
             {
                 "type": "itemize",
-                "description": "qiskit-aer-gpu"
-                + (" and qiskit-aer-gpu-cu11" if "qiskit-aer-gpu-cu11" in QISKIT_VERSION else "")
-                + " should have the same version as qiskit-aer.",
-                "listing_itemize": "+",
+                "description": f"{k}",
+                "value": f"{v['local_version']}"
+                + (f" / {v['latest_version']}" if v["latest_version"] else " / N/A"),
                 "ljust_description_filler": ".",
+                "listing_level": 2,
             }
         )
-        item.append(("divider", 44))
+    check_msg.divider(80)
+    check_msg.newline(
+        {
+            "type": "itemize",
+            "description": (
+                "Please keep mind on your qiskit version, "
+                + "a very outdated version may cause some problems."
+            ),
+            "listing_itemize": "+",
+        }
+    )
+    if any("aer-gpu" in k for k in version_dict):
+        check_msg.newline(
+            {
+                "type": "itemize",
+                "description": (
+                    "If you are using qiskit-aer-gpu, suggest to use the version "
+                    + "same with qiskit-aer."
+                ),
+                "listing_itemize": "+",
+            }
+        )
+    check_msg.divider(80)
 
-    return Hoshi(item, ljust_description_filler=".")
-
-
-QISKIT_VERSION_STATESHEET = qiskit_version_statesheet()
+    return check_msg
 
 
 def qiskit_version_v0_check():

@@ -1,0 +1,129 @@
+[
+  {
+    "target": {
+      "shots": 4096,
+      "selected_range": 6,
+      "absolute_range": [
+        0,
+        8
+      ]
+    },
+    "easy_dummy_usage": [
+      0,
+      0
+    ]
+  },
+  {
+    "target": {
+      "shots": 4096,
+      "selected_range": [
+        2,
+        8
+      ],
+      "absolute_range": [
+        0,
+        8
+      ]
+    },
+    "easy_dummy_usage": [
+      0,
+      0
+    ]
+  },
+  {
+    "target": {
+      "shots": 4096,
+      "selected_range": 7,
+      "absolute_range": [
+        0,
+        8
+      ]
+    },
+    "easy_dummy_usage": [
+      0,
+      0
+    ]
+  },
+  {
+    "target": {
+      "shots": 4096,
+      "selected_range": [
+        0,
+        7
+      ],
+      "absolute_range": [
+        0,
+        8
+      ]
+    },
+    "easy_dummy_usage": [
+      0,
+      0
+    ]
+  },
+  {
+    "target": {
+      "shots": 4096,
+      "selected_range": [
+        -2,
+        5
+      ],
+      "absolute_range": [
+        0,
+        8
+      ]
+    },
+    "easy_dummy_usage": [
+      0,
+      0
+    ]
+  },
+  {
+    "target": {
+      "shots": 4096,
+      "selected_range": [
+        -5,
+        -1
+      ],
+      "absolute_range": [
+        0,
+        8
+      ]
+    },
+    "easy_dummy_usage": [
+      0,
+      0
+    ]
+  },
+  {
+    "target": {
+      "shots": 4096,
+      "selected_range": [
+        3,
+        -2
+      ],
+      "absolute_range": [
+        0,
+        8
+      ]
+    },
+    "easy_dummy_usage": [
+      0,
+      0
+    ]
+  },
+  {
+    "target": {
+      "shots": 4096,
+      "selected_range": null,
+      "absolute_range": [
+        0,
+        8
+      ]
+    },
+    "easy_dummy_usage": [
+      0,
+      0
+    ]
+  }
+]

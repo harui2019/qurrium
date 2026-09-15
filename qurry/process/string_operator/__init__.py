@@ -26,4 +26,4 @@ Reference:
 
 from .strop_core import BACKEND_AVAILABLE as string_operator_availability
 
-from .string_operator import string_operator_order
+from .string_operator import string_operator_order, StringOperatorResult

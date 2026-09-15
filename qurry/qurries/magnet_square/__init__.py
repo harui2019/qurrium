@@ -1,9 +1,10 @@
 """MagnetSquare - Magnetization Square on Specific Direction (:mod:`qurry.qurries.magnet_square`)
 
-Formerly known as `qurmagsq`
+- Short Name: `magnet_square`
+- Acronym: `MS`
 """
 
-from .analysis import MagnetSquareAnalysis
-from .arguments import MagnetSquareMeasureArgs
-from .experiment import MagnetSquareExperiment
+from .analysis import MSAnalysis
+from .arguments import MSMeasureArgs, SHORT_NAME, ACRONYM
+from .experiment import MSExperiment
 from .qurry import MagnetSquare

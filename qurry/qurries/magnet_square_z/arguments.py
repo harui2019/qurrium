@@ -1,19 +1,15 @@
 """ZDirMagnetSquare - Arguments (:mod:`qurry.qurries.magnet_square_z.arguments`)"""
 
-from typing import Optional, Union
-from collections.abc import Hashable
 from dataclasses import dataclass
 
 from qiskit import QuantumCircuit
 
-from ...qurrium.experiment import ArgumentsPrototype
-from ...declare import BasicArgs, OutputArgs, AnalyzeArgs
+from ...qurrium import ArgumentsPrototype, BasicArgs, OutputArgs, WCKeyable
 
 
 @dataclass(frozen=True)
-class ZDirMagnetSquareArguments(ArgumentsPrototype):
-    """Arguments for
-    :class:`~qurry.qurries.magnet_square_z.experiment.ZDirMagnetSquareExperiment`."""
+class ZMSArguments(ArgumentsPrototype):
+    """Arguments for :class:`~qurry.qurries.magnet_square_z.experiment.ZMSExperiment`."""
 
     exp_name: str = "exps"
     """The name of the experiment.
@@ -24,30 +20,22 @@ class ZDirMagnetSquareArguments(ArgumentsPrototype):
     """The number of qubits."""
 
 
-class ZDirMagnetSquareMeasureArgs(BasicArgs, total=False):
+class ZMSMeasureArgs(BasicArgs, total=False):
     """Input fields for
     :meth:`~qurry.qurries.magnet_square_z.qurry.ZDirMagnetSquare.measure`
     and :meth:`~qurry.qurrium.qurrium.QurriumPrototype.multiOutput`."""
 
-    wave: Optional[Union[QuantumCircuit, Hashable]]
+    wave: QuantumCircuit | WCKeyable
     """The key or the circuit to execute."""
 
 
-class ZDirMagnetSquareOutputArgs(OutputArgs):
+class ZMSOutputArgs(OutputArgs):
     """Output arguments for
     :meth:`~qurry.qurries.magnet_square_z.qurry.ZDirMagnetSquare.output`."""
 
 
-class ZDirMagnetSquareAnalyzeArgs(AnalyzeArgs, total=False):
-    """The input of :meth:`~qurry.qurrium.qurrium.QurriumPrototype.multiAnalysis` and
-    :meth:`~qurry.qurries.magnet_square_z.experiment.ZDirMagnetSquareExperiment.analyze`.
+SHORT_NAME = "magnet_square_z"
+"""The short name of :class:`~qurry.qurries.magnet_square_z.qurry.ZDirMagnetSquare`."""
 
-    The post-processing of
-    :class:`~qurry.qurries.magnet_square_z.experiment.ZDirMagnetSquareExperiment`
-    does not need any input.
-    """
-
-
-SHORT_NAME = "qurmagsq_magnet_square_zdir"
-"""The short name of
-:class:`~qurry.qurries.magnet_square_z.experiment.ZDirMagnetSquareExperiment`. """
+ACRONYM = "ZMS"
+"""The abbreviation of :class:`~qurry.qurries.magnet_square_z.qurry.ZDirMagnetSquare`."""

@@ -1,68 +1,151 @@
-"""The module of exporting the experiment data. (:mod:`qurry.qurrium.experiment.export`)"""
+"""The instance for exporting data. (:mod:`qurry.qurrium.experiment.export`)"""
 
 import os
-from typing import Optional, NamedTuple, Union, Any
-from collections.abc import Hashable
+from typing import Literal
+from dataclasses import dataclass
 from pathlib import Path
-import warnings
-import gc
-import tqdm
+import json
 
-from .arguments import CommonparamsDict, REQUIRED_FOLDER
-from ...tools import ParallelManager, set_pbar_description
-from ...capsule import quickJSON, DEFAULT_ENCODING, DEFAULT_INDENT, DEFAULT_MODE
+from ...capsule import (
+    quick_json_write,
+    DEFAULT_ENCODING,
+    DEFAULT_INDENT,
+    DEFAULT_MODE,
+    jsonablize,
+    CustomDict,
+)
+from ..utils.file_structure import REQUIRED_KEYS
+from ...capsule.mori import WrittenQueueUnit, WritableQueueUnit, UniversalWriterABC
 
 
-class Export(NamedTuple):
-    """Data-stored namedtuple with all experiments data which is jsonable."""
+class QurryInfo(CustomDict[str, dict[str, str]]):
+    """The type for qurryinfo dictionary."""
 
-    exp_id: str
-    """ID of experiment, which will be packed into `.args.json`."""
-    exp_name: str
-    """Name of the experiment, which will be packed into `.args.json`. 
-    If this experiment is called by multimanager, 
-    then this name will never apply as filename."""
-    # Arguments for multi-experiment
-    serial: Optional[int]
-    """Index of experiment in :class:`~qurry.qurrium.multimanager.multimanager.MultiManager`,
-    which will be packed into `.args.json`."""
-    summoner_id: Optional[str]
-    """ID of experiment of the :class:`~qurry.qurrium.multimanager.multimanager.MultiManager`,
-    which will be packed into `.args.json`."""
-    summoner_name: Optional[str]
-    """Name of experiment of the :class:`~qurry.qurrium.multimanager.multimanager.MultiManager`,
-    which will be packed into `.args.json`."""
+    def __init__(self, *, qurryinfo_dict: dict[str, dict[str, str]] | None = None):
+        if qurryinfo_dict is None:
+            super().__init__()
+            return
 
-    filename: str
-    """The name of file to be exported, it will be decided by
-    :meth:`~qurry.qurrium.experiment.experiment.ExperimentPrototype.export` when it's called.
-    """
-    files: dict[str, str]
-    """The list of file to be exported.
+        invalid_types_1, invalid_types_2, invalid_types_3 = [], {}, {}
+        for k, v in qurryinfo_dict.items():
+            if not isinstance(k, str):
+                invalid_types_1.append(k)
+            if not isinstance(v, dict):
+                invalid_types_2[k] = v
+                continue
+            invalid_inner_keys = [kk for kk, vv in v.items() if not isinstance(vv, str)]
+            if invalid_inner_keys:
+                invalid_types_3[k] = invalid_inner_keys
+        if invalid_types_1 or invalid_types_2 or invalid_types_3:
+            raise TypeError(
+                "The qurryinfo_dict has invalid types. "
+                + f"Invalid outer keys (not str): {invalid_types_1}. "
+                + f"Invalid outer values (not dict): {invalid_types_2}. "
+                + f"Invalid inner keys (not str): {invalid_types_3}."
+            )
+
+        missing_keys = [
+            k for k, v in qurryinfo_dict.items() if not {"folder", "qurryinfo"}.issubset(v.keys())
+        ]
+        if missing_keys:
+            raise KeyError(
+                "The raw_dict has missing required keys 'folder' or 'qurryinfo' in inner dict. "
+                + f"Missing keys in outer keys: {missing_keys}."
+            )
+        super().__init__(qurryinfo_dict)
+
+    def export(self) -> dict[str, dict[str, str]]:
+        """Export the serializable data.
+
+        Returns:
+            dict[str, dict[str, str]]: The serializable data.
+        """
+        return jsonablize(self)
+
+    def write(self, save_location: Path | str) -> None:
+        """Write the qurryinfo to the specified location.
+
+        Args:
+            save_location (Path | str):
+                The location to save the qurryinfo.
+        """
+        qurryinfo_location = Path(save_location) / "qurryinfo.json"
+
+        quick_json_write(
+            content=self.export(),
+            filename=qurryinfo_location,
+            mode=DEFAULT_MODE,
+            indent=DEFAULT_INDENT,
+            encoding=DEFAULT_ENCODING,
+        )
+
+    def update_qurryinfo(self, other: "QurryInfo | dict[str, dict[str, str]]") -> None:
+        """Update the qurryinfo with another dictionary.
+
+        Args:
+            other (QurryInfo | dict[str, dict[str, str]]):
+                The other dictionary to update the qurryinfo.
+        """
+
+        if not isinstance(other, self.__class__):
+            other = self.__class__(qurryinfo_dict=other)
+
+        for k, v in other.items():
+            if k not in self:
+                self[k] = v
+            else:
+                self[k].update(v)
+
+    @classmethod
+    def ingest(cls, raw_dict: dict[str, dict[str, str]]):
+        """Ingest from a serialized dictionary.
+
+        Args:
+            raw_dict (dict[str, dict[str, str]]):
+                The raw serialized dictionary.
+        """
+
+        return cls(qurryinfo_dict=raw_dict)
+
+    @classmethod
+    def read(cls, save_location: Path | str) -> "QurryInfo":
+        """Read the qurryinfo from the specified location.
+
+        Args:
+            save_location (Path | str):
+                The location to read the qurryinfo.
+
+        Returns:
+            QurryInfo: The qurryinfo object.
+        """
+        filepath = Path(save_location) / "qurryinfo.json"
+        if not os.path.exists(filepath):
+            return cls()
+
+        with open(filepath, "r", encoding=DEFAULT_ENCODING) as f:
+            new_instance = json.load(f)
+        return cls.ingest(new_instance)
+
+
+@dataclass(frozen=True)
+class Export(UniversalWriterABC):
+    """Data-stored namedtuple with all experiments data which is jsonable.
 
     ### Single experiment:
 
-    For the :meth:`write` function actually exports 4 different files
-    respecting to `adventure`, `legacy`, `tales`, and `reports` like:
+    For the :meth:`write` function actually exports 5 different files
+    respecting to `args`, `advent`, `legacy`, `tales`, and `myths` like:
 
     .. code-block:: python
 
         files = {
             'folder': './bla_exp/',
             'qurryinfo': './bla_exp/qurryinfo.json',
-
-            'args': './bla_exp/args/bla_exp.id={exp_id}.args.json',
-            'advent': './bla_exp/advent/bla_exp.id={exp_id}.advent.json',
-            'legacy': './bla_exp/legacy/bla_exp.id={exp_id}.legacy.json',
-            'tales.dummyx1': './bla_exp/tales/bla_exp.id={exp_id}.dummyx1.json',
-            'tales.dummyx2': './bla_exp/tales/bla_exp.id={exp_id}.dummyx2.json',
-            ...
-            'tales.dummyxn': './bla_exp/tales/bla_exp.id={exp_id}.dummyxn.json',
-            'reports': './bla_exp/reports/bla_exp.id={exp_id}.reports.json',
-            'reports.tales.dummyz1': './bla_exp/tales/bla_exp.id={exp_id}.dummyz1.reports.json',
-            'reports.tales.dummyz2': './bla_exp/tales/bla_exp.id={exp_id}.dummyz2.reports.json',
-            ...
-            'reports.tales.dummyzm': './bla_exp/tales/bla_exp.id={exp_id}.dummyzm.reports.json',
+            'args': './bla_exp/args/id={exp_id}.args.json',
+            'advent': './bla_exp/advent/id={exp_id}.advent.json',
+            'legacy': './bla_exp/legacy/id={exp_id}.legacy.json',
+            'tales': './bla_exp/tales/id={exp_id}.tales.json',
+            'myths': './bla_exp/myths/id={exp_id}.myths.json',
         }
 
     which `bla_exp` is the example filename.
@@ -79,213 +162,150 @@ class Export(NamedTuple):
         files = {
             'folder': './BLABLA_project/',
             'qurryinfo': './BLABLA_project/qurryinfo.json',
-
             'args': './BLABLA_project/args/index={serial}.id={exp_id}.args.json',
             'advent': './BLABLA_project/advent/index={serial}.id={exp_id}.advent.json',
             'legacy': './BLABLA_project/legacy/index={serial}.id={exp_id}.legacy.json',
-            'tales.dummyx1': './BLABLA_project/tales/index={serial}.id={exp_id}.dummyx1.json',
-            'tales.dummyx2': './BLABLA_project/tales/index={serial}.id={exp_id}.dummyx2.json',
-            ...
-            'tales.dummyxn': './BLABLA_project/tales/index={serial}.id={exp_id}.dummyxn.json',
-            'reports': './BLABLA_project/reports/index={serial}.id={exp_id}.reports.json',
-            'reports.tales.dummyz1': 
-                './BLABLA_project/tales/index={serial}.id={exp_id}.dummyz1.reports.json',
-            'reports.tales.dummyz2': 
-                './BLABLA_project/tales/index={serial}.id={exp_id}.dummyz2.reports.json',
-            ...
-            'reports.tales.dummyzm': 
-                './BLABLA_project/tales/index={serial}.id={exp_id}.dummyzm.reports.json',
+            'tales': './BLABLA_project/tales/index={serial}.id={exp_id}.tales.json',
+            'myths': './BLABLA_project/myths/index={serial}.id={exp_id}.myths.json',
         }
 
-    which `BLBLA_project` is the example 
-    :class:`~qurry.qurrium.multimanager.multimanager.MultiManager` name 
-    stored at `summoner_name` in 
+    which `BLBLA_project` is the example
+    :class:`~qurry.qurrium.multimanager.multimanager.MultiManager` name
+    stored at `summoner_name` in
     :class:`~qurry.qurrium.experiment.arguments.Commonparams.summoner_name`.
     At this senerio, the `exp_name` will never apply as filename.
-
     """
 
-    args: dict[str, Any]
-    """Construct the experiment's parameters, which will be packed into `.args.json`."""
-    commons: CommonparamsDict
-    """Construct the experiment's common parameters, which will be packed into `.args.json`."""
-    outfields: dict[str, Any]
-    """Recording the data of other unused arguments, which will be packed into `.args.json`."""
+    exp_id: str
+    """The id of experiment used in filenames."""
+    folder: str
+    """The folder of experiment."""
 
-    adventures: dict[str, Any]
-    """Recording the data of 'beforeward', which will be packed into `.advent.json`. 
-    *~ A Great Adventure begins ~*"""
-    legacy: dict[str, Any]
-    """Recording the data of 'afterward', which will be packed into `.legacy.json`. 
-    *~ The Legacy remains from the achievement of ancestors ~*"""
-    tales: dict[str, Any]
-    """Recording the data of 'side_product' in 'afterward' and 'beforewards' for API, 
-    which will be packed into `.*.tales.json`. 
-    *~ Tales of braves circulate ~*"""
+    def __post_init__(self):
+        super().__post_init__()
 
-    reports: dict[Hashable, dict[str, Any]]
-    """Recording the data of 'reports', which will be packed into `.reports.json`. 
-
-    ### Reports format:
-
-    .. code-block:: python
-
-        reports = {
-            1: { ...quantities, 'input': { ... }, 'header': { ... }, },
-            2: { ...quantities, 'input': { ... }, 'header': { ... }, },
-            ...
-            {serial}: { ...quantities, 'input': { ... }, 'header': { ... }, },
+        invalid_filenames = [
+            unit["filename"]
+            for unit in self.folder_filenames_writtens
+            if self.exp_id not in unit["filename"]
+        ]
+        if invalid_filenames:
+            raise ValueError(
+                "The exp_id must be included in all filenames. "
+                + f"Invalid filenames: {invalid_filenames}"
+            )
+        invalid_written_contents = {
+            unit["filename"]: unit["written"].keys()
+            for unit in self.folder_filenames_writtens
+            if "files" in unit["written"]
         }
+        if invalid_written_contents:
+            raise ValueError(
+                "The written_contents must not contain 'files' key, "
+                + "which is reserved for internal use. "
+                + f"Invalid written_contents: {invalid_written_contents.keys()}"
+            )
 
-    *~ The guild concludes the results. ~*"""
-    tales_reports: dict[str, dict[Hashable, dict[str, Any]]]
-    """Recording the data of 'side_product' in 'reports' for API, 
-    which will be packed into `.*.reprts.json`. 
-
-    ### Tales Reports format:
-
-    .. code-block:: python
-
-        tales_reports = {
-            'dummyz1': {
-                1: { ... },
-                2: { ... },
-                ...
-                {serial}: { ... },
-            },
-            'dummyz2': {
-                1: { ... },
-                2: { ... },
-                ...
-                {serial}: { ... },
-            },
-            ...
-            'dummyz': {
-                1: { ... },
-                2: { ... },
-                ...
-                {serial}: { ... },
-            },
-        }
-
-    *~ Tales of braves circulate ~*"""
-
-    def write(
-        self,
-        multiprocess: bool = False,
-        pbar: Optional[tqdm.tqdm] = None,
-    ) -> tuple[str, dict[str, str]]:
+    def write(self) -> tuple[str, dict[Literal["folder", "qurryinfo"] | str, str]]:
         """Export the experiment data, if there is a previous export, then will overwrite.
 
-        Hint:
-            This function will traversal all objects in the export_set,
-            so it will ensure the jsonable of all objects.
-            And this will reduce the performance of exporting.
-
-        Args:
-            multiprocess (bool, optional):
-                Whether to use multiprocess to export, Defaults to False.
-                It's dangerous to use multiprocess to export. It may cause memory leak.
-            pbar (Optional[tqdm.tqdm], optional):
-                The progress bar for exporting. Defaults to None.
-
         Returns:
-            tuple[str, dict[str, str]]:
+            tuple[str, dict[Literal["folder", "qurryinfo"] | str, str]]:
                 The first element is the id of experiment,
                 the second element is the dictionary of files of experiment.
         """
 
-        export_set: dict[
-            str,
-            Union[
-                dict[str, Any],
-                list[Any],
-                tuple[Any, ...],
-                dict[Hashable, dict[str, Any]],
-            ],
-        ] = {}
-        # args ...............  # arguments, commonparams, outfields, files
-        export_set["args"] = {
-            "arguments": self.args,
-            "commonparams": self.commons,
-            "outfields": self.outfields,
-            "files": self.files,
-        }
-        # advent .............  # adventures
-        export_set["advent"] = {
-            "files": self.files,
-            "adventures": self.adventures,
-        }
-        # legacy .............  # legacy
-        export_set["legacy"] = {
-            "files": self.files,
-            "legacy": self.legacy,
-        }
-        # tales ..............  # tales
-        for tk, tv in self.tales.items():
-            export_set[f"tales.{tk}"] = tv if isinstance(tv, (dict, list, tuple)) else [tv]
-            if f"tales.{tk}" not in self.files:
-                warnings.warn(f"tales.{tk} is not in export_names, it's not exported.")
-        # reports ............  # reports
-        export_set["reports"] = {
-            "files": self.files,
-            "reports": self.reports,
-        }
-        # reports.tales ......  # tales_reports
-        for tk, tv in self.tales_reports.items():
-            export_set[f"reports.tales.{tk}"] = tv if isinstance(tv, (dict, list, tuple)) else [tv]
-            if f"reports.tales.{tk}" not in self.files:
-                warnings.warn(f"reports.tales.{tk} is not in export_names, it's not exported.")
-        # Exportation
-        set_pbar_description(
-            pbar,
-            (
-                "Exporting "
-                + (f"{self.summoner_name}/" if self.summoner_name else "")
-                + f"{self.exp_name}..."
-            ),
-        )
-        folder = Path(self.commons["save_location"]) / Path(self.files["folder"])
-        if not os.path.exists(folder):
-            os.mkdir(folder)
-        for k in REQUIRED_FOLDER:
-            if not os.path.exists(folder / k):
-                os.mkdir(folder / k)
+        exp_folder_path = Path(self.folder)
+        abs_exp_folder_path = Path(self.save_location) / exp_folder_path
+        if not os.path.exists(abs_exp_folder_path):
+            os.makedirs(abs_exp_folder_path)
 
-        if multiprocess:
-            pool = ParallelManager()
-            pool.starmap(
-                quickJSON,
-                [
-                    (
-                        content,
-                        str(Path(self.commons["save_location"]) / self.files[filekey]),
-                        DEFAULT_MODE,
-                        DEFAULT_INDENT,
-                        DEFAULT_ENCODING,
-                        True,
-                        # although it reduces the performance for it will traversal all object,
-                        # but it will ensure the jsonable
-                        # since all objects are not jsonable by default.
-                        Path("./"),
-                    )
-                    for filekey, content in export_set.items()
-                ],
+        files = {
+            "save_location": str(self.save_location),
+            "folder": exp_folder_path,
+            "qurryinfo": exp_folder_path / "qurryinfo.json",
+        }
+        for unit in self.folder_filenames_writtens:
+            unit_path = exp_folder_path / unit["folder"]
+            abs_unit_path = Path(self.save_location) / unit_path
+            if not os.path.exists(abs_unit_path):
+                os.mkdir(abs_unit_path)
+            files[unit["folder"]] = unit_path / unit["filename"]
+        files_str = {k: str(v) for k, v in files.items()}
+
+        for unit in self.folder_filenames_writtens:
+            written = {"files": files_str}
+            written.update(unit["written"])
+            quick_json_write(
+                content=written,
+                filename=files[unit["folder"]],
+                mode=DEFAULT_MODE,
+                indent=DEFAULT_INDENT,
+                encoding=DEFAULT_ENCODING,
+                save_location=self.save_location,
             )
-        else:
-            for filekey, content in export_set.items():
-                quickJSON(
-                    content=content,
-                    filename=str(Path(self.commons["save_location"]) / self.files[filekey]),
-                    mode=DEFAULT_MODE,
-                    indent=DEFAULT_INDENT,
-                    encoding=DEFAULT_ENCODING,
-                    jsonable=True,
-                    # although it reduces the performance for it will traversal all object,
-                    # but it will ensure the jsonable since all objects are not jsonable by default.
-                    save_location=Path("./"),
-                )
 
-        del export_set
-        gc.collect()
-        return self.exp_id, self.files
+        missing_keys = REQUIRED_KEYS - set(files_str.keys())
+        if missing_keys:
+            raise KeyError(
+                "The exported files are missing required keys. "
+                + f"Required keys: {REQUIRED_KEYS}, exported keys: {files_str.keys()}."
+            )
+
+        return self.exp_id, files_str
+
+    @classmethod
+    def make(
+        cls,
+        identifier: str,
+        save_location: Path | str,
+        writable_objects_params: list[WritableQueueUnit],
+        exp_id: str | None = None,
+        folder: str | None = None,
+    ) -> "Export":
+        """Make a export object.
+
+        Args:
+            identifier (str): The identifier among multiple
+                :class:`FileWritableObj` objects used in filenames.
+            save_location (Path | str): The save location of multiple
+                :class:`FileWritableObj` objects.
+            writable_objects_params (list[WritableQueueUnit]):
+                The list of writable quene units, which contains
+                the :class:`FileWritableObj` objects and their extra arguments,
+                stored as :class:`WritableQueneUnit`.
+            exp_id (str | None, optional):
+                The experiment id used in filenames. Defaults to None.
+            folder (str | None, optional):
+                The folder used in filenames. Defaults to None.
+
+        Returns:
+            Export: The export object.
+        """
+        if exp_id is None:
+            raise ValueError("The exp_id must be provided for Export.")
+        if folder is None:
+            raise ValueError("The folder must be provided for Export.")
+
+        folder_filenames_writtens: list[WrittenQueueUnit] = []
+        for unit in writable_objects_params:
+            writable = unit["file_writable_obj"]  # type: ignore
+            folder_of_obj, filenames = writable.folder_and_filename(
+                identifier, **unit.get("folder_and_filename_kwargs", {})
+            )
+            dumpings = writable.content_dumping(**unit.get("content_dumping_kwargs", {}))
+            folder_filenames_writtens.append(
+                {
+                    "folder": folder_of_obj,
+                    "filename": filenames,
+                    "written": dumpings,
+                }
+            )
+
+        return cls(
+            identifier=identifier,
+            save_location=save_location,
+            folder_filenames_writtens=folder_filenames_writtens,
+            exp_id=exp_id,
+            folder=folder,
+        )

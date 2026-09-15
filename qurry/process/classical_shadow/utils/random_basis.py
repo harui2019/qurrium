@@ -3,21 +3,22 @@
 
 """
 
-from typing import Optional
 import numpy as np
+
+from ...exceptions import QurryPostProcessingError
 
 
 def generate_random_basis(
     snapshots: int,
     unitary_located: list[int],
-    random_unitary_seeds: Optional[dict[int, dict[int, int]]] = None,
+    random_unitary_seeds: dict[int, dict[int, int]] | None = None,
 ) -> dict[int, dict[int, int]]:
     """Generate the random basis for the classical shadow.
 
     Args:
         snapshots (int): The number of snapshots.
         unitary_located (list[int]): The list of selected qubits.
-        random_unitary_seeds (Optional[dict[int, dict[int, int]]]):
+        random_unitary_seeds (dict[int, dict[int, int]] | None):
             The random unitary seeds.
             This argument only takes input as type of `dict[int, dict[int, int]]`.
             The first key is the index for the random unitary operator.
@@ -50,7 +51,7 @@ def generate_random_basis(
     random_basis_placeholder = np.random.randint(
         0, 3, size=(snapshots, len(unitary_located))
     ).tolist()
-    random_basis = {
+    return {
         n_u_i: {
             n_u_qi: (
                 random_basis_placeholder[n_u_i][seed_i]
@@ -61,12 +62,116 @@ def generate_random_basis(
         }
         for n_u_i in range(snapshots)
     }
-    return random_basis
+
+
+class RandomBasisGenerationError(QurryPostProcessingError):
+    """Exception raised for errors in the random basis generation."""
+
+
+MAX_QUBITS_FOR_BASIS_GENERATION = 16
+"""The maximum number of qubits allowed for basis generation."""
+
+MSG_GENERATE_BASIS_EXCEED_MAX_QUBITS = (
+    "For safety reason, generating all possible basis is limited to "
+    + "{} qubits ON PURPOSE. "
+    + "If you really want to generate all possible basis for more qubits, "
+    + "please consider the memory and time consumption, "
+    + "then modify the 'max_qubits' argument accordingly. "
+    + "This function 'generate_all_possible_basis' located in "
+    + "'qurry.process.classical_shadow.utils.random_basis'."
+)
+
+
+def generate_all_possible_basis_array(
+    num_qubits: int,
+    *,
+    max_qubits: int = MAX_QUBITS_FOR_BASIS_GENERATION,
+    _basis: list[list[int]] | None = None,
+) -> list[list[int]]:
+    """Make a list of contains all possible basis.
+
+    Args:
+        num_qubits (int): The number of qubits.
+        max_qubits (int):
+            The maximum number of qubits allowed. Default is MAX_QUBITS_FOR_BASIS_GENERATION.
+        _basis (list[list[int]] | None): The input basis. If None, use [[0], [1], [2]].
+
+    Raise:
+        RandomBasisGenerationError: If num_qubits exceeds max_qubits.
+
+    Returns:
+        list[str]: The list of bit strings.
+    """
+
+    if num_qubits == 0:
+        raise ValueError("basis must not be empty.")
+    if not isinstance(num_qubits, int):
+        raise TypeError("num_qubits must be an integer.")
+    if num_qubits < 1:
+        raise ValueError("num_qubits must be greater than 0.")
+    if num_qubits > max_qubits:
+        raise RandomBasisGenerationError(MSG_GENERATE_BASIS_EXCEED_MAX_QUBITS.format(max_qubits))
+
+    if num_qubits == 1:
+        return [[0], [1], [2]]
+
+    recursive_basis = generate_all_possible_basis_array(
+        num_qubits - 1,
+        max_qubits=max_qubits,
+        _basis=([[0], [1], [2]] if _basis is None else _basis),
+    )
+
+    return [item + b for item in recursive_basis for b in [[0], [1], [2]]]
+
+
+def make_evenly_basis_array(num_qubits: int, duplication: int = 1):
+    """Make a list of contains evenly basis.
+
+    Args:
+        num_qubits (int): The number of qubits.
+        duplication (int): The number of duplication for each basis.
+
+    Raise:
+        RandomBasisGenerationError: If num_qubits exceeds max_qubits.
+
+    Returns:
+        list[list[int]]: The list of bit strings.
+    """
+
+    try:
+        return generate_all_possible_basis_array(num_qubits) * duplication
+    except RandomBasisGenerationError as e:
+        raise RandomBasisGenerationError(
+            "Failed to generate evenly basis due to exceeding the maximum qubits. "
+            + "See the original exception for more details."
+        ) from e
+
+
+def make_evenly_basis(
+    num_qubits: int, duplication: int = 1, unitary_located: list[int] | None = None
+) -> dict[int, dict[int, int]]:
+    """Make a dictionary of contains evenly basis.
+
+    Args:
+        num_qubits (int): The number of qubits.
+        duplication (int): The number of duplication for each basis.
+        unitary_located (list[int] | None): The list of selected qubits. If None, use all qubits.
+
+    """
+
+    basis_array = make_evenly_basis_array(num_qubits, duplication)
+    if unitary_located is None:
+        unitary_located = list(range(num_qubits))
+
+    return {
+        n_u_i: {n_u_qi: basis_array[n_u_i][seed_i] for seed_i, n_u_qi in enumerate(unitary_located)}
+        for n_u_i in range(len(basis_array))
+    }
 
 
 def validate_random_basis(
     index: int, basis: dict[int, int], unitary_located: list[int]
-) -> Optional[str]:
+) -> str | None:
     """Validate the iteration of the random basis.
 
     Args:
@@ -75,7 +180,7 @@ def validate_random_basis(
         unitary_located (list[int]): The list of selected qubits.
 
     Returns:
-        Optional[str]: The validation result.
+        str | None: The validation result.
     """
     if not isinstance(index, int):
         return f"Index '{index}' is not an integer, but '{type(index)}'."

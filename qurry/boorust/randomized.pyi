@@ -1,8 +1,5 @@
 """Boorust - Randomized Toolkits (:mod:`qurry.boorust.randomized`)"""
 
-from typing import Optional, Sequence, Union
-
-# pylint:disable=unused-argument
 def hamming_distance_rust(str1: str, str2: str) -> int:
     """Calculate the Hamming distance between two bit strings.
 
@@ -15,12 +12,7 @@ def hamming_distance_rust(str1: str, str2: str) -> int:
     """
 
 def ensemble_cell_rust(
-    s_i: str,
-    s_i_meas: int,
-    s_j: str,
-    s_j_meas: int,
-    a_num: int,
-    shots: int,
+    s_i: str, s_i_meas: int, s_j: str, s_j_meas: int, a_num: int, shots: int
 ) -> float:
     """Calculate the value of two counts from qubits in ensemble average by Rust.
 
@@ -39,7 +31,7 @@ def ensemble_cell_rust(
 def entangled_entropy_core_2_rust(
     shots: int,
     counts: list[dict[str, int]],
-    selected_classical_registers: Optional[Sequence[int]] = None,
+    selected_classical_registers: list[int] | None = None,
 ) -> tuple[dict[int, float], list[int], str, float]:
     """The core function of entangled entropy by Rust.
 
@@ -48,8 +40,8 @@ def entangled_entropy_core_2_rust(
             Shots of the experiment on quantum machine.
         counts (list[dict[str, int]]):
             Counts of the experiment on quantum machine.
-        selected_classical_registers (Optional[Sequence[int]], optional):
-            The list of **the index of the selected_classical_registers**.
+        selected_classical_registers (list[int] | None, optional):
+            The list of **the index of the selected_classical_registers**. Defaults to None.
 
     Returns:
         tuple[dict[int, float], list[int], str, float]:
@@ -59,16 +51,16 @@ def entangled_entropy_core_2_rust(
 def entangled_entropy_core_rust(
     shots: int,
     counts: list[dict[str, int]],
-    degree: Optional[Union[tuple[int, int], int]],
-    measure: Optional[tuple[int, int]] = None,
+    degree: tuple[int, int] | int | None,
+    measure: tuple[int, int] | None = None,
 ) -> tuple[dict[int, float], tuple[int, int], tuple[int, int], str, float]:
     """The core function of entangled entropy by Rust.
 
     Args:
         shots (int): Shots of the experiment on quantum machine.
         counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
-        degree (Optional[Union[tuple[int, int], int]]): Degree of the subsystem.
-        measure (Optional[tuple[int, int]], optional):
+        degree (tuple[int, int] | int | None): Degree of the subsystem.
+        measure (tuple[int, int] | None, optional):
             Measuring range on quantum circuits. Defaults to None.
 
     Raises:
@@ -84,7 +76,7 @@ def overlap_echo_core_2_rust(
     shots: int,
     first_counts: list[dict[str, int]],
     second_counts: list[dict[str, int]],
-    selected_classical_registers: Optional[Sequence[int]] = None,
+    selected_classical_registers: list[int] | None = None,
 ) -> tuple[dict[int, float], list[int], str, float]:
     """The core function of wavefunction overlap by Rust.
 
@@ -95,8 +87,8 @@ def overlap_echo_core_2_rust(
             Counts of the experiment on quantum machine.
         second_counts (list[dict[str, int]]):
             Counts of the experiment on quantum machine.
-        selected_classical_registers (Optional[Sequence[int]], optional):
-            The list of **the index of the selected_classical_registers**.
+        selected_classical_registers (list[int] | None, optional):
+            The list of **the index of the selected_classical_registers**. Defaults to None.
 
     Returns:
         tuple[dict[int, float], list[int], str, float]:
@@ -106,16 +98,16 @@ def overlap_echo_core_2_rust(
 def overlap_echo_core_rust(
     shots: int,
     counts: list[dict[str, int]],
-    degree: Optional[Union[tuple[int, int], int]],
-    measure: Optional[tuple[int, int]] = None,
+    degree: tuple[int, int] | int | None,
+    measure: tuple[int, int] | None = None,
 ) -> tuple[dict[int, float], tuple[int, int], tuple[int, int], str, float]:
     """The core function of wavefunction overlap by Rust.
 
     Args:
         shots (int): Shots of the experiment on quantum machine.
         counts (list[dict[str, int]]): Counts of the experiment on quantum machine.
-        degree (Optional[Union[tuple[int, int], int]]): Degree of the subsystem.
-        measure (Optional[tuple[int, int]], optional):
+        degree (tuple[int, int] | int | None): Degree of the subsystem.
+        measure (tuple[int, int] | None, optional):
             Measuring range on quantum circuits. Defaults to None.
 
     Raises:

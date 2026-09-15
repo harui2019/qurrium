@@ -154,7 +154,7 @@ pub fn degree_handler_rust(
     );
     let invalid_ranges: Vec<String> = bitstring_check
         .iter()
-        .filter(|(_, &v)| !v)
+        .filter(|&(_, &v)| !v)
         .map(|(k, _): (&&str, _)| format!(" {}", k))
         .collect();
     error_message.push_str(&invalid_ranges.join(";"));
@@ -179,45 +179,4 @@ pub fn degree_handler_rust(
         }
     };
     (bitstring_range, actual_measure, subsystems_size)
-}
-
-#[pyfunction]
-#[pyo3(signature = ())]
-pub fn test_bit_slice() {
-    // Example usage
-    let qubit_select_target: Vec<Option<QubitDegree>> = vec![
-        Some(QubitDegree::Single(0)),
-        None,
-        Some(QubitDegree::Pair(0, 3)),
-        Some(QubitDegree::Single(3)),
-        Some(QubitDegree::Single(4)),
-        Some(QubitDegree::Pair(4, 6)),
-        Some(QubitDegree::Single(6)),
-        Some(QubitDegree::Pair(7, 3)),
-        Some(QubitDegree::Single(8)),
-    ];
-    let num_qubits = 8;
-
-    for degree in qubit_select_target.iter() {
-        match degree {
-            None => {
-                println!("| Input qubits range: None");
-            }
-            Some(QubitDegree::Single(d)) => {
-                println!("| Input qubits range: {}", d);
-            }
-            Some(QubitDegree::Pair(start, end)) => {
-                println!("| Inputqubits range: {} to {}", start, end);
-            }
-        }
-        match qubit_selector_rust(num_qubits, degree.clone()) {
-            Ok(item_range) => {
-                let (start, end) = item_range;
-                println!("| Selected qubits range: {} to {}", start, end);
-            }
-            Err(err) => {
-                eprintln!("Error: {}", err);
-            }
-        };
-    }
 }

@@ -25,9 +25,10 @@ jobs:
       idle: ${{ steps.detect.outputs.idle }}
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v7
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
@@ -46,18 +47,35 @@ jobs:
           echo "| Version: ${{ steps.check_version.outputs.VERSION }} in action"
           echo "| Tag exists: ${{ steps.check_version.outputs.exists }}"
 
-      - name: Lint with flake8
+      - name: Install Qurrium
         run: |
-          python -m pip install flake8
-          # stop the build if there are Python syntax errors or undefined names
-          python -m flake8 . --count --show-source --statistics --config tox.ini
-          # exit-zero treats all errors as warnings
-          python -m flake8 . --count --exit-zero --statistics --config tox.ini
+          python -m pip install ".[dev,qiskit-aer]"
+
+      - name: Lint with Pylint
+        run: |
+          python -m pip install pylint
+          pylint --rcfile pyproject.toml ./qurry
+          # stop the process if pylint finds any issues
+          if [ $? -ne 0 ]; then
+            echo "| Pylint found issues. Please fix them before proceeding."
+            exit 1
+          fi
+
+      - name: Lint with Ruff
+        run: |
+          python -m pip install ruff
+          ruff check --config pyproject.toml
+          # stop the process if ruff finds any issues
+          if [ $? -ne 0 ]; then
+            echo "| Ruff found issues. Please fix them before proceeding."
+            exit 1
+          fi
+
       - name: Decide Idle Github Action Self-Hosted Runner Number
         id: detect
         env:
           GH_TOKEN: ${{ secrets.ACTIONS_MANAGER_TOKEN }}
-          # Require the tokens owned Organization access to review the self-hosted runners. 
+          # Require the tokens owned Organization access to review the self-hosted runners.
           # If the token is owned by a user, it will not be able to access the self-hosted runners.
         run: |
           ORGS=${{ github.repository_owner }}
@@ -102,12 +120,15 @@ jobs:
     strategy:
       matrix:
         qiskit-version: [v1, v2]
-        python-version: ["3.13", "3.9", "3.12", "3.11", "3.10"]
+        python-version: ["3.14", "3.13", "3.12", "3.11", "3.10"]
+        exclude:
+          - qiskit-version: v1
+            python-version: "3.14"
       fail-fast: false
       max-parallel: ${{ fromJSON(needs.check_version.outputs.idle || '4') }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Run Test Unit with Python ${{ matrix.python-version }} and Qiskit ${{ matrix.qiskit-version }}
 
         uses: ./.github/actions/test-unit

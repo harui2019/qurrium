@@ -65,11 +65,11 @@
     "Does Skynet subscribe to Virtual Youtuber?")
 """
 
-from typing import Optional, Union, NamedTuple, Literal, Any, overload
+from typing import NamedTuple, Literal, Any, overload
 import pprint
 
 
-def hnprint(title, heading=3, raw_input=False) -> Union[str, dict[str, Any]]:
+def hnprint(title, heading=3, raw_input=False) -> str | dict[str, Any]:
     """Print a title.
 
     Args:
@@ -78,20 +78,15 @@ def hnprint(title, heading=3, raw_input=False) -> Union[str, dict[str, Any]]:
         raw_input (bool, optional): If True, return a dict. Defaults to False.
 
     Returns:
-        Union[str, dict[str, Any]]: Content to print.
+        str | dict[str, Any]: Content to print.
     """
 
     if raw_input:
-        return {
-            "type": "h" + str(heading),
-            "heading": heading,
-            "title": title,
-        }
-    content = " " + "#" * heading + f" {title}"
-    return content
+        return {"type": "h" + str(heading), "heading": heading, "title": title}
+    return " " + "#" * heading + f" {title}"
 
 
-def divider(length: int = 60, raw_input=False) -> Union[str, dict[str, Any]]:
+def divider(length: int = 60, raw_input=False) -> str | dict[str, Any]:
     """Print a divider.
 
     Args:
@@ -99,19 +94,15 @@ def divider(length: int = 60, raw_input=False) -> Union[str, dict[str, Any]]:
         raw_input (bool, optional): If True, return a dict. Defaults to False.
 
     Returns:
-        Union[str, dict[str, Any]]: Content to print.
+        str | dict[str, Any]: Content to print.
     """
 
     if raw_input:
-        return {
-            "type": "divider",
-            "length": length,
-        }
-    content = "-" * length
-    return content
+        return {"type": "divider", "length": length}
+    return "-" * length
 
 
-def txt(text: str, listing_level: int = 1, raw_input=False) -> Union[str, dict[str, Any]]:
+def txt(text: str, listing_level: int = 1, raw_input=False) -> str | dict[str, Any]:
     """Print a text.
 
     Args:
@@ -120,28 +111,20 @@ def txt(text: str, listing_level: int = 1, raw_input=False) -> Union[str, dict[s
         raw_input (bool, optional): If True, return a dict. Defaults to False.
 
     Returns:
-        Union[str, dict[str, Any]]: Content to print.
+        str | dict[str, Any]: Content to print.
     """
 
     if raw_input:
-        return {
-            "type": "txt",
-            "listing_level": listing_level,
-            "text": text,
-        }
+        return {"type": "txt", "listing_level": listing_level, "text": text}
     return (" " * (2 * listing_level - 1)) + str(text)
 
 
-def _ljust_filling(
-    previous: str,
-    length: Optional[int] = None,
-    filler: str = "-",
-) -> tuple[str, int]:
+def _ljust_filling(previous: str, length: int | None = None, filler: str = "-") -> tuple[str, int]:
     """Ljust filling.
 
     Args:
         previous (str): The previous string.
-        length (Optional[int], optional): Filling length. Defaults to None.
+        length (int | None, optional): Filling length. Defaults to None.
         filler (str, optional): Filling character. Defaults to '-'.
 
     Returns:
@@ -160,34 +143,17 @@ def _ljust_filling(
 
 
 @overload
-def itemize(
-    description: str,
-    *,
-    export_len: Literal[True],
-) -> tuple[str, int, int]: ...
-
-
+def itemize(description: str, *, export_len: Literal[True]) -> tuple[str, int, int]: ...
 @overload
-def itemize(
-    description: str,
-    *,
-    independent_newline: Literal[True],
-) -> Union[tuple[str, str], str]: ...
-
-
+def itemize(description: str, *, independent_newline: Literal[True]) -> tuple[str, str] | str: ...
 @overload
-def itemize(
-    description: str,
-    *,
-    export_len: bool,
-    independent_newline: bool,
-) -> str: ...
+def itemize(description: str, *, export_len: bool, independent_newline: bool) -> str: ...
 
 
 def itemize(
     description: str,
-    value: Optional[Any] = None,
-    hint: Optional[str] = None,
+    value: Any | None = None,
+    hint: str | None = None,
     listing_level: int = 1,
     listing_itemize: str = "-",
     ljust_description_len: int = 0,
@@ -294,14 +260,14 @@ class Hoshi:
 
     def __init__(
         self,
-        raw: Optional[list[Union[tuple[Any, ...], dict[str, Any]]]] = None,
+        raw: list[tuple[Any, ...] | dict[str, Any]] | None = None,
         name: str = "Hoshi",
         **kwargs,
     ):
         """Initialize the Hoshi printer.
 
         Args:
-            raw (Optional[list[Union[tuple[Any, ...], dict[str, Any]]]], optional):
+            raw (list[tuple[Any, ...] | dict[str, Any]] | None, optional):
                 Raw items to print.
                 Defaults to None, which means an empty list.
             name (str, optional):
@@ -346,14 +312,14 @@ class Hoshi:
     def _item_input_handler(
         self,
         item_type: Literal["itemize"],
-        item_input: Optional[dict[str, Any]] = None,
+        item_input: dict[str, Any] | None = None,
         mode: Literal["add", "config"] = "add",
     ) -> dict[str, Any]:
         """Item input handler.
 
         Args:
             item_type (Literal['itemize']): Item type.
-            item_input (Optional[dict[str, Any]], optional): Item input. Defaults to None.
+            item_input (dict[str, Any] | None, optional): Item input. Defaults to None.
             mode (Literal['add', 'config'], optional): Mode. Defaults to 'add'.
 
         Returns:
@@ -372,10 +338,7 @@ class Hoshi:
 
         return item_input
 
-    def _item_raw_handler(
-        self,
-        item_raw: Union[tuple[Any, ...], dict[str, Any]],
-    ) -> dict[str, Any]:
+    def _item_raw_handler(self, item_raw: tuple[Any, ...] | dict[str, Any]) -> dict[str, Any]:
         item = {}
         if isinstance(item_raw, dict):
             item = item_raw
@@ -471,11 +434,11 @@ class Hoshi:
         for item in self._print_lines:
             print(item)
 
-    def newline(self, item: Union[dict[str, Any], tuple[Any, ...]]):
+    def newline(self, item: dict[str, Any] | tuple[Any, ...]):
         """Add a new line.
 
         Args:
-            item (Union[dict[str, Any], tuple[str]]): Item to add.
+            item (dict[str, Any] | tuple[Any, ...]): Item to add.
         """
         self._raw.append(item)
 
@@ -529,16 +492,16 @@ class Hoshi:
     def itemize(
         self,
         description: str,
-        value: Optional[str] = None,
-        hint: Optional[str] = None,
+        value: str | None = None,
+        hint: str | None = None,
         listing_level: int = 1,
     ):
         """Add a listing item.
 
         Args:
             description (str): Description of the item.
-            value (str, optional): Value of the item. Defaults to None.
-            hint (str, optional): Hint of the item. Defaults to None.
+            value (str | None, optional): Value of the item. Defaults to None.
+            hint (str | None, optional): Hint of the item. Defaults to None.
             listing_level (int, optional): Listing level. Defaults to 1.
         """
 

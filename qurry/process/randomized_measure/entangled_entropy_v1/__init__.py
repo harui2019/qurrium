@@ -104,8 +104,4 @@ from .entangled_entropy import (
     DEFAULT_PROCESS_BACKEND,
     PostProcessingBackendLabel,
 )
-from .container import (
-    RandomizedEntangledEntropyComplex,
-    RandomizedEntangledEntropyMitigatedComplex,
-    ExistingAllSystemSource,
-)
+from .container import TargetSystemResultV1, AllSystemResultV1, isvalid_all_system_result_v1

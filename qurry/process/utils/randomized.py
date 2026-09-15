@@ -1,13 +1,13 @@
 """Post Processing - Utils - Randomized (:mod:`qurry.process.utils.randomized`)"""
 
 import numpy as np
-from ..availability import availablility
+from ..availability import availability
 
-# pylint:disable=no-name-in-module,import-error,unused-import
+# pylint: disable=import-error,no-name-in-module
 from ...boorust.randomized import hamming_distance_rust, ensemble_cell_rust  # type: ignore
 
 
-BACKEND_AVAILABLE = availablility(
+BACKEND_AVAILABLE = availability(
     "utils.randomized", [("Rust", True, None), ("Cython", "Depr.", None)]
 )
 
@@ -47,5 +47,7 @@ def ensemble_cell(
         float: the value of two counts from qubits in ensemble average.
     """
     diff = sum(s1 != s2 for s1, s2 in zip(s_i, s_j))
-    tmp = (2**a_num) * ((-2) ** (-diff)) * (s_i_meas / shots) * (s_j_meas / shots)
-    return tmp
+    return (2**a_num) * ((-2) ** (-diff)) * (s_i_meas / shots) * (s_j_meas / shots)
+
+
+__all__ = ["hamming_distance", "ensemble_cell", "hamming_distance_rust", "ensemble_cell_rust"]

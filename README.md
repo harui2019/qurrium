@@ -6,7 +6,9 @@ The major function includes the measurement of quantum Renyi Entropy and Wave Fu
 When interfaced with **IBM Qiskit**, the package automates the workflow from creating experiment objects, job submission and recall and postprocessing.  
 There are several additional features, such as measurement of magnetization and error mitigation. Please check them out!
 
-![Available Python Version](https://img.shields.io/badge/Python-3.9_|_3.10_|_3.11_|_3.12_|_3.13-blue?logo=python&logoColor=white) [![Downloads](https://static.pepy.tech/badge/qurrium)](https://pepy.tech/project/qurrium)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/qurrium)
+[![Downloads](https://static.pepy.tech/badge/qurrium)](https://pepy.tech/project/qurrium)
+
 ![Available System](https://img.shields.io/badge/Ubuntu-18.04+-purple?logo=Ubuntu&logoColor=white) ![Available System](https://img.shields.io/badge/Ubuntu_on_WSL-18.04+-purple?logo=Ubuntu&logoColor=white)
 ![Available System](https://img.shields.io/badge/Windows-10_|_11-purple?logo=Windows&logoColor=white) ![Available System](https://img.shields.io/badge/MacOS-11+-purple?logo=Apple&logoColor=white)
 
@@ -77,7 +79,6 @@ The package has been tested on the following systems.**
 - **Windows 10/11**
   - on `x86_64`
 - **MacOS 11+**
-
   - on `aarch64 (Apple Silicon, M1/M2/M3/M4 chips)`
   - on `x86_64 (Intel chips)`
   - **The depedent modules are as follows.**
@@ -107,7 +108,6 @@ This module evaluates the overlap between any two given quantum states.
 In each of the modules, two methods are implemented to perform the measurements:
 
 - Hadamard Test
-
   - Ref:
     **Entanglement spectroscopy on a quantum computer** - Sonika Johri, Damian S. Steiger, and Matthias Troyer, [PhysRevB.96.195136](https://doi.org/10.1103/PhysRevB.96.195136)
 

@@ -32,7 +32,8 @@ For the followings GitHub issues on https://tqdm.github.io/
 
 '''
 
-from typing import TypeVar, Iterable, Iterator, Optional
+from typing import TypeVar
+from collections.abc import Iterable, Iterator
 import tqdm as real_tqdm
 from tqdm.auto import tqdm as real_tqdm_instance
 
@@ -122,7 +123,7 @@ def default_setup(
     }
 
 
-# pylint: disable=invalid-name,inconsistent-mro
+# pylint: disable=invalid-name,inconsistent-mro,abstract-method
 class tqdm(Iterator[_T], real_tqdm_instance):
     """A fake tqdm class for type hint.
 
@@ -164,12 +165,9 @@ def qurry_progressbar(
     """A progress bar for Qurry.
 
     Args:
-        iterable (Optional[Iterable[T]], optional):
-            The iterable object. Defaults to None.
-        bar_format (str, optional):
-            The format of the bar. Defaults to 'qurry-full'.
-        bar_ascii (str, optional):
-            The ascii of the bar. Defaults to '4squares'.
+        iterable (Iterable[T]): The iterable object.
+        bar_format (str, optional): The format of the bar. Defaults to 'qurry-full'.
+        bar_ascii (str, optional): The ascii of the bar. Defaults to '4squares'.
 
     Returns:
         tqdm[T]: The progress bar.
@@ -187,11 +185,11 @@ def qurry_progressbar(
     )
 
 
-def set_pbar_description(pbar: Optional[real_tqdm.tqdm], description: str) -> None:
+def set_pbar_description(pbar: real_tqdm.tqdm | None, description: str) -> None:
     """Set the description of the progress bar.
 
     Args:
-        pbar (Optional[tqdm.tqdm]): The progress bar.
+        pbar (tqdm.tqdm | None): The progress bar.
         description (str): The description.
     """
     if isinstance(pbar, real_tqdm.tqdm):

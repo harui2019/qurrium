@@ -1,47 +1,43 @@
-"""SamplingExecuter - Experiment (:mod:`qurry.qurries.samplingqurry.experiment`)
+"""SamplingExecuter - Experiment (:mod:`qurry.qurries.samplingqurry.experiment`)"""
 
-It is only for pendings and retrieve to remote backend.
-"""
-
-from typing import Union, Optional, Type, Any
-from collections.abc import Hashable
-import tqdm
+from typing import Any
+import warnings
 
 from qiskit import QuantumCircuit
 
-from .arguments import QurryArguments, SHORT_NAME
-from .analysis import QurryAnalysis
-from ...qurrium import ExperimentPrototype, Commonparams
-from ...exceptions import QurryExperimentCountsNotCompleted
+from .arguments import SEArguments, SHORT_NAME
+from .analysis import DummyAnalysis
+from ...qurrium.exceptions import DummyClassWarning
+from ...qurrium import ExperimentPrototype, Commonparams, WCKeyable
 
 
-class QurryExperiment(ExperimentPrototype[QurryArguments, QurryAnalysis]):
-    """Experiment instance for QurryV9."""
+class SEExperiment(ExperimentPrototype[SEArguments, DummyAnalysis[SEArguments]]):
+    """Experiment instance for QurryV14."""
 
-    __name__ = "QurryExperiment"
+    __name__ = "SEExperiment"
 
-    @property
-    def arguments_instance(self) -> Type[QurryArguments]:
+    @classmethod
+    def arguments_type(cls) -> type[SEArguments]:
         """The arguments instance for this experiment."""
-        return QurryArguments
+        return SEArguments
 
-    @property
-    def analysis_instance(self) -> Type[QurryAnalysis]:
+    @classmethod
+    def analysis_type(cls) -> type[DummyAnalysis[SEArguments]]:
         """The analysis instance for this experiment."""
-        return QurryAnalysis
+        return DummyAnalysis
 
     @classmethod
     def params_control(
         cls,
-        targets: list[tuple[Hashable, QuantumCircuit]],
+        targets: list[tuple[WCKeyable, QuantumCircuit]],
         exp_name: str = "exps",
         sampling: int = 1,
         **custom_kwargs: Any,
-    ) -> tuple[QurryArguments, Commonparams, dict[str, Any]]:
+    ) -> tuple[SEArguments, Commonparams, dict[str, Any]]:
         """Control the experiment's parameters.
 
         Args:
-            targets (list[tuple[Hashable, QuantumCircuit]]):
+            targets (list[tuple[WCKeyable, QuantumCircuit]]):
                 The circuits of the experiment.
             exp_name (str):
                 The name of the experiment. Defaults to "exps".
@@ -60,45 +56,31 @@ class QurryExperiment(ExperimentPrototype[QurryArguments, QurryAnalysis]):
         if len(targets) != 1:
             raise ValueError("The number of target circuits should be only one.")
 
-        exp_name = f"{exp_name}.times_{sampling}.{SHORT_NAME}"
-
-        # pylint: disable=protected-access
-        return QurryArguments._filter(
-            exp_name=exp_name,
+        return SEArguments.filter(
+            exp_name=f"{exp_name}.times_{sampling}.{SHORT_NAME}",
             target_keys=[targets[0][0]],
             sampling=sampling,
             **custom_kwargs,
         )
-        # pylint: enable=protected-access
 
     @classmethod
     def method(
         cls,
-        targets: list[tuple[Hashable, QuantumCircuit]],
-        arguments: QurryArguments,
-        pbar: Optional[tqdm.tqdm] = None,
-        multiprocess: bool = True,
+        targets: list[tuple[WCKeyable, QuantumCircuit]],
+        arguments: SEArguments,
     ) -> tuple[list[QuantumCircuit], dict[str, Any]]:
         """The method to construct circuit.
 
         Args:
-            targets (list[tuple[Hashable, QuantumCircuit]]):
+            targets (list[tuple[WCKeyable, QuantumCircuit]]):
                 The circuits of the experiment.
-            arugments (ArgumentsPrototype):
+            arguments (SEArguments):
                 The arguments of the experiment.
-            pbar (Optional[tqdm.tqdm], optional):
-                The progress bar for showing the progress of the experiment.
-                Defaults to None.
-            multiprocess (bool, optional):
-                Whether to use multiprocess. Defaults to `True`.
 
         Returns:
             tuple[list[QuantumCircuit], dict[str, Any]]:
                 The circuits of the experiment and the side products.
         """
-
-        if pbar is not None:
-            pbar.set_description("| Loading circuits")
 
         the_chosen_key, q = targets[0]
         the_chosen_key = "" if isinstance(the_chosen_key, int) else str(the_chosen_key)
@@ -118,74 +100,33 @@ class QurryExperiment(ExperimentPrototype[QurryArguments, QurryAnalysis]):
 
         return [q_copy.copy() for _ in range(arguments.sampling)], {}
 
-    @classmethod
-    def quantities(
-        cls,
-        shots: Optional[int] = None,
-        counts: Optional[list[dict[str, int]]] = None,
-    ) -> dict[str, Union[float, int]]:
-        """Computing specific squantity.
-
-        Args:
-            shots (Optional[int], optional):
-                The number of shots.
-            counts (Optional[list[dict[str, int]]], optional):
-                The counts of the experiment.
-
-        Returns:
-            dict[str, Union[float, int]]: Counts, purity, entropy of experiment.
-        """
-
-        if shots is None or counts is None:
-            print(
-                "| shots or counts is None, "
-                + "but it doesn't matter with ultimate question over all."
-            )
-        dummy = -100
-        return {
-            "dummy": dummy,
-            "ultimate_answer": 42,
-        }
-
-    def analyze(
-        self,
-        ultimate_question: str = "",
-        shots: Optional[int] = None,
-        pbar: Optional[tqdm.tqdm] = None,
-    ) -> QurryAnalysis:
+    def analyze(self, ultimate_question: str | None = None) -> DummyAnalysis[SEArguments]:
         """Analysis of the experiment.
 
         Args:
-            ultimate_question (str, optional):
+            ultimate_question (str | None, optional):
                 The ultimate question of the universe.
-            shots (Optional[int], optional):
-                The number of shots.
-            pbar (Optional[tqdm.tqdm], optional):
-                The progress bar for showing the progress of the experiment.
-                Defaults to None.
 
         Returns:
-            QurryAnalysis: The analysis of the experiment.
+            DummyAnalysis[SEArguments]: The result of the analysis.
         """
 
-        if pbar is not None:
-            pbar.set_description("What is the ultimate question of the universe?")
-
-        if shots is None:
-            shots = self.commons.shots
-        if len(self.afterwards.counts) < 1:
-            raise QurryExperimentCountsNotCompleted(
-                "The counts of the experiment is not completed. So there is no data to analyze."
-            )
-
-        qs = self.quantities(shots=shots, counts=self.afterwards.counts)
-
         serial = len(self.reports)
-        analysis = self.analysis_instance(
-            ultimate_question=ultimate_question,
-            serial=serial,
-            **qs,  # type: ignore
-        )
+        if serial != 0:
+            warnings.warn(
+                "You already have the answer. "
+                + "The Answer to the Ultimate Question of Life, "
+                + "The Universe, and Everything.",
+                DummyClassWarning,
+            )
+            return self.reports[0]
 
-        self.reports[serial] = analysis
+        analysis = self.analysis_type().perform_analysis(
+            arguments=self.args,
+            commonparams=self.commons,
+            counts=self.afterwards.counts,
+            analyze_arguments={"ultimate_question": ultimate_question},
+            serial=serial,
+        )
+        self.reports[analysis.serial] = analysis
         return analysis

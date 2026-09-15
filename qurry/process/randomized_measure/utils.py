@@ -3,29 +3,30 @@
 
 """
 
-from typing import Union, Optional
 from collections.abc import Sequence
+import hashlib
 import numpy as np
 
+from ..utils import FloatType
 
-SeedType = Union[int, np.random.Generator]
+SeedType = int | np.random.Generator
+"""The type of seed for random generator."""
 
 
 def generate_seeds_for_single_circ(
-    seed_for_single_circ: Optional[SeedType], num_qubits: int
+    seed_for_single_circ: SeedType | None, num_qubits: int
 ) -> dict[int, int]:
     """Generate the seed for single circuit.
 
     Args:
-        seed_for_single_circ (Optional[SeedType]): The seed for single circuit.
+        seed_for_single_circ (SeedType | None): The seed for single circuit.
         num_qubits (int): The number of qubits.
 
     Raises:
         ValueError: If the seed is not int, np.random.Generator
 
     Returns:
-        dict[int, int]:
-            The seed for single circuit.
+        dict[int, int]: The seed for single circuit.
     """
 
     if seed_for_single_circ is None:
@@ -40,13 +41,13 @@ def generate_seeds_for_single_circ(
 
 
 def check_and_generate_for_single_circ(
-    seed_for_single_circ: Optional[Union[SeedType, Sequence[SeedType], dict[int, SeedType]]],
+    seed_for_single_circ: SeedType | Sequence[SeedType] | dict[int, SeedType] | None,
     num_qubits: int,
 ) -> dict[int, int]:
     """Check the input of :func:`generate_random_unitary_seeds`.
 
     Args:
-        seed_for_single_circ (Optional[Union[SeedType, Sequence[SeedType], dict[int, SeedType]]]):
+        seed_for_single_circ (SeedType | Sequence[SeedType] | dict[int, SeedType] | None):
             The seed for single circuit.
         num_qubits (int):
             The number of qubits.
@@ -61,8 +62,7 @@ def check_and_generate_for_single_circ(
             If the length of seed is not equal to num_qubits.
 
     Returns:
-        dict[int, int]:
-            The seed for single circuit.
+        dict[int, int]: The seed for single circuit.
     """
     if seed_for_single_circ is None or isinstance(seed_for_single_circ, (int, np.random.Generator)):
         return generate_seeds_for_single_circ(seed_for_single_circ, num_qubits)
@@ -108,29 +108,21 @@ def check_and_generate_for_single_circ(
 def generate_random_unitary_seeds(
     times: int,
     num_qubits: int,
-    seed: Optional[
-        Union[
-            SeedType,
-            Sequence[Union[SeedType, Sequence[SeedType], dict[int, SeedType]]],
-            dict[int, Union[SeedType, Sequence[SeedType], dict[int, SeedType]]],
-        ]
-    ] = None,
+    seed: SeedType
+    | Sequence[SeedType | Sequence[SeedType] | dict[int, SeedType] | None]
+    | dict[int, SeedType | Sequence[SeedType] | dict[int, SeedType] | None]
+    | None = None,
 ) -> dict[int, dict[int, int]]:
     """Generate random unitary seeds.
 
     Args:
         times (int): The number of random unitary operator.
         num_qubits (int): The number of qubits.
-        seed (Union[int, np.random.Generator, \
-Sequence[Union[\
-int, np.random.Generator, Sequence[Union[int, np.random.Generator]], \
-dict[int, Union[int, np.random.Generator]]\
-]], \
-dict[int, Union[\
-int, np.random.Generator, Sequence[Union[int, np.random.Generator]], \
-dict[int, Union[int, np.random.Generator]]\
-]]], optional):
-            The seed of random generator.
+        seed (SeedType\
+| Sequence[SeedType | Sequence[SeedType] | dict[int, SeedType] | None]\
+| dict[int, SeedType | Sequence[SeedType] | dict[int, SeedType] | None]\
+| None, optional):
+            The seed of random generator. Defaults to None.
 
     Raises:
         TypeError:
@@ -170,7 +162,7 @@ dict[int, Union[int, np.random.Generator]]\
 def check_random_unitary_seeds(
     times: int,
     num_qubits: int,
-    random_unitary_seeds: Optional[dict[int, dict[int, int]]],
+    random_unitary_seeds: dict[int, dict[int, int]] | None,
 ) -> None:
     """Check the input of the experiment.
     If you want to generate the seeds for all random unitary operator,
@@ -180,7 +172,7 @@ def check_random_unitary_seeds(
     Args:
         times (int): The number of random unitary operator.
         num_qubits (int): The number of qubits.
-        random_unitary_seeds (Optional[dict[int, dict[int, int]]]):
+        random_unitary_seeds (dict[int, dict[int, int]] | None):
             The seeds for all random unitary operator.
             This argument only takes input as type of :class:`dict[int, dict[int, int]]`.
             The first key is the index for the random unitary operator.
@@ -203,7 +195,7 @@ def check_random_unitary_seeds(
 
     """
     if random_unitary_seeds is None:
-        return None
+        return
     if not isinstance(random_unitary_seeds, dict):
         raise TypeError(
             "The random_unitary_seeds must be dict, " + f"not {type(random_unitary_seeds)}"
@@ -230,4 +222,45 @@ def check_random_unitary_seeds(
                     "The random_unitary_seeds must be int, "
                     + f"not {type(random_unitary_seeds[i][j])} in {i}, {j}."
                 )
-    return None
+    return
+
+
+def generate_hash_from_trace_result(
+    purity_or_echo: FloatType,
+    classical_registers_actually: list[int],
+    taking_time: float,
+    counts_num: int,
+    shots: int,
+    preparing_datetime: str,
+) -> str:
+    """Generate the hash string from the trace result.
+    We use SHA-1 algorithm to generate the hash string.
+
+    Args:
+        purity_or_echo (FloatType):
+            The purity or echo value.
+        classical_registers_actually (list[int]):
+            The list of the selected classical registers.
+        taking_time (float):
+            The time taken for the calculation.
+        counts_num (int):
+            The number of counts.
+        shots (int):
+            The number of shots.
+        preparing_datetime (str):
+            The datetime string when preparing the all system result.
+
+    Returns:
+        str: The generated hash string.
+    """
+    hash_input = (
+        f"purity_or_echo={purity_or_echo};"
+        + f"classical_registers_actually={classical_registers_actually};"
+        + f"taking_time={taking_time};"
+        + f"counts_num={counts_num};"
+        + f"shots={shots};"
+        + f"preparing_datetime={preparing_datetime}"
+    )
+    hash_object = hashlib.sha1(hash_input.encode())
+    hash_string = hash_object.hexdigest()
+    return hash_string

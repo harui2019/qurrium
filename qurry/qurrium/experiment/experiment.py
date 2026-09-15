@@ -1,48 +1,55 @@
 """ExperimentPrototype - The instance of experiment (:mod:`qurry.qurrium.experiment.experiment`)"""
 
 import os
-import json
 import warnings
 from abc import abstractmethod, ABC
-from typing import Union, Optional, Any, Type, Literal, Generic
-from collections.abc import Hashable
-from multiprocessing import get_context
+from typing import Any, Generic
 from pathlib import Path
+from dataclasses import replace
 import tqdm
 
-from qiskit import transpile, QuantumCircuit
+from qiskit import QuantumCircuit
 from qiskit.providers import Backend, JobV1 as Job
 from qiskit.transpiler.passmanager import PassManager
 
-from .arguments import Commonparams, _A, create_exp_args, create_exp_commons, create_exp_outfields
-from .beforewards import Before, create_beforewards
-from .afterwards import After, create_afterwards
-from .analyses import AnalysesContainer, _R
-from .export import Export
+from .beforewards import Before
+from .tales import Tales
+from .afterwards import After
+from .export import Export, QurryInfo
 from .utils import (
     exp_id_process,
     memory_usage_factor_expect,
     implementation_check,
     summonner_check,
+    process_transpilation,
     make_statesheet,
     create_save_location,
     decide_folder_and_filename,
+    ensure_runnable_backend,
 )
-from ..utils import get_counts_and_exceptions, qasm_dumps, outfields_check, outfields_hint
-from ..utils.chunk import very_easy_chunk_size
+from ..container import WCKeyable, RunArgsType, TranspileArgs
+from ..analysis import AnalysesContainer, _R
+from ..arguments import Commonparams, _A, create_all_arguments
+from ..utils import (
+    get_counts_and_exceptions,
+    outfields_check,
+    outfields_hint,
+    qasm_dumps,
+    AvailableQASMVersions,
+)
+from ..utils.file_structure import is_old_v7_file_structure
+from ..exceptions import ResetSecurityActivated
 from ...tools import (
-    ParallelManager,
+    very_easy_chunk_size,
     DatetimeDict,
     set_pbar_description,
     backend_name_getter,
     DEFAULT_POOL_SIZE,
+    make_multiprocess_pool,
     qurry_progressbar,
     GeneralSimulator,
 )
-from ...capsule import quickJSON, DEFAULT_MODE, DEFAULT_ENCODING
-from ...capsule.hoshi import Hoshi
-from ...declare import RunArgsType, TranspileArgs
-from ...exceptions import QurryResetSecurityActivated, QurryTranspileConfigurationIgnored
+from ...capsule import Hoshi, DEFAULT_INDENT
 
 
 class ExperimentPrototype(ABC, Generic[_A, _R]):
@@ -51,26 +58,47 @@ class ExperimentPrototype(ABC, Generic[_A, _R]):
     __name__ = "ExperimentPrototype"
     """Name of the QurryExperiment which could be overwritten."""
 
-    @property
+    @classmethod
     @abstractmethod
-    def arguments_instance(self) -> Type[_A]:
-        """The arguments instance for this experiment."""
+    def arguments_type(cls) -> type[_A]:
+        """The arguments type for this experiment."""
         raise NotImplementedError("This method should be implemented.")
 
     @property
+    def arguments_instance(self) -> type[_A]:
+        """The arguments instance for this experiment."""
+        return self.arguments_type()
+
+    @classmethod
     @abstractmethod
-    def analysis_instance(self) -> Type[_R]:
-        """The analysis instance for this experiment."""
+    def analysis_type(cls) -> type[_R]:
+        """The analysis type for this experiment."""
         raise NotImplementedError("This method should be implemented.")
+
+    @property
+    def analysis_instance(self) -> type[_R]:
+        """The analysis instance for this experiment."""
+        return self.analysis_type()
+
+    @classmethod
+    def side_product_type(cls) -> type[Tales]:
+        """The side product container type for this experiment."""
+        return Tales
+
+    @property
+    def side_product_instance(self) -> type[Tales]:
+        """The side product container instance for this experiment."""
+        return self.side_product_type()
 
     @property
     def is_auto_analysis(self) -> bool:
-        """Check if the experiment has auto analysis.
+        """Check if the experiment has auto analysis,
+        which means no postprocess and no middleware entries needed.
 
         Returns:
             bool: True if the experiment has auto analysis, False otherwise.
         """
-        return len(self.analysis_instance.input_type()._fields) == 0
+        return self.analysis_type().is_auto_analysis()
 
     @property
     def is_hold_by_multimanager(self) -> bool:
@@ -116,55 +144,59 @@ class ExperimentPrototype(ABC, Generic[_A, _R]):
 
     def __init__(
         self,
-        arguments: Union[_A, dict[str, Any]],
-        commonparams: Union[Commonparams, dict[str, Any]],
+        arguments: _A | dict[str, Any],
+        commonparams: Commonparams | dict[str, Any],
         outfields: dict[str, Any],
-        beforewards: Optional[Before] = None,
-        afterwards: Optional[After] = None,
-        reports: Optional[AnalysesContainer] = None,
+        beforewards: Before | None = None,
+        side_products: Tales | None = None,
+        afterwards: After | None = None,
+        reports: AnalysesContainer[_R] | None = None,
     ) -> None:
         """Initialize the experiment.
 
         Args:
-            arguments (Optional[Union[NamedTuple, dict[str, Any]]]):
+            arguments (_A | dict[str, Any]):
                 The arguments of the experiment.
-            commonparams (Optional[Union[Commonparams, dict[str, Any]]]):
+            commonparams (Commonparams | dict[str, Any]):
                 The common parameters of the experiment.
-            outfields (Optional[dict[str, Any]]): The outfields of the experiment.
-            beforewards (Optional[Before], optional):
+            outfields (dict[str, Any]):
+                The outfields of the experiment.
+            beforewards (Before | None, optional):
                 The beforewards of the experiment. Defaults to None.
-            afterwards (Optional[After], optional):
+            side_products (Tales | None, optional):
+                The side products of the experiment. Defaults to None.
+            afterwards (After | None, optional):
                 The afterwards of the experiment. Defaults to None.
-            reports (Optional[AnalysesContainer], optional):
+            reports (AnalysesContainer[_R] | None, optional):
                 The reports of the experiment. Defaults to None.
         """
-        self.args, arguments_deprecated = create_exp_args(arguments, self.arguments_instance)
-        self.commons, commonparams_deprecated = create_exp_commons(commonparams)
-        self.outfields = create_exp_outfields(outfields)
-        # Add deprecated arguments to outfields only if they are not empty
-        if len(arguments_deprecated):
-            self.outfields["arguments_deprecated"] = arguments_deprecated
-        if len(commonparams_deprecated):
-            self.outfields["commonparams_deprecated"] = commonparams_deprecated
+        self.args, self.commons, self.outfields = create_all_arguments(
+            arguments, commonparams, outfields, self.arguments_instance
+        )
         implementation_check(self.__name__, self.args, self.commons)
         summonner_check(self.commons.serial, self.commons.summoner_id, self.commons.summoner_name)
 
-        self.beforewards = create_beforewards(beforewards)
-        self.afterwards = create_afterwards(afterwards)
-        self.reports: AnalysesContainer[_R] = (
-            reports if isinstance(reports, AnalysesContainer) else AnalysesContainer()
+        self.beforewards = Before.create(beforewards)
+        self.afterwards = After.create(afterwards)
+        self.side_products = (
+            self.side_product_instance(side_products.items())
+            if side_products is not None
+            else self.side_product_instance()
+        )
+        self.reports: AnalysesContainer[_R] = AnalysesContainer.create(
+            reports, analysis_instance=self.analysis_instance
         )
         """The reports of the experiment."""
 
     @classmethod
     @abstractmethod
     def params_control(
-        cls, targets: list[tuple[Hashable, QuantumCircuit]], exp_name: str, **custom_kwargs: Any
+        cls, targets: list[tuple[WCKeyable, QuantumCircuit]], exp_name: str, **custom_kwargs: Any
     ) -> tuple[_A, Commonparams, dict[str, Any]]:
         """Control the experiment's parameters.
 
         Args:
-            targets (list[tuple[Hashable, QuantumCircuit]]): The circuits of the experiment.
+            targets (list[tuple[WCKeyable, QuantumCircuit]]): The circuits of the experiment.
             exp_name (str):
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
                 This name is also used for creating a folder to store the exports.
@@ -179,34 +211,34 @@ class ExperimentPrototype(ABC, Generic[_A, _R]):
     @classmethod
     def _params_control_core(
         cls,
-        targets: list[tuple[Hashable, QuantumCircuit]],
-        exp_id: Optional[str] = None,
+        targets: list[tuple[WCKeyable, QuantumCircuit]],
+        exp_id: str | None = None,
         shots: int = 1024,
-        backend: Optional[Backend] = None,
+        backend: Backend | None = None,
         exp_name: str = "experiment",
         run_args: RunArgsType = None,
-        transpile_args: Optional[TranspileArgs] = None,
+        transpile_args: TranspileArgs | None = None,
         # multimanager
-        tags: Optional[tuple[str, ...]] = None,
-        serial: Optional[int] = None,
-        summoner_id: Optional[Hashable] = None,
-        summoner_name: Optional[str] = None,
+        tags: tuple[str, ...] | None = None,
+        serial: int | None = None,
+        summoner_id: str | None = None,
+        summoner_name: str | None = None,
         # process tool
         mute_outfields_warning: bool = False,
-        pbar: Optional[tqdm.tqdm] = None,
+        pbar: tqdm.tqdm | None = None,
         **custom_kwargs: Any,
     ):
         """Control the experiment's general parameters.
 
         Args:
-            targets (list[tuple[Hashable, QuantumCircuit]]): The circuits of the experiment.
-            exp_id (Optional[str], optional):
+            targets (list[tuple[WCKeyable, QuantumCircuit]]): The circuits of the experiment.
+            exp_id (str | None, optional):
                 If input is `None`, then create an new experiment.
                 If input is a existed experiment ID, then use it.
                 Otherwise, use the experiment with given specific ID.
                 Defaults to None.
             shots (int, optional): Shots of the job. Defaults to `1024`.
-            backend (Optional[Backend], optional): The quantum backend. Defaults to None.
+            backend (Backend | None, optional): The quantum backend. Defaults to None.
             exp_name (str, optional):
                 The name of the experiment.
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
@@ -214,25 +246,25 @@ class ExperimentPrototype(ABC, Generic[_A, _R]):
                 Defaults to `'experiment'`.
             run_args (RunArgsType, optional):
                 Arguments for :meth:`Backend.run`. Defaults to None.
-            transpile_args (Optional[TranspileArgs], optional):
+            transpile_args (TranspileArgs | None, optional):
                 Arguments of :func:`~qiskit.compiler.transpile`.
                 Defaults to None.
-            tags (Optional[tuple[str, ...]], optional):
-                Given the experiment multiple tags to make a dictionary for recongnizing it.
+            tags (tuple[str, ...] | None, optional):
+                Given tags for the experiment to describe it.
                 Defaults to None.
-            serial (Optional[int], optional):
+            serial (int | None, optional):
                 Index of experiment in
                 :class:`~qurry.qurrium.multimanager.multimanager.MultiManager`.
                 **!!ATTENTION, this should only be used by
                 :class:`~qurry.qurrium.multimanager.multimanager.MultiManager`!!**
                 Defaults to None.
-            summoner_id (Optional[Hashable], optional):
+            summoner_id (str | None, optional):
                 ID of experiment of
                 :class:`~qurry.qurrium.multimanager.multimanager.MultiManager`.
                 **!!ATTENTION, this should only be used by
                 :class:`~qurry.qurrium.multimanager.multimanager.MultiManager`!!**
                 Defaults to None.
-            summoner_name (Optional[str], optional):
+            summoner_name (str | None, optional):
                 Name of experiment of
                 :class:`~qurry.qurrium.multimanager.multimanager.MultiManager`.
                 **!!ATTENTION, this should only be used by
@@ -241,7 +273,7 @@ class ExperimentPrototype(ABC, Generic[_A, _R]):
             mute_outfields_warning (bool, optional):
                 Mute the warning when there are unused arguments detected and stored in outfields.
                 Defaults to False.
-            pbar (Optional[tqdm.tqdm], optional):
+            pbar (tqdm.tqdm | None, optional):
                 The progress bar for showing the progress of the experiment.
                 Defaults to None.
             custom_kwargs (Any):
@@ -280,7 +312,7 @@ class ExperimentPrototype(ABC, Generic[_A, _R]):
         )
 
         outfield_maybe, outfields_unknown = outfields_check(
-            outfields, arguments._fields + commonparams._fields
+            outfields, arguments.fields + commonparams.fields
         )
         outfields_hint(outfield_maybe, outfields_unknown, mute_outfields_warning)
 
@@ -298,21 +330,14 @@ class ExperimentPrototype(ABC, Generic[_A, _R]):
     @classmethod
     @abstractmethod
     def method(
-        cls,
-        targets: list[tuple[Hashable, QuantumCircuit]],
-        arguments: _A,
-        pbar: Optional[tqdm.tqdm] = None,
-        multiprocess: bool = True,
+        cls, targets: list[tuple[WCKeyable, QuantumCircuit]], arguments: _A
     ) -> tuple[list[QuantumCircuit], dict[str, Any]]:
         """The method to construct circuit.
         Where should be overwritten by each construction of new measurement.
 
         Args:
-            targets (list[tuple[Hashable, QuantumCircuit]]): The circuits of the experiment.
+            targets (list[tuple[WCKeyable, QuantumCircuit]]): The circuits of the experiment.
             arguments (_Arg): The arguments of the experiment.
-            pbar (Optional[tqdm.tqdm], optional):
-                The progress bar for showing the progress of the experiment. Defaults to None.
-            multiprocess (bool, optional): Whether to use multiprocessing. Defaults to `True`.
 
         Returns:
             tuple[list[QuantumCircuit], dict[str, Any]]:
@@ -323,32 +348,32 @@ class ExperimentPrototype(ABC, Generic[_A, _R]):
     @classmethod
     def build(
         cls,
-        targets: list[tuple[Hashable, QuantumCircuit]],
+        targets: list[tuple[WCKeyable, QuantumCircuit]],
         shots: int = 1024,
-        backend: Optional[Backend] = None,
+        backend: Backend | None = None,
         exp_name: str = "experiment",
         run_args: RunArgsType = None,
-        transpile_args: Optional[TranspileArgs] = None,
-        passmanager_pair: Optional[tuple[str, PassManager]] = None,
-        tags: Optional[tuple[str, ...]] = None,
+        transpile_args: TranspileArgs | None = None,
+        passmanager_pair: tuple[str, PassManager] | None = None,
+        tags: tuple[str, ...] | None = None,
         # multimanager
-        serial: Optional[int] = None,
-        summoner_id: Optional[Hashable] = None,
-        summoner_name: Optional[str] = None,
+        serial: int | None = None,
+        summoner_id: str | None = None,
+        summoner_name: str | None = None,
         # process tool
-        qasm_version: Literal["qasm2", "qasm3"] = "qasm3",
+        qasm_version: AvailableQASMVersions = "qasm3",
         export: bool = False,
-        save_location: Optional[Union[Path, str]] = None,
-        pbar: Optional[tqdm.tqdm] = None,
+        save_location: Path | str | None = None,
+        pbar: tqdm.tqdm | None = None,
         multiprocess: bool = True,
         **custom_and_main_kwargs: Any,
     ):
         """Construct the experiment.
 
         Args:
-            targets (list[tuple[Hashable, QuantumCircuit]]): The circuits of the experiment.
+            targets (list[tuple[WCKeyable, QuantumCircuit]]): The circuits of the experiment.
             shots (int, optional): Shots of the job. Defaults to `1024`.
-            backend (Optional[Backend], optional): The quantum backend. Defaults to None.
+            backend (Backend | None, optional): The quantum backend. Defaults to None.
             exp_name (str, optional):
                 The name of the experiment.
                 Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
@@ -356,41 +381,41 @@ class ExperimentPrototype(ABC, Generic[_A, _R]):
                 Defaults to `'experiment'`.
             run_args (RunArgsType, optional):
                 Arguments for :meth:`Backend.run`. Defaults to None.
-            transpile_args (Optional[TranspileArgs], optional):
+            transpile_args (TranspileArgs | None, optional):
                 Arguments of :func:`~qiskit.compiler.transpile`.
                 Defaults to None.
-            passmanager_pair (Optional[tuple[str, PassManager]], optional):
+            passmanager_pair (tuple[str, PassManager] | None, optional):
                 The passmanager pair for transpile. Defaults to None.
-            tags (Optional[tuple[str, ...]], optional):
-                Given the experiment multiple tags to make a dictionary for recongnizing it.
+            tags (tuple[str, ...] | None, optional):
+                Given tags for the experiment to describe it.
                 Defaults to None.
 
-            serial (Optional[int], optional):
+            serial (int | None, optional):
                 Index of experiment in
                 :class:`~qurry.qurrium.multimanager.multimanager.MultiManager`.
                 **!!ATTENTION, this should only be used by
                 :class:`~qurry.qurrium.multimanager.multimanager.MultiManager`!!**
                 Defaults to None.
-            summoner_id (Optional[Hashable], optional):
+            summoner_id (str | None, optional):
                 ID of experiment of
                 :class:`~qurry.qurrium.multimanager.multimanager.MultiManager`.
                 **!!ATTENTION, this should only be used by
                 :class:`~qurry.qurrium.multimanager.multimanager.MultiManager`!!**
                 Defaults to None.
-            summoner_name (Optional[str], optional):
+            summoner_name (str | None, optional):
                 Name of experiment of
                 :class:`~qurry.qurrium.multimanager.multimanager.MultiManager`.
                 **!!ATTENTION, this should only be used by
                 :class:`~qurry.qurrium.multimanager.multimanager.MultiManager`!!**
                 Defaults to None.
 
-            qasm_version (Literal["qasm2", "qasm3"], optional):
+            qasm_version (AvailableQASMVersions, optional):
                 The export version of OpenQASM. Defaults to 'qasm3'.
             export (bool, optional):
                 Whether to export the experiment. Defaults to False.
-            save_location (Optional[Union[Path, str]], optional):
+            save_location (Path | str | None, optional):
                 The location to save the experiment. Defaults to None.
-            pbar (Optional[tqdm.tqdm], optional):
+            pbar (tqdm.tqdm | None, optional):
                 The progress bar for showing the progress of the experiment.
                 Defaults to None.
             multiprocess (bool, optional):
@@ -420,85 +445,38 @@ class ExperimentPrototype(ABC, Generic[_A, _R]):
             pbar=pbar,
             **custom_and_main_kwargs,
         )
-        if not isinstance(current_exp.commons.backend, Backend):
-            if isinstance(backend, Backend):
-                set_pbar_description(pbar, "Backend replacing...")
-                current_exp.replace_backend(backend)
-            else:
-                raise ValueError(
-                    "No vaild backend to run, exisited backend: "
-                    + f"{current_exp.commons.backend} as type "
-                    + f"{type(current_exp.commons.backend)}, "
-                    + f"given backend: {backend} as type {type(backend)}."
-                )
         assert isinstance(current_exp.commons.backend, Backend), (
             f"Invalid backend: {current_exp.commons.backend} as "
-            + f"type {type(current_exp.commons.backend)}."
+            + f"type {type(current_exp.commons.backend)}. "
+            + "This should be ensure in the function '_params_control_core'."
         )
 
         # circuit
-        set_pbar_description(pbar, "Circuit creating...")
+        set_pbar_description(pbar, "Creating circuits...")
         current_exp.beforewards.target.extend(targets)
-        cirqs, side_prodict = current_exp.method(
-            targets=targets, arguments=current_exp.args, pbar=pbar, multiprocess=multiprocess
-        )
-        current_exp.beforewards.side_product.update(side_prodict)
+        circs, side_prodict = current_exp.method(targets, current_exp.args)
+        current_exp.side_products.update(side_prodict)
 
         # qasm
         set_pbar_description(pbar, "Exporting OpenQASM string...")
-        targets_keys, targets_values = zip(*targets)
-        targets_keys: tuple[Hashable, ...]
-        targets_values: tuple[QuantumCircuit, ...]
-
-        if multiprocess:
-            pool = ParallelManager()
-            current_exp.beforewards.circuit_qasm.extend(
-                pool.starmap(qasm_dumps, [(q, qasm_version) for q in cirqs])
-            )
-            current_exp.beforewards.target_qasm.extend(
-                zip(
-                    [str(k) for k in targets_keys],
-                    pool.starmap(qasm_dumps, [(q, qasm_version) for q in targets_values]),
-                )
-            )
-        else:
-            current_exp.beforewards.circuit_qasm.extend(
-                [qasm_dumps(q, qasm_version) for q in cirqs]
-            )
-            current_exp.beforewards.target_qasm.extend(
-                zip(
-                    [str(k) for k in targets_keys],
-                    [qasm_dumps(q, qasm_version) for q in targets_values],
-                )
-            )
+        current_exp.beforewards.circuit_qasm.extend(
+            qasm_dumps(circ, qasm_version) for circ in circs
+        )
+        current_exp.beforewards.target_qasm.extend(
+            (str(key), qasm_dumps(circ, qasm_version)) for key, circ in targets
+        )
 
         # transpile
-        if passmanager_pair is not None:
-            passmanager_name, passmanager = passmanager_pair
-            set_pbar_description(
-                pbar, f"Circuit transpiling by passmanager '{passmanager_name}'..."
-            )
-            transpiled_circs = passmanager.run(
-                circuits=cirqs, num_processes=None if multiprocess else 1  # type: ignore
-            )
-            if len(current_exp.commons.transpile_args) > 0:
-                warnings.warn(
-                    f"Passmanager '{passmanager_name}' is given, "
-                    + f"the transpile_args will be ignored in '{current_exp.exp_id}'",
-                    category=QurryTranspileConfigurationIgnored,
-                )
-        else:
-            set_pbar_description(pbar, "Circuit transpiling...")
-            transpile_args = current_exp.commons.transpile_args.copy()
-            transpile_args.pop("num_processes", None)
-            transpiled_circs: list[QuantumCircuit] = transpile(
-                cirqs,
-                backend=current_exp.commons.backend,
-                num_processes=None if multiprocess else 1,
-                **current_exp.commons.transpile_args,
-            )
-
-        set_pbar_description(pbar, "Circuit loading...")
+        set_pbar_description(pbar, "Transpiling circuits...")
+        transpiled_circs = process_transpilation(
+            circs,
+            current_exp.commons.transpile_args.copy(),
+            current_exp.commons.backend,
+            passmanager_pair,
+            current_exp.exp_id,
+            multiprocess=multiprocess,
+            pbar=pbar,
+        )
         current_exp.beforewards.circuit.extend(transpiled_circs)
 
         # memory usage factor
@@ -538,16 +516,12 @@ class ExperimentPrototype(ABC, Generic[_A, _R]):
         return cls.build(**config), config
 
     # local execution
-    def run(self, pbar: Optional[tqdm.tqdm] = None) -> str:
+    def run(self, pbar: tqdm.tqdm | None = None) -> str:
         """Export the result after running the job.
 
         Args:
-            pbar (Optional[tqdm.tqdm], optional):
+            pbar (tqdm.tqdm | None, optional):
                 The progress bar for showing the progress of the experiment. Defaults to None.
-
-        Raises:
-            ValueError: No circuit ready.
-            ValueError: The circuit has not been constructed yet.
 
         Returns:
             str: The ID of the experiment.
@@ -555,11 +529,8 @@ class ExperimentPrototype(ABC, Generic[_A, _R]):
         if len(self.beforewards.circuit) == 0:
             raise ValueError("The circuit has not been constructed yet.")
 
-        assert isinstance(self.commons.backend, Backend), (
-            f"Current backend {self.commons.backend} needs to be backend not "
-            + f"{type({self.commons.backend})}."
-        )
-        assert hasattr(self.commons.backend, "run"), "Current backend is not runnable."
+        ensure_runnable_backend(self.commons.backend)
+        assert isinstance(self.commons.backend, Backend), "Backend should be ensured at this point."
 
         set_pbar_description(pbar, "Executing...")
         event_name, date = self.commons.datetimes.add_serial("run")
@@ -579,16 +550,16 @@ class ExperimentPrototype(ABC, Generic[_A, _R]):
     def result(
         self,
         export: bool = False,
-        save_location: Optional[Union[Path, str]] = None,
-        pbar: Optional[tqdm.tqdm] = None,
+        save_location: Path | str | None = None,
+        pbar: tqdm.tqdm | None = None,
     ) -> str:
         """Export the result of the experiment.
 
         Args:
             export (bool, optional): Whether to export the experiment. Defaults to False.
-            save_location (Optional[Union[Path, str]], optional):
+            save_location (Path | str | None, optional):
                 The location to save the experiment. Defaults to None.
-            pbar (Optional[tqdm.tqdm], optional):
+            pbar (tqdm.tqdm | None, optional):
                 The progress bar for showing the progress of the experiment. Defaults to None.
 
         Returns:
@@ -600,14 +571,11 @@ class ExperimentPrototype(ABC, Generic[_A, _R]):
         assert len(self.afterwards.result) == 1, "The job has been executed more than once."
 
         set_pbar_description(pbar, "Result loading...")
-        num = len(self.beforewards.circuit)
-        counts, exceptions = get_counts_and_exceptions(result=self.afterwards.result[-1], num=num)
+        counts, exceptions = get_counts_and_exceptions(
+            result=self.afterwards.result[-1], num=len(self.beforewards.circuit)
+        )
         if len(exceptions) > 0:
-            if "exceptions" not in self.outfields:
-                self.outfields["exceptions"] = {}
-            for result_id, exception_item in exceptions.items():
-                self.outfields["exceptions"][result_id] = exception_item
-
+            self.outfields["exceptions"] = {**self.outfields.get("exceptions", {}), **exceptions}
         set_pbar_description(pbar, "Counts loading...")
         self.afterwards.counts.extend(counts)
 
@@ -623,11 +591,10 @@ class ExperimentPrototype(ABC, Generic[_A, _R]):
                 set_pbar_description(pbar, "Running analysis for no input required...")
                 self.analyze()
 
-        if export:
+        if isinstance(save_location, (Path, str)) and export:
             # export may be slow, consider export at finish or something
-            if isinstance(save_location, (Path, str)):
-                set_pbar_description(pbar, "Setup data exporting...")
-                self.write(save_location=save_location)
+            set_pbar_description(pbar, "Setup data exporting...")
+            self.write(save_location=save_location)
 
         return self.exp_id
 
@@ -662,7 +629,7 @@ class ExperimentPrototype(ABC, Generic[_A, _R]):
                 f"Summoner ID {summoner_id} is not equal to"
                 + f" current summoner ID {self.commons.summoner_id}. "
                 + "The counts will not be updated.",
-                category=QurryResetSecurityActivated,
+                category=ResetSecurityActivated,
             )
         return self.afterwards.counts
 
@@ -685,24 +652,7 @@ class ExperimentPrototype(ABC, Generic[_A, _R]):
         old_backend_name = backend_name_getter(old_backend)
         new_backend_name = backend_name_getter(backend)
         self.commons.datetimes.add_serial(f"replace-{old_backend_name}-to-{new_backend_name}")
-        self.commons = self.commons._replace(backend=backend)
-
-    def __getitem__(self, key) -> Any:
-        if key in self.beforewards._fields:
-            return getattr(self.beforewards, key)
-        if key in self.afterwards._fields:
-            return getattr(self.afterwards, key)
-        raise KeyError(
-            f"{key} is not a valid field of " + f"'{Before.__name__}' and '{After.__name__}'."
-        )
-
-    # analysis
-    @classmethod
-    @abstractmethod
-    def quantities(cls) -> dict[str, Any]:
-        """Computing specific squantity.
-        Where should be overwritten by each construction of new measurement.
-        """
+        self.commons = replace(self.commons, backend=backend)
 
     @abstractmethod
     def analyze(self) -> _R:
@@ -732,33 +682,45 @@ class ExperimentPrototype(ABC, Generic[_A, _R]):
 
     def __repr__(self) -> str:
         return (
-            f"<{self.__name__}(exp_id={self.commons.exp_id}, {self.args}, {self.commons}, "
-            f"unused_args_num={len(self.outfields)}, analysis_num={len(self.reports)})>"
+            f'<{self.__name__}(exp_id="{self.commons.exp_id}", '
+            + f"args={self.args}, "
+            + f"commons={self.commons}, "
+            + f"unused_args_num={len(self.outfields)}, "
+            + f"analysis_num={len(self.reports)})>"
         )
 
-    def _repr_no_id(self) -> str:
+    def _repr_short(self) -> str:
+        # pylint: disable=protected-access
         return (
-            f"<{self.__name__}({self.args}, {self.commons}, "
-            f"unused_args_num={len(self.outfields)}, analysis_num={len(self.reports)})>"
+            f"<{self.__name__}("
+            + f"args={self.args._repr_short()}, "
+            + f"commons={self.commons._repr_short()}, "
+            + f"unused_args_num={len(self.outfields)}, "
+            + f"analysis_num={len(self.reports)})>"
         )
+        # pylint: enable=protected-access
 
     def _repr_pretty_(self, p, cycle):
         if cycle:
-            p.text(
-                f"<{self.__name__}(exp_id={self.commons.exp_id}, {self.args}, {self.commons}, "
-                f"unused_args_num={len(self.outfields)}, analysis_num={len(self.reports)})>"
-            )
-        else:
-            with p.group(2, f"<{self.__name__}(", ")>"):
-                p.text(f"exp_id={self.commons.exp_id}, ")
+            # pylint: disable=protected-access
+            p.text(self._repr_short())
+            # pylint: enable=protected-access
+            return
+
+        basic_info = {
+            "exp_id": self.commons.exp_id,
+            "args": self.args,
+            "commons": self.commons,
+            "unused_args_num": len(self.outfields),
+            "analysis_num": len(self.reports),
+        }
+        with p.group(DEFAULT_INDENT, f"<{self.__name__}(", ")>"):
+            for i, (k, v) in enumerate(basic_info.items()):
                 p.breakable()
-                p.text(f"{self.args},")
-                p.breakable()
-                p.text(f"{self.commons},")
-                p.breakable()
-                p.text(f"unused_args_num={len(self.outfields)},")
-                p.breakable()
-                p.text(f"analysis_num={len(self.reports)})")
+                p.text(f"{k}=")
+                p.pretty(v)
+                if i != len(basic_info) - 1:
+                    p.text(",")
 
     def statesheet(self, report_expanded: bool = False, hoshi: bool = False) -> Hoshi:
         """Show the state of experiment.
@@ -785,13 +747,13 @@ class ExperimentPrototype(ABC, Generic[_A, _R]):
 
     def export(
         self,
-        save_location: Optional[Union[Path, str]] = None,
+        save_location: Path | str | None = None,
         export_transpiled_circuit: bool = False,
     ) -> Export:
         """Export the data of experiment into specific namedtuples for exporting.
 
         Args:
-            save_location (Optional[Union[Path, str]], optional):
+            save_location (Path | str | None, optional):
                 The location to save the experiment. Defaults to None.
             export_transpiled_circuit (bool, optional):
                 Whether to export the transpiled circuit as txt. Defaults to False.
@@ -800,61 +762,51 @@ class ExperimentPrototype(ABC, Generic[_A, _R]):
 
         Returns:
             Export: A namedtuple containing the data of experiment
-                which can be more easily to export as json file.
+                which can be more easily exported as a json file.
         """
         save_location = create_save_location(save_location, self.commons)
         if self.commons.save_location != save_location:
-            self.commons = self.commons._replace(save_location=save_location)
-
-        adventures, tales = self.beforewards.export(export_transpiled_circuit)
-        legacy = self.afterwards.export()
-        reports, tales_reports = self.reports.export()
+            self.commons = replace(self.commons, save_location=save_location)
 
         # multi-experiment mode
-        folder, filename = decide_folder_and_filename(self.commons, self.args)
-        files = {
-            "folder": folder,
-            "qurryinfo": folder + "qurryinfo.json",
-            "args": folder + f"args/{filename}.args.json",
-            "advent": folder + f"advent/{filename}.advent.json",
-            "legacy": folder + f"legacy/{filename}.legacy.json",
-        }
-        for k in tales:
-            files[f"tales.{k}"] = folder + f"tales/{filename}.{k}.json"
-        files["reports"] = folder + f"reports/{filename}.reports.json"
-        for k in tales_reports:
-            files[f"reports.tales.{k}"] = folder + f"tales/{filename}.{k}.reports.json"
+        save_loc_folder, exp_identifier = decide_folder_and_filename(self.commons, self.args)
 
-        return Export(
+        return Export.make(
+            identifier=exp_identifier,
+            save_location=save_location,
+            writable_objects_params=[
+                {
+                    "file_writable_obj": self.args,
+                    "content_dumping_kwargs": {
+                        "commonparams": self.commons,
+                        "outfields": self.outfields,
+                    },
+                },
+                {
+                    "file_writable_obj": self.beforewards,
+                    "content_dumping_kwargs": {
+                        "export_transpiled_circuit": export_transpiled_circuit
+                    },
+                },
+                {"file_writable_obj": self.afterwards},
+                {"file_writable_obj": self.side_products},
+                {"file_writable_obj": self.reports},
+            ],
             exp_id=str(self.commons.exp_id),
-            exp_name=str(self.args.exp_name),
-            serial=(None if self.commons.serial is None else int(self.commons.serial)),
-            summoner_id=(None if self.commons.summoner_id else str(self.commons.summoner_id)),
-            summoner_name=(None if self.commons.summoner_name else str(self.commons.summoner_name)),
-            filename=str(filename),
-            files={k: str(Path(v)) for k, v in files.items()},
-            args=self.args._asdict(),
-            commons=self.commons.export(),
-            outfields=self.outfields,
-            adventures=adventures,
-            legacy=legacy,
-            tales=tales,
-            reports=reports,
-            tales_reports=tales_reports,
+            folder=save_loc_folder,
         )
 
     def write(
         self,
-        save_location: Optional[Union[Path, str]] = None,
+        save_location: Path | str | None = None,
         export_transpiled_circuit: bool = False,
-        qurryinfo_hold_access: Optional[str] = None,
-        multiprocess: bool = True,
-        pbar: Optional[tqdm.tqdm] = None,
+        qurryinfo_lock: str | None = None,
+        pbar: tqdm.tqdm | None = None,
     ) -> tuple[str, dict[str, str]]:
         """Export the experiment data, if there is a previous export, then will overwrite.
 
         Args:
-            save_location (Optional[Union[Path, str]], optional):
+            save_location (Path | str | None, optional):
                 Where to save the export content as `json` file.
                 If `save_location == None`, then use the value in `self.commons` to be exported,
                 if it's None too, then raise error. Defaults to None.
@@ -862,14 +814,11 @@ class ExperimentPrototype(ABC, Generic[_A, _R]):
                 Whether to export the transpiled circuit as txt. Defaults to False.
                 When set to True, the transpiled circuit will be exported as txt.
                 Otherwise, the circuit will be not exported but circuit qasm remains.
-            qurryinfo_hold_access (str, optional):
-                Whether to hold the I/O of `qurryinfo`,
+            qurryinfo_lock (str | None, optional):
+                If set to the same as `self.commons.summoner_id`,
                 then export by :class:`~qurry.qurrium.multimanager.multimanager.MultiManager`.
-                It should be ONLY control by
-                :class:`~qurry.qurrium.multimanager.multimanager.MultiManager`. Defaults to None.
-            multiprocess (bool, optional):
-                Whether to use multiprocessing. Defaults to `True`.
-            pbar (Optional[tqdm.tqdm], optional):
+                Defaults to None.
+            pbar (tqdm.tqdm | None, optional):
                 The progress bar for showing the progress of the experiment. Defaults to None.
 
         Returns:
@@ -879,42 +828,34 @@ class ExperimentPrototype(ABC, Generic[_A, _R]):
 
         # experiment write
         export_material = self.export(save_location, export_transpiled_circuit)
-        exp_id, files = export_material.write(multiprocess, pbar)
+        exp_id, files = export_material.write()
+        assert "qurryinfo" in files, (
+            "qurryinfo must be in the exported files. It should be ensured."
+        )
 
-        assert "qurryinfo" in files, "qurryinfo location is not in files."
-        # qurryinfo write
-        real_save_location = Path(self.commons.save_location)
-        if (
-            qurryinfo_hold_access == self.commons.summoner_id
-            and self.commons.summoner_id is not None
-        ):
-            # if qurryinfo_hold_access is set, then export by MultiManager
+        if self.commons.summoner_id is not None and qurryinfo_lock == self.commons.summoner_id:
             return exp_id, files
-        qurryinfo_location = real_save_location / files["qurryinfo"]
 
-        if os.path.exists(qurryinfo_location):
-            with open(qurryinfo_location, "r", encoding=DEFAULT_ENCODING) as f:
-                qurryinfo_found: dict[str, dict[str, str]] = dict(json.load(f))
-                qurryinfo_found[exp_id] = files
-            quickJSON(qurryinfo_found, str(qurryinfo_location), DEFAULT_MODE)
-        else:
-            quickJSON({exp_id: files}, str(qurryinfo_location), DEFAULT_MODE)
+        real_export_location = Path(self.commons.save_location) / export_material.folder
+        qurry_info = QurryInfo.read(real_export_location)
+        qurry_info.update_qurryinfo({exp_id: files})
+        qurry_info.write(real_export_location)
 
-        return exp_id, files
+        return exp_id, qurry_info[exp_id]
 
     @classmethod
     def _read_core(
         cls,
         exp_id: str,
         file_index: dict[str, str],
-        save_location: Union[Path, str] = Path("./"),
+        save_location: Path | str | None = Path("./"),
     ):
         """Core of read function.
 
         Args:
             exp_id (str): The id of the experiment to be read.
             file_index (dict[str, str]): The index of the experiment to be read.
-            save_location (Union[Path, str]): The location of the experiment to be read.
+            save_location (Path | str | None): The location of the experiment to be read.
 
         Raises:
             ValueError: 'save_location' needs to be the type of 'str' or 'Path'.
@@ -928,33 +869,46 @@ class ExperimentPrototype(ABC, Generic[_A, _R]):
         if not os.path.exists(save_location):
             raise FileNotFoundError(f"'save_location' does not exist, '{save_location}'.")
 
-        reading_return_args = Commonparams.read_with_arguments(
-            exp_id=exp_id, file_index=file_index, save_location=save_location
+        arguments, commonparams, outfields = cls.arguments_type().read(
+            file_index=file_index, save_location=save_location, exp_id=exp_id
         )
+        if is_old_v7_file_structure(file_index):
+            commonparams.datetimes.add_only("migrated_to_v15")
         exp_instance = cls(
-            **reading_return_args,
+            arguments=arguments,
+            commonparams=commonparams,
+            outfields=outfields,
+            side_products=cls.side_product_type().read(
+                file_index=file_index, save_location=save_location
+            ),
             beforewards=Before.read(file_index=file_index, save_location=save_location),
             afterwards=After.read(file_index=file_index, save_location=save_location),
+            reports=AnalysesContainer.read(
+                file_index=file_index,
+                save_location=save_location,
+                analysis_instance=cls.analysis_type(),
+            ),
         )
-        reports_read = exp_instance.analysis_instance.read(
-            file_index=file_index, save_location=save_location
-        )
-        exp_instance.reports.update(reports_read)
+        if exp_instance.reports.analysis_instance != cls.analysis_type():
+            raise ValueError(
+                "The analysis type of the experiment is not compatible with "
+                + f"the current class analysis type, {exp_instance.reports.analysis_instance} "
+                + f"vs {cls.analysis_type()}."
+            )
 
         return exp_instance
 
     @classmethod
-    def _read_core_multiprocess(cls, all_arugments: tuple[str, dict[str, str], Union[Path, str]]):
+    def _read_core_multiprocess(cls, all_arugments: tuple[str, dict[str, str], Path | str]):
         """Core of read function for multiprocess.
 
         Args:
-            all_arugments (tuple[str, dict[str, str], Union[Path, str], str]):
+            all_arugments (tuple[str, dict[str, str], Path | str]):
                 The arguments of the experiment to be read.
 
                 - exp_id (str): The id of the experiment to be read.
                 - file_index (dict[str, str]): The index of the experiment to be read.
-                - save_location (Union[Path, str]): The location of the experiment to be read.
-
+                - save_location (Path | str): The location of the experiment to be read.
         Returns:
             QurryExperiment: The experiment to be read.
         """
@@ -963,15 +917,19 @@ class ExperimentPrototype(ABC, Generic[_A, _R]):
     @classmethod
     def read(
         cls,
-        name_or_id: Union[Path, str],
-        save_location: Union[Path, str] = Path("./"),
+        exp_or_summoner_name: Path | str,
+        save_location: Path | str | None = Path("./"),
+        multiprocess: bool = True,
     ):
         """Read the experiment from file.
 
         Args:
-            name_or_id (Union[Path, str]): The name or id of the experiment to be read.
-            save_location (Union[Path, str], optional):
+            exp_or_summoner_name (Path | str):
+                The experiment name or multimanager name to be read.
+            save_location (Path | str | None, optional):
                 The location of the experiment to be read. Defaults to Path('./').
+            multiprocess (bool, optional):
+                Whether to use multiprocessing. Defaults to `True`.
 
         Raises:
             ValueError: 'save_location' needs to be the type of 'str' or 'Path'.
@@ -984,42 +942,38 @@ class ExperimentPrototype(ABC, Generic[_A, _R]):
         save_location = create_save_location(save_location)
         if not os.path.exists(save_location):
             raise FileNotFoundError(f"'save_location' does not exist, '{save_location}'.")
-        export_location = save_location / name_or_id
+        export_location = save_location / exp_or_summoner_name
         if not os.path.exists(export_location):
             raise FileNotFoundError(f"'ExportLoaction' does not exist, '{export_location}'.")
-        qurryinfo_location = export_location / "qurryinfo.json"
-        if not os.path.exists(qurryinfo_location):
-            raise FileNotFoundError(
-                f"'qurryinfo.json' does not exist at '{save_location}'. "
-                + "It's required for loading all experiment data."
-            )
 
-        qurryinfo: dict[str, dict[str, str]] = {}
-        with open(qurryinfo_location, "r", encoding=DEFAULT_ENCODING) as f:
-            qurryinfo_found: dict[str, dict[str, str]] = json.load(f)
-            qurryinfo.update(qurryinfo_found)
-
+        qurryinfo: QurryInfo = QurryInfo.read(save_location=export_location)
         num_exps = len(qurryinfo)
+        if not multiprocess or len(qurryinfo) == 1:
+            return [
+                cls._read_core(
+                    exp_id=exp_id,
+                    file_index=file_index,
+                    save_location=save_location,
+                )
+                for exp_id, file_index in qurryinfo.items()
+            ]
+
         chunks_num = very_easy_chunk_size(
             tasks_num=num_exps,
             num_process=DEFAULT_POOL_SIZE,
             max_chunk_size=min(max(1, num_exps // DEFAULT_POOL_SIZE), 40),
         )
-        reading_pool = get_context("spawn").Pool(
-            processes=DEFAULT_POOL_SIZE, maxtasksperchild=chunks_num * 2
-        )
-        with reading_pool as pool:
-            exps_iterable = qurry_progressbar(
-                pool.imap_unordered(
-                    cls._read_core_multiprocess,
-                    (
-                        (exp_id, file_index, save_location)
-                        for exp_id, file_index in qurryinfo.items()
+        with make_multiprocess_pool(maxtasksperchild=chunks_num * 2) as pool:
+            return list(
+                qurry_progressbar(
+                    pool.imap_unordered(
+                        cls._read_core_multiprocess,
+                        (
+                            (exp_id, file_index, save_location)
+                            for exp_id, file_index in qurryinfo.items()
+                        ),
                     ),
-                ),
-                total=num_exps,
-                desc=f"Loading {num_exps} experiments ...",
+                    total=num_exps,
+                    desc=f"Loading {num_exps} experiments ...",
+                )
             )
-            exps = list(exps_iterable)
-
-        return exps

@@ -1,7 +1,5 @@
-"""
-============================================================================
-Set Version (:file:`set_version.py`)
-============================================================================
+"""Set Version (:file:`set_version.py`)
+
 
 Get the version number from the VERSION.txt file and pass it to the environment variable.
 
@@ -11,7 +9,7 @@ Get the version number from the VERSION.txt file and pass it to the environment 
 import os
 import sys
 import argparse
-from typing import Literal, Optional
+from typing import Literal
 import warnings
 import subprocess
 from pep440.core import is_canonical
@@ -36,9 +34,8 @@ def read_all_versions_from_git():
 
     all_versions_read = subprocess.check_output(["git", "tag", "-l"]).strip()
     all_versions_read = all_versions_read.decode("utf-8")
-    all_versions = all_versions_read.split("\n")
 
-    return all_versions
+    return all_versions_read.split("\n")
 
 
 def formatted_version(
@@ -99,9 +96,9 @@ def build_version_tree(
 
     for vers in formatted_all_versions:
         vers_split = vers.split(".")
-        assert (
-            3 <= len(vers_split) < 5
-        ), f"| Expect at 3 or 4 versions split parts, got {vers_split}"
+        assert 3 <= len(vers_split) < 5, (
+            f"| Expect at 3 or 4 versions split parts, got {vers_split}"
+        )
         if vers_split[0] not in unsorted_version_tree:
             unsorted_version_tree[vers_split[0]] = {}
         if vers_split[1] not in unsorted_version_tree[vers_split[0]]:
@@ -297,9 +294,9 @@ def bump_version(
     Returns:
         tuple[str, str, str, str]: The bumped version number
     """
-    assert (
-        len(version_split) == 3 or len(version_split) == 4
-    ), f"| The version number should be split by dot and have 3 or 4 parts: {version_split}."
+    assert len(version_split) == 3 or len(version_split) == 4, (
+        f"| The version number should be split by dot and have 3 or 4 parts: {version_split}."
+    )
 
     if bump_type == "dev":
         version_new_split = (
@@ -315,7 +312,8 @@ def bump_version(
         version_new_split = version_split[:1] + [str(int(version_split[1]) + 1)] + ["0", "dev1"]
 
     elif bump_type == "major":
-        raise NotImplementedError("| The major bump are only allowed by bumping manually.")
+        version_new_split = [str(int(version_split[0]) + 1), "0", "0", "dev1"]
+        # raise NotImplementedError("| The major bump are only allowed by bumping manually.")
 
     else:
         raise ValueError(
@@ -323,9 +321,9 @@ def bump_version(
             + f"major, minor, patch, dev, or skip, but got: '{bump_type}'."
         )
 
-    assert (
-        len(version_new_split) == 4
-    ), f"| The bumped version number should have 4 parts: {version_new_split}."
+    assert len(version_new_split) == 4, (
+        f"| The bumped version number should have 4 parts: {version_new_split}."
+    )
     return (version_new_split[0], version_new_split[1], version_new_split[2], version_new_split[3])
 
 
@@ -350,7 +348,7 @@ class SetVersionArgs(argparse.Namespace):
 def finished(
     exists: bool,
     version: str,
-    version_txt_path: Optional[str],
+    version_txt_path: str | None,
     exit_code: int = 0,
     test: bool = False,
 ):
@@ -359,7 +357,7 @@ def finished(
     Args:
         exists (bool): Whether the version is existing.
         version (str): The version number.
-        version_txt_path (str): The path to the VERSION.txt file.
+        version_txt_path (str | None): The path to the VERSION.txt file.
         exit_code (int, optional): The exit code. Defaults to 0.
 
     """

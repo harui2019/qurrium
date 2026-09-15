@@ -1,7 +1,7 @@
-"""Paramagnet (:mod:`qurry.recipe.simple.paramagnet`)
+"""Paramagnet (:mod:`qurecipe.simple.paramagnet`)
 
-The circuits :class:`~qurry.recipe.simple.paramagnet.TrivialParamagnet` and
-:class:`~qurry.recipe.simple.paramagnet.TopologicalParamagnet`,
+The circuits :class:`~qurecipe.simple.paramagnet.TrivialParamagnet` and
+:class:`~qurecipe.simple.paramagnet.TopologicalParamagnet`,
 which has been mentioned in the following reference.
 
 Reference:
@@ -30,15 +30,16 @@ Reference:
             url = {https://link.aps.org/doi/10.1103/PhysRevLett.121.086808}
         }
 
+
 """
 
 from typing import Literal
 
-from ..n_body import OneBody
+from qiskit import QuantumCircuit
 
 
-class TrivialParamagnet(OneBody):
-    r"""The product state circuit :class:`~qurry.recipe.simple.paramagnet.TrivialParamagnet`.
+def trivial_paramagnet(num_qubits: int, name: str = "trivial_paramagnet") -> QuantumCircuit:
+    r"""The product state circuit.
 
     .. code-block:: text
 
@@ -66,34 +67,59 @@ class TrivialParamagnet(OneBody):
     Args:
         num_qubits (int): Number of qubits.
         name (str, optional): Name of case. Defaults to "trivial_paramagnet".
-
     """
 
-    def __init__(self, num_qubits: int, name: str = "trivial_paramagnet") -> None:
+    qc = QuantumCircuit(num_qubits, name=name)
+    if num_qubits == 0:
+        return qc
+
+    for i in range(num_qubits):
+        qc.h(i)
+    return qc
+
+
+class TopologicalParamagnet(QuantumCircuit):
+    """The entangled circuit :class:`~qurecipe.simple.paramagnet.TopologicalParamagnet`."""
+
+    @property
+    def border_cond(self) -> Literal["open", "period"]:
+        """The border condition."""
+        return self._border_cond
+
+    @border_cond.setter
+    def border_cond(self, value: Literal["open", "period"]) -> None:
+        if hasattr(self, "_border_cond"):
+            raise AttributeError("The border_cond can't be changed.")
+        if value not in ["open", "period"]:
+            raise ValueError("The border_cond must be 'open' or 'period'.")
+        self._border_cond: Literal["open", "period"] = value
+
+    def __init__(
+        self,
+        num_qubits: int,
+        border_cond: Literal["open", "period"] = "period",
+        name: str = "cluster",
+    ) -> None:
         """Initializing the case.
 
         Args:
             num_qubits (int): Number of qubits.
-            name (str, optional): Name of case. Defaults to "trivial_paramagnet".
+            border_cond (str, optional): Boundary condition is `open` or `period`.
+                Defaults to "period".
+            name (str, optional): Name of case. Defaults to "cluster".
+
+        Raises:
+            ValueError: When given number of qubits is not even.
+
         """
-        super().__init__(name=name)
-        self.num_qubits = num_qubits
-
-    def _build(self) -> None:
-        if self._is_built:
-            return
-        super()._build()
-
-        num_qubits = self.num_qubits
-        if num_qubits == 0:
-            return
-
-        for i in range(num_qubits):
-            self.h(i)
+        super().__init__(num_qubits, name=name)
+        self.border_cond = border_cond
 
 
-class TopologicalParamagnet(OneBody):
-    """The entangled circuit :class:`~qurry.recipe.simple.paramagnet.TopologicalParamagnet`.
+def topological_paramagnet(
+    num_qubits: int, border_cond: Literal["open", "period"] = "period", name: str = "cluster"
+) -> TopologicalParamagnet:
+    r"""The entangled circuit.
 
     .. code-block:: text
 
@@ -178,62 +204,26 @@ class TopologicalParamagnet(OneBody):
         ValueError: When given number of qubits is not even.
     """
 
-    @property
-    def border_cond(self) -> Literal["open", "period"]:
-        """The border condition."""
-        return self._border_cond
+    qc = TopologicalParamagnet(num_qubits=num_qubits, border_cond=border_cond, name=name)
+    if num_qubits == 0:
+        return qc
 
-    @border_cond.setter
-    def border_cond(self, value: Literal["open", "period"]) -> None:
-        if hasattr(self, "_border_cond"):
-            raise AttributeError("The border_cond can't be changed.")
-        if value not in ["open", "period"]:
-            raise ValueError("The border_cond must be 'open' or 'period'.")
-        self._border_cond: Literal["open", "period"] = value
+    for i in range(num_qubits):
+        qc.h(i)
+    iter_range = num_qubits - 1 if border_cond == "open" else num_qubits
+    for i in range(0, iter_range, 2):
+        qc.cz(i, (i + 1) % num_qubits)
+    for i in range(1, iter_range, 2):
+        qc.cz(i, (i + 1) % num_qubits)
 
-    def __init__(
-        self,
-        num_qubits: int,
-        border_cond: Literal["open", "period"] = "period",
-        name: str = "cluster",
-    ) -> None:
-        """Initializing the case.
-
-        Args:
-            num_qubits (int): Number of qubits.
-            border_cond (str, optional): Boundary condition is `open` or `period`.
-                Defaults to "period".
-            name (str, optional): Name of case. Defaults to "cluster".
-
-        Raises:
-            ValueError: When given number of qubits is not even.
-
-        """
-        super().__init__(name=name)
-        self.border_cond = border_cond
-        self.num_qubits = num_qubits
-
-    def _build(self) -> None:
-        if self._is_built:
-            return
-        super()._build()
-
-        num_qubits = self.num_qubits
-        if num_qubits == 0:
-            return
-
-        for i in range(num_qubits):
-            self.h(i)
-        iter_range = num_qubits - 1 if self.border_cond == "open" else num_qubits
-        for i in range(0, iter_range, 2):
-            self.cz(i, (i + 1) % num_qubits)
-        for i in range(1, iter_range, 2):
-            self.cz(i, (i + 1) % num_qubits)
+    return qc
 
 
-class Cluster(TopologicalParamagnet):
-    """:class:`~qurry.recipe.simple.paramagnet.Cluster`, another name of the entangled circuit
-    :class:`~qurry.recipe.simple.paramagnet.TopologicalParamagnet`.
+def cluster(
+    num_qubits: int, border_cond: Literal["open", "period"] = "period", name: str = "cluster"
+) -> TopologicalParamagnet:
+    r"""The entangled circuit with open boundary condition.
+
 
     .. code-block:: text
 
@@ -288,3 +278,4 @@ class Cluster(TopologicalParamagnet):
         ValueError: When given number of qubits is not even.
 
     """
+    return topological_paramagnet(num_qubits=num_qubits, border_cond=border_cond, name=name)

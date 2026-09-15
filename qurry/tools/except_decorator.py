@@ -1,16 +1,17 @@
 """Exception Decorator (:mod:`qurry.tools.except_decorator`)"""
 
+from typing import TypeVar
+from collections.abc import Callable
 import functools
 import warnings
 import inspect
-from typing import Callable, Union, Type, TypeVar
 
-from ..exceptions import QurryUnprovenFeatureWarning
+from .exceptions import QurryUnprovenFeatureWarning
 
-U = TypeVar("U", bound=Union[Type, Callable])
+U = TypeVar("U", bound=Callable)
 
 
-def unproven_feature(message=None):
+def unproven_feature(message: str | None = None):
     """The decorator to mark a function or class as an unproven feature.
 
     .. code-block:: python
@@ -24,7 +25,7 @@ def unproven_feature(message=None):
             pass
 
     Args:
-        message (Optional[str]):
+        message (str | None, optional):
             The warning message to be displayed.
             If not provided, a default message will be used.
             The default message is:
@@ -40,13 +41,12 @@ def unproven_feature(message=None):
     def decorator(func_or_cls: U) -> U:
         """The actual decorator function.
         Args:
-            func_or_cls (Union[Callable, Type]):
+            func_or_cls (Callable):
                 The function or class to be marked.
 
         Returns:
-            Union[Callable, Type]:
-                The decorated function or class,
-                which will issue a warning when called or instantiated.
+            The decorated function or class,
+            which will issue a warning when called or instantiated.
         """
 
         name = func_or_cls.__qualname__

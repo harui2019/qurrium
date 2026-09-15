@@ -1,62 +1,59 @@
-"""QurryV9 (:mod:`qurry.qurries.samplingqurry.qurry`)
+"""QurryV14 (:mod:`qurry.qurries.samplingqurry.qurry`)"""
 
-It is only for pendings and retrieve to remote backend.
-"""
-
-from typing import Union, Optional, Type, Literal
-from collections.abc import Hashable
+from typing import Literal
 from pathlib import Path
 import tqdm
 
 from qiskit import QuantumCircuit
 from qiskit.providers import Backend
 
-from .arguments import SHORT_NAME, QurryMeasureArgs, QurryOutputArgs, QurryAnalyzeArgs
-from .experiment import QurryExperiment
-from ...qurrium import QurriumPrototype
-from ...declare import RunArgsType, TranspileArgs, PassManagerType
+from .arguments import SHORT_NAME, ACRONYM, SEMeasureArgs, SEOutputArgs
+from .analysis import DummyAnalyzeArgs
+from .experiment import SEExperiment
+from ...qurrium import QurriumPrototype, RunArgsType, TranspileArgs, PassManagerType, WCKeyable
 
 
-class QurryV9(
-    QurriumPrototype[QurryExperiment, QurryMeasureArgs, QurryOutputArgs, QurryAnalyzeArgs]
-):
+class QurryV14(QurriumPrototype[SEExperiment, SEMeasureArgs, SEOutputArgs, DummyAnalyzeArgs]):
     """Executing one quantum circuit in multiple times."""
 
-    __name__ = "QurryV9"
+    __name__ = "QurryV14"
     short_name = SHORT_NAME
+    """The short name of this Qurrium class."""
+    acronym = ACRONYM
+    """The abbreviation of this Qurrium class."""
 
     @property
-    def experiment_instance(self) -> Type[QurryExperiment]:
+    def experiment_instance(self) -> type[SEExperiment]:
         """The container class responding to this QurryV9 class."""
-        return QurryExperiment
+        return SEExperiment
 
     def measure_to_output(
         self,
-        wave: Optional[Union[QuantumCircuit, Hashable]] = None,
+        wave: QuantumCircuit | WCKeyable | None = None,
         sampling: int = 1,
         shots: int = 1024,
-        backend: Optional[Backend] = None,
+        backend: Backend | None = None,
         exp_name: str = "experiment",
         run_args: RunArgsType = None,
-        transpile_args: Optional[TranspileArgs] = None,
-        passmanager: PassManagerType = None,
-        tags: Optional[tuple[str, ...]] = None,
+        transpile_args: TranspileArgs | None = None,
+        passmanager: PassManagerType | None = None,
+        tags: tuple[str, ...] | None = None,
         # process tool
         qasm_version: Literal["qasm2", "qasm3"] = "qasm3",
         export: bool = False,
-        save_location: Optional[Union[Path, str]] = None,
-        pbar: Optional[tqdm.tqdm] = None,
-    ) -> QurryOutputArgs:
+        save_location: Path | str | None = None,
+        pbar: tqdm.tqdm | None = None,
+    ) -> SEOutputArgs:
         """Trasnform :meth:`measure` arguments form into :meth:`output` form.
 
         Args:
-            wave (Union[QuantumCircuit, Hashable]):
+            wave (QuantumCircuit | WCKeyable):
                 The key or The key or the circuit to execute.
             sampling (int, optional):
                 The number of sampling. Defaults to 1.
             shots (int, optional):
                 Shots of the job. Defaults to `1024`.
-            backend (Optional[Backend], optional):
+            backend (Backend | None, optional):
                 Arguments for :meth:`Backend.run`. Defaults to None.
             exp_name (str, optional):
                 The name of the experiment.
@@ -65,26 +62,26 @@ class QurryV9(
                 Defaults to `'experiment'`.
             run_args (RunArgsType, optional):
                 Arguments for :meth:`Backend.run`. Defaults to None.
-            transpile_args (Optional[TranspileArgs], optional):
+            transpile_args (TranspileArgs | None, optional):
                 Arguments of :func:`~qiskit.compiler.transpile`.
                 Defaults to None.
-            passmanager (Optional[Union[str, PassManager, tuple[str, PassManager]], optional):
+            passmanager (PassManagerType | None, optional):
                 The passmanager. Defaults to None.
-            tags (Optional[tuple[str, ...]], optional):
+            tags (tuple[str, ...] | None, optional):
                 The tags of the experiment. Defaults to None.
 
             qasm_version (Literal["qasm2", "qasm3"], optional):
                 The version of OpenQASM. Defaults to "qasm3".
             export (bool, optional):
                 Whether to export the experiment. Defaults to False.
-            save_location (Optional[Union[Path, str]], optional):
+            save_location (Path | str | None, optional):
                 The location to save the experiment. Defaults to None.
-            pbar (Optional[tqdm.tqdm], optional):
+            pbar (tqdm.tqdm | None, optional):
                 The progress bar for showing the progress of the experiment.
                 Defaults to None.
 
         Returns:
-            QurryOutputArgs: The output arguments.
+            The output arguments.
         """
         if wave is None:
             raise ValueError("The `wave` must be provided.")
@@ -106,33 +103,33 @@ class QurryV9(
             "pbar": pbar,
         }
 
-    def measure(
+    def prepare(
         self,
-        wave: Optional[Union[QuantumCircuit, Hashable]] = None,
+        wave: QuantumCircuit | WCKeyable | None = None,
         sampling: int = 1,
         shots: int = 1024,
-        backend: Optional[Backend] = None,
+        backend: Backend | None = None,
         exp_name: str = "experiment",
         run_args: RunArgsType = None,
-        transpile_args: Optional[TranspileArgs] = None,
-        passmanager: PassManagerType = None,
-        tags: Optional[tuple[str, ...]] = None,
+        transpile_args: TranspileArgs | None = None,
+        passmanager: PassManagerType | None = None,
+        tags: tuple[str, ...] | None = None,
         # process tool
         qasm_version: Literal["qasm2", "qasm3"] = "qasm3",
         export: bool = False,
-        save_location: Optional[Union[Path, str]] = None,
-        pbar: Optional[tqdm.tqdm] = None,
-    ) -> str:
-        """Execute the experiment.
+        save_location: Path | str | None = None,
+        pbar: tqdm.tqdm | None = None,
+    ):
+        """Prepare the experiment without executing it.
 
         Args:
-            wave (Union[QuantumCircuit, Hashable]):
+            wave (QuantumCircuit | WCKeyable):
                 The key or the circuit to execute.
             sampling (int, optional):
                 The number of sampling. Defaults to 1.
             shots (int, optional):
                 Shots of the job. Defaults to `1024`.
-            backend (Optional[Backend], optional):
+            backend (Backend | None, optional):
                 Arguments for :meth:`Backend.run`. Defaults to None.
             exp_name (str, optional):
                 The name of the experiment.
@@ -141,43 +138,121 @@ class QurryV9(
                 Defaults to `'experiment'`.
             run_args (RunArgsType, optional):
                 Arguments for :meth:`Backend.run`. Defaults to None.
-            transpile_args (Optional[TranspileArgs], optional):
+            transpile_args (TranspileArgs | None, optional):
                 Arguments of :func:`~qiskit.compiler.transpile`.
                 Defaults to None.
-            passmanager (Optional[Union[str, PassManager, tuple[str, PassManager]], optional):
+            passmanager (PassManagerType | None, optional):
                 The passmanager. Defaults to None.
-            tags (Optional[tuple[str, ...]], optional):
+            tags (tuple[str, ...] | None, optional):
                 The tags of the experiment. Defaults to None.
 
             qasm_version (Literal["qasm2", "qasm3"], optional):
                 The version of OpenQASM. Defaults to "qasm3".
             export (bool, optional):
                 Whether to export the experiment. Defaults to False.
-            save_location (Optional[Union[Path, str]], optional):
+            save_location (Path | str | None, optional):
                 The location to save the experiment. Defaults to None.
-            pbar (Optional[tqdm.tqdm], optional):
+            pbar (tqdm.tqdm | None, optional):
                 The progress bar for showing the progress of the experiment.
                 Defaults to None.
 
         Returns:
-            str: The experiment ID.
+            The experiment instance.
         """
 
-        output_args = self.measure_to_output(
-            wave=wave,
-            sampling=sampling,
-            shots=shots,
-            backend=backend,
-            exp_name=exp_name,
-            run_args=run_args,
-            transpile_args=transpile_args,
-            passmanager=passmanager,
-            tags=tags,
-            # process tool
-            qasm_version=qasm_version,
-            export=export,
-            save_location=save_location,
-            pbar=pbar,
+        exp_id = self.build(
+            **self.measure_to_output(
+                wave=wave,
+                sampling=sampling,
+                shots=shots,
+                backend=backend,
+                exp_name=exp_name,
+                run_args=run_args,
+                transpile_args=transpile_args,
+                passmanager=passmanager,
+                tags=tags,
+                # process tool
+                qasm_version=qasm_version,
+                export=export,
+                save_location=save_location,
+                pbar=pbar,
+            )
         )
+        return self.orphan_exps[exp_id]
 
-        return self.output(**output_args)
+    def measure(
+        self,
+        wave: QuantumCircuit | WCKeyable | None = None,
+        sampling: int = 1,
+        shots: int = 1024,
+        backend: Backend | None = None,
+        exp_name: str = "experiment",
+        run_args: RunArgsType = None,
+        transpile_args: TranspileArgs | None = None,
+        passmanager: PassManagerType | None = None,
+        tags: tuple[str, ...] | None = None,
+        # process tool
+        qasm_version: Literal["qasm2", "qasm3"] = "qasm3",
+        export: bool = False,
+        save_location: Path | str | None = None,
+        pbar: tqdm.tqdm | None = None,
+    ):
+        """Execute the experiment immediately.
+
+        Args:
+            wave (QuantumCircuit | WCKeyable):
+                The key or the circuit to execute.
+            sampling (int, optional):
+                The number of sampling. Defaults to 1.
+            shots (int, optional):
+                Shots of the job. Defaults to `1024`.
+            backend (Backend | None, optional):
+                Arguments for :meth:`Backend.run`. Defaults to None.
+            exp_name (str, optional):
+                The name of the experiment.
+                Naming this experiment to recognize it when the jobs are pending to IBMQ Service.
+                This name is also used for creating a folder to store the exports.
+                Defaults to `'experiment'`.
+            run_args (RunArgsType, optional):
+                Arguments for :meth:`Backend.run`. Defaults to None.
+            transpile_args (TranspileArgs | None, optional):
+                Arguments of :func:`~qiskit.compiler.transpile`.
+                Defaults to None.
+            passmanager (PassManagerType | None, optional):
+                The passmanager. Defaults to None.
+            tags (tuple[str, ...] | None, optional):
+                The tags of the experiment. Defaults to None.
+
+            qasm_version (Literal["qasm2", "qasm3"], optional):
+                The version of OpenQASM. Defaults to "qasm3".
+            export (bool, optional):
+                Whether to export the experiment. Defaults to False.
+            save_location (Path | str | None, optional):
+                The location to save the experiment. Defaults to None.
+            pbar (tqdm.tqdm | None, optional):
+                The progress bar for showing the progress of the experiment.
+                Defaults to None.
+
+        Returns:
+            The experiment instance.
+        """
+
+        exp_id = self.output(
+            **self.measure_to_output(
+                wave=wave,
+                sampling=sampling,
+                shots=shots,
+                backend=backend,
+                exp_name=exp_name,
+                run_args=run_args,
+                transpile_args=transpile_args,
+                passmanager=passmanager,
+                tags=tags,
+                # process tool
+                qasm_version=qasm_version,
+                export=export,
+                save_location=save_location,
+                pbar=pbar,
+            )
+        )
+        return self.orphan_exps[exp_id]

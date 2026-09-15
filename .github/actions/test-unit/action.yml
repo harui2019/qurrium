@@ -18,7 +18,7 @@ runs:
   using: "composite"
   steps:
     - name: Set up Python ${{ inputs.python-version }}
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v7
       with:
         python-version: ${{ inputs.python-version }}
 
@@ -34,49 +34,53 @@ runs:
         fi
       shell: bash
 
-    - name: Install dependencies
+    - name: Install Rust toolchain
       shell: bash
       run: |
-        python -m pip install --upgrade pipenv wheel pip urllib3
-        if [[ -f requirements-dev.txt ]]; then
-          echo "| Installing dependencies"
-          python -m pip install -r requirements-dev.txt
-        else
-          echo "| No requirements-dev.txt found, installing default dependencies"
-          echo "| This may lose some dependencies"
-          python -m pip install pytest pytest-xdist pytest-order
-          python -m pip install matplotlib pep440 flake8
-          python -m pip install --upgrade --user setuptools setuptools_rust
-        fi
-        echo "| Installing Optional Third Party Dependencies"
-        python -m pip install jax
+        echo "| Installing rustup"
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain none
+        source "$HOME/.cargo/env"
+        echo "| Installing Rust toolchain from rust-toolchain.toml"
+        rustup show
 
-    - name: Install Qiskit
+        RUST_TOOLCHAIN=$(grep '^channel *= *"' rust-toolchain.toml | sed -E 's/^channel *= *"([^"]+)".*/\1/')
+        if [[ -z "$RUST_TOOLCHAIN" ]]; then
+          echo "| Failed to determine Rust toolchain from rust-toolchain.toml"
+          exit 1
+        fi
+        echo "| Installing Rust toolchain from rust-toolchain.toml"
+        rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --component cargo
+        rustup default "$RUST_TOOLCHAIN"  # Just to be sure
+        rustup show
+        cargo --version
+        # --------------------------------------------------------------------------
+        # Playing: BIRDBRAIN (w/ OK Glass) feat. Kasane Teto
+        # So, Fxxk (To fix this.)
+
+    - name: Install Tools
+      shell: bash
+      run: |
+        python -m pip install --upgrade pipenv wheel pip auditwheel auditwheel-symbols delocate setuptools_rust setuptools pkginfo toml pep440
+
+    - name: Install Qiskit and Qurrium
       shell: bash
       run: |
         if [[ "${{ inputs.qiskit-version }}" == "v0" ]]; then
           echo "| Installing Qiskit v0 (Oldest supported version 0.45)"
-          python -m pip install "qiskit>=0.45.0,<1.0.0"
+          python -m pip install ".[dev,qiskit-aer]" "qiskit>=0.45.0,<1.0.0" --no-cache-dir
         elif [[ "${{ inputs.qiskit-version }}" == "v1" ]]; then
           echo "| Installing Qiskit v1"
-          python -m pip install "qiskit>=1.0.0,<2.0.0"
+          python -m pip install ".[dev,qiskit-aer]" "qiskit>=1.0.0,<2.0.0" --no-cache-dir
         elif [[ "${{ inputs.qiskit-version }}" == "v2" ]]; then
           echo "| Installing Qiskit v2"
-          python -m pip install "qiskit>=2.0.0"
+          python -m pip install ".[dev,qiskit-aer]" "qiskit>=2.0.0" --no-cache-dir
         else
           echo "| Invalid Qiskit version specified: ${{ inputs.qiskit-version }}"
           echo "| Please specify 'v0', 'v1', or 'v2' for the Qiskit version input."
           exit 1
         fi
 
-    - name: Prepare setup.py
-      shell: bash
-      run: |
-        echo "| Preparing setup.py ................................................."
-        python -m pip install -e . --upgrade
-        echo "| Dependencies are ready to go"
-
     - name: Test with pytest
       shell: bash
       run: |
-        JAX_ENABLE_X64=True python -m pytest -v -s --durations=0
+        python -m pytest -v -s --durations=0
