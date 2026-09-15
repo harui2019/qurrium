@@ -161,7 +161,7 @@ class ClassicalShadowBasic(TypedDict):
     mean_of_rho: npt.NDArray[np.complex128]
     """The mean of single classical snapshots."""
 
-    use_projecter: bool
+    use_projector: bool
     r"""Use the projecter :math:`P_m` instead of the precomputed :math:`\rho_m`. 
 
     Refer to :func:`qurry.process.classical_shadow.rho_process.rho_m_cell.rho_m_cell_precomputed`

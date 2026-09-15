@@ -85,7 +85,7 @@ def rho_m_cell_precomputed(
     single_random_basis: list[int],
     selected_clregs_sorted: list[int],
     random_basis_obj: ShadowRandomBasis,
-    use_projecter: bool = False,
+    use_projector: bool = False,
 ) -> npt.NDArray[np.complex128]:
     r""":math:`\rho_{m}` calculation from single counts with pre-computed.
 
@@ -109,7 +109,7 @@ def rho_m_cell_precomputed(
 
     where :math:`N_M` is the number of shots.
     
-    When :attr:`use_projecter` is set to True,
+    When :attr:`use_projector` is set to True,
     it will give the results :math:`P_m` using the projecter :math:`P_{mk}^{i}`
     instead of the precomputed :math:`\rho_{mk}^{i}` matrix.
     which is calculated by the following equation,
@@ -129,7 +129,7 @@ def rho_m_cell_precomputed(
         random_basis_obj (ShadowRandomBasis):
             The :class:`~.ShadowRandomBasis` object.
             Provides the precomputed :math:`\rho_{mk}^{i}` and projecter :math:`P_{mk}^{i}`.
-        use_projecter (bool):
+        use_projector (bool):
             Whether to use the projecter :math:`P_{mk}^{i}`
             instead of the precomputed :math:`\rho_{mk}^{i}`.
             Default is False, which means using the precomputed :math:`\rho_{mk}^{i}`.
@@ -137,7 +137,7 @@ def rho_m_cell_precomputed(
             The backend to use for the calculation.
 
     Returns:
-        The :math:`\rho_{m}` or :math:`P_m` depending on the value of :attr:`use_projecter`.
+        The :math:`\rho_{m}` or :math:`P_m` depending on the value of :attr:`use_projector`.
     """
 
     n_qubits = len(selected_clregs_sorted)
@@ -151,7 +151,7 @@ def rho_m_cell_precomputed(
 
     # unit_m_k_i = (
     #     random_basis_obj.basis_projecters
-    #     if use_projecter
+    #     if use_projector
     #     else random_basis_obj.basis_precomputed_rho_m_k_i
     # )
 
@@ -171,7 +171,7 @@ def rho_m_cell_precomputed(
 
     unit_array = (
         random_basis_obj.basis_projecters_array
-        if use_projecter
+        if use_projector
         else random_basis_obj.basis_precomputed_rho_m_k_i_array
     )
     # unit_array: (3, 2, 2, 2) — [direction, bit_int, row, col]

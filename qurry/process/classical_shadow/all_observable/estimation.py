@@ -83,7 +83,7 @@ def estimation_of_given_operators(
     # other config
     rho_method: RhoMethodType = DEFAULT_RHO_METHOD,
     shadow_basis: ShadowBasisType = DEFAULT_SHADOW_BASIS,
-    use_projecter: bool = False,
+    use_projector: bool = False,
     estimate_trace_method: ListTraceMethodType = DEFAULT_LIST_TRACE_METHOD,
     pbar: tqdm.tqdm | None = None,
 ) -> tuple[ClassicalShadowBasic, EstimationOfObservable]:
@@ -174,7 +174,7 @@ def estimation_of_given_operators(
             - `H_H-Sdg_I`:
                 Uses :math:`H`, :math:`H` followed by :math:`S^\dagger`,
                 and Identity gates.
-        use_projecter (bool):
+        use_projector (bool):
             Use the projecter :math:`P_m` instead of the precomputed :math:`\rho_m`.
             Refer to
             :func:`qurry.process.classical_shadow.rho_process.rho_m_cell.rho_m_cell_precomputed`
@@ -203,7 +203,7 @@ def estimation_of_given_operators(
         selected_classical_registers=selected_classical_registers,
         rho_method=rho_method,
         shadow_basis=shadow_basis,
-        use_projecter=use_projecter,
+        use_projector=use_projector,
         pbar=pbar,
     )
     cs_estimation_obj = inner_estimation_of_given_operators(
