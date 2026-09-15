@@ -78,8 +78,10 @@ manylinux-x86_64-image = "manylinux_2_28"
 manylinux-aarch64-image = "manylinux_2_28"
 build = ["cp3??-*"]
 skip = [
-    "pp*",           # Qiskit and Qurrium are not pure python packages, See https://github.com/qurrium/qurry/issues/93#issuecomment-1801837481
-    "*-musllinux_*", # Qiskit did not support musllinux for it lacks some dependencies for mathematical operations.
+    "pp*",            # Qiskit and Qurrium are not pure python packages, See https://github.com/qurrium/qurry/issues/93#issuecomment-1801837481
+    "*-musllinux_*",  # Qiskit did not support musllinux for it lacks some dependencies for mathematical operations.
+    "cp314-*_i686",   # Python 3.14 is deprecated for 32-bit systems.
+    "cp314-*aarch64", # Qiskit Aer is not yet published for Python 3.14 Aarch64, See https://github.com/Qiskit/qiskit-aer/issues/2419.
 ]
 test-skip = [
     "*win32",
